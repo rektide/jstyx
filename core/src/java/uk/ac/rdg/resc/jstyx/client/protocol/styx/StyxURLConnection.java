@@ -50,8 +50,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:25  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:47:06  jonblower
+ * Added connect() in response to change to StyxConnection
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:25  jonblower
+ * Initial import
  *
  */
 public class StyxURLConnection extends URLConnection
@@ -73,6 +76,7 @@ public class StyxURLConnection extends URLConnection
             // TODO: does getUserInfo() include password information?
             String user = this.url.getUserInfo() == null ? "" : this.url.getUserInfo();
             conn = new StyxConnection(this.url.getHost(), this.url.getPort(), user);
+            conn.connect();
             this.file = new CStyxFile(conn, this.url.getPath());
             // TODO: check that the file exists here?
         }
