@@ -43,8 +43,7 @@ public class MinaServer
         acceptor.addFilter( 99, protocolThreadPoolFilter );
         
         // Bind
-        acceptor.bind( new InetSocketAddress( PORT ),
-            new StyxProtocolProvider() );
+        acceptor.bind( new InetSocketAddress( PORT ), new StyxProtocolProvider() );
         
         System.out.println( "Listening on port " + PORT );
     }
