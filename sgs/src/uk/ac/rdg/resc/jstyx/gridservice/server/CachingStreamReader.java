@@ -39,7 +39,7 @@ import java.util.Iterator;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
-import uk.ac.rdg.resc.jstyx.server.StyxServerSessionListener;
+import uk.ac.rdg.resc.jstyx.server.StyxServerProtocolHandler;
 import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -58,6 +58,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/11 09:07:15  jonblower
+ * Changes related to switch from Netty to MINA
+ *
  * Revision 1.1  2005/02/16 19:22:31  jonblower
  * Commit adding of SGS files to CVS
  *
@@ -228,7 +231,7 @@ class CachingStreamReader extends StyxFile
                         {
                             // An error has occurred so the data will never
                             // arrive.
-                            StyxServerSessionListener.reply(dr.client.getSession(),
+                            StyxServerProtocolHandler.reply(dr.client.getSession(),
                                 rGlobErrMsg, dr.tag);
                             return true;
                         }
@@ -267,7 +270,7 @@ class CachingStreamReader extends StyxFile
                 // the readFile() method
                 RerrorMessage rErrMsg = new RerrorMessage("error reading from stream: " +
                     ioe.getMessage());
-                StyxServerSessionListener.reply(dr.client.getSession(), rErrMsg, dr.tag);
+                StyxServerProtocolHandler.reply(dr.client.getSession(), rErrMsg, dr.tag);
                 return true; // We have processed the message
             }
         }
