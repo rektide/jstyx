@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/03/07 08:29:18  jonblower
+ * Minor changes (better handling of path building)
+ *
  * Revision 1.6  2005/02/28 11:43:36  jonblower
  * Tidied up logging code
  *
@@ -164,7 +167,7 @@ public class CStyxFile extends MessageCallback
      */
     private CStyxFile(StyxConnection conn, String basePath, DirEntry dirEntry)
     {
-        this(conn, basePath + "/" + dirEntry.getFileName());
+        this(conn, basePath + (basePath.endsWith("/") ? "" : "/") + dirEntry.getFileName());
         this.dirEntry = dirEntry;
     }
     
@@ -483,8 +486,8 @@ public class CStyxFile extends MessageCallback
         {
             // TODO Should we still throw this exception if the file is open with
             // the same mode as the mode that's requested?
-            throw new IllegalStateException("File is already open; close the "
-                + "file before re-opening it");
+            throw new IllegalStateException("File " + this.getPath() + 
+                " is already open; close the file before re-opening it");
         }
         if (this.openFid < 0)
         {
@@ -1065,7 +1068,13 @@ public class CStyxFile extends MessageCallback
      */
     public CStyxFile getFile(String path)
     {
-        return new CStyxFile(this.conn, this.getPath() + "/" + path);
+        StringBuffer fullPath = new StringBuffer(this.getPath());
+        if (!this.getPath().endsWith("/"))
+        {
+            fullPath.append("/");
+        }
+        fullPath.append(path);
+        return new CStyxFile(this.conn, fullPath.toString());
     }
     
     /**
