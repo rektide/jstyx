@@ -71,6 +71,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/03/16 17:55:52  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.7  2005/03/15 15:51:37  jonblower
  * Removed hard limit on maximum message size
  *
@@ -694,10 +697,10 @@ public class StyxConnection implements ProtocolHandler
      * @param str The new file contents
      * @throws StyxException if there was an error opening or writing to the file
      */
-    public void setContents(String path, String str) throws StyxException
+    /*public void setContents(String path, String str) throws StyxException
     {
         new CStyxFile(this, path).setContents(str);
-    }
+    }*/
     
     /**
      * Adds a StyxConnectionListener to this connection. The methods of the

@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/16 17:56:22  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.2  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -71,8 +74,7 @@ class StyxMessageEncoder implements ProtocolEncoder
             throw new ProtocolViolationException("message was not a StyxMessage");
         }
         StyxMessage styxMsg = (StyxMessage)message;
-        // Encode the message contents as bytes in the underlying ByteBuffer
-        styxMsg.encode();
-        out.write(styxMsg.getBuffer());
+        // Write the StyxMessage to the output
+        styxMsg.write(out);
     }
 }

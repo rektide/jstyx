@@ -30,7 +30,8 @@ package uk.ac.rdg.resc.jstyx.client;
 
 import java.io.InputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+
+import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 
@@ -44,8 +45,11 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:19  jonblower
- * Initial revision
+ * Revision 1.2  2005/03/16 17:55:53  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:19  jonblower
+ * Initial import
  *
  */
 public class StyxFileInputStream extends InputStream

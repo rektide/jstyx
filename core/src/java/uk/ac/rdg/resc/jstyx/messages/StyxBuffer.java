@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import java.nio.ByteBuffer;
+import org.apache.mina.common.ByteBuffer;
 import java.nio.ByteOrder;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/16 17:56:22  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.2  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -68,7 +71,7 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
 public class StyxBuffer
 {
     
-    private ByteBuffer buf;  // The underlying java.nio.ByteBuffer
+    private ByteBuffer buf;  // The underlying org.apache.mina.common.ByteBuffer
     
     /** 
      * Creates a new instance of StyxBuffer
@@ -318,8 +321,9 @@ public class StyxBuffer
     }
     
     /**
-     * Gets a chunk of data from the buffer.
-     * @param size the number of bytes to get (should actually be an int?)
+     * Gets a chunk of data from the buffer. After calling this method
+     * successfully, the position of the buffer will be increased by <code>size</code>.
+     * @param size the number of bytes to get
      * @return A new byte array containing a <i>copy</i> of the data in this buffer
      * @throws IllegalArgumentException if there aren't enough bytes left in the buffer
      */
@@ -339,6 +343,12 @@ public class StyxBuffer
     public StyxBuffer put(byte[] bytes)
     {
         this.buf.put(bytes);
+        return this;
+    }
+    
+    public StyxBuffer put(byte[] bytes, int offset, int length)
+    {
+        this.buf.put(bytes, offset, length);
         return this;
     }
     

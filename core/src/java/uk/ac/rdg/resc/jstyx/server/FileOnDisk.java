@@ -32,9 +32,9 @@ import java.io.File;
 import java.io.RandomAccessFile;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+
+import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.types.ULong;
@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/16 17:56:23  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.2  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -133,7 +136,7 @@ public class FileOnDisk extends StyxFile
         throws StyxException
     {
         this.checkChannel();
-        ByteBuffer buf = ByteBuffer.allocate((int)count);
+        java.nio.ByteBuffer buf = java.nio.ByteBuffer.allocate((int)count);
         int numRead = 0;
         try
         {
@@ -148,7 +151,7 @@ public class FileOnDisk extends StyxFile
         if (numRead < 1)
         {
             // offset is past the end of the file
-            this.replyRead(client, ByteBuffer.allocate(0), tag);
+            this.replyRead(client, new byte[0], tag);
         }
         else
         {
@@ -165,7 +168,7 @@ public class FileOnDisk extends StyxFile
         try
         {
             data.limit((int)count);
-            int nWritten = this.chan.write(data, offset);
+            int nWritten = this.chan.write(data.buf(), offset);
             if (truncate)
             {
                 this.chan.truncate(offset + nWritten);

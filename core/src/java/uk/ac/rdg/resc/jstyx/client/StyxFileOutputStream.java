@@ -30,7 +30,6 @@ package uk.ac.rdg.resc.jstyx.client;
 
 import java.io.OutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
@@ -42,15 +41,19 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:19  jonblower
- * Initial revision
+ * Revision 1.2  2005/03/16 17:55:53  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:19  jonblower
+ * Initial import
  *
  */
 public class StyxFileOutputStream extends OutputStream
 {
     
     private CStyxFile file; // The file to which we are writing
-    private ByteBuffer buf; // Buffer for storing the results of the last read
+    private byte[] buf;     // Buffer for storing the results of the last write
+    private int pos;        // Current position in the buffer
     private long offset;    // The current position in the file
     
     /**
@@ -62,7 +65,8 @@ public class StyxFileOutputStream extends OutputStream
     {
         this.file = file;
         this.file.open(StyxUtils.OWRITE);
-        this.buf = ByteBuffer.allocate((int)this.file.getIOUnit());
+        this.buf = new byte[(int)this.file.getIOUnit()];
+        this.pos = 0;
         this.offset = 0;
     }
     
@@ -74,9 +78,10 @@ public class StyxFileOutputStream extends OutputStream
     public synchronized void write(int b) throws IOException
     {
         // Put the byte in the output buffer
-        this.buf.put((byte)b);
+        this.buf[this.pos] = (byte)b;
+        this.pos++;
         // If the buffer is full, flush it (i.e. write the data to the output file)
-        if (!this.buf.hasRemaining())
+        if (this.pos >= this.buf.length)
         {
             this.flush();
         }
@@ -89,7 +94,6 @@ public class StyxFileOutputStream extends OutputStream
     public synchronized void flush() throws IOException
     {
         // Write the contents of the buffer to the file
-        this.buf.flip();
         try
         {
             this.file.write(this.buf, this.offset);
@@ -98,9 +102,8 @@ public class StyxFileOutputStream extends OutputStream
         {
             throw new IOException(se.getMessage());
         }
-        // Reset the buffer's position and limit
-        this.buf.position(0);
-        this.buf.limit(this.buf.capacity());
+        // Reset the pointer position
+        this.pos = 0;
     }
     
     /**

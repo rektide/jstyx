@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.jstyx.messages;
 
 import org.apache.mina.common.ByteBuffer;
 import org.apache.mina.protocol.ProtocolViolationException;
+import org.apache.mina.protocol.ProtocolEncoderOutput;
 
 import org.apache.log4j.Logger;
 
@@ -42,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/03/16 17:56:22  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.6  2005/03/15 16:56:19  jonblower
  * Changed to allow re-use of ByteBuffers once message is finished with
  *
@@ -73,8 +77,8 @@ public abstract class StyxMessage
     protected short type;    // The type of the StyxMessage
     protected int tag;     // The tag of the StyxMessage
     protected String name; // The name of the message (e.g. "Tversion")
-    private ByteBuffer buf; // Contains the bytes of the body of the
-                            // StyxMessage (i.e. not the header)
+    protected ByteBuffer buf; // Contains the bytes of the body of the
+                              // StyxMessage (i.e. not the header)
     private int bytesRead;  // The number of bytes we have read into the buffer
     
     /**
@@ -234,7 +238,7 @@ public abstract class StyxMessage
      */
     private void decode() throws ProtocolViolationException
     {
-        StyxBuffer styxBuf = new StyxBuffer(this.buf.buf());
+        StyxBuffer styxBuf = new StyxBuffer(this.buf);
         this.decodeBody(styxBuf);
     }
     
@@ -251,6 +255,17 @@ public abstract class StyxMessage
         throws ProtocolViolationException;
     
     /**
+     * Called by StyxMessageEncoder to send a message to the output
+     */
+    public void write(ProtocolEncoderOutput out) throws ProtocolViolationException
+    {
+        // Encode this message into a ByteBuffer
+        this.encode();
+        // Write this ByteBuffer
+        out.write(this.buf);
+    }
+    
+    /**
      * Called by StyxMessageEncoder when we are about to send a message. Creates
      * the underlying ByteBuffer, wraps it as a StyxBuffer, writes the header
      * information, calls encodeBody() to write the body information, then 
@@ -264,7 +279,7 @@ public abstract class StyxMessage
         this.buf = ByteBuffer.allocate(this.length);
         // Wrap the buffer as a StyxBuffer to make it easy to write Styx
         // primitives
-        StyxBuffer styxBuf = new StyxBuffer(this.buf.buf());
+        StyxBuffer styxBuf = new StyxBuffer(this.buf);
         styxBuf.putUInt(this.length).putUByte(this.type).putUShort(this.tag);
         this.encodeBody(styxBuf);
         this.buf.flip();
@@ -334,6 +349,11 @@ public abstract class StyxMessage
     public static StyxMessage createStyxMessage(int length, short type, int tag)
         throws ProtocolViolationException
     {
+        if (log.isDebugEnabled())
+        {
+            log.debug("Creating StyxMessage(length = " + length + ", type = "
+                + type + ", tag = " + tag + ")");
+        }
         if (type == 100)
         {
             return new TversionMessage(length, type, tag);

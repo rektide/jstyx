@@ -28,9 +28,10 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import java.nio.ByteBuffer;
+import org.apache.mina.common.ByteBuffer;
 
 import org.apache.mina.protocol.ProtocolViolationException;
+import org.apache.mina.protocol.ProtocolEncoderOutput;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.types.ULong;
@@ -43,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/16 17:56:22  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.4  2005/03/15 09:01:48  jonblower
  * Message type now stored as short, not int
  *
@@ -68,7 +72,21 @@ public class TwriteMessage extends StyxMessage
     private long fid;     // The fid to write data to
     private ULong offset; // The offset in the file to which to write data
     private int count;   // The number of bytes to write to the file
-    private ByteBuffer data;  // Buffer containing the data to write to the file
+    
+    private ByteBuffer data; // Buffer containing the data to write to the file.
+                             // This is only used if we have decoded this message
+                             // from bytes that have been read over the network
+                             // (i.e. only used by server programs)
+    private int dataPos;     // Stores the location of the first byte of payload
+                             // data in the ByteBuffer
+    
+    private byte[] bytes; // The raw data bytes (only used if we have constructed
+                          // this Tmessage from scratch before sending it).  It is
+                          // not used if this message is decoded from bytes that
+                          // have been read over the network. I.e. this is only
+                          // used by client programs.
+    private int pos;      // If the byte array is filled, this is the index of
+                          // the first byte in the array to write
     
     /** 
      * Creates a new TwriteMessage. This constructor will be called by the
@@ -81,24 +99,32 @@ public class TwriteMessage extends StyxMessage
     {
         super(length, type, tag);
         this.name = "Twrite";
+        this.bytes = null;
     }
     
-    public TwriteMessage(long fid, ULong offset, int count, ByteBuffer data)
+    /**
+     * Creates a new TwriteMessage that will write the given bytes to the 
+     * file described by the given fid at the given offset. N.B. this will
+     * use all of the bytes in the given array.
+     */
+    public TwriteMessage(long fid, ULong offset, byte[] bytes)
+    {
+        this(fid, offset, bytes, 0, bytes.length);
+    }
+    
+    /**
+     * Creates a new TwriteMessage that will write the given bytes to the 
+     * file described by the given fid at the given offset.
+     */
+    public TwriteMessage(long fid, ULong offset, byte[] bytes, int pos, int count)
     {
         this(0, (short)118, 0); // The tag and length will be set later
         this.fid = fid;
         this.offset = offset;
+        this.bytes = bytes; // We don't create a ByteBuffer for these bytes
+        this.pos = pos;
         this.count = count;
-        this.data = data;
         this.length = StyxUtils.HEADER_LENGTH + 4 + 8 + 4 + this.count;
-    }
-    
-    /**
-     * This will write all the remaining bytes in the buffer to the file
-     */
-    public TwriteMessage(long fid, ULong offset, ByteBuffer data)
-    {
-        this(fid, offset, data.remaining(), data);
     }
     
     /**
@@ -117,12 +143,93 @@ public class TwriteMessage extends StyxMessage
                 "cannot be less than 0 or greater than Integer.MAX_VALUE bytes");
         }
         this.count = (int)n; // We know this cast must be safe
-        this.data = ByteBuffer.wrap(buf.getData(this.count));
+        
+        if (buf.remaining() == this.count)
+        {
+            // The buffer contains the payload bytes and no more. We can simply
+            // keep a reference to this buffer instead of copying it. This happens
+            // frequently in practice, so this could be a significant efficiency
+            
+            // Increment the reference count for the underlying ByteBuffer, so that
+            // it is not reused prematurely.
+            buf.getBuffer().acquire();
+            this.data = buf.getBuffer();
+            
+            // Remember the position of this buffer
+            this.dataPos = this.data.position();
+        
+            // We need to set the position of the input buffer to its limit to make
+            // sure that we don't keep reading from this buffer. We'll set the position
+            // to zero when we get the buffer using getData();
+            this.data.position(this.data.limit());
+        }
+        else
+        {
+            // We need to copy the data in this buffer.
+            this.data = ByteBuffer.allocate(this.count);
+            byte[] b = buf.getData(this.count);
+            this.data.put(b);
+            this.dataPos = 0;
+        }
     }
     
+    /**
+     * Called by StyxMessageEncoder to send a message to the output. We need to 
+     * override StyxMessage's default implementation because we may already have
+     * the payload data as a ByteBuffer (for example, if we are forwarding a
+     * message in the StyxInterloper).  Note that, after calling this method,
+     * the data in the ByteBuffer are no longer valid (so calling this.getData()
+     * might not return valid data).
+     */
+    public void write(ProtocolEncoderOutput out) throws ProtocolViolationException
+    {
+        if (this.data == null)
+        {
+            // We need to write all the data to the ByteBuffer, so just do 
+            // what we would normally do
+            super.write(out);
+        }
+        else
+        {
+            // We already have the bulk of the data in a ByteBuffer, so we don't
+            // need to copy it to a new one.
+            ByteBuffer payload = this.getData();
+            
+            // Allocate a buffer for everything but the payload
+            this.buf = ByteBuffer.allocate(this.length - payload.remaining());
+            // Wrap as a StyxBuffer
+            StyxBuffer styxBuf = new StyxBuffer(this.buf);
+            // Encode everything but the payload, then flip the buffer
+            styxBuf.putUInt(this.length).putUByte(this.type).putUShort(this.tag);
+            styxBuf.putUInt(this.fid).putULong(this.offset).putUInt(this.count);
+            this.buf.flip();
+            
+            // Write everything but the payload
+            out.write(this.buf);
+            // Now write the payload; this releases the buffer so subsequent
+            // calls to getData() will not return valid results
+            out.write(payload);
+        }
+    }
+    
+    /**
+     * Writes the message into the given StyxBuffer. This method should only be
+     * called by client programs, i.e. those that have created the TwriteMessage
+     * "from scratch" from a byte array. Otherwise, this will throw an 
+     * IllegalStateException
+     */
     protected final void encodeBody(StyxBuffer buf)
     {
-        buf.putUInt(this.fid).putULong(this.offset).putUInt(this.count).putData(this.data, this.count);
+        buf.putUInt(this.fid).putULong(this.offset).putUInt(this.count);
+        if (this.bytes != null)
+        {
+            buf.put(this.bytes, this.pos, this.count);
+        }
+        else
+        {
+            // If this.data were non-null, we wouldn't have called this method.
+            throw new IllegalStateException("This RreadMessage contains no data");
+        }
     }
     
     public long getFid()
@@ -140,8 +247,28 @@ public class TwriteMessage extends StyxMessage
         return this.count;
     }
     
+    /**
+     * @return the data contained in this message (i.e. the message payload).
+     * The position and limit of the ByteBuffer will be set correctly, but
+     * please note that the position will probably not be zero!  This ByteBuffer
+     * might actually contain all the raw data for the TwriteMessage. When you have
+     * finished with the data, call buf.release() to return the buffer to the
+     * pool.  After releasing the buffer, calling this method will have undefined
+     * consequences (the data returned might not be the data we expect
+     * because the buffer might have been reused).
+     *
+     * This method should only be called by servers (i.e. programs that 
+     * interpret TwriteMessages that arrive over the network).  If the 
+     * TwriteMessage has been created "from scratch" using a byte array, this 
+     * method will throw an IllegalStateException.
+     */
     public ByteBuffer getData()
     {
+        if (this.data == null)
+        {
+            throw new IllegalStateException("Data buffer is null");
+        }
+        this.data.position(this.dataPos);
         return this.data;
     }
     
@@ -149,14 +276,35 @@ public class TwriteMessage extends StyxMessage
     {
         StringBuffer s = new StringBuffer(", " + this.fid + ", " + this.offset +
             ", " + this.count + ", ");
-        s.append(StyxUtils.getDataSummary(30, this.data));
+        if (this.data == null)
+        {
+            s.append(StyxUtils.getDataSummary(30, this.bytes));
+        }
+        else
+        {
+            s.append(StyxUtils.getDataSummary(30, this.data));
+        }
         return s.toString();
     }
     
     public String toFriendlyString()
     {
-        return "fid: " + this.fid + ", offset: " + this.offset + ", count: "
-            + this.count + ", " + StyxUtils.getDataSummary(30, this.data);
+        StringBuffer s = new StringBuffer("fid: ");
+        s.append(this.fid);
+        s.append(", offset: ");
+        s.append(this.offset);
+        s.append(", count: ");
+        s.append(this.count);
+        s.append(", ");
+        if (this.data == null)
+        {
+            StyxUtils.getDataSummary(30, this.bytes);
+        }
+        else
+        {
+            StyxUtils.getDataSummary(30, this.data);
+        }
+        return s.toString();
     }
     
 }

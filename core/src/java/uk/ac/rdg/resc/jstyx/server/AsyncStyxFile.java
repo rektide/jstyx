@@ -28,7 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
-import java.nio.ByteBuffer;
+import org.apache.mina.common.ByteBuffer;
+
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.Enumeration;
@@ -48,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/16 17:56:23  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.2  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *

@@ -28,7 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
-import java.nio.ByteBuffer;
+import org.apache.mina.common.ByteBuffer;
+
 import java.util.Vector;
 import java.util.Iterator;
 
@@ -46,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/16 17:56:24  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.3  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -142,6 +146,7 @@ public class StyxDirectory extends StyxFile
             throw new StyxException("Invalid offset when reading directory");
         }
 
+        // We create the bytes to return in a ByteBuffer for convenience
         ByteBuffer buf = ByteBuffer.allocate((int)count);
         StyxBuffer styxBuf = new StyxBuffer(buf);
         StyxFile sf;
@@ -168,7 +173,14 @@ public class StyxDirectory extends StyxFile
         // next child file to include in the next message
         client.setOffset(offset + buf.limit());
         client.setNextFileToRead(nextFile);
-        this.replyRead(client, buf, tag);
+        
+        // Get the bytes from the buffer
+        byte[] bytes = new byte[buf.remaining()];
+        buf.get(bytes);
+        // Free the buffer so that it can be reused
+        buf.release();
+        
+        this.replyRead(client, bytes, tag);
     }
     
     /**

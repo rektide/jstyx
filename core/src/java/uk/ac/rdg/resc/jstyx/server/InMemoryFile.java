@@ -28,8 +28,9 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
-import java.nio.ByteBuffer;
 import java.util.Date;
+
+import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -43,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/16 17:56:23  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.3  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -98,12 +102,10 @@ public class InMemoryFile extends StyxFile
             (int)count : strBytes.length - (int)offset;
         if (numBytesToReturn < 1)
         {
-            this.replyRead(client, ByteBuffer.allocate(0), tag);
+            this.replyRead(client, new byte[0], tag);
             return;
         }
-        byte[] bytesToReturn = new byte[numBytesToReturn];
-        System.arraycopy(strBytes, (int)offset, bytesToReturn, 0, numBytesToReturn);
-        this.replyRead(client, ByteBuffer.wrap(bytesToReturn), tag);
+        this.replyRead(client, strBytes, 0, numBytesToReturn, tag);
     }
     
     public synchronized void write(StyxFileClient client, long offset,
@@ -115,24 +117,13 @@ public class InMemoryFile extends StyxFile
         {
             throw new StyxException("offset is greater than the current data length");
         }
-        // TODO: check the "count" parameter
-        byte[] bytes;
-        if (data.hasArray())
-        {
-            bytes = data.array();
-        }
-        else
-        {
-            // this buffer has no backing array. We'll have to copy the bytes
-            // out "manually"
-            int numBytes = (data.remaining() > (int)count) ? (int)count : 
-                data.remaining();
-            bytes = new byte[numBytes];
-            for (int i = 0; i < bytes.length; i++)
-            {
-                bytes[i] = data.get();
-            }
-        }
+        // this buffer has no backing array. We'll have to copy the bytes
+        // out "manually"
+        int numBytes = (data.remaining() > (int)count) ? (int)count : 
+            data.remaining();
+        byte[] bytes = new byte[numBytes];
+        data.get(bytes);
+        
         // add the new data to the current data at the correct offset
         this.data = this.data.substring(0, (int)offset) + StyxUtils.utf8ToString(bytes);
         this.replyWrite(client, bytes.length, tag);

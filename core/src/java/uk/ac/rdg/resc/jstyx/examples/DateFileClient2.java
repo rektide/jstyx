@@ -28,7 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.examples;
 
-import java.nio.ByteBuffer;
+import org.apache.mina.common.ByteBuffer;
+
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -40,6 +41,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/16 17:55:53  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.1  2005/03/02 09:19:30  jonblower
  * Initial import of DateFileClient code
  *

@@ -29,8 +29,8 @@
 package uk.ac.rdg.resc.jstyx.server;
 
 import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.common.ByteBuffer;
 
-import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.Vector;
 import java.util.Enumeration;
@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/16 17:56:24  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.3  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -597,16 +600,63 @@ public abstract class StyxFile
     }
     
     /**
-     * Method to reply to a Read message. This must be called by all subclasses
-     * when sending data back to the client in response to a read request.
-     * @param session The connection on which the reply will be sent
-     * @param buf The data to include in the message. The position and limit
-     * of this buffer should be set appropriately; all data between the position
-     * and the limit will be sent (often this is done by calling flip() on the 
-     * buffer)
+     * Method to reply to a Read message. One of the replyRead() methods
+     * must be called by all subclasses when sending data back to the client in
+     * response to a read request.
+     * @param client The connection on which the reply will be sent
+     * @param bytes The data to include in the message. All the data in this 
+     * array will be written
      * @param tag The tag to be attached to the message
      */
-    protected void replyRead(StyxFileClient client, ByteBuffer buf, int tag)
+    protected void replyRead(StyxFileClient client, byte[] bytes, int tag)
+    {
+        this.replyRead(client, bytes, 0, bytes.length, tag);
+    }
+    
+    /**
+     * Method to reply to a Read message. One of the replyRead() methods
+     * must be called by all subclasses when sending data back to the client in
+     * response to a read request. Leaves the position of the input ByteBuffer
+     * unchanged.
+     * @param client The connection on which the reply will be sent
+     * @param buf a java.nio.ByteBuffer containing the data to write to the file.
+     * All the remaining data in the buffer will be sent back to the client.
+     * @param tag The tag to be attached to the message
+     */
+    protected void replyRead(StyxFileClient client, java.nio.ByteBuffer buf, int tag)
+    {
+        byte[] bytes;
+        if (buf.hasArray())
+        {
+            // We can just use the backing array for this buffer
+            bytes = buf.array();
+            // Write the right number of bytes from the right position in the array
+            this.replyRead(client, bytes, buf.position(),
+                buf.limit() - buf.position(), tag);
+        }
+        else
+        {
+            // We must copy the data from the array
+            int oldPos = buf.position();
+            bytes = new byte[buf.remaining()];
+            buf.get(bytes);
+            buf.position(oldPos);
+            this.replyRead(client, bytes, tag);
+        }
+    }
+    
+    /**
+     * Method to reply to a Read message. One of the replyRead() methods
+     * must be called by all subclasses when sending data back to the client in
+     * response to a read request.
+     * @param client The connection on which the reply will be sent
+     * @param bytes The data to include in the message.
+     * @param pos The index of the first byte in the array to be written
+     * @param count The number of bytes in the array to write
+     * @param tag The tag to be attached to the message
+     */
+    protected void replyRead(StyxFileClient client, byte[] bytes, int pos,
+        int count, int tag)
     {
         ProtocolSession session = client.getSession();
         StyxSessionState sessionState = (StyxSessionState)session.getAttachment();
@@ -616,7 +666,7 @@ public abstract class StyxFile
             if (sessionState.tagInUse(tag))
             {
                 this.setLastAccessTime(StyxUtils.now());
-                RreadMessage rReadMsg = new RreadMessage(buf);
+                RreadMessage rReadMsg = new RreadMessage(bytes);
                 rReadMsg.setTag(tag);
                 session.write(rReadMsg);
                 sessionState.releaseTag(tag);

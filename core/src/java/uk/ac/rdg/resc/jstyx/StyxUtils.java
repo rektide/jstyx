@@ -28,9 +28,10 @@
 
 package uk.ac.rdg.resc.jstyx;
 
+import org.apache.mina.common.ByteBuffer;
+
 import java.io.UnsupportedEncodingException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 /**
@@ -39,6 +40,9 @@ import java.nio.charset.Charset;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/16 17:55:46  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.5  2005/03/15 15:52:17  jonblower
  * Added constant for maximum allowable message size
  *
@@ -161,34 +165,25 @@ public class StyxUtils
      */
     public static String dataToString(ByteBuffer buf)
     {
-        if (buf.hasArray())
+        // MINA's ByteBuffers do not have a backing array (they are all created
+        // with allocateDirect), so we have to extract the bytes ourselves
+        byte[] bytes;
+        synchronized (buf)
         {
-            // We can get the bytes out of the buffer without having to make a copy
-            return utf8ToString(buf.array(), buf.position(), buf.remaining());
-        }
-        else
-        {
-            // Buffer does not have a backing array, so we have to extract the
-            // bytes ourselves
-            byte[] bytes;
-            synchronized (buf)
-            {
-                // Remember the original position of the buffer
-                int pos = buf.position();
-                bytes = new byte[buf.remaining()];
-                buf.get(bytes);
-                // Reset the original position of the buffer
-                buf.position(pos);
-            }            
-            return utf8ToString(bytes);
-        }
+            // Remember the original position of the buffer
+            int pos = buf.position();
+            bytes = new byte[buf.remaining()];
+            buf.get(bytes);
+            // Reset the original position of the buffer
+            buf.position(pos);
+        }            
+        return utf8ToString(bytes);
     }
     
-    
-    
     /**
-     * @return the first n bytes of the data in the given bufferas a String
-     * (in quotes), then the number of bytes remaining. Leaves the 
+     * @return the first n bytes of the data in the given buffer as a String
+     * (in quotes), then the number of bytes remaining. Leaves the position of
+     * the ByteBuffer unchanged.
      */
     public static String getDataSummary(int n, ByteBuffer data)
     {
@@ -202,10 +197,21 @@ public class StyxUtils
             // Reset the position of the data buffer
             data.position(data.position() - numBytes);
         }
+        return getDataSummary(bytes.length, bytes);
+    }
+    
+    /**
+     * @return the first n bytes of the data in the given byte array as a String
+     * (in quotes), then the number of bytes remaining. Leaves the 
+     */
+    public static String getDataSummary(int n, byte[] bytes)
+    {
+        StringBuffer s = new StringBuffer();
+        int bytesToWrite = bytes.length < n ? bytes.length : n;
         s.append("\"");
-        s.append(StyxUtils.utf8ToString(bytes));
+        s.append(StyxUtils.utf8ToString(bytes, 0, bytesToWrite));
         s.append("\"");
-        int moreBytes = data.remaining() - bytes.length;
+        int moreBytes = bytes.length - bytesToWrite;
         if (moreBytes > 0)
         {
             s.append(" (plus " + moreBytes + " more bytes)");

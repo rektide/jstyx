@@ -34,8 +34,6 @@ import org.apache.mina.protocol.ProtocolSession;
 
 import org.apache.log4j.Logger;
 
-import java.nio.ByteBuffer;
-
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
 
@@ -54,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/16 17:56:24  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.3  2005/03/15 15:51:41  jonblower
  * Removed hard limit on maximum message size
  *

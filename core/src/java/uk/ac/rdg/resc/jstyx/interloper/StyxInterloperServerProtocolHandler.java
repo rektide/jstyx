@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/16 17:55:53  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.3  2005/03/15 15:51:41  jonblower
  * Removed hard limit on maximum message size
  *
@@ -145,6 +148,10 @@ class StyxInterloperServerProtocolHandler implements ProtocolHandler
     
     public void exceptionCaught( ProtocolSession session, Throwable cause )
     {
+        if (log.isDebugEnabled())
+        {
+            cause.printStackTrace();
+        }
         log.error(cause.getMessage());
     }
     

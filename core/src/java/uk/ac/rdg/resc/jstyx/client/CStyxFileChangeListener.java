@@ -28,7 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.client;
 
-import java.nio.ByteBuffer;
+import org.apache.mina.common.ByteBuffer;
+
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
@@ -42,8 +43,11 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:18  jonblower
- * Initial revision
+ * Revision 1.2  2005/03/16 17:55:52  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:18  jonblower
+ * Initial import
  *
  */
 public interface CStyxFileChangeListener
@@ -62,6 +66,10 @@ public interface CStyxFileChangeListener
      * not have changed before this method is called.  It is up to clients to 
      * update the offset of the file if required (e.g.
      * <code>file.setOffset(offset + data.remaining())</code>).
+     *
+     * When you have finished with the data in the ByteBuffer,
+     * call release() on the buffer to ensure that the buffer can be re-used.
+     *
      * @param file The CStyxFile containing the data
      * @param offset The offset (i.e. file position) of the start of the new data
      * @param data The new data that has been read from the file

@@ -28,10 +28,11 @@
 
 package uk.ac.rdg.resc.jstyx.client;
 
-import java.nio.ByteBuffer;
 import java.util.Vector;
 import java.util.Iterator;
 import java.util.Date;
+
+import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -52,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/03/16 17:55:52  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.8  2005/03/11 13:58:25  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -680,8 +684,11 @@ public class CStyxFile extends MessageCallback
     /**
      * Reads a chunk of data from the file. Reads the maximum amount of data
      * allowed in a single message, starting at the given file offset.
-     * Does not update the current file offset. Blocks until the server replies with the
-     * data.
+     * Does not update the current file offset. Blocks until the server replies
+     * with the data.
+     *
+     * When you have finished with the data in the ByteBuffer that is returned,
+     * call release() on the buffer to ensure that the buffer can be re-used.
      */
     public ByteBuffer read(long offset) throws StyxException
     {
@@ -697,6 +704,9 @@ public class CStyxFile extends MessageCallback
      * Updates the current file offset. Blocks until the server replies with the
      * data. This is synchronized because it changes the state of the CStyxFile
      * (i.e. the file offset)
+     *
+     * When you have finished with the data in the ByteBuffer that is returned,
+     * call release() on the buffer to ensure that the buffer can be re-used.
      */
     public synchronized ByteBuffer read() throws StyxException
     {
@@ -782,7 +792,7 @@ public class CStyxFile extends MessageCallback
         byte[] bytes = StyxUtils.strToUTF8(str);
         // the writeAll() method will automatically take care of splitting the
         // input across multiple Styx messages if necessary
-        this.writeAll(ByteBuffer.wrap(bytes), 0);
+        this.writeAll(bytes, 0);
         // If this file wasn't open before we called this function, close it
         if (!wasOpen)
         {
@@ -792,54 +802,48 @@ public class CStyxFile extends MessageCallback
     
     /**
      * Writes a block of data to the file at the given offset. Will write the data
-     * in several separate messages if necessary. This method leaves the position
-     * and limit of the buffer unchanged.
+     * in several separate messages if necessary.
      * @throws StyxException if there is an error writing to the file
      */
-    public void writeAll(ByteBuffer buf, long offset) throws StyxException
+    public void writeAll(byte[] bytes, long offset) throws StyxException
     {
         // Store the original position of the buffer
-        int origPos = buf.position();
         long filePos = offset;
+        // The position in the byte array of the first byte to write
+        int pos = 0;
         do
         {
-            int bytesToWrite;
-            if (buf.remaining() <= this.ioUnit)
-            {
-                // This will complete the write operation
-                bytesToWrite = buf.remaining();
-            }
-            else
-            {
-                // We can only write a portion of the data
-                bytesToWrite = this.ioUnit;
-            }
-            int bytesWritten = (int)this.write(buf, filePos);
+            // Calculate the number of bytes still to be written
+            int bytesRemaining = bytes.length - pos;
+            
+            // Calculate the number of bytes that we can write in a single message
+            int bytesToWrite = (bytesRemaining < this.ioUnit) ? bytesRemaining : this.ioUnit;
+            
+            // Write the bytes to the file
+            int bytesWritten = (int)this.write(bytes, pos, bytesToWrite, filePos);
+            
+            // Update the pointers
+            pos += bytesWritten;
             filePos += bytesWritten;
             
-            // Set the new position of the buffer
-            buf.position(buf.position() + bytesWritten);
-            
-        } while (buf.hasRemaining());        
-        
-        // Restore the original position of the buffer
-        buf.position(origPos);
+        } while (pos < bytes.length);
     }
     
     /**
      * Writes a block of data to the file at the given offset. Cannot write more
      * than this.getIOUnit() bytes in a single message. Blocks until the write
      * confirmation arrives. Does not change the offset of the file
-     * @param buf The data to write.
+     * @param bytes The data to write.
+     * @param pos The index of the first data point in the byte array to write
+     * @param count The number of bytes from the input array to write
      * @param offset The position in the file at which to write the data
-     * @param count The number of bytes to write
      * @return The number of bytes written to the file
      * @throws StyxException if there is an error writing to the file
      */
-    public long write(ByteBuffer buf, long offset, int count) throws StyxException
+    public long write(byte[] bytes, int pos, int count, long offset) throws StyxException
     {
         StyxReplyCallback callback = new StyxReplyCallback();
-        this.writeAsync(buf, offset, count, callback);
+        this.writeAsync(bytes, pos, count, offset, callback);
         RwriteMessage rWriteMsg = (RwriteMessage)callback.getReply();
         return rWriteMsg.getNumBytesWritten();
     }
@@ -847,29 +851,28 @@ public class CStyxFile extends MessageCallback
     /**
      * Writes a block of data to the file at the given offset. Cannot write more
      * than this.getIOUnit() bytes in a single message. Blocks until the write
-     * confirmation arrives. Does not change the offset of the file.
-     * @param buf The data to write. Will attempt to write all the remaining
-     * data in the buffer.
+     * confirmation arrives. Does not change the offset of the file
+     * @param bytes The data to write. Will attempt to write all the data in this array.
      * @param offset The position in the file at which to write the data
      * @return The number of bytes written to the file
      * @throws StyxException if there is an error writing to the file
      */
-    public long write(ByteBuffer buf, long offset) throws StyxException
+    public long write(byte[] bytes, long offset) throws StyxException
     {
-        return this.write(buf, offset, buf.remaining());
+        return this.write(bytes, 0, bytes.length, offset);
     }
     
     /**
-     * Writes all the data in the given buffer to the file at the current
+     * Writes all the data in the given array to the file at the current
      * file position, updating the file position if successful. Blocks until
      * the operation is complete. This method is synchronized as it affects
      * the state of this CStyxFile (i.e. it updates the offset). Therefore users
      * of this method must beware of deadlock conditions.
      * @return the number of bytes that were written to the file
      */
-    public synchronized long write(ByteBuffer buf) throws StyxException
+    public synchronized long write(byte[] bytes) throws StyxException
     {
-        long bytesWritten = this.write(buf, this.offset, buf.remaining());
+        long bytesWritten = this.write(bytes, this.offset);
         // If we've got this far the write must have been successful
         this.offset += bytesWritten;
         return bytesWritten;
@@ -884,13 +887,14 @@ public class CStyxFile extends MessageCallback
      * Returns immediately; the callback's replyArrived() method will be called
      * when the reply arrives and the callback's error() method will be called
      * if an error occurs
-     * @param buf The buffer containing the data to write.
+     * @param bytes The array of bytes to write
+     * @param pos The position in the array of the first byte to write
+     * @param count The number of bytes from the byte array to write
      * @param offset The position in the file at which the data will be written
-     * @param count The number of bytes to write
      * @param callback The replyArrived() method of this callback object will be
      * called when the write confirmation arrives
      */
-    private void writeAsync(ByteBuffer buf, long offset, int count,
+    private void writeAsync(byte[] bytes, int pos, int count, long offset,
         MessageCallback callback)
     {
         if (this.mode < 0)
@@ -898,13 +902,14 @@ public class CStyxFile extends MessageCallback
             // If the file isn't open, open it for writing
             // If the file isn't open, we must open it for reading
             this.openAsync(StyxUtils.OWRITE,
-                new NestedMessageCallback(callback, new WriteContents(buf, offset, count))
+                new NestedMessageCallback(callback, new WriteContents(bytes, pos, count, offset))
             {
                 public void replyArrived(StyxMessage message)
                 {
                     // Retrieve the original parameters of the write message
                     WriteContents contents = (WriteContents)this.attachment;
-                    writeAsync(contents.buf, contents.offset, contents.count, this.nestedCallback);
+                    writeAsync(contents.bytes, contents.pos, contents.count, 
+                        contents.offset, this.nestedCallback);
                 }
             });
         }
@@ -917,15 +922,15 @@ public class CStyxFile extends MessageCallback
             {
                 callback.error("File isn't open for writing", -1);
             }
-            else if (count > this.ioUnit)
+            else if (bytes.length > this.ioUnit)
             {
                 callback.error("Cannot write more than " + this.ioUnit +
                     " bytes in a single message", -1);
             }
             else
             {
-                TwriteMessage tWriteMsg =
-                    new TwriteMessage(this.openFid, new ULong(offset), count, buf);
+                TwriteMessage tWriteMsg = new TwriteMessage(this.openFid,
+                    new ULong(offset), bytes, pos, count);
                 conn.sendAsync(tWriteMsg, callback);
             }
         }
@@ -937,16 +942,36 @@ public class CStyxFile extends MessageCallback
      * can fit in a single StyxMessage (i.e. more than this.getIOUnit()). This method
      * does not alter the offset of the file; to do this, call CStyxFile.addOffset()
      * when the Rwrite message arrives.
+     * Returns immediately; the callback's replyArrived() method will be called
+     * when the reply arrives and the callback's error() method will be called
+     * if an error occurs
+     * @param bytes The array of bytes to write. All the bytes in the array will
+     * be written
+     * @param offset The position in the file at which the data will be written
+     * @param callback The replyArrived() method of this callback object will be
+     * called when the write confirmation arrives
+     */
+    private void writeAsync(byte[] bytes, long offset, MessageCallback callback)
+    {
+        this.writeAsync(bytes, 0, bytes.length, offset, callback);
+    }
+    
+    /**
+     * Writes a chunk of data to the file at the given file offset. This method
+     * will throw a StyxException if we try to write more data than
+     * can fit in a single StyxMessage (i.e. more than this.getIOUnit()). This method
+     * does not alter the offset of the file; to do this, call CStyxFile.addOffset()
+     * when the Rwrite message arrives.
      * Returns immediately; the dataSent() method of any waiting change listeners
      * will be called when the write confirmation arrives, and the error() method
      * of any waiting change listeners will be called if an error occurs.
-     * @param buf The buffer containing the data to write. This will attempt to
-     * write all the data in the buffer
+     * @param bytes The byte array containing the data to write. This will attempt to
+     * write all the data in the array
      * @param offset The position in the file at which the data will be written
      */
-    public void writeAsync(ByteBuffer data, long offset)
+    public void writeAsync(byte[] bytes, long offset)
     {
-        this.writeAsync(data, offset, data.remaining(), this);
+        this.writeAsync(bytes, offset, this);
     }
     
     /**
@@ -955,20 +980,20 @@ public class CStyxFile extends MessageCallback
      * CStyxFileChangeListeners will be called. Will attempt to write all the
      * remaining data in the buffer.
      */
-    public void writeAsync(ByteBuffer data)
+    public void writeAsync(byte[] bytes)
     {
-        this.writeAsync(data, this.offset);
+        this.writeAsync(bytes, this.offset);
     }
     
     /**
-     * Writes a string to the file at the current offset. When the write
+     * Writes a string to the file at the current offset. Does not update the
+     * current file offset. When the write
      * confirmation arrives, the dataSent() method of any registered
-     * CStyxFileChangeListeners will be called. Will attempt to write all the
-     * remaining data in the buffer.
+     * CStyxFileChangeListeners will be called.
      */
     public void writeAsync(String str)
     {
-        this.writeAsync(ByteBuffer.wrap(StyxUtils.strToUTF8(str)), this.offset);
+        this.writeAsync(StyxUtils.strToUTF8(str), this.offset);
     }
     
     /**
@@ -976,14 +1001,16 @@ public class CStyxFile extends MessageCallback
      */
     private class WriteContents
     {
-        private ByteBuffer buf;
-        private long offset;
+        private byte[] bytes;
+        private int pos;
         private int count;
-        public WriteContents(ByteBuffer buf, long offset, int count)
+        private long offset;
+        public WriteContents(byte[] bytes, int pos, int count, long offset)
         {
-            this.buf = buf;
-            this.offset = offset;
+            this.bytes = bytes;
+            this.pos = pos;
             this.count = count;
+            this.offset = offset;
         }
     }
     
@@ -1134,6 +1161,8 @@ public class CStyxFile extends MessageCallback
                 // We've read everything from the directory
                 done = true;
             }
+            // We don't need the contents of the buffer anymore.
+            data.release();
         } while (!done);
         
         // Now we can close the directory

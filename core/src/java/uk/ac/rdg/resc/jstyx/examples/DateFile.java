@@ -29,7 +29,9 @@
 package uk.ac.rdg.resc.jstyx.examples;
 
 import java.util.Date;
-import java.nio.ByteBuffer;
+
+import org.apache.mina.common.ByteBuffer;
+
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.types.ULong;
@@ -46,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/16 17:55:53  jonblower
+ * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
+ *
  * Revision 1.1  2005/03/01 19:46:53  jonblower
  * Initial import of DateFile.java
  *
@@ -70,15 +75,18 @@ public class DateFile extends StyxFile
     {
         // Get the current date and time in String format
         String dateStr = new Date().toString();
+        
         // Convert the String to bytes in UTF-8 format
         byte[] dateBytes = StyxUtils.strToUTF8(dateStr);
+        int pos; // Index of first byte in dateBytes to return
+        int n; // Number of bytes in dateBytes to return
         
-        ByteBuffer buf;
         if ((int)offset >= dateBytes.length)
         {
             // If the client has requested bytes from an offset greater than the
             // length of the string, return zero bytes (signifies end-of-file)
-            buf = ByteBuffer.allocate(0);
+            pos = 0;
+            n = 0;
         }
         else
         {
@@ -92,11 +100,11 @@ public class DateFile extends StyxFile
             {
                 bytesToReturn = (int)count;
             }
-            // Wrap the appropriate portion of the array as a ByteBuffer
-            buf = ByteBuffer.wrap(dateBytes, (int)offset, bytesToReturn);
+            pos = (int)offset;
+            n = bytesToReturn;
         }
         // Send the data back to the user
-        this.replyRead(client, buf, tag);
+        this.replyRead(client, dateBytes, pos, n, tag);
     }
     
     public ULong getLength()

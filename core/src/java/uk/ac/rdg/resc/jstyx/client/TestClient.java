@@ -2,7 +2,6 @@ package uk.ac.rdg.resc.jstyx.client;
 
 import java.net.InetSocketAddress;
 import java.io.FileOutputStream;
-import java.nio.ByteBuffer;
 import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
