@@ -71,6 +71,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/03/17 07:30:05  jonblower
+ * Improved error logging code
+ *
  * Revision 1.8  2005/03/16 17:55:52  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -600,7 +603,7 @@ public class StyxConnection implements ProtocolHandler
         }
         public void error(String message, int tag)
         {
-            fireStyxConnectionError(message);
+            fireStyxConnectionError(new Throwable(message));
         }
     }
     
@@ -613,7 +616,7 @@ public class StyxConnection implements ProtocolHandler
         }
         public void error(String message, int tag)
         {
-            fireStyxConnectionError(message);
+            fireStyxConnectionError(new Throwable(message));
         }
     }
     
@@ -656,8 +659,7 @@ public class StyxConnection implements ProtocolHandler
      */
     public void exceptionCaught( ProtocolSession session, Throwable cause )
     {
-        this.fireStyxConnectionError(cause.getClass().getName() + ":" +
-            cause.getMessage());
+        this.fireStyxConnectionError(cause);
     }
     
     /**
@@ -783,24 +785,29 @@ public class StyxConnection implements ProtocolHandler
     }
     
     /**
-     * Fired when an error occurs (i.e. an exception is caught by Netty)
+     * Fired when an error occurs (i.e. an exception is caught by MINA)
      */
-    private void fireStyxConnectionError(String message)
+    private void fireStyxConnectionError(Throwable cause)
     {
-        this.errMsg = message;
+        this.errMsg = cause.getMessage();
+        if (log.isDebugEnabled())
+        {
+            cause.printStackTrace();
+        }
+        log.error("***** ERROR OCCURRED ON CONNECTION TO " + this.host +
+            ":" + this.port + " (" + cause.getClass().getName() + ":" +
+            this.errMsg + ") *****");
         synchronized(this)
         {
             this.notifyAll();
         }
-        log.error("***** ERROR OCCURRED ON CONNECTION TO " + this.host +
-            ":" + this.port + " (" + message + ") *****");
         synchronized(this.listeners)
         {
             for (int i = 0; i < this.listeners.size(); i++)
             {
                 StyxConnectionListener listener =
                     (StyxConnectionListener)this.listeners.get(i);
-                listener.connectionError(message);
+                listener.connectionError(this.errMsg);
             }
         }
         // call error() on all waiting callbacks of outstanding messages
@@ -809,7 +816,8 @@ public class StyxConnection implements ProtocolHandler
             Iterator it = this.unsentMessages.iterator();
             while(it.hasNext())
             {
-                int tag = ((StyxMessage)it.next()).getTag();
+                StyxMessage message = (StyxMessage)it.next();
+                int tag = message.getTag();
                 MessageCallback callback =
                     (MessageCallback)this.msgQueue.remove(new Integer(tag));
                 callback.error("Could not send message: " + message, -1);
