@@ -55,16 +55,19 @@ import info.clearthought.layout.TableLayout;
  * @todo Make sure all connections are closed properly on exit, and that
  * all threads are stopped.
  * @todo Merge more closely with StyxInterloper
+ * @todo Allow messages to be saved as a .csv file or plain ASCII text
  * @todo Handle more events such as clients connecting, disconnecting,
  * server connection going down, etc (feed back to GUI)
- * @todo Filter messages by type, whether they have been replied to, errors, filename
+ * @todo Filter messages by type, whether they have been replied to, errors
  * @todo Add a "hint" column containing a description of what the message is doing
- *       ... or maybe just identify each message with a file name
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/02/24 11:23:32  jonblower
+ * Handles filtering by filename correctly
+ *
  * Revision 1.3  2005/02/24 09:07:12  jonblower
  * Added code to support filtering by pop-up menu
  *
@@ -88,8 +91,6 @@ public class StyxMon implements InterloperListener
     private StyxMonTableModel model;
     private JLabel lblPort;
     private JLabel lblRemoteServer;
-    private JButton btnFilter;
-    private JButton btnShowAll;
     private StyxMonPopupMenu popup;
     
     private int nextFreeRow;    // The next free row in the table
@@ -121,8 +122,6 @@ public class StyxMon implements InterloperListener
         lblPort = new JLabel("Listening on port " + port);
         lblRemoteServer = new JLabel("Remote server: " + serverHost + ":"
             + serverPort);
-        btnFilter = new JButton("Filter");
-        btnShowAll = new JButton("Show All");
         
         // Create the table model
         this.model = new StyxMonTableModel();
@@ -168,8 +167,6 @@ public class StyxMon implements InterloperListener
         contentPane.add(lblPort, "1, 1, l, f");
         contentPane.add(lblRemoteServer, "1, 3, l, f");
         contentPane.add(scrollPane, "1, 5, 3, 5, f, f");
-        contentPane.add(btnFilter, "3, 1, c, f");
-        contentPane.add(btnShowAll, "3, 3, c, f");
         
         // Create the popup menu
         this.popup = new StyxMonPopupMenu(this.model);
@@ -182,28 +179,6 @@ public class StyxMon implements InterloperListener
                 public void windowClosing(WindowEvent e)
                 {
                     exit();
-                }
-            }
-        );
-        
-        btnFilter.addActionListener
-        (
-            new ActionListener()
-            {
-                public void actionPerformed(ActionEvent e)
-                {
-                    filterClicked();
-                }
-            }
-        );
-        
-        btnShowAll.addActionListener
-        (
-            new ActionListener()
-            {
-                public void actionPerformed(ActionEvent e)
-                {
-                    showAllClicked();
                 }
             }
         );

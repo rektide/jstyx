@@ -30,6 +30,8 @@ package uk.ac.rdg.resc.jstyx.interloper;
 
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 import java.awt.Component;
 
 /**
@@ -40,6 +42,9 @@ import java.awt.Component;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/02/24 11:23:40  jonblower
+ * Handles filtering by filename correctly
+ *
  * Revision 1.1  2005/02/24 09:06:26  jonblower
  * Initial import
  *
@@ -47,18 +52,33 @@ import java.awt.Component;
 public class StyxMonPopupMenu extends JPopupMenu
 {
     
-    private StyxMonTableModel model;
+    private StyxMonTableModel theModel;
     private JMenuItem menuFilter;
     private JMenuItem menuShowAll;
+    private String filterFilename;
     
     /** Creates a new instance of StyxMonPopUpMenu */
     public StyxMonPopupMenu(StyxMonTableModel model)
     {
-        this.model = model;
+        this.theModel = model;
         menuFilter = new JMenuItem("Filter by filename: ");
         menuShowAll = new JMenuItem("Show all messages");
         this.add(menuFilter);
         this.add(menuShowAll);
+        menuFilter.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                theModel.filterByFilename(filterFilename);
+            }
+        });
+        menuShowAll.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                theModel.showAllData();
+            }
+        });
     }
     
     /**
@@ -67,13 +87,14 @@ public class StyxMonPopupMenu extends JPopupMenu
      */
     public void showContext(String filename, Component invoker, int x, int y)
     {
-        if (this.model.isFiltered())
+        if (this.theModel.isFiltered())
         {
             this.menuFilter.setVisible(false);
             this.menuShowAll.setVisible(true);
         }
         else
         {
+            this.filterFilename = filename;
             this.menuFilter.setText("Filter by filename: " + filename);
             this.menuFilter.setVisible(true);
             this.menuShowAll.setVisible(false);
