@@ -15,7 +15,7 @@
 	<property name="classes.dir" value="../classes"/>
 	<property name="dist.dir" value="../dist"/>
 	<property name="javadoc.dir" value="../docs/api"/>
-	<!-- The directory containing other third-party Java libraries (log4j, Netty etc) -->
+	<!-- The directory containing other third-party Java libraries (log4j, MINA etc) -->
 	<property name="lib.dir" value="../lib"/>
 	
 	<target name="compile" description="compile the source">
