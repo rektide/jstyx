@@ -1,37 +1,273 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html><head>
-
-<title>JStyx tutorial</title><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<link rel="stylesheet" type="text/css" href="css/jstyx2.css"></head>
+<html>
+<head>
+<title>JStyx tutorial</title>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="stylesheet" type="text/css" href="css/jstyx2.css">
+</head>
 
 <body>
 
+<p><em>The latest version of this file can be found at
+<a href="http://jstyx.sourceforge.net/docs/tutorial.html">http://jstyx.sourceforge.net/docs/tutorial.html</a>
+</em></p>
+
 <h1>JStyx tutorial</h1>
 <h2>Introduction</h2>
-<p>This tutorial gives an overview of the JStyx library and how it is 
+<p>This tutorial gives an overview of the JStyx library and how it is
 used to create server and client applications. It assumes that you 
 are familiar with Java programming, although you will by no means 
 need to be an expert.</p>
 <p>In the world of Styx, everything is represented as a file. In order 
 to create a Styx server, we create a hierarchy of files (a 
 <em>namespace</em>) and serve it up. Conversely, Styx clients open 
-files 
-on the remote server and interact with them using read and write 
+files on the remote server and interact with them using read and write 
 operations. Files have their own permissions, just like on a Unix-like 
 system.</p>
 
 <h2>Setting up</h2>
-<p><em>How will the files be released? Easiest way would be a simple zip 
-file with all libs, startup scripts, source etc.</em><p>
+<p>Download the latest JStyx distribution from
+<a href="http://jstyx.sourceforge.net">http://jstyx.sourceforge.net</a> and
+simply extract the archive file in a directory of your choice. The 
+distribution contains a pre-built JAR (Java archive) in the <tt>dist</tt>
+directory. This has been built with the Sun Java SDK 1.4.2. If you would like
+to build the JAR again (if you have changed the source or you need a version
+for a different version of Java), change into the <tt>bin</tt> directory and
+enter <tt>build</tt> (this should work on most systems, Windows and *nix).
+Note that you need <a href="http://ant.apache.org/">Apache Ant</a> to build
+the distribution from source using this method.</p>
 
 <h2>Testing the installation</h2>
-<p><em>run TestServer, log on with StyxBrowser</em></p>
+<p>First, make sure that you have a valid setup. To do this, open a console window,
+change into the
+<tt>bin</tt> directory of your distribution and enter <tt>TestServer</tt>.
+This creates a Styx server that serves up your home directory (as identified by
+the Java system property <tt>user.home</tt>) under the port 8080. This might
+take a short while to start up, especially if your home directory contains a
+large number of files. When it is ready, you will see a message like this in your
+console window:</p>
+<blockquote>
+<tt>
+2005-03-01 16:05:03,890 [main] INFO uk.ac.rdg.resc.jstyx.server.StyxServer -
+Listening on port 8080
+</tt>
+</blockquote>
+<p><em>This is example output from the <a
+href="http://logging.apache.org/log4j/docs/index.html">log4j</a> logging system.
+Your message might differ slightly.</em> If you are familiar with Inferno, you
+should be able to interact with this server; open an Inferno shell and enter:</p>
+<blockquote>
+<tt>mount -A tcp!localhost!8080 /n/remote</tt>
+</blockquote><p>If you are not familiar with
+Inferno, or want to try another tool anyway, you can open a new console window,
+change into the <tt>bin</tt> directory once more and enter:</p>
+<blockquote>
+<tt>StyxBrowser localhost 8080</tt>
+</blockquote><p>You should see a graphical interface with a directory tree
+in the left-hand column and some information in the other columns, like this:</p>
+
+<img src="./images/tutorial_StyxBrowser.PNG"/>
+
+<p>The StyxBrowser is a very simple GUI for browsing a Styx file hierarchy. At
+the moment it is very incomplete; in the future it will allow much more
+interaction with the Styx server. (Note that all files are marked with the user
+&quot;user&quot;; at the moment the Styx Server does not read the user/group/permissions
+data from the host filesystem.) Anyway, for the moment we just want to be sure
+that our setup works. Now we can learn a bit more about the JStyx library.</p>
 
 <h2>Creating a server</h2>
 <p>As mentioned above, creating a Styx server is a matter of creating a 
-hierarchy of files, then serving it up and waiting for connections. In 
-order to create a file for serving, we simply subclass the abstract 
-class <tt>uk.ac.rdg.resc.jstyx.server.StyxFile</tt>.
-</p>
+hierarchy of files, then serving it up and waiting for connections. The
+TestServer program creates the hierarchy of files from the local filesystem.
+Let's look at the key parts of the TestServer program (it's in the
+<tt>uk.ac.rdg.resc.jstyx.examples</tt> package):</p>
+<blockquote>
+<pre>
+// ... (we've already got the port number by this stage)
+String home = System.getProperty("user.home");
+// Set up the file tree
+StyxDirectory root = new DirectoryOnDisk(home);
+// Set up the server and start it
+StyxServer server = new StyxServer(port, root);
+server.start();
+</pre>
+</blockquote>
+<p>It's very simple. We create a <tt>StyxServer</tt> object, passing it the
+number of the port we want it to listen on and a <tt>StyxDirectory</tt> that
+represents the root of the file hierarchy we want to expose. In this case, the
+<tt>StyxDirectory</tt> is a <tt>DirectoryOnDisk</tt>, which simply mirrors a
+directory in the host filesystem. When requests come in to read the children of
+the <tt>DirectoryOnDisk</tt>, it simply reads the list of child files from the
+host filesystem.</p>
 
-</body></html>
+<p>The steps to create any Styx server are always the same:</p>
+<ol>
+	<li>Create a file hierarchy and root it in a <tt>StyxDirectory</tt>.</li>
+	<li>Create a <tt>StyxServer</tt> object from the <tt>StyxDirectory</tt> and a port number.</li>
+	<li>Start the <tt>StyxServer</tt>.</li>
+</ol>
+
+<p>Often, the file hierarchy we want create will not simply be a mirror of the
+directory structure of the underlying filesystem. We may want to do something
+more interesting, such as creating a &quot;synthetic&quot; file that performs
+some task. We'll go through the process of creating a Styx server that serves up
+a file that users can read to obtain the current date and time.</p>
+
+<p>All files in a server-side JStyx hierarchy subclass the abstract class
+<tt>uk.ac.rdg.resc.jstyx.server.StyxFile</tt>. (<tt>StyxDirectory</tt> is also a
+subclass of <tt>StyxFile</tt> and <tt>DirectoryOnDisk</tt> is a subclass of
+<tt>StyxDirectory</tt>.) So let's create a class called <tt>DateFile</tt> that
+inherits from <tt>StyxFile</tt>:</p>
+<blockquote>
+<pre>
+import uk.ac.rdg.resc.jstyx.StyxException;
+import uk.ac.rdg.resc.jstyx.server.StyxFile;
+
+public class DateFile extends StyxFile
+{
+    public DateFile() throws StyxException
+    {
+        super("date");
+    }
+}
+</pre>
+</blockquote>
+
+<p>There are many constructors for
+<tt>StyxFile</tt>, but we'll stick with the simplest for the moment, i.e. the
+one that simply sets the name for the file (other constructors set file
+permissions, the owner/group and other things). Note that all the <tt>StyxFile</tt>
+constructors throw <tt>StyxException</tt> and so our constructor must do this
+too (this will only be thrown if we attempt to create a file with the illegal
+names <tt>&quot;.&quot;</tt> or <tt>&quot;..&quot;</tt>).</p>
+
+<p>We must implement two abstract methods, <tt>read()</tt> and <tt>write()</tt>.
+These methods control what happens when users try to read from or write to the
+file. (There are other methods that we can override, but we'll leave this till
+later.) We shan't allow writing to this file so we shall always throw a
+<tt>StyxException</tt> when a write request arrives (this sends an error message
+back to the client):</p>
+
+<blockquote>
+<pre>
+import java.nio.ByteBuffer;
+import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
+...
+    public void write(StyxFileClient client, long offset, long count,
+        ByteBuffer data, String user, boolean truncate, int tag)
+        throws StyxException
+    {
+        throw new StyxException("Cannot write to this file");
+    }
+....
+</pre>
+</blockquote>
+
+<p>Note that we have to import a couple more classes. We shan't worry about all
+the arguments to <tt>write()</tt> for the moment (see the javadoc or the source
+for <tt>StyxFile</tt> if you're interested). Note, however, the first argument:
+it allows us to find out which client is accessing the file. This raises the
+intriguing and powerful possibility that the file could behave differently for
+different clients. We shall see more of this later.</p>
+
+<p>Now we can implement the <tt>read()</tt> method. This is the bit that does
+the actual work. It will return the current date and time to the user:</p>
+
+<blockquote>
+<pre>
+import java.util.Date;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
+...
+    public void read(StyxFileClient client, long offset, long count, int tag)
+        throws StyxException
+    {
+        // Get the current date and time in String format
+        String dateStr = new Date().toString();
+        // Convert the String to bytes in UTF-8 format
+        byte[] dateBytes = StyxUtils.strToUTF8(dateStr);
+        
+        ByteBuffer buf;
+        if ((int)offset >= dateBytes.length)
+        {
+            // If the client has requested bytes from an offset greater than the
+            // length of the string, return zero bytes (signifies end-of-file)
+            buf = ByteBuffer.allocate(0);
+        }
+        else
+        {
+            // Work out the number of bytes to return
+            int bytesToReturn;
+            if (count > dateBytes.length - offset)
+            {
+                bytesToReturn = (int)(dateBytes.length - offset);
+            }
+            else
+            {
+                bytesToReturn = (int)count;
+            }
+            // Wrap the appropriate portion of the array as a ByteBuffer
+            buf = ByteBuffer.wrap(dateBytes, (int)offset, bytesToReturn);
+        }
+        // Send the data back to the user
+        this.replyRead(client, buf, tag);
+    }
+...
+</pre>
+</blockquote>
+<p>Again, we have to import a couple more classes. The comments in the above
+method should explain what we're doing, but the gist of it is this:</p>
+<ol>
+	<li>Prepare the data as an array of bytes.</li>
+	<li>Work out the subset of the array that the user has requested, based on
+	the provided offset and count.</li>
+	<li>If the supplied offset takes us off the end of the data array, return
+	zero bytes to signify end-of-file.</li>
+	<li>Wrap the subset of the array as a <tt>java.nio.ByteBuffer</tt> and send
+	it back to the client with the <tt>replyRead()</tt> method of StyxFile.</li>
+</ol>
+<p>These steps are followed for the vast majority of <tt>StyxFile</tt>s that
+will be created. (Note that Styx always uses the UTF-8 encoding for strings.)</p>
+
+<p><em>Optional:</em> Since the date is always returned in the same format, we
+know the length of this file (it is always 28 bytes). We can make sure that
+client see the correct length by overriding the <tt>getLength()</tt> method of
+<tt>StyxFile</tt>:</p>
+<blockquote>
+<pre>
+import uk.ac.rdg.resc.jstyx.types.ULong;
+...
+    public ULong getLength()
+    {
+        return new ULong(28);
+    }
+...
+</pre>
+</blockquote>
+<p><em>(The <tt>ULong</tt> type is a simulation of an unsigned long, a type that
+Java lacks.)</em></p>
+
+<p>Now we can create a <tt>main()</tt> method that serves up this file in a Styx
+server:</p>
+<blockquote>
+<pre>
+import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
+import uk.ac.rdg.resc.jstyx.server.StyxServer;
+...
+    public static void main(String[] args) throws Exception
+    {
+        // Create the root directory of the Styx server
+        StyxDirectory root = new StyxDirectory("/");
+        // Add a DateFile to the root
+        root.addChild(new DateFile());
+        // Start a StyxServer, listening on port 9876
+        new StyxServer(9876, root).start();
+    }
+...
+</pre>
+</blockquote>
+
+<p>We can start the server by ... <em>(Use JStyxRun to set the classpath,
+etc)</em></p>
+
+</body>
+</html>
