@@ -55,6 +55,9 @@ import java.io.IOException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/02/24 09:07:23  jonblower
+ * *** empty log message ***
+ *
  * Revision 1.3  2005/02/24 07:42:44  jonblower
  * *** empty log message ***
  *
@@ -86,8 +89,8 @@ public class StyxInterloper
     {
         this.port = port;
         InetSocketAddress destSockAddr = new InetSocketAddress(serverHost, serverPort);
-        this.styxServer = new StyxServer(port, new StyxInterloperServerSessionListener(destSockAddr));
-        this.styxServer.start();
+        //this.styxServer = new StyxServer(port, new StyxInterloperServerSessionListener(destSockAddr));
+        //this.styxServer.start();
     }
     
     public static void main (String[] args) throws Throwable
