@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/21 17:57:11  jonblower
+ * Trying to fix ByteBuffer leak in SGS server
+ *
  * Revision 1.4  2005/03/16 17:56:24  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -147,7 +150,7 @@ public class StyxDirectory extends StyxFile
         }
 
         // We create the bytes to return in a ByteBuffer for convenience
-        ByteBuffer buf = ByteBuffer.allocate((int)count);
+        ByteBuffer buf = ByteBuffer.allocate((int)count, this.getFullPath());
         StyxBuffer styxBuf = new StyxBuffer(buf);
         StyxFile sf;
         int nextFile = (offset == 0) ? 0 : client.getNextFileToRead();

@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/03/21 17:57:11  jonblower
+ * Trying to fix ByteBuffer leak in SGS server
+ *
  * Revision 1.7  2005/03/17 07:29:36  jonblower
  * Fixed bug in getData()
  *
@@ -172,7 +175,7 @@ public class TwriteMessage extends StyxMessage
         else
         {
             // We need to copy the data in this buffer.
-            this.data = ByteBuffer.allocate(this.count);
+            this.data = ByteBuffer.allocate(this.count, "Twrite, decodeBody");
             byte[] b = buf.getData(this.count);
             this.data.put(b);
             this.dataPos = 0;
@@ -202,7 +205,8 @@ public class TwriteMessage extends StyxMessage
             ByteBuffer payload = this.getRawData();
             
             // Allocate a buffer for everything but the payload
-            this.buf = ByteBuffer.allocate(this.length - payload.remaining());
+            this.buf = ByteBuffer.allocate(this.length - payload.remaining(),
+                "Twrite, write");
             // Wrap as a StyxBuffer
             StyxBuffer styxBuf = new StyxBuffer(this.buf);
             // Encode everything but the payload, then flip the buffer

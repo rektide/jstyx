@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/21 17:57:11  jonblower
+ * Trying to fix ByteBuffer leak in SGS server
+ *
  * Revision 1.4  2005/03/15 16:56:19  jonblower
  * Changed to allow re-use of ByteBuffers once message is finished with
  *
@@ -86,7 +89,7 @@ class StyxMessageDecoder implements ProtocolDecoder
         // Create a buffer to hold header information.
         // Note that we might actually get a buffer with more than the requested
         // number of bytes in!
-        this.headerBuf = ByteBuffer.allocate(StyxUtils.HEADER_LENGTH);
+        this.headerBuf = ByteBuffer.allocate(StyxUtils.HEADER_LENGTH, "Decoder header");
         this.headerBuf.order(ByteOrder.LITTLE_ENDIAN);
     }
     

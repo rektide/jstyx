@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/03/21 17:57:10  jonblower
+ * Trying to fix ByteBuffer leak in SGS server
+ *
  * Revision 1.7  2005/03/18 13:56:00  jonblower
  * Improved freeing of ByteBuffers, and bug fixes
  *
@@ -175,7 +178,7 @@ public class RreadMessage extends StyxMessage
             // We need to copy the data in this buffer.
             log.debug("Need to make a copy of the data in this buffer: " +
                 this.count + " bytes");
-            this.data = ByteBuffer.allocate(this.count);
+            this.data = ByteBuffer.allocate(this.count, "Rread, decodeBody");
             byte[] b = buf.getData(this.count);
             this.data.put(b);
             this.dataPos = 0;
@@ -207,7 +210,7 @@ public class RreadMessage extends StyxMessage
             // Allocate a buffer for everything but the payload
             log.debug("Allocating buffer for everything but payload: length "
                 + (this.length - payload.remaining()));
-            this.buf = ByteBuffer.allocate(this.length - payload.remaining());
+            this.buf = ByteBuffer.allocate(this.length - payload.remaining(), "Rread, write");
             // Wrap as a StyxBuffer
             StyxBuffer styxBuf = new StyxBuffer(this.buf);
             // Encode everything but the payload, then flip the buffer

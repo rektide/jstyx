@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/03/21 17:57:11  jonblower
+ * Trying to fix ByteBuffer leak in SGS server
+ *
  * Revision 1.8  2005/03/18 13:56:00  jonblower
  * Improved freeing of ByteBuffers, and bug fixes
  *
@@ -197,7 +200,7 @@ public abstract class StyxMessage
             {
                 // Create a buffer to hold the bytes. This buffer comes
                 // from MINA's pool
-                this.buf = ByteBuffer.allocate(bodyLength);
+                this.buf = ByteBuffer.allocate(bodyLength, "StyxMessage");
             }
         }
         if (this.bytesRead >= bodyLength) // N.B. should never be > bodyLength
