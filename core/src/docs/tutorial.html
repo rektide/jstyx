@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html><head>
+
+<title>JStyx tutorial</title><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="stylesheet" type="text/css" href="css/jstyx2.css"></head>
+
+<body>
+
+<h1>JStyx tutorial</h1>
+<h2>Introduction</h2>
+<p>This tutorial gives an overview of the JStyx library and how it is 
+used to create server and client applications. It assumes that you 
+are familiar with Java programming, although you will by no means 
+need to be an expert.</p>
+<p>In the world of Styx, everything is represented as a file. In order 
+to create a Styx server, we create a hierarchy of files (a 
+<em>namespace</em>) and serve it up. Conversely, Styx clients open 
+files 
+on the remote server and interact with them using read and write 
+operations. Files have their own permissions, just like on a Unix-like 
+system.</p>
+
+<h2>Setting up</h2>
+<p><em>How will the files be released? Easiest way would be a simple zip 
+file with all libs, startup scripts, source etc.</em><p>
+
+<h2>Testing the installation</h2>
+<p><em>run TestServer, log on with StyxBrowser</em></p>
+
+<h2>Creating a server</h2>
+<p>As mentioned above, creating a Styx server is a matter of creating a 
+hierarchy of files, then serving it up and waiting for connections. In 
+order to create a file for serving, we simply subclass the abstract 
+class <tt>uk.ac.rdg.resc.jstyx.server.StyxFile</tt>.
+</p>
+
+</body></html>
