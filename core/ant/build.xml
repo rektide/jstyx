@@ -4,6 +4,9 @@
 <!-- CVS $Revision$ -->
 <!-- CVS Last modified $Date$ -->
 <!-- CVS $Log$
+<!-- CVS Revision 1.1  2005/02/28 21:59:19  jonblower
+<!-- CVS Moved build.xml to ant directory
+<!-- CVS
 <!-- CVS Revision 1.1  2005/02/28 17:44:15  jonblower
 <!-- CVS Initial import of build.xml
 <!-- CVS -->
