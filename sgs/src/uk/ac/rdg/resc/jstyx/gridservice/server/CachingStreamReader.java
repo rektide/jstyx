@@ -33,9 +33,10 @@ import java.io.RandomAccessFile;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Vector;
 import java.util.Iterator;
+
+import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
@@ -58,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/16 17:59:35  jonblower
+ * Changed following changes to core JStyx library (replacement of java.nio.ByteBuffers with MINA's ByteBuffers)
+ *
  * Revision 1.2  2005/03/11 09:07:15  jonblower
  * Changes related to switch from Netty to MINA
  *
@@ -221,7 +225,7 @@ class CachingStreamReader extends StyxFile
                     if (this.eof)
                     {
                         // We've reached the end of the stream.
-                        this.replyRead(dr.client, ByteBuffer.allocate(0), dr.tag);
+                        this.replyRead(dr.client, new byte[0], dr.tag);
                         return true;
                     }
                     else
@@ -258,7 +262,7 @@ class CachingStreamReader extends StyxFile
                     else
                     {
                         // Return the bytes read to the client
-                        this.replyRead(dr.client, ByteBuffer.wrap(arr, 0, n), dr.tag);
+                        this.replyRead(dr.client, arr, 0, n, dr.tag);
                         return true;
                     }
                 }

@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
-import java.nio.ByteBuffer;
+import org.apache.mina.common.ByteBuffer;
 
 /**
  * Interface defining methods that will be fired when an SGSClient receives
@@ -38,6 +38,9 @@ import java.nio.ByteBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/16 17:59:35  jonblower
+ * Changed following changes to core JStyx library (replacement of java.nio.ByteBuffers with MINA's ByteBuffers)
+ *
  * Revision 1.2  2005/02/21 18:12:17  jonblower
  * Following changes to core JStyx library
  *

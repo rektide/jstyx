@@ -28,8 +28,9 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
-import java.nio.ByteBuffer;
 import java.util.Vector;
+
+import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
@@ -48,8 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.3  2005/02/24 07:49:34  jonblower
- * *** empty log message ***
+ * Revision 1.4  2005/03/16 17:59:35  jonblower
+ * Changed following changes to core JStyx library (replacement of java.nio.ByteBuffers with MINA's ByteBuffers)
+ *
  *
  * Revision 1.2  2005/02/21 18:12:29  jonblower
  * Following changes to core JStyx library

@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.server;
 
-import java.nio.ByteBuffer;
+import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/16 17:59:35  jonblower
+ * Changed following changes to core JStyx library (replacement of java.nio.ByteBuffers with MINA's ByteBuffers)
+ *
  * Revision 1.1  2005/02/16 19:22:31  jonblower
  * Commit adding of SGS files to CVS
  *
@@ -61,11 +64,10 @@ class SDEFile extends StyxFile
         throws StyxException
     {
         byte[] bytes = this.sde.getBytes();
-        ByteBuffer buf;
         if ((int)offset >= bytes.length)
         {
             // Send zero bytes back
-            buf = ByteBuffer.allocate(0);
+            this.replyRead(client, new byte[0], tag);
         }
         else
         {
@@ -74,9 +76,8 @@ class SDEFile extends StyxFile
             {
                 numBytes = bytes.length - (int)offset;
             }
-            buf = ByteBuffer.wrap(bytes, (int)offset, numBytes);
+            this.replyRead(client, bytes, (int)offset, numBytes, tag);
         }
-        this.replyRead(client, buf, tag);
     }
 
     /**

@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnection;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/16 17:59:35  jonblower
+ * Changed following changes to core JStyx library (replacement of java.nio.ByteBuffers with MINA's ByteBuffers)
+ *
  * Revision 1.2  2005/02/24 07:50:28  jonblower
  * *** empty log message ***
  *
@@ -69,7 +72,7 @@ public class SGSGUIClient implements SGSChangeListener
     
     // Styx stuff
     private static final String HOSTNAME = "localhost";
-    private static final int PORT = 9999;
+    private static final int PORT = 9092;
     private static final String SERVICE_NAME = "md5sum";
     private SGSClient client;
     

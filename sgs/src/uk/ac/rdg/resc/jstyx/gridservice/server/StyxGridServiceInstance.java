@@ -28,7 +28,6 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.server;
 
-import java.nio.ByteBuffer;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.URLConnection;
@@ -37,6 +36,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.io.File;
+
+import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
@@ -55,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/16 17:59:35  jonblower
+ * Changed following changes to core JStyx library (replacement of java.nio.ByteBuffers with MINA's ByteBuffers)
+ *
  * Revision 1.1  2005/02/16 19:22:32  jonblower
  * Commit adding of SGS files to CVS
  *

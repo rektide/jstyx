@@ -28,10 +28,10 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.server;
 
-import java.nio.ByteBuffer;
-
 import java.util.Vector;
 import java.util.Iterator;
+
+import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.AsyncStyxFile;
@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/16 17:59:35  jonblower
+ * Changed following changes to core JStyx library (replacement of java.nio.ByteBuffers with MINA's ByteBuffers)
+ *
  * Revision 1.2  2005/02/21 18:13:23  jonblower
  * Following changes to core JStyx library
  *
@@ -176,11 +179,11 @@ public class StyxGridService
                     throw new StyxException("must request at least " + msgBytes.length + " bytes.");
                 }
                 newInstance(id);
-                replyRead(client, ByteBuffer.wrap(msgBytes), tag);
+                replyRead(client, msgBytes, tag);
             }
             else
             {
-                replyRead(client, ByteBuffer.allocate(0), tag);
+                replyRead(client, new byte[0], tag);
             }
         }        
     }
