@@ -30,9 +30,11 @@ package uk.ac.rdg.resc.jstyx.server;
 
 import java.net.InetSocketAddress;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 import org.apache.mina.io.IoHandlerFilter;
 import org.apache.mina.io.filter.IoThreadPoolFilter;
+import org.apache.mina.io.filter.SSLFilter;
 import org.apache.mina.io.socket.SocketAcceptor;
 import org.apache.mina.protocol.ProtocolHandlerFilter;
 import org.apache.mina.protocol.ProtocolProvider;
@@ -43,6 +45,7 @@ import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
+import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
 
 /**
  * A Styx server.
@@ -51,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/14 16:40:02  jonblower
+ * Modifications for using SSL
+ *
  * Revision 1.3  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -78,6 +84,8 @@ public class StyxServer
     private ProtocolProvider provider;
     private int port;
     
+    private boolean useSSL; // True if we want to secure the server
+    
     /**
      * Creates a Styx server that exposes the given directory under the given
      * port.
@@ -86,7 +94,18 @@ public class StyxServer
      */
     public StyxServer(int port, StyxDirectory root)
     {
-        this(port, new StyxServerProtocolProvider(root));
+        this(port, root, false); // By default, don't use SSL
+    }
+    
+    /**
+     * Creates a Styx server that exposes the given directory under the given
+     * port.
+     * @throws IllegalArgumentException if the port number is invalid or the
+     * root is null.
+     */
+    public StyxServer(int port, StyxDirectory root, boolean useSSL)
+    {
+        this(port, new StyxServerProtocolProvider(root), useSSL);
     }
     
     /**
@@ -96,6 +115,17 @@ public class StyxServer
      * provider is null.
      */
     public StyxServer(int port, ProtocolProvider provider)
+    {
+        this(port, provider, false); // Don't use SSL by default
+    }
+    
+    /**
+     * Creates a Styx server that listens on the given port and uses the
+     * given protocol provider (This is used by the Styx interloper class)
+     * @throws IllegalArgumentException if the port number is invalid or the
+     * provider is null.
+     */
+    public StyxServer(int port, ProtocolProvider provider, boolean useSSL)
     {
         if (provider == null)
         {
@@ -109,6 +139,7 @@ public class StyxServer
         }
         this.port = port;
         this.provider = provider;
+        this.useSSL = useSSL;
     }
     
     /**
@@ -141,8 +172,26 @@ public class StyxServer
         
         // Add both thread pool filters.
         // I don't think the values of the priority constants matter much here
-        acceptor.getIoAcceptor().addFilter( 99, ioThreadPoolFilter );
-        acceptor.addFilter( 99, protocolThreadPoolFilter );
+        acceptor.getIoAcceptor().addFilter( Integer.MAX_VALUE, ioThreadPoolFilter );
+        acceptor.addFilter( Integer.MAX_VALUE, protocolThreadPoolFilter );
+        
+        // Add SSL filter if SSL is enabled.
+        if( this.useSSL )
+        {
+            SSLFilter sslFilter;
+            try
+            {
+                // TODO: Create a proper SSLContextFactory
+                sslFilter = new SSLFilter( JonSSLContextFactory.getInstance( true ) );
+            }
+            catch(GeneralSecurityException gse)
+            {
+                throw new StyxException("GeneralSecurityException occurred when" +
+                    " adding SSLFilter: " + gse.getMessage());
+            }
+            //sslFilter.setDebug(SSLFilter.Debug.ON);
+            acceptor.getIoAcceptor().addFilter( Integer.MAX_VALUE - 1, sslFilter );
+        }
         
         // Bind
         try
@@ -155,6 +204,7 @@ public class StyxServer
                 + ioe.getMessage());
         }
         
-        log.info( "Listening on port " + this.port );
+        log.info( "Listening on port " + this.port + ", SSL " +
+            (this.useSSL ? "enabled" : "disabled"));
     }
 }

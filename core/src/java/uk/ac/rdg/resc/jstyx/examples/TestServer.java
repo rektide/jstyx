@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.server.StyxServer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/14 16:40:01  jonblower
+ * Modifications for using SSL
+ *
  * Revision 1.2  2005/03/11 14:00:29  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -72,6 +75,8 @@ public class TestServer
         int port = DEFAULT_PORT;
         // Default root directory is the user's home directory
         String home = System.getProperty("user.home");
+        // Use SSL if there is a third command-line argument
+        boolean useSSL = false;
         
         if (args.length > 0)
         {
@@ -91,7 +96,12 @@ public class TestServer
         }
         if (args.length > 2)
         {
-            System.err.println("Usage: TestServer [port] [root directory]");
+            // TODO: perhaps this third argument should be something specific...
+            useSSL = true;
+        }
+        if (args.length > 3)
+        {
+            System.err.println("Usage: TestServer [port] [root directory] [use SSL]");
             return;
         }
         
@@ -99,7 +109,7 @@ public class TestServer
         StyxDirectory root = new DirectoryOnDisk(home);
         
         // Set up the server and start it
-        StyxServer server = new StyxServer(port, root);
+        StyxServer server = new StyxServer(port, root, useSSL);
         server.start();
         
     }
