@@ -38,6 +38,9 @@ import uk.ac.rdg.resc.jstyx.types.Qid;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:47  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:15  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -62,7 +65,7 @@ public class RattachMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public RattachMessage(int length, int type, int tag)
+    public RattachMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Rattach";
@@ -70,7 +73,7 @@ public class RattachMessage extends StyxMessage
     
     public RattachMessage(Qid qid)
     {
-        this(0, 105, 0); // The tag is set later
+        this(0, (short)105, 0); // The tag is set later
         this.qid = qid;
         this.length = StyxUtils.HEADER_LENGTH + 13; // Just a header and a Qid
     }

@@ -39,6 +39,9 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -65,7 +68,7 @@ public class TwstatMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TwstatMessage(int length, int type, int tag)
+    public TwstatMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Twstat";
@@ -73,7 +76,7 @@ public class TwstatMessage extends StyxMessage
     
     public TwstatMessage(long fid, DirEntry dirEntry)
     {
-        this(0, 126, 0); // The length and tag will be added later
+        this(0, (short)126, 0); // The length and tag will be added later
         this.fid = fid;
         this.dirEntry = dirEntry;
         // Set the length of the message

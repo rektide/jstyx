@@ -37,6 +37,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -64,7 +67,7 @@ public class TreadMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TreadMessage(int length, int type, int tag)
+    public TreadMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Tread";
@@ -72,7 +75,7 @@ public class TreadMessage extends StyxMessage
     
     public TreadMessage(long fid, ULong offset, long count)
     {
-        this(23, 116, 0); // The tag will be set later
+        this(23, (short)116, 0); // The tag will be set later
         this.fid = fid;
         this.offset = offset;
         this.count = count;

@@ -40,6 +40,9 @@ import java.util.Vector;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:15  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -64,7 +67,7 @@ public class RwalkMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public RwalkMessage(int length, int type, int tag)
+    public RwalkMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Rwalk";
@@ -73,7 +76,7 @@ public class RwalkMessage extends StyxMessage
     
     public RwalkMessage(Qid[] qids)
     {
-        this(0, 111, 0);
+        this(0, (short)111, 0);
         for (int i = 0; i < qids.length; i++)
         {
             this.putQid(qids[i]);

@@ -37,6 +37,9 @@ import uk.ac.rdg.resc.jstyx.types.Qid;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:15  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -64,7 +67,7 @@ public class RauthMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public RauthMessage(int length, int type, int tag)
+    public RauthMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Rauth";
@@ -72,7 +75,7 @@ public class RauthMessage extends StyxMessage
     
     public RauthMessage(Qid aqid)
     {
-        this(20, 103, 0); // The tag is set later
+        this(20, (short)103, 0); // The tag is set later
         this.aqid = aqid;
     }
     

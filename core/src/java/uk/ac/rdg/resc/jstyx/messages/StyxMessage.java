@@ -40,6 +40,9 @@ import org.apache.mina.protocol.ProtocolViolationException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.4  2005/03/11 14:02:15  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -60,7 +63,7 @@ public abstract class StyxMessage
                            // this is an *unsigned* int, we guarantee in
                            // StyxMessageDecoder that we can't have messages
                            // longer than Integer.MAX_VALUE
-    protected int type;    // The type of the StyxMessage
+    protected short type;    // The type of the StyxMessage
     protected int tag;     // The tag of the StyxMessage
     protected String name; // The name of the message (e.g. "Tversion")
     private ByteBuffer buf; // Contains the bytes of the body of the
@@ -69,7 +72,7 @@ public abstract class StyxMessage
     /**
      * Creates a new instance of StyxMessage.
      */
-    protected StyxMessage(int length, int type, int tag)
+    protected StyxMessage(int length, short type, int tag)
     {
         this.length = length;
         this.type = type;
@@ -98,7 +101,7 @@ public abstract class StyxMessage
     /**
      * @return The type of the message
      */
-    public final int getType()
+    public final short getType()
     {
         return this.type;
     }
@@ -281,7 +284,7 @@ public abstract class StyxMessage
      * @return A StyxMessage of the appropriate type, depending on the tag
      * @throws ProtocolViolationException if the message is of an unknown type
      */
-    public static StyxMessage createStyxMessage(int length, int type, int tag)
+    public static StyxMessage createStyxMessage(int length, short type, int tag)
         throws ProtocolViolationException
     {
         if (type == 100)

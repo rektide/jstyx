@@ -39,6 +39,9 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:15  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -63,7 +66,7 @@ public class RstatMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public RstatMessage(int length, int type, int tag)
+    public RstatMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Rstat";
@@ -71,7 +74,7 @@ public class RstatMessage extends StyxMessage
     
     public RstatMessage(DirEntry dirEntry)
     {
-        this(0, 125, 0); // The tag and length are set later
+        this(0, (short)125, 0); // The tag and length are set later
         this.dirEntry = dirEntry;
         this.length = StyxUtils.HEADER_LENGTH + 2 + this.dirEntry.getSize();
     }

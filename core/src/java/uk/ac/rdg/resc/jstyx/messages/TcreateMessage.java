@@ -37,6 +37,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:15  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -68,7 +71,7 @@ public class TcreateMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TcreateMessage(int length, int type, int tag)
+    public TcreateMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Tcreate";
@@ -76,7 +79,7 @@ public class TcreateMessage extends StyxMessage
     
     public TcreateMessage(long fid, String fileName, String permissions, boolean isDirectory, int mode)
     {
-        this(0, 114, 0); // The length and tag will be added later
+        this(0, (short)114, 0); // The length and tag will be added later
         this.fid = fid;
         this.fileName = fileName; // TODO: check validity of name?
         this.perm = this.parsePermissions(permissions, isDirectory);

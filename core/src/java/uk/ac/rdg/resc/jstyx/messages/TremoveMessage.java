@@ -37,6 +37,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -62,7 +65,7 @@ public class TremoveMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TremoveMessage(int length, int type, int tag)
+    public TremoveMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Tremove";
@@ -70,7 +73,7 @@ public class TremoveMessage extends StyxMessage
     
     public TremoveMessage(long fid)
     {
-        this(11, 122, 0); // The tag will be added later
+        this(11, (short)122, 0); // The tag will be added later
         this.fid = fid;
     }
     

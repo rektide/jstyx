@@ -37,6 +37,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:15  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -64,7 +67,7 @@ public class TauthMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TauthMessage(int length, int type, int tag)
+    public TauthMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Tauth";
@@ -72,7 +75,7 @@ public class TauthMessage extends StyxMessage
     
     public TauthMessage(long afid, String uname, String aname)
     {
-        this(0, 102, 0); // The length and tag will be added later
+        this(0, (short)102, 0); // The length and tag will be added later
         this.afid = afid;
         this.uname = uname;
         this.aname = aname;

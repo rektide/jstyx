@@ -39,6 +39,9 @@ import java.util.Vector;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -66,7 +69,7 @@ public class TwalkMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TwalkMessage(int length, int type, int tag)
+    public TwalkMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Twalk";
@@ -82,7 +85,7 @@ public class TwalkMessage extends StyxMessage
      */
     public TwalkMessage(long fid, long newFid, String path)
     {
-        this(0, 110, 0);
+        this(0, (short)110, 0);
         this.fid = fid;
         this.newFid = newFid;
         this.length = StyxUtils.HEADER_LENGTH + 4 + 4 + 2; // This length will be increased

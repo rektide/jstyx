@@ -35,6 +35,9 @@ package uk.ac.rdg.resc.jstyx.messages;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:15  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -56,7 +59,7 @@ public class RflushMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public RflushMessage(int length, int type, int tag)
+    public RflushMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Rflush";
@@ -64,7 +67,7 @@ public class RflushMessage extends StyxMessage
     
     public RflushMessage()
     {
-        this(7, 109, 0); // The tag will be set later
+        this(7, (short)109, 0); // The tag will be set later
     }
     
     protected final void decodeBody(StyxBuffer buf)

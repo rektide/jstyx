@@ -37,6 +37,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 09:01:48  jonblower
+ * Message type now stored as short, not int
+ *
  * Revision 1.3  2005/03/11 14:02:15  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -66,7 +69,7 @@ public class RversionMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public RversionMessage(int length, int type, int tag)
+    public RversionMessage(int length, short type, int tag)
     {
         super(length, type, tag);
         this.name = "Rversion";
@@ -74,7 +77,7 @@ public class RversionMessage extends StyxMessage
     
     public RversionMessage(long maxMessageSize, String version)
     {
-        this(0, 101, 0);
+        this(0, (short)101, 0);
         this.maxMessageSize = maxMessageSize;
         this.setVersion(version);
     }
