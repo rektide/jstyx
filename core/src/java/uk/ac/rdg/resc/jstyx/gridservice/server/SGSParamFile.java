@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/26 14:30:17  jonblower
+ * Modified to use SGSConfigException
+ *
  * Revision 1.1  2005/03/24 17:34:58  jonblower
  * Initial import
  *
@@ -84,7 +87,14 @@ public class SGSParamFile extends InMemoryFile
         data.limit(data.position() + count);
         String newValue = StyxUtils.dataToString(data);
         // Check that the new value is within range
-        this.param.checkValue(newValue);
+        try
+        {
+            this.param.checkValue(newValue);
+        }
+        catch(SGSConfigException sce)
+        {
+            throw new StyxException(sce.getMessage());
+        }
         // If we've got this far the value must have been OK.
         super.write(client, offset, count, data, user, truncate, tag);
     }

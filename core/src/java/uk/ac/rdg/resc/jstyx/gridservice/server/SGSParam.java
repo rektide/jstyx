@@ -40,6 +40,9 @@ import org.w3c.dom.Element;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/26 14:27:53  jonblower
+ * Modified to use SGSConfigException
+ *
  * Revision 1.1  2005/03/24 17:34:58  jonblower
  * Initial import
  *
@@ -58,7 +61,7 @@ class SGSParam
      * Creates a parameter object for a SGS.
      * @param paramNode The XML element in the config file representing the parameter
      */
-    public SGSParam(Element paramNode) throws Exception
+    public SGSParam(Element paramNode) throws SGSConfigException
     {
         this.name = paramNode.getAttribute("name").trim();
         this.type = ParamType.getInstance(paramNode.getAttribute("type").trim());
@@ -74,12 +77,12 @@ class SGSParam
         {
             if (!vals.equals(""))
             {
-                throw new Exception("Cannot specify both a min/max value and a"
+                throw new SGSConfigException("Cannot specify both a min/max value and a"
                     + " list of possible values for parameter " + name);
             }
             if (this.type == ParamType.BOOLEAN || this.type == ParamType.STRING)
             {
-                throw new Exception("Boolean and string parameters cannot have "
+                throw new SGSConfigException("Boolean and string parameters cannot have "
                     + "a minimum or maximum value");
             }
         }
@@ -126,7 +129,7 @@ class SGSParam
      * a value of its type, be within the min/max range if specified, and be
      * a member of the list of possible values, if specified
      */
-    public void checkValue(String newValue) throws Exception
+    public void checkValue(String newValue) throws SGSConfigException
     {
         if (this.type == ParamType.BOOLEAN)
         {
@@ -145,7 +148,7 @@ class ParamType
     public static final ParamType FLOAT = new ParamType();
     public static final ParamType STRING = new ParamType();
     
-    public static ParamType getInstance(String type) throws Exception
+    public static ParamType getInstance(String type) throws SGSConfigException
     {
         if (type.equalsIgnoreCase("boolean"))
         {
@@ -165,7 +168,7 @@ class ParamType
         }
         else
         {
-            throw new Exception("Unknown parameter type: " + type);
+            throw new SGSConfigException("Unknown parameter type: " + type);
         }
     }
     

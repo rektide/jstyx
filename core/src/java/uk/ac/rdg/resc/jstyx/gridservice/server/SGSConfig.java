@@ -39,6 +39,9 @@ import org.w3c.dom.NodeList;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/26 14:27:53  jonblower
+ * Modified to use SGSConfigException
+ *
  * Revision 1.1  2005/03/24 17:34:58  jonblower
  * Initial import
  *
@@ -57,7 +60,7 @@ class SGSConfig
      * @throws IllegalArgumentException if the name of the SGS contains
      * a space.
      */
-    public SGSConfig(Element gridService, String sgsRootDir)
+    public SGSConfig(Element gridService, String sgsRootDir) throws SGSConfigException
     {
         this.name = gridService.getAttribute("name");
         // Check that the name is valid

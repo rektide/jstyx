@@ -38,6 +38,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.log4j.Logger;
+
 import org.xml.sax.SAXException;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -51,6 +53,9 @@ import org.w3c.dom.Element;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/26 14:27:53  jonblower
+ * Modified to use SGSConfigException
+ *
  * Revision 1.4  2005/03/24 17:33:51  jonblower
  * Improved reading of service parameters from config file
  *
@@ -70,6 +75,8 @@ import org.w3c.dom.Element;
 public class SGSServerConfig
 {
     
+    private static final Logger log = Logger.getLogger(SGSServerConfig.class);
+    
     protected int port; // The port on which the server will listen
     protected boolean useSSL; // True if the server is to be secured with SSL
     protected String keystore; // The location of the keystore
@@ -82,7 +89,7 @@ public class SGSServerConfig
      * Creates a new server configuration from the given XML document
      * @throws Exception i
      */
-    public SGSServerConfig(String xmlFilename) throws Exception
+    public SGSServerConfig(String xmlFilename) throws SGSConfigException
     {
         this.gridServices = new Vector();
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -98,39 +105,31 @@ public class SGSServerConfig
             this.getSSLConfig();
             this.getSGSConfig();
         }
-        catch(ParserConfigurationException pce)
-        {
-            pce.printStackTrace();
-        }
-        catch(SAXException se)
-        {
-            se.printStackTrace();
-        }
-        catch(IOException ioe)
-        {
-            ioe.printStackTrace();
-        }
         catch(Exception e)
         {
-            e.printStackTrace();
+            if (log.isDebugEnabled())
+            {
+                e.printStackTrace();
+            }
+            throw new SGSConfigException(e.getMessage());
         }
     }
     
     /**
      * Finds the port number on which the server will listen
      */
-    private int findPort() throws Exception
+    private int findPort() throws SGSConfigException
     {
         NodeList list = this.root.getElementsByTagName("serverConfig");
         if (list.getLength() != 1)
         {
-            throw new Exception("There cannot be more than one serverConfig element");
+            throw new SGSConfigException("There cannot be more than one serverConfig element");
         }
         this.serverConfigNode = (Element)list.item(0);
         NodeList serverConfigList = this.serverConfigNode.getElementsByTagName("port");
         if (serverConfigList.getLength() != 1)
         {
-            throw new Exception("There cannot be more than one port definition");
+            throw new SGSConfigException("There cannot be more than one port definition");
         }
         Element portNode = (Element)serverConfigList.item(0);
         NodeList portList = portNode.getChildNodes();
@@ -142,29 +141,29 @@ public class SGSServerConfig
                 return Integer.parseInt(node.getNodeValue());
             }
         }
-        throw new Exception("Could not find port number in config file");
+        throw new SGSConfigException("Could not find port number in config file");
     }
     
     /**
      * Gets the SSL-related parameters
      */
-    private void getSSLConfig() throws Exception
+    private void getSSLConfig() throws SGSConfigException
     {
         NodeList list = this.root.getElementsByTagName("serverConfig");
         if (list.getLength() != 1)
         {
-            throw new Exception("There cannot be more than one serverConfig element");
+            throw new SGSConfigException("There cannot be more than one serverConfig element");
         }
         this.serverConfigNode = (Element)list.item(0);
         NodeList serverConfigList = this.serverConfigNode.getElementsByTagName("ssl");
         if (serverConfigList.getLength() != 1)
         {
-            throw new Exception("There cannot be more than one ssl tag");
+            throw new SGSConfigException("There cannot be more than one ssl tag");
         }
         Element sslNode = (Element)serverConfigList.item(0);
         if (sslNode == null)
         {
-            throw new Exception("Can't find ssl tag");
+            throw new SGSConfigException("Can't find ssl tag");
         }
         String activated = sslNode.getAttribute("activated");
         if (activated.equalsIgnoreCase("yes"))
@@ -177,13 +176,13 @@ public class SGSServerConfig
         }
         else
         {
-            throw new Exception("\"activated\" attribute must be either \"on\" or \"off\"");
+            throw new SGSConfigException("\"activated\" attribute must be either \"on\" or \"off\"");
         }
         // Now get the location of the keystore
         NodeList keystoreList = sslNode.getElementsByTagName("keystore");
         if (keystoreList.getLength() != 1)
         {
-            throw new Exception("There must be one and only one keystore element");
+            throw new SGSConfigException("There must be one and only one keystore element");
         }
         Element keystoreNode = (Element)keystoreList.item(0);
         this.keystore = keystoreNode.getAttribute("location");
@@ -192,12 +191,12 @@ public class SGSServerConfig
     /**
      * Get the configuration of each Styx Grid Service
      */
-    private void getSGSConfig() throws Exception
+    private void getSGSConfig() throws SGSConfigException
     {
         NodeList list = this.root.getElementsByTagName("gridservices");
         if (list.getLength() != 1)
         {
-            throw new Exception("There cannot be more than one gridservices element");
+            throw new SGSConfigException("There cannot be more than one gridservices element");
         }
         Element gridServicesNode = (Element)list.item(0);
         String sgsRoot = gridServicesNode.getAttribute("root");
