@@ -54,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/15 15:51:41  jonblower
+ * Removed hard limit on maximum message size
+ *
  * Revision 1.2  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -73,9 +76,6 @@ import uk.ac.rdg.resc.jstyx.messages.*;
 public class StyxServerProtocolHandler implements ProtocolHandler
 {
     private static final Logger log = Logger.getLogger(StyxServerProtocolHandler.class);
-    
-    // TODO: we could change this now we're using MINA
-    private static final int MAX_MESSAGE_SIZE = 8192;
     
     private StyxDirectory root; // Root of the file tree
     
@@ -197,7 +197,8 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         TversionMessage tVerMsg, int tag) throws StyxException
     {
         long proposedMessageSize = tVerMsg.getMaxMessageSize();
-        long finalMessageSize = (proposedMessageSize < MAX_MESSAGE_SIZE) ? proposedMessageSize : MAX_MESSAGE_SIZE;
+        long finalMessageSize = (proposedMessageSize < StyxUtils.MAX_MESSAGE_SIZE)
+            ? proposedMessageSize : StyxUtils.MAX_MESSAGE_SIZE;
         if (!tVerMsg.getVersion().equals("9P2000"))
         {
             throw new StyxException("Error negotiating protocol version (must be 9P2000)");
@@ -651,6 +652,10 @@ public class StyxServerProtocolHandler implements ProtocolHandler
     
     public void exceptionCaught( ProtocolSession session, Throwable cause )
     {
+        if (log.isDebugEnabled())
+        {
+            cause.printStackTrace();
+        }
         log.error( session.getRemoteAddress() + " EXCEPTION: " + cause.getMessage());
         // close the connection on exceptional situation
         session.close();

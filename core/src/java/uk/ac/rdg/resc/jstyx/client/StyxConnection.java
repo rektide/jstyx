@@ -71,6 +71,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/03/15 15:51:37  jonblower
+ * Removed hard limit on maximum message size
+ *
  * Revision 1.6  2005/03/11 13:58:25  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -101,6 +104,13 @@ public class StyxConnection implements ProtocolHandler
     
     private static final Logger log = Logger.getLogger(StyxConnection.class);
     
+    /**
+     * The default maximum message size that this connection will request. This
+     * is not necessarily the same as the maximum message size that will be used;
+     * this is up to the remote server.
+     */
+    private static final int DEFAULT_MAX_MESSAGE_SIZE_REQUEST = 8216;
+    
     private String host; // The host and port to which this is connected
     private int port;
     private String user;
@@ -120,7 +130,8 @@ public class StyxConnection implements ProtocolHandler
     
     private long rootFid;         // The fid associated with the root of the server
     private CStyxFile rootDirectory; // The root directory of the server as a CStyxFile
-    private int maxMessageSize;   // The maximum size of message that can be sent on this connection
+    private int maxMessageSizeRequest;  // The requested maximum size of message that can be sent on this connection
+    private int maxMessageSize;   // The actual maximum size of message that can be sent on this connection
     
     private Vector listeners;     // The StyxConnectionListeners that will be informed of events
     
@@ -141,7 +152,7 @@ public class StyxConnection implements ProtocolHandler
      * Creates a new instance of StyxConnection. This does not actually make the
      * connection; call connectAsync() or connect() to do this.
      */
-    public StyxConnection(String host, int port, String user)
+    public StyxConnection(String host, int port, String user, int maxMessageSizeRequest)
     {
         this.host = host;
         this.port = port;
@@ -157,12 +168,30 @@ public class StyxConnection implements ProtocolHandler
         this.msgQueue = new Hashtable();
         this.tClunksPending = new Hashtable();
         this.listeners = new Vector();
+        this.maxMessageSizeRequest = maxMessageSizeRequest;
         // The synchronization ensures that the numSessions static variable
         // can only be altered by one thread at once
         synchronized(numSessions)
         {
             numSessions = new Integer(numSessions.intValue() + 1);
         }
+    }
+    
+    /**
+     * Uses DEFAULT_MAX_MESSAGE_SIZE_REQUEST
+     */
+    public StyxConnection(String host, int port, String user)
+    {
+        this(host, port, user, DEFAULT_MAX_MESSAGE_SIZE_REQUEST);
+    }
+    
+    /**
+     * Creates a new instance of StyxConnection, connecting as an anonymous user
+     */
+    public StyxConnection(String host, int port, int maxMessageSizeRequest)
+        throws StyxException
+    {
+        this(host, port, "", maxMessageSizeRequest);
     }
     
     /**
@@ -553,8 +582,7 @@ public class StyxConnection implements ProtocolHandler
     {
         this.connected = true;
         log.debug("Connection established.");
-        // TODO: allow other message sizes to be used
-        TversionMessage tVerMsg = new TversionMessage(8192);
+        TversionMessage tVerMsg = new TversionMessage(this.maxMessageSizeRequest);
         this.sendAsync(tVerMsg, new TversionCallback());
     }
     

@@ -38,6 +38,7 @@ import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.messages.TversionMessage;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * Protocol handler for the StyxInterloper server
@@ -46,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/15 15:51:41  jonblower
+ * Removed hard limit on maximum message size
+ *
  * Revision 1.2  2005/03/11 14:02:15  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -105,14 +109,15 @@ class StyxInterloperServerProtocolHandler implements ProtocolHandler
         }
         listener.tMessageReceived((StyxMessage)message);
         
-        // Make sure the message size is <= 8192 bytes (TODO: allow for message
-        // sizes larger than this)
+        // Make sure that we can handle the message size that the client
+        // is requesting; if not, change the TversionMessage before we pass it
+        // through.
         if (message instanceof TversionMessage)
         {
             TversionMessage tVerMsg = (TversionMessage)message;
-            if (tVerMsg.getMaxMessageSize() > 8192)
+            if (tVerMsg.getMaxMessageSize() > StyxUtils.MAX_MESSAGE_SIZE)
             {
-                tVerMsg.setMaxMessageSize(8192);
+                tVerMsg.setMaxMessageSize(StyxUtils.MAX_MESSAGE_SIZE);
             }
         }
         
