@@ -57,8 +57,11 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:32  jonblower
- * Initial revision
+ * Revision 1.2  2005/03/01 13:47:43  jonblower
+ * Changed default user and group to 'user' and 'group'
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:32  jonblower
+ * Initial import
  *
  */
 public abstract class StyxFile
@@ -137,7 +140,7 @@ public abstract class StyxFile
         boolean isExclusive) throws StyxException
     {
         // TODO specify the default user and group in a config file?
-        this(name, "jdb", "anongrp", permissions, isAppendOnly, isExclusive);
+        this(name, "user", "group", permissions, isAppendOnly, isExclusive);
     }
     
     public StyxFile(String name, int permissions)

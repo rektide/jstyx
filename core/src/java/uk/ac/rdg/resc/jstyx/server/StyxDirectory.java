@@ -46,8 +46,11 @@ import uk.ac.rdg.resc.jstyx.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:32  jonblower
- * Initial revision
+ * Revision 1.2  2005/03/01 13:47:43  jonblower
+ * Changed default user and group to 'user' and 'group'
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:32  jonblower
+ * Initial import
  *
  */
 public class StyxDirectory extends StyxFile
@@ -70,7 +73,7 @@ public class StyxDirectory extends StyxFile
      */
     public StyxDirectory(String name) throws StyxException
     {
-        this(name, "jdb", "anongrp", 0777);
+        this(name, "user", "group", 0777);
     }
     
     /**

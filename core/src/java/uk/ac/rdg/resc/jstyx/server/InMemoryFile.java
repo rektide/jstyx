@@ -45,8 +45,11 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:31  jonblower
- * Initial revision
+ * Revision 1.2  2005/03/01 13:47:43  jonblower
+ * Changed default user and group to 'user' and 'group'
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:31  jonblower
+ * Initial import
  *
  */
 public class InMemoryFile extends StyxFile
@@ -68,7 +71,7 @@ public class InMemoryFile extends StyxFile
         boolean isAppendOnly, boolean isExclusive)
         throws StyxException
     {
-        this(name, "jdb", "anongrp", permissions, isAppendOnly, isExclusive);
+        this(name, "user", "group", permissions, isAppendOnly, isExclusive);
     }
     
     public InMemoryFile(String name, int permissions)
