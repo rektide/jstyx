@@ -36,15 +36,11 @@ public class MinaServer
         protocolThreadPoolFilter.start();
         
         // Create a TCP/IP acceptor.
-        IoProtocolAcceptor acceptor = new IoProtocolAcceptor(
-            new SocketAcceptor() );
+        IoProtocolAcceptor acceptor = new IoProtocolAcceptor( new SocketAcceptor() );
         
         // Add both thread pool filters.
-        // TODO: where are the MAX_PRIORITY constants?
-        acceptor.getIoAcceptor().addFilter( 99, //IoHandlerFilter.MAX_PRIORITY,
-            ioThreadPoolFilter );
-        acceptor.addFilter( 99, //ProtocolHandlerFilter.MAX_PRIORITY,
-            protocolThreadPoolFilter );
+        acceptor.getIoAcceptor().addFilter( 99, ioThreadPoolFilter );
+        acceptor.addFilter( 99, protocolThreadPoolFilter );
         
         // Bind
         acceptor.bind( new InetSocketAddress( PORT ),

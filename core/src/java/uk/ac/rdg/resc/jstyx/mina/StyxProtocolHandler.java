@@ -39,6 +39,9 @@ import org.apache.mina.protocol.ProtocolSession;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/09 16:58:42  jonblower
+ * Changes to MINA-related classes
+ *
  * Revision 1.1  2005/03/09 08:52:25  jonblower
  * Initial import of MINA-related classes
  *
@@ -74,6 +77,7 @@ public class StyxProtocolHandler implements ProtocolHandler
     public void messageReceived( ProtocolSession session, Object message )
     {
         System.err.println( session.getRemoteAddress() + " RCVD: " + message );
+        session.write(new RversionMessage(8192, "9P2000"));
     }
     
     public void messageSent( ProtocolSession session, Object message )

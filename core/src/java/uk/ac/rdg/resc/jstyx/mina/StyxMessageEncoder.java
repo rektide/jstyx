@@ -41,6 +41,9 @@ import org.apache.mina.protocol.ProtocolViolationException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/09 16:58:42  jonblower
+ * Changes to MINA-related classes
+ *
  * Revision 1.1  2005/03/09 08:52:25  jonblower
  * Initial import of MINA-related classes
  *
@@ -52,5 +55,14 @@ public class StyxMessageEncoder implements ProtocolEncoder
         throws ProtocolViolationException
     {
         System.err.println("Called StyxMessageEncoder.encode()");
+        if (!(message instanceof StyxMessage))
+        {
+            // This shouldn't happen
+            throw new ProtocolViolationException("message was not a StyxMessage");
+        }
+        StyxMessage styxMsg = (StyxMessage)message;
+        // Encode the message contents as bytes in the underlying ByteBuffer
+        styxMsg.encode();
+        out.write(styxMsg.getBuffer());
     }
 }
