@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/03/22 17:42:24  jonblower
+ * Changed default message size to 8192 for efficiency in MINA
+ *
  * Revision 1.10  2005/03/22 10:19:52  jonblower
  * Fixed problem with ByteBuffer leak in StyxMessageDecoder and StyxFileInputStream
  *
@@ -118,8 +121,13 @@ public class StyxConnection implements ProtocolHandler
      * The default maximum message size that this connection will request. This
      * is not necessarily the same as the maximum message size that will be used;
      * this is up to the remote server.
+     *
+     * This is set to 8192 because it is most efficient if this is a power of two;
+     * MINA allocates its reusable ByteBuffers in sizes that are powers of two. If 
+     * this were, say, 8216 bytes then MINA would allocate ByteBuffers of capacity
+     * 16384 bytes to accommodate a single message.
      */
-    private static final int DEFAULT_MAX_MESSAGE_SIZE_REQUEST = 8216;
+    private static final int DEFAULT_MAX_MESSAGE_SIZE_REQUEST = 8192;
     
     private String host; // The host and port to which this is connected
     private int port;
