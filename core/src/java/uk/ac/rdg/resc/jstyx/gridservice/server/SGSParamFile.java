@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/29 19:17:38  jonblower
+ * Continuing to implement automatic setting of parameters
+ *
  * Revision 1.2  2005/03/26 14:30:17  jonblower
  * Modified to use SGSConfigException
  *
@@ -101,11 +104,10 @@ public class SGSParamFile extends InMemoryFile
     
     /**
      * @return the parameter as it will appear on the command line, including
-     * any switches
+     * the switch, if present (e.g. "-p 12")
      */
     public String getCommandLineFragment()
     {
-        // TODO: include any command-line switches
-        return this.getDataAsString();
+        return this.param.getSwitch() + this.getDataAsString();
     }
 }

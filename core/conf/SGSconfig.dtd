@@ -20,11 +20,11 @@
 <!-- A parameter for a SGS (passed on the command-line to the executable) 
      name: The name of the parameter (must not contain spaces)
      type: The type of the parameter
-     required: "yes" if the parameter is compulsory, "no" otherwise
+     required: "yes" if the parameter is compulsory, "no" if the parameter can be blank
      default: (Optional) default value for the parameter. Must be within the
         minValue : maxValue range, or one of the given possible values
      
-     If minValue or maxValue are specified, the values field cannot be filled,
+     If minValue or maxValue are specified, the "values" field cannot be filled,
         or vice-versa.
      minValue: (Optional) minimum value for the parameter (not valid for boolean or string)
      maxValue: (Optional) maximum value for the parameter (not valid for boolean or string)

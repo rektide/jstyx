@@ -40,6 +40,9 @@ import org.w3c.dom.Element;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/29 19:17:38  jonblower
+ * Continuing to implement automatic setting of parameters
+ *
  * Revision 1.2  2005/03/26 14:27:53  jonblower
  * Modified to use SGSConfigException
  *
@@ -51,10 +54,13 @@ class SGSParam
 {
     private String name; // Name for the parameter
     private ParamType type; // Type of the parameter (boolean, int, float, string)
+    private boolean required; // True if this parameter must contain a value,
+                              // false if it is allowed to be blank
     private String defaultValue; // Optional default value for the parameter
     private String minValue; // Optional minimum value for the parameter (only valid for int and float)
     private String maxValue; // Optional maximum value for the parameter (only valid for int and float)
     private String[] values = null; // Array of possible values that the parameter can take
+    private String strSwitch; // Optional command-line switch that precedes this parameter
     private String description; // Optional description for the parameter
 
     /**
@@ -65,13 +71,18 @@ class SGSParam
     {
         this.name = paramNode.getAttribute("name").trim();
         this.type = ParamType.getInstance(paramNode.getAttribute("type").trim());
+        this.required = paramNode.getAttribute(name).trim().equalsIgnoreCase("yes");
         
         // The following fields are optional; if they don't exist in the config
-        // file they will have the value ""
-        
+        // file they will have the value ""        
+        this.defaultValue = paramNode.getAttribute("default");
         this.minValue = paramNode.getAttribute("minValue").trim();
         this.maxValue = paramNode.getAttribute("maxValue").trim();
         String vals = paramNode.getAttribute("values").trim();
+        // We don't trim the switch parameter because the user might want to 
+        // force a space between the switch and the parameter value
+        this.strSwitch = paramNode.getAttribute("switch");
+        this.description = paramNode.getAttribute("description").trim();
         
         if (! (this.minValue.equals("") && this.maxValue.equals("")) )
         {
@@ -102,15 +113,12 @@ class SGSParam
             }
         }
         
-        // Get the default value
-        this.defaultValue = paramNode.getAttribute("default").trim();
         if (!this.defaultValue.equals(""))
         {
             // Check that the default value is valid
             this.checkValue(this.defaultValue);
         }
         
-        this.description = paramNode.getAttribute("description");
     }
 
     public String getName()
@@ -118,6 +126,14 @@ class SGSParam
         return this.name;
     }
 
+    /**
+     * @return the command-line switch that precedes this parameter (e.g. "-p")
+     */
+    public String getSwitch()
+    {
+        return this.strSwitch;
+    }
+    
     public String getDescription()
     {
         return this.description;
@@ -125,11 +141,13 @@ class SGSParam
     
     /**
      * Checks that the proposed new value for the parameter is valid,
-     * throwing an Exception if it isn't.  To be valid, it must be parseable as
-     * a value of its type, be within the min/max range if specified, and be
-     * a member of the list of possible values, if specified
+     * throwing a SGSConfigException if it isn't. To be valid, it must be
+     * parseable as a value of its type, be within the min/max range if
+     * specified, and be a member of the list of possible values, if specified
+     * @param value the value to check
+     * @param allowBlank true if blank values are valid, false otherwise
      */
-    public void checkValue(String newValue) throws SGSConfigException
+    public void checkValue(String value) throws SGSConfigException
     {
         if (this.type == ParamType.BOOLEAN)
         {
