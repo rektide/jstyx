@@ -44,6 +44,9 @@ import net.gleamynode.netty2.IoProcessor;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/09 16:59:51  jonblower
+ * Added HEADER_LENGTH
+ *
  * Revision 1.2  2005/02/24 07:39:39  jonblower
  * Added getDataSummary()
  *
@@ -54,6 +57,9 @@ import net.gleamynode.netty2.IoProcessor;
 public class StyxUtils
 {
     private static final Log log = LogFactory.getLog(StyxUtils.class);
+    
+    // The header length of a StyxMessage
+    public static final int HEADER_LENGTH = 7;
     
     // Constants relating to max values of unsigned quantities
     public static final int  MAXUBYTE  = 0xff;
