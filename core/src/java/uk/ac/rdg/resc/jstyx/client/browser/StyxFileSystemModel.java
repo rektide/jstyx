@@ -43,6 +43,7 @@ package uk.ac.rdg.resc.jstyx.client.browser;
 import java.io.File;
 import java.util.Date;
 import java.net.InetSocketAddress;
+import javax.swing.JOptionPane;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
@@ -239,7 +240,8 @@ class FileNode
         }
         catch (StyxException ste)
         {
-            ste.printStackTrace();
+            // Show an error dialog box
+            new ErrorMessage(ste.getMessage()).start();
         }
         catch (SecurityException se)
         {
@@ -257,6 +259,20 @@ class FileNode
         }
         this.refresh();
         return children;
+    }
+    
+    private class ErrorMessage extends Thread
+    {
+        private String message;
+        public ErrorMessage(String message)
+        {
+            this.message = message;
+            this.setDaemon(true);
+        }
+        public void run()
+        {
+            JOptionPane.showMessageDialog(null, this.message);
+        }
     }
 }
 
