@@ -2,7 +2,7 @@
 <!-- JStyx build file -->
 <!-- Author: Jon Blower -->
 <!-- CVS $Revision$ -->
-<!-- CVS Last modified $Date$ by $author$ -->
+<!-- CVS Last modified $Date$ by $Author$ -->
 <project name="jstyx" default="jar" basedir=".">
     <description>
         Builds the JStyx source into classes and creates JAR file
