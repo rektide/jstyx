@@ -42,6 +42,9 @@ import java.awt.Component;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/02/28 12:53:47  jonblower
+ * Improved message filtering
+ *
  * Revision 1.2  2005/02/24 11:23:40  jonblower
  * Handles filtering by filename correctly
  *
@@ -53,25 +56,14 @@ public class StyxMonPopupMenu extends JPopupMenu
 {
     
     private StyxMonTableModel theModel;
-    private JMenuItem menuFilter;
     private JMenuItem menuShowAll;
-    private String filterFilename;
+    private static final String prefix = "Filter by filename ";
     
     /** Creates a new instance of StyxMonPopUpMenu */
     public StyxMonPopupMenu(StyxMonTableModel model)
     {
         this.theModel = model;
-        menuFilter = new JMenuItem("Filter by filename: ");
         menuShowAll = new JMenuItem("Show all messages");
-        this.add(menuFilter);
-        this.add(menuShowAll);
-        menuFilter.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e)
-            {
-                theModel.filterByFilename(filterFilename);
-            }
-        });
         menuShowAll.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e)
@@ -87,19 +79,33 @@ public class StyxMonPopupMenu extends JPopupMenu
      */
     public void showContext(String filename, Component invoker, int x, int y)
     {
+        this.removeAll();
         if (this.theModel.isFiltered())
         {
-            this.menuFilter.setVisible(false);
-            this.menuShowAll.setVisible(true);
+            this.add(menuShowAll);
         }
         else
         {
-            this.filterFilename = filename;
-            this.menuFilter.setText("Filter by filename: " + filename);
-            this.menuFilter.setVisible(true);
-            this.menuShowAll.setVisible(false);
+            // Create a menu item for each level in the file hierarchy
+            JMenuItem root = new JMenuItem(prefix + filename);
+            root.addActionListener(al);
+            this.add(root);
         }
         super.show(invoker, x, y);
     }
+    
+    /**
+     * Action listener that implements filtering based on the text of the 
+     * JMenuItem that called it
+     */
+    ActionListener al = new ActionListener()
+    {
+        public void actionPerformed(ActionEvent e)
+        {
+            JMenuItem menuItem = (JMenuItem)e.getSource();
+            String filename = menuItem.getText().substring(prefix.length());
+            theModel.filterByFilename(filename);
+        }
+    };
     
 }

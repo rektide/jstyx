@@ -39,6 +39,9 @@ import java.util.Vector;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/02/28 12:53:47  jonblower
+ * Improved message filtering
+ *
  * Revision 1.2  2005/02/24 09:07:12  jonblower
  * Added code to support filtering by pop-up menu
  *
@@ -100,20 +103,7 @@ class StyxMonTableModel extends AbstractTableModel
      */
     public synchronized Object getValueAt(int row, int column)
     {
-        if (this.filter == null)
-        {
-            return this.getRowData(row, column)[column];
-        }
-        else
-        {
-            // Get the row in the real data
-            Integer intRow = (Integer)this.filter.get(row);
-            if (intRow == null)
-            {
-                throw new ArrayIndexOutOfBoundsException("The row index was out of range");
-            }
-            return this.getRowData(intRow.intValue(), column)[column];
-        }
+        return this.getRowData(row, column, false)[column];
     }
     
     /**
@@ -125,24 +115,40 @@ class StyxMonTableModel extends AbstractTableModel
      */
     public synchronized void setValueAt(Object value, int row, int column)
     {
-        String[] s = this.getRowData(row, column);
+        String[] s = this.getRowData(row, column, true);
         s[column] = (String)value;
         this.fireTableCellUpdated(row, column);
     }
     
     /**
      * Gets the String array at the given row in the data model and also checks
-     * that the given column index is valid.
+     * that the given column index is valid. If ignoreFilter is true, the filter
+     * will be ignored and the real data from the data model will be returned
      * @throws ArrayIndexOutOfBoundsException if the given row or column
      * are out of range
      */
-    private synchronized String[] getRowData(int row, int column)
+    private synchronized String[] getRowData(int row, int column, boolean ignoreFilter)
     {
         if (column > this.columnNames.length - 1)
         {
             throw new ArrayIndexOutOfBoundsException("The column index was out of range");
         }
-        String[] rowData = (String[])this.rows.get(row);
+        int realRow;
+        if (ignoreFilter || this.filter == null)
+        {
+            realRow = row;
+        }
+        else
+        {
+            // The data are filtered. Get the index of the real row
+            Integer intRow = (Integer)this.filter.get(row);
+            if (intRow == null)
+            {
+                throw new ArrayIndexOutOfBoundsException("The row index was out of range");
+            }
+            realRow = intRow.intValue();
+        }
+        String[] rowData = (String[])this.rows.get(realRow);
         if (rowData == null)
         {
             throw new ArrayIndexOutOfBoundsException("The row index was out of range");
@@ -208,7 +214,7 @@ class StyxMonTableModel extends AbstractTableModel
      */
     public boolean containsMessagePair(int row)
     {
-        String[] rowData = this.getRowData(row, 0);
+        String[] rowData = this.getRowData(row, 0, false);
         // If the "Rmessage" column is empty, return false
         if (rowData[4] == null || rowData[4].equalsIgnoreCase(""))
         {
@@ -225,7 +231,7 @@ class StyxMonTableModel extends AbstractTableModel
      */
     public boolean containsError(int row)
     {
-        String[] rowData = this.getRowData(row, 0);
+        String[] rowData = this.getRowData(row, 0, false);
         // If the "Rmessage" column is empty, return false
         if (rowData[4] == null)
         {
@@ -246,7 +252,7 @@ class StyxMonTableModel extends AbstractTableModel
         // Search through all the rows to find the rows that contain this filename
         for (int i = 0; i < this.rows.size(); i++)
         {
-            String[] rowData = this.getRowData(i, 0);
+            String[] rowData = this.getRowData(i, 0, true);
             if (rowData[2].equals(this.filterFilename.trim()))
             {
                 this.filter.add(new Integer(i));

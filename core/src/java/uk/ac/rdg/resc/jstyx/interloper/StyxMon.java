@@ -51,9 +51,9 @@ import info.clearthought.layout.TableLayout;
 /**
  * TCPMon-like GUI application that displays all the messages going between
  * a Styx client and server.  (i.e. a GUI version of the StyxInterloper)
+ * @todo Allow filtering by hierarchy (e.g. show all files rooted at /md5sum/1)
  * @todo Make sure all connections are closed properly on exit, and that
  * all threads are stopped.
- * @todo Merge more closely with StyxInterloper
  * @todo Allow messages to be saved as a .csv file or plain ASCII text
  * @todo Handle more events such as clients connecting, disconnecting,
  * server connection going down, etc (feed back to GUI)
@@ -64,6 +64,9 @@ import info.clearthought.layout.TableLayout;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/02/28 12:53:47  jonblower
+ * Improved message filtering
+ *
  * Revision 1.8  2005/02/28 12:08:18  jonblower
  * Tidied up interaction between StyxInterloper and StyxMon
  *
@@ -225,11 +228,16 @@ public class StyxMon extends StyxInterloper
             this.fidNames.put(new Long(tAttMsg.getFid()), "");
         }
         // If this is a TwalkMessage we can associate the new fid with the
-        // path of the file in questions
+        // path of the file in question
         else if (message instanceof TwalkMessage)
         {
             TwalkMessage tWalkMsg = (TwalkMessage)message;
-            this.fidNames.put(new Long(tWalkMsg.getNewFid()), path + "/" + tWalkMsg.getPath());
+            String fullPath = path;
+            if (tWalkMsg.getNumPathElements() > 0)
+            {
+                fullPath = path + "/" + tWalkMsg.getPath();
+            }
+            this.fidNames.put(new Long(tWalkMsg.getNewFid()), fullPath);
         }
         int theRow = this.getRow(message.getTag());
         model.addTMessageData(theRow, getMessageName(message.getName()),
