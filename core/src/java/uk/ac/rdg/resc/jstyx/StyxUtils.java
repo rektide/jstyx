@@ -40,6 +40,9 @@ import java.nio.charset.Charset;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/03/16 22:16:41  jonblower
+ * Added Styx Grid Service classes to core module
+ *
  * Revision 1.6  2005/03/16 17:55:46  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -148,7 +151,9 @@ public class StyxUtils
     {
         try
         {
-            return new String(bytes, offset, length, charsetName);
+            String s = new String(bytes, offset, length, charsetName);
+            System.out.println("s = " + s);
+            return s;
         }
         catch (UnsupportedEncodingException uee)
         {
@@ -176,8 +181,38 @@ public class StyxUtils
             buf.get(bytes);
             // Reset the original position of the buffer
             buf.position(pos);
-        }            
+        }
         return utf8ToString(bytes);
+    }
+    
+    /**
+     * Gets the remaining contents of the given java.nio.ByteBuffer (i.e. the bytes
+     * between its position and limit) as a String.  Leaves the position of the
+     * ByteBuffer unchanged.
+     */
+    public static String dataToString(java.nio.ByteBuffer buf)
+    {
+        // First check to see if the input buffer has a backing array; if so,
+        // we can just use it, to save making a copy of the data
+        byte[] bytes;
+        if (buf.hasArray())
+        {
+            bytes = buf.array();
+            return utf8ToString(bytes, buf.position(), buf.remaining());
+        }
+        else
+        {
+            synchronized (buf)
+            {
+                // Remember the original position of the buffer
+                int pos = buf.position();
+                bytes = new byte[buf.remaining()];
+                buf.get(bytes);
+                // Reset the original position of the buffer
+                buf.position(pos);
+            }
+            return utf8ToString(bytes);
+        }
     }
     
     /**
@@ -187,7 +222,6 @@ public class StyxUtils
      */
     public static String getDataSummary(int n, ByteBuffer data)
     {
-        StringBuffer s = new StringBuffer();
         byte[] bytes;
         synchronized(data)
         {
@@ -202,13 +236,12 @@ public class StyxUtils
     
     /**
      * @return the first n bytes of the data in the given byte array as a String
-     * (in quotes), then the number of bytes remaining. Leaves the 
+     * (in quotes), then the number of bytes remaining.
      */
     public static String getDataSummary(int n, byte[] bytes)
     {
-        StringBuffer s = new StringBuffer();
+        StringBuffer s = new StringBuffer("\"");
         int bytesToWrite = bytes.length < n ? bytes.length : n;
-        s.append("\"");
         s.append(StyxUtils.utf8ToString(bytes, 0, bytesToWrite));
         s.append("\"");
         int moreBytes = bytes.length - bytesToWrite;

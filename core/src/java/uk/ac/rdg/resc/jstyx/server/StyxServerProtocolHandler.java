@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/16 22:16:43  jonblower
+ * Added Styx Grid Service classes to core module
+ *
  * Revision 1.4  2005/03/16 17:56:24  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -449,7 +452,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
             truncate = false;
         }
         // The last modified time is set automatically by sf.replyWrite()
-        sf.write(client, offset, tWriteMsg.getCount(), tWriteMsg.getData(),
+        sf.write(client, offset, tWriteMsg.getCount(), tWriteMsg.getRawData(),
             sessionState.getUser(), truncate, tag);
     }
     

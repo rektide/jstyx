@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/16 22:16:43  jonblower
+ * Added Styx Grid Service classes to core module
+ *
  * Revision 1.5  2005/03/16 17:56:22  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -283,7 +286,7 @@ public class RreadMessage extends StyxMessage
         }
         else
         {
-            s.append(StyxUtils.getDataSummary(30, this.data));
+            s.append(StyxUtils.getDataSummary(30, this.getData()));
         }
         return s.toString();
     }

@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/16 22:16:43  jonblower
+ * Added Styx Grid Service classes to core module
+ *
  * Revision 1.4  2005/03/16 17:56:24  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -435,7 +438,9 @@ public abstract class StyxFile
      * @param client The client that is performing the write operation
      * @param offset The place in the file where the new data will be added
      * @param count The number of bytes to write
-     * @param data The data to write
+     * @param data The data to write. The position and limit of this ByteBuffer
+     * will be set correctly, but subclasses should note that the position might
+     * not be zero.
      * @param user The user that is performing the write operation
      * @param truncate If this is true the file will be truncated at the end of 
      * the new data

@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/16 22:16:43  jonblower
+ * Added Styx Grid Service classes to core module
+ *
  * Revision 1.5  2005/03/16 17:56:22  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -193,7 +196,7 @@ public class TwriteMessage extends StyxMessage
         {
             // We already have the bulk of the data in a ByteBuffer, so we don't
             // need to copy it to a new one.
-            ByteBuffer payload = this.getData();
+            ByteBuffer payload = this.getRawData();
             
             // Allocate a buffer for everything but the payload
             this.buf = ByteBuffer.allocate(this.length - payload.remaining());
@@ -207,7 +210,7 @@ public class TwriteMessage extends StyxMessage
             // Write everything but the payload
             out.write(this.buf);
             // Now write the payload; this releases the buffer so subsequent
-            // calls to getData() will not return valid results
+            // calls to getRawData() will not return valid results
             out.write(payload);
         }
     }
@@ -250,19 +253,19 @@ public class TwriteMessage extends StyxMessage
     /**
      * @return the data contained in this message (i.e. the message payload).
      * The position and limit of the ByteBuffer will be set correctly, but
-     * please note that the position will probably not be zero!  This ByteBuffer
+     * please note that the position might not be zero!  This ByteBuffer
      * might actually contain all the raw data for the TwriteMessage. When you have
      * finished with the data, call buf.release() to return the buffer to the
      * pool.  After releasing the buffer, calling this method will have undefined
      * consequences (the data returned might not be the data we expect
      * because the buffer might have been reused).
      *
-     * This method should only be called by servers (i.e. programs that 
+     * This method should <b>only</b> be called by servers (i.e. programs that 
      * interpret TwriteMessages that arrive over the network).  If the 
      * TwriteMessage has been created "from scratch" using a byte array, this 
      * method will throw an IllegalStateException.
      */
-    public ByteBuffer getData()
+    public ByteBuffer getRawData()
     {
         if (this.data == null)
         {
@@ -270,6 +273,26 @@ public class TwriteMessage extends StyxMessage
         }
         this.data.position(this.dataPos);
         return this.data;
+    }
+    
+    /**
+     * @return The data that will be written to the file (i.e. the message's
+     * payload, as java.nio.ByteBuffer with the position and limit set correctly.
+     * The java.nio.ByteBuffer that is returned is created simply by wrapping
+     * the byte array that was used to create this message in the first place,
+     * therefore the array() method of the ByteBuffer can always be used.
+     *
+     * This method should <b>only</b> be called by clients (i.e. a program that
+     * created this TwriteMessage from a byte array), otherwise this method
+     * will throw an IllegalStateException.
+     */
+    public java.nio.ByteBuffer getData()
+    {
+        if (this.bytes == null)
+        {
+            throw new IllegalStateException("Byte array is null");
+        }
+        return java.nio.ByteBuffer.wrap(this.bytes, this.pos, this.length);
     }
     
     protected String getElements()
@@ -282,7 +305,7 @@ public class TwriteMessage extends StyxMessage
         }
         else
         {
-            s.append(StyxUtils.getDataSummary(30, this.data));
+            s.append(StyxUtils.getDataSummary(30, this.getRawData()));
         }
         return s.toString();
     }
@@ -298,11 +321,11 @@ public class TwriteMessage extends StyxMessage
         s.append(", ");
         if (this.data == null)
         {
-            StyxUtils.getDataSummary(30, this.bytes);
+            s.append(StyxUtils.getDataSummary(30, this.bytes));
         }
         else
         {
-            StyxUtils.getDataSummary(30, this.data);
+            s.append(StyxUtils.getDataSummary(30, this.getRawData()));
         }
         return s.toString();
     }
