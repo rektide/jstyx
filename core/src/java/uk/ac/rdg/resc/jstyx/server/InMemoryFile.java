@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/03/24 15:11:07  jonblower
+ * Changed so that underlying ByteBuffer is allocated on the first write to the file
+ *
  * Revision 1.7  2005/03/24 13:07:09  jonblower
  * Added code to prevent the file growing to larger than a specified size
  *
@@ -94,12 +97,7 @@ public class InMemoryFile extends StyxFile
     {
         super(name, userID, groupID, permissions, false, isAppendOnly,
             isExclusive);
-        // Start with a 1 KB buffer by default. Bigger buffers will be allocated
-        // automatically if required
-        this.buf = ByteBuffer.allocate(1024);
-        this.buf.position(0).limit(0);
         this.capacity = 8192;
-        log.debug("Allocated InMemoryFile with capacity 1024, maximum capacity 8192");
     }
     
     public InMemoryFile(String name, int permissions,
@@ -124,9 +122,10 @@ public class InMemoryFile extends StyxFile
     public synchronized void read(StyxFileClient client, long offset, int count,
         int tag) throws StyxException
     {
-        if (offset >= this.buf.limit())
+        if (this.buf == null || offset >= this.buf.limit())
         {
-            // Attempt to read off the end of the file
+            // Attempt to read off the end of the file, or no data have yet
+            // been written to the file
             this.replyRead(client, new byte[0], tag);
             return;
         }
@@ -143,6 +142,13 @@ public class InMemoryFile extends StyxFile
         int count, ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
     {
+        if (this.buf == null)
+        {
+            // This is the first write to the file; create the buffer.
+            this.buf = ByteBuffer.allocate(count);
+            this.buf.position(0).limit(0);
+            log.debug("Allocated InMemoryFile with capacity " + this.buf.capacity());
+        }
         if (offset > this.buf.limit())
         {
             throw new StyxException("offset is greater than the current data length");
@@ -195,6 +201,10 @@ public class InMemoryFile extends StyxFile
     
     public synchronized ULong getLength()
     {
+        if (this.buf == null)
+        {
+            return new ULong(0);
+        }
         return new ULong(this.buf.limit());
     }
     
@@ -205,7 +215,10 @@ public class InMemoryFile extends StyxFile
      */
     public synchronized void delete()
     {
-        this.buf.release();
+        if (this.buf != null)
+        {
+            this.buf.release();
+        }
     }
     
     /**
@@ -213,6 +226,10 @@ public class InMemoryFile extends StyxFile
      */
     public synchronized String getDataAsString()
     {
+        if (this.buf == null)
+        {
+            return "";
+        }
         this.buf.position(0);
         return StyxUtils.dataToString(this.buf);
     }
