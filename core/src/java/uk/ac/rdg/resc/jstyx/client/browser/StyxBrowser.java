@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/11 15:06:21  jonblower
+ * Replaced deprecated frame.show() with frame.setVisible(true)
+ *
  * Revision 1.5  2005/03/11 13:58:54  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -112,7 +115,7 @@ public class StyxBrowser
         
         frame.getContentPane().add(new JScrollPane(treeTable));
         frame.pack();
-        frame.show();
+        frame.setVisible(true);
     }
 }
 
