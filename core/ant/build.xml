@@ -14,7 +14,7 @@
 	<property name="src.dir" value="../src"/>
 	<property name="classes.dir" value="../classes"/>
 	<property name="dist.dir" value="../dist"/>
-	<property name="javadoc.dir" value="../javadoc"/>
+	<property name="javadoc.dir" value="../docs/api"/>
 	<!-- The directory containing other third-party Java libraries (log4j, Netty etc) -->
 	<property name="lib.dir" value="../lib"/>
 	
