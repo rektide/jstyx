@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/03/11 15:19:07  jonblower
+ * Removed misleading comment
+ *
  * Revision 1.6  2005/03/11 15:06:21  jonblower
  * Replaced deprecated frame.show() with frame.setVisible(true)
  *
@@ -57,9 +60,6 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  *
  * Revision 1.3  2005/02/26 09:59:34  jonblower
  * Now reads connection details from command line
- *
- * Revision 1.2  2005/02/21 18:09:43  jonblower
- * *** empty log message ***
  *
  * Revision 1.1  2005/02/18 17:52:40  jonblower
  * Added client.browser package
@@ -107,7 +107,6 @@ public class StyxBrowser
         {
             public void windowClosing(WindowEvent we)
             {
-                // TODO: disconnect from server cleanly
                 conn.close();
                 System.exit(0);
             }
