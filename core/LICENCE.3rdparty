@@ -4,5 +4,8 @@ the following licences:
 Commons-logging:  Apache License, Version 2.0, January 2004
 Log4j:  Apache Software License, Version 1.1, 1999
 Netty2:  Apache License, Version 2.0, January 2004
+MINA: Apache License, Version 2.0, January 2004 (note that the version of MINA
+that is included with this distribution is a snapshot of version 0.7: it is not
+an official release)
 
 Copies of these licences are provided in this distribution.
