@@ -47,11 +47,17 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * @todo should we keep a cache of all the children of this file?
  * @todo implement a create() method
  * @todo implement changing of stat data (length etc) via a Twstat message
+ * @todo Do we really need the synchronous methods (read(), write() etc) to be synchronized?
+ * @todo Use event listener mechanism at the level of getting fids, open fids etc
+ * to solve the problem of multiple calls to open() before Ropen arrives
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/02/18 09:11:35  jonblower
+ * Remove 'synchronized' from some methods, added some comments
+ *
  * Revision 1.2  2005/02/17 18:03:35  jonblower
  * Minor changes to comments
  *
@@ -323,13 +329,14 @@ public class CStyxFile extends MessageCallback
      * For example, to open a file for reading, use StyxUtils.OREAD. To open a
      * file for writing with truncation use StyxUtils.OWRITE | StyxUtils.OTRUNC.
      */
-    public synchronized void open(int mode) throws StyxException
+    public void open(int mode) throws StyxException
     {
         StyxReplyCallback callback = new StyxReplyCallback();
         this.openAsync(mode, callback);
-        RopenMessage rOpenMsg = (RopenMessage)callback.getReply();
         // The properties of the file (mode, iounit, offset) will have been set
-        // automatically by the OpenCallback
+        // automatically by the OpenCallback so we don't need to read the Ropen
+        // message.
+        callback.getReply();
     }
     
     /**
@@ -420,12 +427,13 @@ public class CStyxFile extends MessageCallback
     {
         if (this.mode < 0)
         {
+            // The file isn't open; just return
             return;
         }
         long fid = this.openFid;
         // Send the message to close the file (note that this will not wait
         // for a reply). We don't need to set a callback; when the reply arrives,
-        // the fid will be returned to the connection's pool in the
+        // the fid will be returned to the connection's pool by the
         // StyxConnection class.
         this.conn.sendAsync(new TclunkMessage(fid), null);
         // We reset all the properties of this file immediately; we don't need
@@ -490,7 +498,7 @@ public class CStyxFile extends MessageCallback
      * @todo: should we make sure the fileOpen() event is fired if this results
      * in the file opening?
      */
-    public synchronized void readAsync(long offset)
+    public void readAsync(long offset)
     {
         this.readAsync(offset, this);
     }
@@ -560,17 +568,17 @@ public class CStyxFile extends MessageCallback
         StringBuffer strBuf = new StringBuffer();
         ByteBuffer buf;
         byte[] arr = null;
-        long offset = 0;
+        long pos = 0;
         int n = 0;
         do
         {
-            buf = this.read(offset);
+            buf = this.read(pos);
             n = buf.remaining();
             if (n > 0)
             {
                 // TODO: inefficient to allocate new array each time?
                 arr = new byte[n];
-                offset += n;
+                pos += n;
                 buf.get(arr);
                 strBuf.append(StyxUtils.utf8ToString(arr));
             } 
@@ -726,7 +734,7 @@ public class CStyxFile extends MessageCallback
      * @param callback The replyArrived() method of this callback object will be
      * called when the write confirmation arrives
      */
-    private synchronized void writeAsync(ByteBuffer buf, long offset, long count,
+    private void writeAsync(ByteBuffer buf, long offset, long count,
         MessageCallback callback)
     {
         if (this.mode < 0)
@@ -780,7 +788,7 @@ public class CStyxFile extends MessageCallback
      * write all the data in the buffer
      * @param offset The position in the file at which the data will be written
      */
-    public synchronized void writeAsync(ByteBuffer data, long offset)
+    public void writeAsync(ByteBuffer data, long offset)
     {
         this.writeAsync(data, offset, data.remaining(), this);
     }
@@ -791,7 +799,7 @@ public class CStyxFile extends MessageCallback
      * CStyxFileChangeListeners will be called. Will attempt to write all the
      * remaining data in the buffer.
      */
-    public synchronized void writeAsync(ByteBuffer data)
+    public void writeAsync(ByteBuffer data)
     {
         this.writeAsync(data, this.offset);
     }
@@ -802,7 +810,7 @@ public class CStyxFile extends MessageCallback
      * CStyxFileChangeListeners will be called. Will attempt to write all the
      * remaining data in the buffer.
      */
-    public synchronized void writeAsync(String str)
+    public void writeAsync(String str)
     {
         this.writeAsync(ByteBuffer.wrap(StyxUtils.strToUTF8(str)), this.offset);
     }
@@ -1047,12 +1055,12 @@ public class CStyxFile extends MessageCallback
      */
     private void fireError(String message)
     {
-        synchronized(listeners)
+        synchronized(this.listeners)
         {
             for (int i = 0; i < listeners.size(); i++)
             {
                 CStyxFileChangeListener listener =
-                    (CStyxFileChangeListener)listeners.get(i);
+                    (CStyxFileChangeListener)this.listeners.get(i);
                 listener.error(this, message);
             }
         }
@@ -1063,12 +1071,12 @@ public class CStyxFile extends MessageCallback
      */
     private void fireOpen(int mode)
     {
-        synchronized(listeners)
+        synchronized(this.listeners)
         {
             for (int i = 0; i < listeners.size(); i++)
             {
                 CStyxFileChangeListener listener =
-                    (CStyxFileChangeListener)listeners.get(i);
+                    (CStyxFileChangeListener)this.listeners.get(i);
                 listener.fileOpen(this, mode);
             }
         }
@@ -1079,12 +1087,12 @@ public class CStyxFile extends MessageCallback
      */
     private void fireDataArrived(TreadMessage tReadMsg, RreadMessage rReadMsg)
     {
-        synchronized(listeners)
+        synchronized(this.listeners)
         {
             for (int i = 0; i < listeners.size(); i++)
             {
                 CStyxFileChangeListener listener =
-                    (CStyxFileChangeListener)listeners.get(i);
+                    (CStyxFileChangeListener)this.listeners.get(i);
                 listener.dataArrived(this, tReadMsg, rReadMsg.getData());
             }
         }
@@ -1097,12 +1105,12 @@ public class CStyxFile extends MessageCallback
     {
         dirEntry = rStatMsg.getDirEntry();
         // Notify all the listeners that the stat may have changed
-        synchronized(listeners)
+        synchronized(this.listeners)
         {
             for (int i = 0; i < listeners.size(); i++)
             {
                 CStyxFileChangeListener listener =
-                    (CStyxFileChangeListener)listeners.get(i);
+                    (CStyxFileChangeListener)this.listeners.get(i);
                 listener.statChanged(this, dirEntry);
             }
         }
@@ -1114,12 +1122,12 @@ public class CStyxFile extends MessageCallback
     private void fireDataSent(TwriteMessage tWriteMsg)
     {
         // Notify all listeners that the data have been written
-        synchronized(listeners)
+        synchronized(this.listeners)
         {
             for (int i = 0; i < listeners.size(); i++)
             {
                 CStyxFileChangeListener listener =
-                    (CStyxFileChangeListener)listeners.get(i);
+                    (CStyxFileChangeListener)this.listeners.get(i);
                 listener.dataSent(this, tWriteMsg);
             }
         }
