@@ -276,5 +276,39 @@ that you can run native programs in the host operating system using the <code>os
 command (see &quot;Basic commands&quot; above); this is what we'll mainly be
 doing in this tutorial. (<em>TODO: will we?</em>)</p>
 
+<h2>A simple distributed system</h2>
+<p>Now we’re ready to use these ideas to create a very simple distributed system.
+If you have two computers at your disposal and they are networked, you can
+install Inferno on both of them and work through the rest of this tutorial.  If
+you only have access to one computer, you can still follow the tutorial by
+starting the Inferno desktop (see &quot;GUI applications&quot; above) and
+opening two shell windows.  I shall call the two computers (imaginatively)
+<code>computer1</code> and <code>computer2</code> and colour their windows blue
+and red respectively in the diagrams below.  If you are working on a single
+machine, please take <code>&quot;computer1&quot;</code> and <code>&quot;computer2&quot;</code>
+to mean &quot;shell window 1&quot; and &quot;shell window 2&quot;.</p>
+
+<p>On <code>computer1</code>, open a shell window and change to your home
+directory with the <code>cd</code> command.  Create a new file called
+<code>hello.txt</code> with the contents <code>&quot;hello from computer 1&quot;</code>
+by running the command: <code>&quot;echo hello from computer 1 &gt; hello.txt&quot;</code>.
+Verify that the file has been created by running <code>lc</code>, then view the
+contents of the file with <code>&quot;cat hello.txt&quot;</code>.</p>
+
+<p>Now we can expose (i.e. serve up) the whole of the home directory with a single command:
+<code>&quot;listen -A tcp!*!1234 { export /usr/Jon &amp; }&quot;</code>.  The
+<code>listen</code> command runs a server process to listen for network connections
+(run <code>&quot;man listen&quot;</code> for more details).  The <code>&quot;-A&quot;</code>
+switch means &quot;do not require authentication&quot;.  The argument <code>&quot;tcp!*!1234&quot;</code>
+is Inferno’s version of a URL; it means &quot;listen for TCP connections on port 1234&quot;.
+The asterisk means &quot;this server&quot; (analogous to &quot;localhost&quot;).
+When a connection is made, the command in the braces is run.  This exports the
+directory <code>/usr/Jon</code> on the connection.</p>
+
+<p>The screenshot below shows all these commands being executed in the shell window:</p>
+
+
+
+
 </body>
 </html>
