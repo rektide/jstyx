@@ -29,6 +29,9 @@
 					<include name="**/*.jar"/>
 				</fileset>
 			</classpath>
+			<!-- Show deprecation/unchecked operation warnings -->
+			<compilerarg value="-Xlint:deprecation"/>
+			<!-- <compilerarg value="-Xlint:unchecked"/> -->
 		</javac>
 	</target>
 
