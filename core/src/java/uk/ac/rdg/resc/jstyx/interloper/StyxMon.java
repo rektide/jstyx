@@ -65,6 +65,9 @@ import info.clearthought.layout.TableLayout;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/02/25 07:48:05  jonblower
+ * Fixed bug with displaying filename in table
+ *
  * Revision 1.5  2005/02/24 17:53:13  jonblower
  * Added code to read args from command line
  *
@@ -236,18 +239,18 @@ public class StyxMon implements InterloperListener
         if (message instanceof TattachMessage)
         {
             TattachMessage tAttMsg = (TattachMessage)message;
-            this.fidNames.put(new Long(tAttMsg.getFid()), "/");
+            this.fidNames.put(new Long(tAttMsg.getFid()), "");
         }
         // If this is a TwalkMessage we can associate the new fid with the
         // path of the file in questions
         else if (message instanceof TwalkMessage)
         {
             TwalkMessage tWalkMsg = (TwalkMessage)message;
-            this.fidNames.put(new Long(tWalkMsg.getNewFid()), path + tWalkMsg.getPath());
+            this.fidNames.put(new Long(tWalkMsg.getNewFid()), path + "/" + tWalkMsg.getPath());
         }
         int theRow = this.getRow(message.getTag());
         model.addTMessageData(theRow, getMessageName(message.getName()),
-            message.getTag(), path, message.toFriendlyString());
+            message.getTag(), path.equals("") ? "/" : path, message.toFriendlyString());
         table.repaint();
     }
     
