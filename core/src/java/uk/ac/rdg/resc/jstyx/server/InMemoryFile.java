@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/03/24 13:07:09  jonblower
+ * Added code to prevent the file growing to larger than a specified size
+ *
  * Revision 1.6  2005/03/24 12:55:14  jonblower
  * Changed to use ByteBuffer as backing store
  *
@@ -78,6 +81,12 @@ public class InMemoryFile extends StyxFile
      */
     protected ByteBuffer buf;
     
+    /**
+     * The maximum size to which this file can grow. This is set to 8192 bytes
+     * by default. Use setCapacity() to increase this limit.
+     */
+    protected int capacity;
+    
     /** Creates a new instance of InMemoryFile */
     public InMemoryFile(String name, String userID, String groupID,
         int permissions, boolean isAppendOnly, boolean isExclusive)
@@ -89,7 +98,8 @@ public class InMemoryFile extends StyxFile
         // automatically if required
         this.buf = ByteBuffer.allocate(1024);
         this.buf.position(0).limit(0);
-        log.debug("Allocated InMemoryFile with capacity 1024");
+        this.capacity = 8192;
+        log.debug("Allocated InMemoryFile with capacity 1024, maximum capacity 8192");
     }
     
     public InMemoryFile(String name, int permissions,
@@ -142,6 +152,11 @@ public class InMemoryFile extends StyxFile
         if (!truncate)
         {
             newSize = this.buf.limit() > newSize ? this.buf.limit() : newSize;
+        }
+        if (newSize > this.capacity)
+        {
+            throw new StyxException(this.name + " cannot grow to more than "
+                + this.capacity + " bytes in size");
         }
         // Make sure the buffer is big enough to hold the new data
         this.growBuffer(newSize);
@@ -196,10 +211,18 @@ public class InMemoryFile extends StyxFile
     /**
      * Gets the data in this file as a String
      */
-    public String getDataAsString()
+    public synchronized String getDataAsString()
     {
         this.buf.position(0);
         return StyxUtils.dataToString(this.buf);
+    }
+    
+    /**
+     * Sets the maximum number of bytes that this file can hold
+     */
+    public synchronized void setCapacity(int newCapacity)
+    {
+        this.capacity = newCapacity;
     }
     
     public static void main (String[] args) throws Exception
