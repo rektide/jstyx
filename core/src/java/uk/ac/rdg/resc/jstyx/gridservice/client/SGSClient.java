@@ -36,7 +36,7 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
-import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeListener;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeAdapter;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/22 17:44:17  jonblower
+ * Changed to use CStyxFileChangeAdapter instead of Listener and removed empty methods
+ *
  * Revision 1.3  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -67,7 +70,7 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * Commit adding of SGS files to CVS
  *
  */
-public class SGSClient implements CStyxFileChangeListener
+public class SGSClient extends CStyxFileChangeAdapter
 {
     
     private StyxConnection conn; // The connection on which the SGS sits
@@ -128,41 +131,6 @@ public class SGSClient implements CStyxFileChangeListener
             String idStr = StyxUtils.dataToString(data);
             this.fireNewInstanceCreated(idStr);
         }
-    }
-    
-    /**
-     * Required by the CStyxFileChangeListener interface. Does nothing in this 
-     * class (yet)
-     */
-    public void fileOpen(CStyxFile file, int mode)
-    {
-        return;
-    }
-    
-    /**
-     * Required by the CStyxFileChangeListener interface. Does nothing in this
-     * class (yet)
-     */
-    public void error(CStyxFile file, String message)
-    {
-        return;
-    }
-    
-    /**
-     * Required by the CStyxFileChangeListener interface. Does nothing in this
-     * class as we do not write to any files.
-     */
-    public void dataSent(CStyxFile file, TwriteMessage tWriteMsg)
-    {
-        return;
-    }
-    
-    /**
-     * Required by the StyxFileChangeListener interface. Does nothing here.
-     */
-    public void statChanged(CStyxFile file, DirEntry newDirEntry)
-    {
-        return;
     }
     
     /**
