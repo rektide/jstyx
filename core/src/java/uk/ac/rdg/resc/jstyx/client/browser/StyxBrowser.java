@@ -32,6 +32,8 @@ import javax.swing.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import uk.ac.rdg.resc.jstyx.StyxUtils;
+
 /**
  * Main class for a graphical StyxBrowser; simply puts a JTreeTable in a JFrame
  * @todo Make into an applet?
@@ -40,6 +42,9 @@ import java.awt.event.WindowEvent;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/02/26 09:59:34  jonblower
+ * Now reads connection details from command line
+ *
  * Revision 1.2  2005/02/21 18:09:43  jonblower
  * *** empty log message ***
  *
@@ -52,13 +57,34 @@ public class StyxBrowser
 {
     public static void main(String[] args) throws Throwable
     {
-        // TODO take details from command line
-        new StyxBrowser("localhost", 9999, "jon");
+        if (args.length < 2 || args.length > 3)
+        {
+            System.err.println("Usage: java StyxBrowser <hostname> <port> [user]");
+            return;
+        }
+        int port;
+        try
+        {
+            port = Integer.parseInt(args[1]);
+        }
+        catch(NumberFormatException nfe)
+        {
+            System.err.println("Invalid port number");
+            return;
+        }
+        if (port < 0 || port > StyxUtils.MAXUSHORT)
+        {
+            System.err.println("Invalid port number (must be between 0 and " +
+                StyxUtils.MAXUSHORT + ")");
+            return;
+        }
+        String user = args.length == 3 ? args[2] : "";
+        
+        new StyxBrowser(args[0], port, user);
     }
     
     public StyxBrowser(String host, int port, String user) throws Throwable
     {
-        // TODO: make connection here, then pass to StyxFileSystemModel?
         String s = "";
         if (!user.trim().equalsIgnoreCase(""))
         {
