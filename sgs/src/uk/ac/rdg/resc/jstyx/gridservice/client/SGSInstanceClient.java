@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/02/24 07:49:34  jonblower
+ * *** empty log message ***
+ *
  * Revision 1.2  2005/02/21 18:12:29  jonblower
  * Following changes to core JStyx library
  *
@@ -68,8 +71,8 @@ public class SGSInstanceClient implements CStyxFileChangeListener
     private CStyxFile bytesConsumed;
     
     // State data
-    private String inputURL = "http://www.nerc-essc.ac.uk/~jdb/bbe.txt";
-    //private String inputURL = "styx://localhost:7777/LICENCE";
+    //private String inputURL = "http://www.nerc-essc.ac.uk/~jdb/bbe.txt";
+    private String inputURL = "styx://localhost:7777/LICENCE";
     private StringBuffer bytesConsBuf = new StringBuffer();
     private StringBuffer statusBuf = new StringBuffer();
     private StringBuffer stdoutBuf = new StringBuffer();

@@ -48,9 +48,11 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnection;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/02/24 07:50:28  jonblower
+ * *** empty log message ***
+ *
  * Revision 1.1  2005/02/16 19:22:29  jonblower
  * Commit adding of SGS files to CVS
- *
  */
 public class SGSGUIClient implements SGSChangeListener
 {
@@ -67,7 +69,7 @@ public class SGSGUIClient implements SGSChangeListener
     
     // Styx stuff
     private static final String HOSTNAME = "localhost";
-    private static final int PORT = 9092;
+    private static final int PORT = 9999;
     private static final String SERVICE_NAME = "md5sum";
     private SGSClient client;
     
