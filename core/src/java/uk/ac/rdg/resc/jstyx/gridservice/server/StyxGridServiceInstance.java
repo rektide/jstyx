@@ -58,6 +58,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/03/24 17:33:51  jonblower
+ * Improved reading of service parameters from config file
+ *
  * Revision 1.6  2005/03/24 14:47:47  jonblower
  * Provided default read() and write() methods for StyxFile so it is no longer abstract
  *
@@ -141,12 +144,15 @@ class StyxGridServiceInstance extends StyxDirectory
         // Add the ctl file
         this.addChild(new ControlFile(this)); // the ctl file
         
-        // Add the parameters as InMemoryFiles
+        // Add the parameters as SGSParamFiles.
         this.paramDir = new StyxDirectory("params");
-        for (int i = 0; i < params.size(); i++)
+        if (params.size() > 0)
         {
-            SGSParam param = (SGSParam)params.get(i);
-            this.paramDir.addChild(new InMemoryFile(param.getName()));
+            for (int i = 0; i < params.size(); i++)
+            {
+                SGSParam param = (SGSParam)params.get(i);
+                this.paramDir.addChild(new SGSParamFile(param));
+            }
         }
         this.addChild(paramDir);
         
@@ -173,6 +179,13 @@ class StyxGridServiceInstance extends StyxDirectory
         ioDir.addChild(stdin);  // input stream
         inputURL = new InMemoryFile("inurl");
         ioDir.addChild(inputURL);
+        
+        // Add the debug directory
+        StyxDirectory debugDir = new StyxDirectory("debug");
+        // Add a file that, when read, reveals that command line that will
+        // be executed through Runtime.exec():
+        debugDir.addChild(new CommandLineFile());
+        this.addChild(debugDir);
         
         this.statusCode = StatusCode.CREATED;
     }
@@ -226,8 +239,7 @@ class StyxGridServiceInstance extends StyxDirectory
                     setBytesConsumed(0);
                     startTime = System.currentTimeMillis();
                     // Start the process running in the correct working directory
-                    process = runtime.exec(command /*+ " " + params.getData()*/,
-                        null, workDir);
+                    process = runtime.exec(getCommandLine(), null, workDir);
                     setStatus(StatusCode.RUNNING);
                     new Waiter().start(); // Waits for the process to finish, then sets status
                 }
@@ -315,6 +327,34 @@ class StyxGridServiceInstance extends StyxDirectory
                 throw new StyxException("unknown command: " + cmdString);
             }
         }        
+    }
+    
+    /**
+     * File that, when read, reveals the command line that will be executed
+     * when the SGS instance is started
+     */
+    private class CommandLineFile extends StyxFile
+    {
+        public CommandLineFile() throws StyxException
+        {
+            // The file is read-only
+            super("commandline", 0444);
+        }
+        
+        public void read(StyxFileClient client, long offset, int count, int tag)
+            throws StyxException
+        {
+            // TODO: a bit inefficient to create the command line from scratch
+            // each time, but this won't be called much anyway
+            byte[] bytes = StyxUtils.strToUTF8(getCommandLine());
+            if (offset > bytes.length)
+            {
+                this.replyRead(client, new byte[0], tag);
+            }
+            int bytesToReturn = (bytes.length - (int)offset) > count ? count :
+                (bytes.length - (int)offset);
+            this.replyRead(client, bytes, (int)offset, bytesToReturn, tag);
+        }
     }
     
     // Thread that waits for the executable to finish, then sets the status
@@ -408,6 +448,30 @@ class StyxGridServiceInstance extends StyxDirectory
                 }
             }
         }
+    }
+    
+    /**
+     * Gets the command line that will be executed
+     */
+    private String getCommandLine()
+    {
+        StringBuffer buf = new StringBuffer(this.command);
+        if (this.paramDir != null)
+        {
+            buf.append(" ");
+            StyxFile[] paramFiles = this.paramDir.getChildren();
+            for (int i = 0; i < paramFiles.length; i++)
+            {
+                // We can be pretty confident that this cast is safe
+                SGSParamFile paramFile = (SGSParamFile)paramFiles[i];
+                buf.append(paramFile.getCommandLineFragment());
+                if (i < paramFiles.length - 1)
+                {
+                    buf.append(" ");
+                }
+            }
+        }
+        return buf.toString();
     }
     
     /**

@@ -51,6 +51,9 @@ import org.w3c.dom.Element;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/24 17:33:51  jonblower
+ * Improved reading of service parameters from config file
+ *
  * Revision 1.3  2005/03/24 07:57:41  jonblower
  * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
  *
@@ -202,8 +205,6 @@ public class SGSServerConfig
         for (int i = 0; i < gridServicesList.getLength(); i++)
         {
             Element gridService = (Element)gridServicesList.item(i);
-            // TODO: could check that these attributes exist, but this should
-            // be handled by the parser validating against the DTD
             this.gridServices.add(new SGSConfig(gridService, sgsRoot));
         }        
     }
@@ -238,113 +239,5 @@ public class SGSServerConfig
     public Iterator getSGSConfigInfo()
     {
         return this.gridServices.iterator();
-    }
-    
-    /**
-     * Class containing configuration info for a single Styx Grid Service
-     */
-    public class SGSConfig
-    {
-        private String name;    // The name of this SGS
-        private String command; // The command that is run by this SGS
-        private String workDir; // The working directory of this SGS
-        private Vector params;  // The parameters for this SGS
-        
-        /**
-         * @param gridService The Element in the XML config file that is at the
-         * root of this Styx Grid Service
-         * @param sgsRootDir The root of the working directory of this SGS
-         * @throws IllegalArgumentException if the name of the SGS contains
-         * a space.
-         */
-        public SGSConfig(Element gridService, String sgsRootDir)
-        {
-            this.name = gridService.getAttribute("name");
-            // Check that the name is valid
-            if (this.name.indexOf(" ") != -1)
-            {
-                // TODO: check for other whitespace characters
-                throw new IllegalArgumentException("The name of an SGS cannot contain a space");
-            }
-            this.command = gridService.getAttribute("command");
-            this.workDir = sgsRootDir + "\\" + name;
-            
-            // Now create the parameters
-            this.params = new Vector();
-            NodeList paramList = gridService.getElementsByTagName("param");
-            for (int i = 0; i < paramList.getLength(); i++)
-            {
-                Element paramEl = (Element)paramList.item(i);
-                this.params.add(new SGSParam(paramEl));
-            }
-        }
-        
-        /**
-         * @return the name of the service
-         */
-        public String getName()
-        {
-            return this.name;
-        }
-        
-        /**
-         * @return the command string that is run when the SGS is started.  This
-         * is the string that is passed to Runtime.exec().
-         */ 
-        public String getCommand()
-        {
-            return this.command;
-        }
-        
-        /**
-         * @return the working directory of this SGS. Each instance of the SGS
-         * will use a subdirectory of this directory as its working directory.
-         */
-        public String getWorkingDirectory()
-        {
-            return this.workDir;
-        }
-        
-        /** 
-         * @return Vector of SGSParam objects containing details of all the 
-         * parameters
-         */
-        public Vector getParams()
-        {
-            return this.params;
-        }
-    }
-    
-    /**
-     * Class containing information about a single SGS parameter
-     */
-    public class SGSParam
-    {
-        private String name;
-        private String type;
-        private Object defaultValue;
-        private String description;
-        
-        /**
-         * Creates a parameter object for a SGS.
-         * @param paramNode The XML element representing the parameter
-         */
-        public SGSParam(Element paramNode)
-        {
-            this.name = paramNode.getAttribute("name");
-            String type = paramNode.getAttribute("type");
-            String description = paramNode.getAttribute("description");
-            // TODO: Deal with default value
-        }
-        
-        public String getName()
-        {
-            return this.name;
-        }
-        
-        public String getDescription()
-        {
-            return this.description;
-        }
     }
 }

@@ -17,14 +17,32 @@
     </root>
 -->
 
-<!-- Element that defines a parameter to a Styx Grid Service -->
+<!-- A parameter for a SGS (passed on the command-line to the executable) 
+     name: The name of the parameter (must not contain spaces)
+     type: The type of the parameter
+     required: "yes" if the parameter is compulsory, "no" otherwise
+     default: (Optional) default value for the parameter. Must be within the
+        minValue : maxValue range, or one of the given possible values
+     
+     If minValue or maxValue are specified, the values field cannot be filled,
+        or vice-versa.
+     minValue: (Optional) minimum value for the parameter (not valid for boolean or string)
+     maxValue: (Optional) maximum value for the parameter (not valid for boolean or string)
+     values: (Optional) comma-separated list of values that the parameter can take.
+     
+     switch: (Optional) The command-line switch used to prefix the parameter value, e.g. "-p"
+     description: (Optional) Short text description of the parameter
+-->
 <!ELEMENT param EMPTY>
-<!-- Have to provide a name and type for the parameter, but default value and 
-     description are optional -->
 <!ATTLIST param
     name CDATA #REQUIRED
     type (boolean | int | float | string) #REQUIRED
+    required (yes | no) #REQUIRED
     default CDATA #IMPLIED
+    minValue CDATA #IMPLIED
+    maxValue CDATA #IMPLIED
+    values CDATA #IMPLIED
+    switch CDATA #IMPLIED
     description CDATA #IMPLIED
   >
   
@@ -54,5 +72,4 @@
   >
 <!ELEMENT serverConfig (port, ssl)>
 
-<!--- Put your DTDDoc comment here. -->
 <!ELEMENT root (serverConfig, gridservices)>

@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/24 17:33:51  jonblower
+ * Improved reading of service parameters from config file
+ *
  * Revision 1.1  2005/03/16 22:16:44  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -184,11 +187,15 @@ abstract class ServiceDataElement
     
     /**
      * Forces all waiting clients to get an update on this quantity, irrespective
-     * of how long they have waited since the last update.
+     * of how long they have waited since the last update.  Does nothing if the
+     * AsyncStyxFile has not been created (there will be no clients waiting).
      */
     public void flush()
     {
-        this.blockStyxFile.contentsChanged(true);
+        if (this.blockStyxFile != null)
+        {
+            this.blockStyxFile.contentsChanged(true);
+        }
     }
     
 }

@@ -26,7 +26,7 @@
     <!-- TODO: could define service data elements here -->
     <gridservices root="C:\StyxGridServices">
         <gridservice name="md5sum" command="python c:\md5lines.py">
-            <param name="waittime" type="float" default="0"
+            <param name="waittime" type="float" required="no" default="0" minValue="0"
                 description="The time (in seconds) to wait between reading each line of input"/>
         </gridservice>
         <gridservice name="simple" command="python c:\simple.py"></gridservice>
