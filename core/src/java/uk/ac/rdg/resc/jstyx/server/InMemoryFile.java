@@ -28,20 +28,25 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
+import org.apache.log4j.Logger;
+
 import org.apache.mina.common.ByteBuffer;
 
-import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
+import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.types.ULong;
 
 /**
- * File whose underlying data are stored as a String in memory
- * @todo: put a limit on the amount of memory it can take up?
+ * File whose underlying data are stored as a ByteBuffer in memory. This buffer
+ * can grow to arbitrary size
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/24 12:55:14  jonblower
+ * Changed to use ByteBuffer as backing store
+ *
  * Revision 1.5  2005/03/24 09:48:31  jonblower
  * Changed 'count' from long to int throughout for reading and writing
  *
@@ -63,7 +68,15 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  */
 public class InMemoryFile extends StyxFile
 {
-    protected String data; // TODO: use StringBuffer or ByteBuffer?
+    
+    private static final Logger log = Logger.getLogger(InMemoryFile.class);
+    
+    /**
+     * The org.apache.mina.common.ByteBuffer that holds the data exposed by this file.
+     * The first byte of readable data is always at position zero and the number
+     * of valid bytes in the buffer is its limit
+     */
+    protected ByteBuffer buf;
     
     /** Creates a new instance of InMemoryFile */
     public InMemoryFile(String name, String userID, String groupID,
@@ -72,7 +85,11 @@ public class InMemoryFile extends StyxFile
     {
         super(name, userID, groupID, permissions, false, isAppendOnly,
             isExclusive);
-        this.data = "";
+        // Start with a 1 KB buffer by default. Bigger buffers will be allocated
+        // automatically if required
+        this.buf = ByteBuffer.allocate(1024);
+        this.buf.position(0).limit(0);
+        log.debug("Allocated InMemoryFile with capacity 1024");
     }
     
     public InMemoryFile(String name, int permissions,
@@ -97,59 +114,102 @@ public class InMemoryFile extends StyxFile
     public synchronized void read(StyxFileClient client, long offset, int count,
         int tag) throws StyxException
     {
-        byte[] strBytes = StyxUtils.strToUTF8(this.data);
-        int numBytesToReturn = (strBytes.length - (int)offset) > count ? 
-            (int)count : strBytes.length - (int)offset;
-        if (numBytesToReturn < 1)
+        if (offset >= this.buf.limit())
         {
+            // Attempt to read off the end of the file
             this.replyRead(client, new byte[0], tag);
             return;
         }
-        this.replyRead(client, strBytes, 0, numBytesToReturn, tag);
+        int numBytesToReturn = (this.buf.limit() - (int)offset) > count ? 
+            count : this.buf.limit() - (int)offset;
+        // Must create a copy of the data to return to the client
+        byte[] bytes = new byte[numBytesToReturn];
+        this.buf.position((int)offset);
+        this.buf.get(bytes);
+        this.replyRead(client, bytes, tag);
     }
     
     public synchronized void write(StyxFileClient client, long offset,
         int count, ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
     {
-        // Copy the contents of the data buffer
-        if ((int)offset > this.data.length())
+        if (offset > this.buf.limit())
         {
             throw new StyxException("offset is greater than the current data length");
         }
-        // this buffer has no backing array. We'll have to copy the bytes
-        // out "manually"
-        int numBytes = (data.remaining() > count) ? count : data.remaining();
-        byte[] bytes = new byte[numBytes];
-        data.get(bytes);
-        
-        // add the new data to the current data at the correct offset
-        this.data = this.data.substring(0, (int)offset) + StyxUtils.utf8ToString(bytes);
-        this.replyWrite(client, bytes.length, tag);
-    }
-    
-    public ULong getLength()
-    {
-        return new ULong(StyxUtils.strToUTF8(this.data).length);
-    }
-    
-    public synchronized void delete()
-    {
-        this.data = "";
+        // Calculate the new size of the data after the write operation
+        int newSize = (int)offset + count;
+        if (!truncate)
+        {
+            newSize = this.buf.limit() > newSize ? this.buf.limit() : newSize;
+        }
+        // Make sure the buffer is big enough to hold the new data
+        this.growBuffer(newSize);
+        // Now we can write the new data to the buffer at the correct offset
+        this.buf.position((int)offset);
+        this.buf.limit(newSize);
+        // Set the limit of the input data correctly
+        data.limit(data.position() + count);
+        this.buf.put(data);
+        this.replyWrite(client, count, tag);
     }
     
     /**
-     * Used to set the data directly, i.e. not via the Styx interface
+     * Grows the underlying ByteBuffer to the given size (actually allocates
+     * a new ByteBuffer and copies all the bytes to the new buffer).
+     * Does nothing if the existing ByteBuffer's capacity is >= the given size.
+     * When this method is done, the position of the buffer will be set to 
      */
-    public void setData(String s)
+    private void growBuffer(int newSize)
     {
-        this.data = s;
-        this.contentsChanged();
+        if (newSize > this.buf.capacity())
+        {
+            // Current ByteBuffer is not large enough. Allocate a new one.
+            ByteBuffer newBuf = ByteBuffer.allocate(newSize);
+            // Copy all the bytes (up to the old buffer's limit) from the old
+            // buffer to the new buffer
+            this.buf.position(0);
+            newBuf.put(this.buf);
+            // Free the existing buffer
+            this.buf.release();
+            // Keep the new buffer
+            this.buf = newBuf;
+            log.debug("Grew buffer to size " + this.buf.capacity());
+        }
     }
     
-    public String getData()
+    public synchronized ULong getLength()
     {
-        return this.data;
+        return new ULong(this.buf.limit());
+    }
+    
+    /**
+     * Frees the resources associated with the file (releases the underlying
+     * ByteBuffer back to the pool.  After this is called, the file can no
+     * longer be used.
+     */
+    public synchronized void delete()
+    {
+        this.buf.release();
+    }
+    
+    /**
+     * Gets the data in this file as a String
+     */
+    public String getDataAsString()
+    {
+        this.buf.position(0);
+        return StyxUtils.dataToString(this.buf);
+    }
+    
+    public static void main (String[] args) throws Exception
+    {
+        // Create the root directory of the Styx server
+        StyxDirectory root = new StyxDirectory("/");
+        // Add a DateFile to the root
+        root.addChild(new InMemoryFile("inmem"));
+        // Start a StyxServer, listening on port 9876
+        new StyxServer(9876, root).start();
     }
     
 }
