@@ -44,8 +44,11 @@ import net.gleamynode.netty2.IoProcessor;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:16  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:39:39  jonblower
+ * Added getDataSummary()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:16  jonblower
+ * Initial import
  *
  */
 public class StyxUtils
@@ -178,6 +181,35 @@ public class StyxUtils
             }            
             return utf8ToString(bytes);
         }
+    }
+    
+    
+    
+    /**
+     * @return the first n bytes of the data in the given bufferas a String
+     * (in quotes), then the number of bytes remaining. Leaves the 
+     */
+    public static String getDataSummary(int n, ByteBuffer data)
+    {
+        StringBuffer s = new StringBuffer();
+        byte[] bytes;
+        synchronized(data)
+        {
+            int numBytes = data.remaining() < n ? data.remaining() : n;
+            bytes = new byte[numBytes];
+            data.get(bytes);
+            // Reset the position of the data buffer
+            data.position(data.position() - numBytes);
+        }
+        s.append("\"");
+        s.append(StyxUtils.utf8ToString(bytes));
+        s.append("\"");
+        int moreBytes = data.remaining() - bytes.length;
+        if (moreBytes > 0)
+        {
+            s.append(" (plus " + moreBytes + " more bytes)");
+        }
+        return s.toString();
     }
     
     /**
