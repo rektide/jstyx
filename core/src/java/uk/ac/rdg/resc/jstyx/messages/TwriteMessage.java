@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/03/22 17:48:27  jonblower
+ * Removed debug code that tracked ByteBuffer allocation
+ *
  * Revision 1.8  2005/03/21 17:57:11  jonblower
  * Trying to fix ByteBuffer leak in SGS server
  *
@@ -175,7 +178,7 @@ public class TwriteMessage extends StyxMessage
         else
         {
             // We need to copy the data in this buffer.
-            this.data = ByteBuffer.allocate(this.count, "Twrite, decodeBody");
+            this.data = ByteBuffer.allocate(this.count);
             byte[] b = buf.getData(this.count);
             this.data.put(b);
             this.dataPos = 0;
@@ -205,8 +208,7 @@ public class TwriteMessage extends StyxMessage
             ByteBuffer payload = this.getRawData();
             
             // Allocate a buffer for everything but the payload
-            this.buf = ByteBuffer.allocate(this.length - payload.remaining(),
-                "Twrite, write");
+            this.buf = ByteBuffer.allocate(this.length - payload.remaining());
             // Wrap as a StyxBuffer
             StyxBuffer styxBuf = new StyxBuffer(this.buf);
             // Encode everything but the payload, then flip the buffer

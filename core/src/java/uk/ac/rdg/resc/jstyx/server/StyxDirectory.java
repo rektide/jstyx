@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/22 17:48:27  jonblower
+ * Removed debug code that tracked ByteBuffer allocation
+ *
  * Revision 1.5  2005/03/21 17:57:11  jonblower
  * Trying to fix ByteBuffer leak in SGS server
  *
@@ -150,7 +153,7 @@ public class StyxDirectory extends StyxFile
         }
 
         // We create the bytes to return in a ByteBuffer for convenience
-        ByteBuffer buf = ByteBuffer.allocate((int)count, this.getFullPath());
+        ByteBuffer buf = ByteBuffer.allocate((int)count);
         StyxBuffer styxBuf = new StyxBuffer(buf);
         StyxFile sf;
         int nextFile = (offset == 0) ? 0 : client.getNextFileToRead();

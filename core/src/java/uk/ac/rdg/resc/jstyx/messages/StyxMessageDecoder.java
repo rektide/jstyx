@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/03/22 17:48:27  jonblower
+ * Removed debug code that tracked ByteBuffer allocation
+ *
  * Revision 1.6  2005/03/22 10:20:05  jonblower
  * Fixed problem with ByteBuffer leak in StyxMessageDecoder and StyxFileInputStream
  *
@@ -92,7 +95,7 @@ public class StyxMessageDecoder implements ProtocolDecoder
         // Create a buffer to hold header information.
         // Note that we might actually get a buffer with more than the requested
         // number of bytes in!
-        this.headerBuf = ByteBuffer.allocate(StyxUtils.HEADER_LENGTH, "Decoder header");
+        this.headerBuf = ByteBuffer.allocate(StyxUtils.HEADER_LENGTH);
         this.headerBuf.order(ByteOrder.LITTLE_ENDIAN);
     }
     
