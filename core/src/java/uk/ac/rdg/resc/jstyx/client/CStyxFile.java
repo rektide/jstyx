@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/03/19 21:46:58  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.10  2005/03/18 13:55:59  jonblower
  * Improved freeing of ByteBuffers, and bug fixes
  *
@@ -740,16 +743,12 @@ public class CStyxFile extends MessageCallback
         int n = 0;
         do
         {
+            // Read the data from the file
             buf = this.read(pos);
-            n = buf.remaining();
-            if (n > 0)
-            {
-                // TODO: inefficient to allocate new array each time?
-                arr = new byte[n];
-                pos += n;
-                buf.get(arr);
-                strBuf.append(StyxUtils.utf8ToString(arr));
-            } 
+            // Convert the data to a string and append to the buffer
+            strBuf.append(StyxUtils.dataToString(buf));
+            // Release the buffer back to the pool
+            buf.release();
         } while (n > 0);
         if (!wasOpen)
         {
@@ -1187,6 +1186,10 @@ public class CStyxFile extends MessageCallback
             RreadMessage rReadMsg = (RreadMessage)message;
             TreadMessage tReadMsg = (TreadMessage)this.tMessage;
             this.fireDataArrived(tReadMsg, rReadMsg);
+            // Release the data buffer; if any registered change listeners want
+            // to keep the data, they should call data.acquire() to delay the
+            // returning of the ByteBuffer to the pool.
+            rReadMsg.getData().release();
         }
         else if (message instanceof RwriteMessage)
         {

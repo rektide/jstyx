@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/19 21:47:02  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.5  2005/03/16 22:16:43  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -454,6 +457,10 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         // The last modified time is set automatically by sf.replyWrite()
         sf.write(client, offset, tWriteMsg.getCount(), tWriteMsg.getRawData(),
             sessionState.getUser(), truncate, tag);
+        // We can now free the data buffer of the tWriteMsg. If the StyxFile
+        // wanted to keep a reference to this buffer, it will have called
+        // acquire() on the buffer.
+        tWriteMsg.getRawData().release();
     }
     
     private void replyClunk(ProtocolSession session, StyxSessionState sessionState,

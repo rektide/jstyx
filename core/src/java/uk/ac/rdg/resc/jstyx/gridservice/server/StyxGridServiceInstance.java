@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/19 21:47:02  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.2  2005/03/18 16:45:18  jonblower
  * Released ByteBuffers after use
  *
@@ -189,7 +192,6 @@ class StyxGridServiceInstance extends StyxDirectory
             throws StyxException
         {
             String cmdString = StyxUtils.dataToString(data);
-            data.release(); // Allow the ByteBuffer to be re-used
             // Strip the trailing newline if it exists
             if (cmdString.endsWith(StyxUtils.NEWLINE))
             {

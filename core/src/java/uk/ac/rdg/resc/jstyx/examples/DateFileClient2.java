@@ -41,6 +41,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/19 21:47:02  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.2  2005/03/16 17:55:53  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -72,6 +75,7 @@ public class DateFileClient2
                 String s = StyxUtils.dataToString(buf);
                 System.out.print(s);
             }
+            // TODO: Release the buffer!!
         } while (buf.hasRemaining());
     
         // Close the file and the connection

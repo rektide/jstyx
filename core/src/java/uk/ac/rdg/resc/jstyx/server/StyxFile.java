@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/03/19 21:47:02  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.7  2005/03/18 16:45:18  jonblower
  * Released ByteBuffers after use
  *
@@ -442,8 +445,10 @@ public abstract class StyxFile
      * calling writeReply() (although this can be done at any time; it does not
      * have to be done within the write() method).
      *
-     * When the data in the ByteBuffer are no longer required, call data.release()
-     * to allow the ByteBuffer to be re-used by the system.
+     * After this method is called, ByteBuffer containing the data will be 
+     * returned to the pool. If subclasses wish to keep the ByteBuffer after
+     * this method is complete, they should call data.acquire() to increase
+     * the reference count to the buffer.
      *
      * @param client The client that is performing the write operation
      * @param offset The place in the file where the new data will be added

@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/19 21:47:02  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.2  2005/03/18 13:56:00  jonblower
  * Improved freeing of ByteBuffers, and bug fixes
  *
@@ -195,7 +198,6 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
     public void newStdoutData(ByteBuffer newData)
     {
         this.txtStdout.append(StyxUtils.dataToString(newData));
-        newData.release();
         this.txtStdout.repaint();
     }
     
@@ -205,7 +207,6 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
     public void newStderrData(ByteBuffer newData)
     {
         this.txtStderr.append(StyxUtils.dataToString(newData));
-        newData.release();
         this.txtStderr.repaint();
     }
     

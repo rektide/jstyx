@@ -38,6 +38,9 @@ import org.apache.mina.common.ByteBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/19 21:47:02  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.2  2005/03/18 13:55:59  jonblower
  * Improved freeing of ByteBuffers, and bug fixes
  *
@@ -68,13 +71,17 @@ public interface SGSInstanceChangeListener
     
     /**
      * Called when new data arrive from the standard output of the SGS instance.
-     * Remember to call newData.release() when you have finished with the data.
+     * After this method is called, the ByteBuffer will be released. If you 
+     * want to prevent this, call newData.acquire().  When you have finished
+     * with the data in the buffer, call newData.release().
      */
     public void newStdoutData(ByteBuffer newData);
     
     /**
-     * Called when new data arrive from the standard error of the SGS instance
-     * Remember to call newData.release() when you have finished with the data.
+     * Called when new data arrive from the standard error of the SGS instance.
+     * After this method is called, the ByteBuffer will be released. If you 
+     * want to prevent this, call newData.acquire().  When you have finished
+     * with the data in the buffer, call newData.release().
      */
     public void newStderrData(ByteBuffer newData);
     

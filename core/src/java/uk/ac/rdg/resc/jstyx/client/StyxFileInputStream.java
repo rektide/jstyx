@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/19 21:46:58  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.2  2005/03/16 17:55:53  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -104,6 +107,12 @@ public class StyxFileInputStream extends InputStream
             // We need to read another block of data.
             try
             {
+                // Release the previous read buffer if we have one
+                if (this.buf != null)
+                {
+                    this.buf.release();
+                }
+                // Read a new chunk of data from the file
                 this.buf = this.file.read(this.offset);
                 if (this.buf.remaining() > 0)
                 {

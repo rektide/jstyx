@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/19 21:46:58  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.2  2005/03/16 17:55:52  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -67,8 +70,13 @@ public interface CStyxFileChangeListener
      * update the offset of the file if required (e.g.
      * <code>file.setOffset(offset + data.remaining())</code>).
      *
-     * When you have finished with the data in the ByteBuffer,
-     * call release() on the buffer to ensure that the buffer can be re-used.
+     * After this method is finished, the ByteBuffer will be returned to the pool.
+     * If you want to delay this happening, call data.acquire() within this
+     * method.  Then when you no longer need the data in the buffer, call 
+     * data.release().  Implementations of this method should leave the position
+     * and limit of the data buffer unchanged (so that if there are several
+     * CStyxFileChangeListeners registered, they all see the buffer in the correct
+     * state).
      *
      * @param file The CStyxFile containing the data
      * @param offset The offset (i.e. file position) of the start of the new data

@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/19 21:47:02  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.2  2005/03/18 13:55:59  jonblower
  * Improved freeing of ByteBuffers, and bug fixes
  *
@@ -123,7 +126,6 @@ public class SGSClient implements CStyxFileChangeListener
         {
             // A new instance has been created.
             String idStr = StyxUtils.dataToString(data);
-            data.release();
             this.fireNewInstanceCreated(idStr);
         }
     }

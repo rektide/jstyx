@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/19 21:47:02  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.2  2005/03/18 16:45:18  jonblower
  * Released ByteBuffers after use
  *
@@ -105,7 +108,6 @@ class SDEFile extends StyxFile
         byte[] bytes = new byte[(int)count];
         data.get(bytes);
         this.sde.setValue(bytes);
-        data.release(); // Allow the ByteBuffer to be re-used.
         this.replyWrite(client, count, tag);
     }
 

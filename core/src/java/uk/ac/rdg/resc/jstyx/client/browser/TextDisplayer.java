@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/19 21:47:02  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.3  2005/02/18 17:52:40  jonblower
  * Added client.browser package
  *
@@ -99,7 +102,6 @@ public class TextDisplayer extends javax.swing.JFrame
         String s;
         do
         {
-            //i = bufReader.read();
             s = bufReader.readLine();
             if (s != null)
             {

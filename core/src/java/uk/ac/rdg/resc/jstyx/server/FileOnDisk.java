@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/19 21:47:02  jonblower
+ * Further fixes relating to releasing ByteBuffers
+ *
  * Revision 1.3  2005/03/16 17:56:23  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -167,8 +170,14 @@ public class FileOnDisk extends StyxFile
         this.checkChannel();
         try
         {
-            data.limit((int)count);
+            // Remember old limit and position
+            int pos = data.position();
+            int lim = data.limit();
+            data.limit(data.position() + (int)count);
             int nWritten = this.chan.write(data.buf(), offset);
+            // Reset former buffer positions
+            data.limit(lim);
+            data.position(pos);
             if (truncate)
             {
                 this.chan.truncate(offset + nWritten);
