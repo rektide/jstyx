@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/02/28 16:16:26  jonblower
+ * Specified anonymous user when logging on without a user name
+ *
  * Revision 1.3  2005/02/26 09:59:34  jonblower
  * Now reads connection details from command line
  *
@@ -85,12 +88,8 @@ public class StyxBrowser
     
     public StyxBrowser(String host, int port, String user) throws Throwable
     {
-        String s = "";
-        if (!user.trim().equalsIgnoreCase(""))
-        {
-            s += user + "@";
-        }
-        JFrame frame = new JFrame(s + host + ":" + port);
+        String s = user.trim().equals("") ? "anonymous" : user;
+        JFrame frame = new JFrame(s + "@" + host + ":" + port);
         JTreeTable treeTable = new JTreeTable(new StyxFileSystemModel(host, port, user));
         
         frame.addWindowListener(new WindowAdapter()
