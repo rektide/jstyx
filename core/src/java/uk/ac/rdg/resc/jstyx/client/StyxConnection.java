@@ -69,6 +69,9 @@ import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/02/21 18:07:23  jonblower
+ * Separated constructor and connect methods
+ *
  * Revision 1.3  2005/02/18 17:56:31  jonblower
  * Set root directory in constructor; doesn't need to wait until connection is made
  *
@@ -86,7 +89,10 @@ public class StyxConnection extends Session implements SessionListener
     private int port;
     private String user;
     
-    private boolean ready;    // True if this session is ready for messages to be sent
+    private boolean connected;     // True if this is connected to the remote
+                                   // server (handshaking might not have been done)
+    private boolean attached;      // True if this session is attached for messages to be sent
+    private String errMsg;         // Non-null if an error occurred
     private Vector unsentMessages; // Messages that are waiting for the connection to be
                                    // established before they are sent
     
@@ -117,36 +123,23 @@ public class StyxConnection extends Session implements SessionListener
     private static final int DISPATCHER_THREAD_POOL_SIZE = 1;
     
     /**
-     * Creates a new instance of StyxConnection. This will set in motion the
-     * necessary handshaking, but will not wait until this handshaking is
-     * complete. When the handshaking is complete, the connectionReady() event
-     * on all registered StyxConnectionListeners will be fired, or the
-     * connectError() event will be fired if there was a problem connecting.
+     * Creates a new instance of StyxConnection. This does not actually make the
+     * connection; call connectAsync() or connect() to do this.
      */
     public StyxConnection(String host, int port, String user)
-        throws StyxException
     {
         this.host = host;
         this.port = port;
         this.user = user;
-        this.ready = false;
+        this.attached = false;
+        this.connected = false;
+        this.errMsg = null;
         this.unsentMessages = new Vector();
         this.setSocketAddress(new InetSocketAddress(host, port));
         this.setMessageRecognizer(recognizer);
-        // The IoProcessor and EventDispatcher objects are shared between all
-        // instances of StyxConnection.
-        try
-        {
-            this.setIoProcessor(StyxUtils.getIoProcessor());
-        }
-        catch(IOException ioe)
-        {
-            throw new StyxException("Internal error: could not start IoProcessor");
-        }
         // Create a new eventDispatcher for each connection
         this.eventDispatcher = new OrderedEventDispatcher();
         this.eventDispatcher.setThreadPoolSize(DISPATCHER_THREAD_POOL_SIZE);
-        this.eventDispatcher.start();
         this.setEventDispatcher(this.eventDispatcher);
         
         this.getConfig().setConnectTimeout(CONNECT_TIMEOUT);
@@ -165,7 +158,6 @@ public class StyxConnection extends Session implements SessionListener
         {
             numSessions = new Integer(numSessions.intValue() + 1);
         }
-        this.start();
     }
     
     /**
@@ -178,14 +170,80 @@ public class StyxConnection extends Session implements SessionListener
     }
     
     /**
+     * Connects to the remote server and handshakes. This method returns 
+     * immediately; when the connection and handshaking are complete, the
+     * connectionattached() event will be fired on all registered 
+     * StyxConnectionListeners. If an error occurred when connecting or
+     * handshaking, the connectionError() event will be fired on the listeners.
+     * @throws StyxException if the IOProcessor could not be started
+     */
+    public synchronized void connectAsync() throws StyxException
+    {
+        // The IoProcessor object is shared between all instances of StyxConnection.
+        try
+        {
+            this.setIoProcessor(StyxUtils.getIoProcessor());
+        }
+        catch(IOException ioe)
+        {
+            throw new StyxException("Internal error: could not start IoProcessor");
+        }
+        this.eventDispatcher.start();
+        this.start();
+    }
+    
+    /**
+     * Connects to the remote server and handshakes. This method blocks until
+     * the connection is made and the handshaking is complete, throwing a
+     * StyxException if an error occurred when connecting. If the connection is
+     * already made, this method does nothing. The connectionReady()
+     * and connectionError() events will be fired on any registered listeners
+     * when the connection is ready or if an error occurs.
+     * @throws StyxException if the IOProcessor could not be started or if 
+     * an error occurred during connection or handshaking
+     */
+    public void connect() throws StyxException
+    {
+        this.connectAsync(); // I'm assuming that this does nothing if already
+                             // started
+        while (!this.attached && this.errMsg == null)
+        {
+            synchronized(this)
+            {
+                try
+                {
+                    this.wait();
+                }
+                catch(InterruptedException ie)
+                {
+                    // do nothing
+                }
+            }
+        }
+        if (this.errMsg != null)
+        {
+            // An error occurred when connecting
+            throw new StyxException(this.errMsg);
+        }
+    }
+    
+    /**
      * Overrides the close() method in Session.  Clunks all fids before
-     * closing the connection.  Does nothing if the connection is already closed.
+     * closing the connection.  Does nothing if the connection has not been made.
+     * If the connection has been made, but the handshaking has not been done,
+     * this will enqueue the close request so that, when handshaking is
+     * complete, the fids will be clunked.
+     * Note that there is a possibility that if close() is called immediately
+     * after connectAsync(), the call to close() will return (having done nothing)
+     * before the connection is open. TODO: what can we do about this?
      * The session is only definitively closed when the connectionClosed() event
      * is fired on the registered StyxConnectionListeners.
+     * @todo: rename this closeAsync() and implement a blocking close() method?
      */
-    public synchronized void close()
+    public void close()
     {
-        if (this.ready)
+        System.err.println("Closing StyxConnection");
+        if (this.connected)
         {
             // Start off the chain of clunking fids by clunking the last fid 
             // in the list. When the reply arrives, the next fid will be clunked,
@@ -201,7 +259,7 @@ public class StyxConnection extends Session implements SessionListener
                     {
                         clunkNextFid(this);
                     }
-                    public void error(String message)
+                    public void error(String message, int tag)
                     {
                         // TODO: log error properly
                         System.err.println("Error clunking fid: " + message);
@@ -212,8 +270,10 @@ public class StyxConnection extends Session implements SessionListener
         }
         else
         {
-            // Just close the connection
-            super.close();
+            // TODO: log this somewhere more useful.
+            System.err.println("Connection was not open");
+            // Make sure the threads are stopped
+            this.connectionClosed(this);
         }
     }
     
@@ -246,6 +306,7 @@ public class StyxConnection extends Session implements SessionListener
         if(!tClunkSent)
         {
             // There were no more fids left to clunk. Close the connection completely
+            this.attached = false;
             super.close();
         }
     }
@@ -262,7 +323,11 @@ public class StyxConnection extends Session implements SessionListener
     /**
      * Sends a message and returns its tag.  Note that this method will return
      * immediately.  When the reply arrives, the replyArrived() method of the
-     * callback object will be called. (The callback can be null.)
+     * callback object will be called. (The callback can be null.).  If the 
+     * connection hasn't been made yet, the message will be put in a queue and
+     * will be sent when the connection is ready (TODO this is convenient as it
+     * saves waiting for the connectionReady() event, but is this the best thing
+     * to do?)
      * @return the tag of the outgoing message
      */
     public int sendAsync(StyxMessage message, MessageCallback callback)
@@ -300,11 +365,16 @@ public class StyxConnection extends Session implements SessionListener
         synchronized(this)
         {
             // If the connection is open, send the message, otherwise, enqueue it
-            if (this.ready || message instanceof TversionMessage ||
+            if (this.attached || message instanceof TversionMessage ||
                 message instanceof TattachMessage)
             {
-                // Send the message TODO: check return value 
-                super.write(message);
+                // Send the message TODO: check return value
+                if (!super.write(message))
+                {
+                    // TODO: log this somewhere more useful
+                    // Or throw an Exception?
+                    System.err.println("Message not sent; connection is closed");
+                }
             }
             else
             {
@@ -460,7 +530,9 @@ public class StyxConnection extends Session implements SessionListener
      */
     public void connectionEstablished(Session session)
     {
+        this.connected = true;
         SessionLog.info(log, this, "Connection established.");
+        // TODO: allow other message sizes to be used
         TversionMessage tVerMsg = new TversionMessage(8192);
         this.sendAsync(tVerMsg, new TversionCallback());
     }
@@ -474,7 +546,7 @@ public class StyxConnection extends Session implements SessionListener
             TattachMessage tAttMsg = new TattachMessage(rootFid, user);
             sendAsync(tAttMsg, new TattachCallback());
         }
-        public void error(String message)
+        public void error(String message, int tag)
         {
             fireStyxConnectionError(message);
         }
@@ -484,10 +556,10 @@ public class StyxConnection extends Session implements SessionListener
     {
         public void replyArrived(StyxMessage message)
         {
-            ready = true;
+            attached = true;
             fireStyxConnectionReady();
         }
-        public void error(String message)
+        public void error(String message, int tag)
         {
             fireStyxConnectionError(message);
         }
@@ -498,8 +570,12 @@ public class StyxConnection extends Session implements SessionListener
      */
     public void connectionClosed(Session session)
     {
-        SessionLog.info(log, this, "Connection closed.");
-        this.ready = false;
+        if (this.connected)
+        {
+            SessionLog.info(log, this, "Connection closed.");
+        }
+        this.connected = false;
+        this.attached = false;
         // Stop the event dispatcher
         this.eventDispatcher.stop();
         // The synchronization ensures that the numSessions static variable
@@ -604,6 +680,11 @@ public class StyxConnection extends Session implements SessionListener
         // TODO: log this properly
         System.err.println("***** CONNECTION OPENED TO " + host + ":" + port
             + " *****");
+        synchronized(this)
+        {
+            // Notify any waiting threads (e.g. if using connect())
+            this.notifyAll();
+        }
         synchronized(this.listeners)
         {
             for (int i = 0; i < this.listeners.size(); i++)
@@ -647,10 +728,15 @@ public class StyxConnection extends Session implements SessionListener
     }
     
     /**
-     * Fired when an error occurs when connecting to the remote server
+     * Fired when an error occurs (i.e. an exception is caught by Netty)
      */
     private void fireStyxConnectionError(String message)
     {
+        this.errMsg = message;
+        synchronized(this)
+        {
+            this.notifyAll();
+        }
         // TODO: log this properly
         System.err.println("***** ERROR OCCURRED ON CONNECTION TO " + this.host +
             ":" + this.port + " (" + message + ") *****");
@@ -660,7 +746,7 @@ public class StyxConnection extends Session implements SessionListener
             {
                 StyxConnectionListener listener =
                     (StyxConnectionListener)this.listeners.get(i);
-                listener.connectError(message);
+                listener.connectionError(message);
             }
         }
         // call error() on all waiting callbacks of outstanding messages
@@ -672,7 +758,7 @@ public class StyxConnection extends Session implements SessionListener
                 int tag = ((StyxMessage)it.next()).getTag();
                 MessageCallback callback =
                     (MessageCallback)this.msgQueue.remove(new Integer(tag));
-                callback.error("Could not send message: " + message);
+                callback.error("Could not send message: " + message, -1);
                 it.remove();
             }
         }
