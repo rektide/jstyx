@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/03/17 07:29:36  jonblower
+ * Fixed bug in getData()
+ *
  * Revision 1.6  2005/03/16 22:16:43  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -292,7 +295,7 @@ public class TwriteMessage extends StyxMessage
         {
             throw new IllegalStateException("Byte array is null");
         }
-        return java.nio.ByteBuffer.wrap(this.bytes, this.pos, this.length);
+        return java.nio.ByteBuffer.wrap(this.bytes, this.pos, this.count);
     }
     
     protected String getElements()
