@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/22 10:19:52  jonblower
+ * Fixed problem with ByteBuffer leak in StyxMessageDecoder and StyxFileInputStream
+ *
  * Revision 1.3  2005/03/19 21:46:58  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -125,6 +128,8 @@ public class StyxFileInputStream extends InputStream
                 {
                     // We have reached the end of the file
                     this.eof = true;
+                    // We don't need the buffer
+                    this.buf.release();
                     return -1;
                 }
             }

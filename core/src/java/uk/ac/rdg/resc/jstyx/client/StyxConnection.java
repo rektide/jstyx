@@ -49,6 +49,7 @@ import org.apache.mina.common.IdleStatus;
 
 import org.apache.log4j.Logger;
 
+import uk.ac.rdg.resc.jstyx.messages.StyxMessageDecoder;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.messages.TversionMessage;
 import uk.ac.rdg.resc.jstyx.messages.RversionMessage;
@@ -71,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/03/22 10:19:52  jonblower
+ * Fixed problem with ByteBuffer leak in StyxMessageDecoder and StyxFileInputStream
+ *
  * Revision 1.9  2005/03/17 07:30:05  jonblower
  * Improved error logging code
  *
@@ -635,6 +639,10 @@ public class StyxConnection implements ProtocolHandler
         // Stop threads
         this.ioThreadPoolFilter.stop();
         this.protocolThreadPoolFilter.stop();
+        
+        // Free resources associated with StyxMessageDecoder
+        StyxMessageDecoder decoder = (StyxMessageDecoder)this.session.getDecoder();
+        decoder.release();
         
         // The synchronization ensures that the numSessions static variable
         // can only be altered by one thread at once

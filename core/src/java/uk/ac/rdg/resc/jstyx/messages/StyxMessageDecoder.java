@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/22 10:20:05  jonblower
+ * Fixed problem with ByteBuffer leak in StyxMessageDecoder and StyxFileInputStream
+ *
  * Revision 1.5  2005/03/21 17:57:11  jonblower
  * Trying to fix ByteBuffer leak in SGS server
  *
@@ -76,7 +79,7 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * Initial import of MINA-related classes
  *
  */
-class StyxMessageDecoder implements ProtocolDecoder
+public class StyxMessageDecoder implements ProtocolDecoder
 {
     
     private StyxMessage message; // Message that's in the process of being read
@@ -156,6 +159,18 @@ class StyxMessageDecoder implements ProtocolDecoder
                 this.headerBuf.clear();
             }
         }
+    }
+    
+    /**
+     * Releases the resources associated with this Decoder (specifically,
+     * releases the ByteBuffer that was allocated for reading message headers.
+     * This method is called automatically when a StyxConnection is closed.
+     * After calling this method, the Decoder can no longer be used. 
+     */
+    public void release()
+    {
+        this.headerBuf.release();
+        this.headerBuf = null;
     }
     
 }
