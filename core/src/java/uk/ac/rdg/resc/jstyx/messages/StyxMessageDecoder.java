@@ -28,6 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
+import java.nio.ByteOrder;
 import org.apache.mina.common.ByteBuffer;
 import org.apache.mina.protocol.ProtocolDecoder;
 import org.apache.mina.protocol.ProtocolDecoderOutput;
@@ -44,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/15 09:03:58  jonblower
+ * Now uses MINA's ByteBuffer to read header info, not StyxBuffer
+ *
  * Revision 1.2  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -80,6 +84,7 @@ class StyxMessageDecoder implements ProtocolDecoder
         // Note that we might actually get a buffer with more than the requested
         // number of bytes in!
         this.headerBuf = ByteBuffer.allocate(StyxUtils.HEADER_LENGTH);
+        this.headerBuf.order(ByteOrder.LITTLE_ENDIAN);
     }
     
     public void decode(ProtocolSession session, ByteBuffer in,
@@ -109,10 +114,8 @@ class StyxMessageDecoder implements ProtocolDecoder
                 }
                 // If we've got this far, we must have a complete header
                 this.headerBuf.flip();
-                // Get the message length, type and tag. Wrap the buffer as a
-                // StyxBuffer to make this easier
-                StyxBuffer styxBuf = new StyxBuffer(this.headerBuf.buf());
-                long length = styxBuf.getUInt();
+                // Get the message length
+                long length = this.headerBuf.getUnsignedInt();
                 if (length > Integer.MAX_VALUE)
                 {
                     // This should only happen due to a bug
@@ -125,9 +128,11 @@ class StyxMessageDecoder implements ProtocolDecoder
                         + length + "; Styx messages must be at least " +
                         StyxUtils.HEADER_LENGTH + " bytes long");
                 }
-                // MINA's ByteBuffer doesn't have a getUByte() equivalent
-                int type = styxBuf.getUByte();
-                int tag = styxBuf.getUShort();
+                // Get the message type and tag
+                short type = this.headerBuf.getUnsigned();
+                int tag = this.headerBuf.getUnsignedShort();
+                // Create the message; this returns a StyxMessage of the correct
+                // type (e.g. TversionMessage, RwalkMessage etc)
                 this.message = StyxMessage.createStyxMessage((int)length, type, tag);
             }
             
