@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/02/21 18:13:23  jonblower
+ * Following changes to core JStyx library
+ *
  * Revision 1.1  2005/02/16 19:22:32  jonblower
  * Commit adding of SGS files to CVS
  *
@@ -205,7 +208,7 @@ public class StyxGridService
             }
             // Start the server
             int port = config.getPort();
-            new StyxServer(root, port).start();
+            new StyxServer(port, root).start();
             System.out.println("Started StyxGridServices, listening on port " + port);
         }
         catch(Exception e)

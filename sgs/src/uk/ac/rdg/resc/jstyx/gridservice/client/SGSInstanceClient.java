@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/02/21 18:12:29  jonblower
+ * Following changes to core JStyx library
+ *
  * Revision 1.1  2005/02/16 19:22:29  jonblower
  * Commit adding of SGS files to CVS
  *
@@ -65,8 +68,8 @@ public class SGSInstanceClient implements CStyxFileChangeListener
     private CStyxFile bytesConsumed;
     
     // State data
-    //private String inputURL = "http://www.nerc-essc.ac.uk/~jdb/liblicence.txt";
-    private String inputURL = "styx://localhost:7777/LICENCE";
+    private String inputURL = "http://www.nerc-essc.ac.uk/~jdb/bbe.txt";
+    //private String inputURL = "styx://localhost:7777/LICENCE";
     private StringBuffer bytesConsBuf = new StringBuffer();
     private StringBuffer statusBuf = new StringBuffer();
     private StringBuffer stdoutBuf = new StringBuffer();
@@ -120,9 +123,6 @@ public class SGSInstanceClient implements CStyxFileChangeListener
      */
     public void startService() throws StyxException
     {
-        // These calls to open() will block; this is probably OK for the moment
-        // as we don't expect problems with opening the files
-        status.open(StyxUtils.OREAD);
         this.writeAsync(this.ctlFile, "start");
     }
     
@@ -205,10 +205,12 @@ public class SGSInstanceClient implements CStyxFileChangeListener
                 if (file == stdout)
                 {
                     stdoutBuf.append(StyxUtils.dataToString(data));
+                    this.fireNewStdoutData(data);
                 }
                 else if (file == stderr)
                 {
                     stderrBuf.append(StyxUtils.dataToString(data));
+                    this.fireNewStderrData(data);
                 }
                 else if (file == status)
                 {
@@ -268,8 +270,8 @@ public class SGSInstanceClient implements CStyxFileChangeListener
                 status.readAsync(0);
                 bytesConsumed.readAsync(0);
                 // Start reading data from the start of the files
-                //stdout.readAsync(0);
-                //stderr.readAsync(0);
+                stdout.readAsync(0);
+                stderr.readAsync(0);
             }
             else if (message.equalsIgnoreCase("stop"))
             {
@@ -329,6 +331,38 @@ public class SGSInstanceClient implements CStyxFileChangeListener
         synchronized(this.changeListeners)
         {
             boolean contained = this.changeListeners.remove(listener);
+        }
+    }
+    
+    /**
+     * Fires the newStdoutData event on all registered change listeners
+     */
+    private void fireNewStdoutData(ByteBuffer newData)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.newStdoutData(newData);
+            }
+        }
+    }
+    
+    /**
+     * Fires the newStderrData event on all registered change listeners
+     */
+    private void fireNewStderrData(ByteBuffer newData)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.newStderrData(newData);
+            }
         }
     }
     

@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/02/21 18:12:09  jonblower
+ * Following changes to core JStyx library
+ *
  * Revision 1.1  2005/02/16 19:22:29  jonblower
  * Commit adding of SGS files to CVS
  *
@@ -72,11 +75,9 @@ public class SGSClient implements CStyxFileChangeListener
         throws StyxException
     {
         this.conn = new StyxConnection(host, port, user);
-        System.err.println("Connection made");
+        this.conn.connectAsync();
         this.sgsRoot = conn.openFile(sgsName, StyxUtils.OREAD);
-        System.err.println("Opened " + this.sgsRoot.getPath());
         this.cloneFile = this.sgsRoot.getFile("clone");
-        System.err.println("Got clone file");
         this.cloneFile.addChangeListener(this);
         this.changeListeners = new Vector();
     }

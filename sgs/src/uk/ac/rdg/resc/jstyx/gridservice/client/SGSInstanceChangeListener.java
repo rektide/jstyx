@@ -28,6 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
+import java.nio.ByteBuffer;
+
 /**
  * Interface defining methods that will be fired when an SGSClient receives
  * notification of a change in state of an SGS instance or when new data arrive.
@@ -36,6 +38,9 @@ package uk.ac.rdg.resc.jstyx.gridservice.client;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/02/21 18:12:17  jonblower
+ * Following changes to core JStyx library
+ *
  * Revision 1.1  2005/02/16 19:22:29  jonblower
  * Commit adding of SGS files to CVS
  *
@@ -51,6 +56,16 @@ public interface SGSInstanceChangeListener
      * Called when the number of bytes consumed by the SGS changes
      */
     public void bytesConsumedChanged(String newBytesConsumed);
+    
+    /**
+     * Called when new data arrive from the standard output of the SGS instance
+     */
+    public void newStdoutData(ByteBuffer newData);
+    
+    /**
+     * Called when new data arrive from the standard error of the SGS instance
+     */
+    public void newStderrData(ByteBuffer newData);
     
     /**
      * Called when the service is started

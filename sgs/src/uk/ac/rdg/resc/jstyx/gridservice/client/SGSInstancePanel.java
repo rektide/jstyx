@@ -30,11 +30,13 @@ package uk.ac.rdg.resc.jstyx.gridservice.client;
 
 import javax.swing.*;
 import java.awt.event.*;
+import java.awt.Component;
 import java.nio.ByteBuffer;
 
 import info.clearthought.layout.TableLayout;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * Panel containing GUI components to interact with a specific SGS instance
@@ -43,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/02/21 18:12:29  jonblower
+ * Following changes to core JStyx library
+ *
  * Revision 1.1  2005/02/16 19:22:30  jonblower
  * Commit adding of SGS files to CVS
  *
@@ -162,7 +167,7 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
     /**
      * Called when "stop" is pressed: sends signal to stop the SGS
      */
-    public void stopClicked()
+    private void stopClicked()
     {
         try
         {
@@ -175,11 +180,30 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
     }
     
     /**
+     * Called when new data arrive from the standard output of the SGS instance
+     */
+    public void newStdoutData(ByteBuffer newData)
+    {
+        this.txtStdout.append(StyxUtils.dataToString(newData));
+        this.txtStdout.repaint();
+    }
+    
+    /**
+     * Called when new data arrive from the standard error of the SGS instance
+     */
+    public void newStderrData(ByteBuffer newData)
+    {
+        this.txtStderr.append(StyxUtils.dataToString(newData));
+        this.txtStderr.repaint();
+    }
+    
+    /**
      * Called when the status of the Styx Grid Service changes
      */
     public synchronized void statusChanged(String newStatus)
     {
-        lblStatus.setText("Status: " + newStatus);
+        this.lblStatus.setText("Status: " + newStatus);
+        this.lblStatus.repaint();
     }
     
     /**
@@ -187,7 +211,8 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
      */
     public synchronized void bytesConsumedChanged(String newBytesConsumed)
     {
-        lblBytesConsumed.setText("Bytes consumed: " + newBytesConsumed);
+        this.lblBytesConsumed.setText("Bytes consumed: " + newBytesConsumed);
+        this.lblBytesConsumed.repaint();
     }
     
     /**
@@ -195,7 +220,7 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
      */
     public synchronized void serviceStarted()
     {
-        JOptionPane.showMessageDialog(this, "Service has been started");
+        new ShowMessage(this, "Service has been started").start();
     }
     
     /**
@@ -203,7 +228,7 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
      */
     public synchronized void serviceAborted()
     {
-        JOptionPane.showMessageDialog(this, "Service has been aborted");
+        new ShowMessage(this, "Service has been aborted").start();
     }
     
     /**
@@ -222,4 +247,22 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         return this.client.getInstanceID();
     }
     
+    /**
+     * Thread that displays a message box (doesn't hang up GUI)
+     */
+    private static class ShowMessage extends Thread
+    {
+        private Component component;
+        private String message;
+        public ShowMessage(Component component, String message)
+        {
+            this.component = component;
+            this.message = message;
+            this.setDaemon(true);
+        }
+        public void run()
+        {
+            JOptionPane.showMessageDialog(this.component, this.message);
+        }
+    }
 }
