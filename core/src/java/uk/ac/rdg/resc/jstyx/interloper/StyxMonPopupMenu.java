@@ -42,6 +42,9 @@ import java.awt.Component;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/02/28 13:46:46  jonblower
+ * Combined the two ActionListeners into a single one
+ *
  * Revision 1.3  2005/02/28 12:53:47  jonblower
  * Improved message filtering
  *
@@ -64,13 +67,7 @@ public class StyxMonPopupMenu extends JPopupMenu
     {
         this.theModel = model;
         menuShowAll = new JMenuItem("Show all messages");
-        menuShowAll.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e)
-            {
-                theModel.showAllData();
-            }
-        });
+        menuShowAll.addActionListener(al);
     }
     
     /**
@@ -95,16 +92,22 @@ public class StyxMonPopupMenu extends JPopupMenu
     }
     
     /**
-     * Action listener that implements filtering based on the text of the 
-     * JMenuItem that called it
+     * Action listener for JMenuItems
      */
     ActionListener al = new ActionListener()
     {
         public void actionPerformed(ActionEvent e)
         {
             JMenuItem menuItem = (JMenuItem)e.getSource();
-            String filename = menuItem.getText().substring(prefix.length());
-            theModel.filterByFilename(filename);
+            if (menuItem == menuShowAll)
+            {
+                theModel.showAllData();
+            }
+            else
+            {
+                String filename = menuItem.getText().substring(prefix.length());
+                theModel.filterByFilename(filename);
+            }
         }
     };
     
