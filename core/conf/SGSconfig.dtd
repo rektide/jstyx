@@ -17,8 +17,20 @@
     </root>
 -->
 
+<!-- Element that defines a parameter to a Styx Grid Service -->
+<!ELEMENT param EMPTY>
+<!-- Have to provide a name and type for the parameter, but default value and 
+     description are optional -->
+<!ATTLIST param
+    name CDATA #REQUIRED
+    type (boolean | int | float | string) #REQUIRED
+    default CDATA #IMPLIED
+    description CDATA #IMPLIED
+  >
+  
 <!--- Element that defines a Styx Grid Service -->
-<!ELEMENT gridservice EMPTY>
+<!-- The gridservice takes zero or more parameters -->
+<!ELEMENT gridservice (param)*>
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED
@@ -32,7 +44,11 @@
 
 <!--- Items concerning configuration of the server -->
 <!ELEMENT port (#PCDATA)>
-<!ELEMENT ssl EMPTY>
+<!ELEMENT keystore EMPTY>
+<!ATTLIST keystore
+    location CDATA #REQUIRED
+  >
+<!ELEMENT ssl (keystore)>
 <!ATTLIST ssl
     activated (yes | no) #REQUIRED
   >

@@ -37,6 +37,8 @@ import java.io.OutputStream;
 import java.io.IOException;
 import java.io.File;
 
+import java.util.Vector;
+
 import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
@@ -56,6 +58,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/24 07:57:41  jonblower
+ * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
+ *
  * Revision 1.3  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -88,24 +93,24 @@ class StyxGridServiceInstance extends StyxDirectory
     private CachingStreamReader stdout = new CachingStreamReader(this, "out");  // The standard output from the program
     private CachingStreamReader stderr = new CachingStreamReader(this, "err");  // The standard error from the program
     private StreamWriter stdin  = new StreamWriter("in");   // The standard input to the program
-    private InMemoryFile params; // The command-line parameters to pass to the executable
+    private StyxDirectory paramDir; // Contains the command-line parameters to pass to the executable
     private String command; // The command to run (i.e. the string that is passed to System.exec)
     private InMemoryFile inputURL; // Non-empty if we're going to read the input from a URL
     private long startTime;
     private StatusCode statusCode; // The status of the service
     
     /**
-     * Creates a new StyxGridService with the given id number
+     * Creates a new StyxGridService with the given configuration
      * @todo: sort out permissions and owners on all these files
      */
-    public StyxGridServiceInstance(StyxGridService sgs, int id, String command, 
-        String sgsWorkDir) throws StyxException
+    public StyxGridServiceInstance(StyxGridService sgs, int id,
+        String command, String workDir, Vector params) throws StyxException
     {
         super("" + id);
         this.sgs = sgs;
         this.id = id;
         this.command = command;
-        this.workDir = new File(sgsWorkDir + StyxUtils.SYSTEM_FILE_SEPARATOR + id);
+        this.workDir = new File(workDir + StyxUtils.SYSTEM_FILE_SEPARATOR + id);
         
         if (this.workDir.exists())
         {
@@ -127,10 +132,18 @@ class StyxGridServiceInstance extends StyxDirectory
             }
         }
         
-        // Add the ctl and params file
+        // Add the ctl file
         this.addChild(new ControlFile(this)); // the ctl file
-        this.params = new InMemoryFile("params");
-        this.addChild(params);
+        
+        // Add the parameters as InMemoryFiles
+        this.paramDir = new StyxDirectory("params");
+        for (int i = 0; i < params.size(); i++)
+        {
+            SGSServerConfig.SGSParam param =
+                (SGSServerConfig.SGSParam)params.get(i);
+            this.paramDir.addChild(new InMemoryFile(param.getName()));
+        }
+        this.addChild(paramDir);
         
         // Add the service data: the files exposing the service data will all
         // have asynchronous behaviour
@@ -212,7 +225,7 @@ class StyxGridServiceInstance extends StyxDirectory
                     setBytesConsumed(0);
                     startTime = System.currentTimeMillis();
                     // Start the process running in the correct working directory
-                    process = runtime.exec(command + " " + params.getData(),
+                    process = runtime.exec(command /*+ " " + params.getData()*/,
                         null, workDir);
                     setStatus(StatusCode.RUNNING);
                     new Waiter().start(); // Waits for the process to finish, then sets status

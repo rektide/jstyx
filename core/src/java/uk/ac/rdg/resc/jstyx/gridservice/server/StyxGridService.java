@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.jstyx.gridservice.server;
 
 import java.util.Vector;
 import java.util.Iterator;
+import javax.net.ssl.SSLContext;
 
 import org.apache.mina.common.ByteBuffer;
 
@@ -38,6 +39,8 @@ import uk.ac.rdg.resc.jstyx.server.AsyncStyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
 import uk.ac.rdg.resc.jstyx.server.StyxServer;
+
+import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -49,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/24 07:57:41  jonblower
+ * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
+ *
  * Revision 1.2  2005/03/22 17:45:25  jonblower
  * Now reads SSL switch from config file
  *
@@ -73,6 +79,7 @@ public class StyxGridService
                             // (this is passed to System.exec)
     private String workDir; // The directory in the local filesystem where all the 
                             // cache files etc associated with this service will be kept
+    private Vector params;  // The parameters that each SGS instance uses
     
     /**
      * Creates a new StyxGridService.
@@ -93,6 +100,7 @@ public class StyxGridService
         this.root.addChild(new AsyncStyxFile(this.root, ".contents"));
         this.command = sgsConfig.getCommand();
         this.workDir = sgsConfig.getWorkingDirectory();
+        this.params = sgsConfig.getParams();
     }
     
     public StyxDirectory getRoot()
@@ -138,7 +146,7 @@ public class StyxGridService
         {
             this.instances.add(new Integer(id));
             this.root.addChild(new StyxGridServiceInstance(this, id, this.command,
-                this.workDir));
+                this.workDir, this.params));
             return id;
         }        
     }
@@ -218,7 +226,13 @@ public class StyxGridService
             // Start the server
             int port = config.getPort();
             boolean useSSL = config.getUseSSL();
-            new StyxServer(port, root, useSSL).start();
+            SSLContext sslContext = null;
+            if (useSSL)
+            {
+                sslContext = JonSSLContextFactory.getInstance(true,
+                    config.getKeystoreLocation());
+            }
+            new StyxServer(port, root, sslContext).start();
             System.out.println("Started StyxGridServices, listening on port " + port);
         }
         catch(Exception e)

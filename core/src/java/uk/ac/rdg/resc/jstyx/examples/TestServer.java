@@ -28,9 +28,13 @@
 
 package uk.ac.rdg.resc.jstyx.examples;
 
+import javax.net.ssl.SSLContext;
+
 import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
 import uk.ac.rdg.resc.jstyx.server.DirectoryOnDisk;
 import uk.ac.rdg.resc.jstyx.server.StyxServer;
+
+import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
 
 /**
  * Simple class to start a Styx server that serves up a filesystem that
@@ -40,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.server.StyxServer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/24 07:57:40  jonblower
+ * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
+ *
  * Revision 1.3  2005/03/14 16:40:01  jonblower
  * Modifications for using SSL
  *
@@ -108,8 +115,14 @@ public class TestServer
         // Set up the file tree
         StyxDirectory root = new DirectoryOnDisk(home);
         
+        // Set the SSL settings, using a default keystore for now
+        SSLContext sslContext = null;
+        if (useSSL)
+        {
+            sslContext = JonSSLContextFactory.getInstance(true, "C:\\bogus.cert");
+        }
         // Set up the server and start it
-        StyxServer server = new StyxServer(port, root, useSSL);
+        StyxServer server = new StyxServer(port, root, sslContext);
         server.start();
         
     }

@@ -16,14 +16,19 @@
     <serverConfig>
         <port>9092</port>
         <!-- TODO: will set SSL parameters in here (server cert location, cipher suites, client authentication, acceptable client certs, etc) -->
-        <ssl activated="no"/>
+        <ssl activated="no">
+            <keystore location="C:\bogus.cert"/>
+        </ssl>
         <!-- TODO: will set proxy settings etc here -->
     </serverConfig>
     
     <!-- The Styx Grid Services that will appear under this server -->
     <!-- TODO: could define service data elements here -->
     <gridservices root="C:\StyxGridServices">
-        <gridservice name="md5sum" command="python c:\md5lines.py 0.01"></gridservice>
+        <gridservice name="md5sum" command="python c:\md5lines.py">
+            <param name="waittime" type="float" default="0"
+                description="The time (in seconds) to wait between reading each line of input"/>
+        </gridservice>
         <gridservice name="simple" command="python c:\simple.py"></gridservice>
     </gridservices>
 

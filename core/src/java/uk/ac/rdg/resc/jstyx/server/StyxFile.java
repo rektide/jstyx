@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/03/24 07:57:41  jonblower
+ * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
+ *
  * Revision 1.8  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -425,9 +428,9 @@ public abstract class StyxFile
      * Reads data from this file. This method could be synchronized in subclasses,
      * but watch out for blocks if the read is expected to take some time to
      * complete. Subclasses must make sure they reply to the read request by
-     * creating a ByteBuffer of data, then calling readReply() (although this 
-     * can be done at any time; it does not have to be done within the read()
-     * method).
+     * creating a java.nio.ByteBuffer or byte array of data, then calling the 
+     * appropriate readReply() (this can be done at any time; it does not have 
+     * to be done within the read() method).
      * @param client The client that is performing the read
      * @param offset The point in the file at which to start reading
      * @param count The maximum number of bytes to read

@@ -51,6 +51,9 @@ import org.w3c.dom.Element;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/24 07:57:41  jonblower
+ * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
+ *
  * Revision 1.2  2005/03/22 17:45:25  jonblower
  * Now reads SSL switch from config file
  *
@@ -66,6 +69,7 @@ public class SGSServerConfig
     
     protected int port; // The port on which the server will listen
     protected boolean useSSL; // True if the server is to be secured with SSL
+    protected String keystore; // The location of the keystore
     protected Vector gridServices; // Information about all the SGSs
     private Element root; // The root of the XML document
     private Element serverConfigNode; // The root of the serverConfig section
@@ -87,7 +91,8 @@ public class SGSServerConfig
             Document doc = builder.parse(new File(xmlFilename));
             this.root = doc.getDocumentElement();
             this.port = this.findPort();
-            this.useSSL = this.findUseSSL();
+            // Get the SSL parameters
+            this.getSSLConfig();
             this.getSGSConfig();
         }
         catch(ParserConfigurationException pce)
@@ -138,9 +143,9 @@ public class SGSServerConfig
     }
     
     /**
-     * @return true if this server will use SSL
+     * Gets the SSL-related parameters
      */
-    private boolean findUseSSL() throws Exception
+    private void getSSLConfig() throws Exception
     {
         NodeList list = this.root.getElementsByTagName("serverConfig");
         if (list.getLength() != 1)
@@ -161,16 +166,24 @@ public class SGSServerConfig
         String activated = sslNode.getAttribute("activated");
         if (activated.equalsIgnoreCase("yes"))
         {
-            return true;
+            this.useSSL = true;
         }
         else if (activated.equalsIgnoreCase("no"))
         {
-            return false;
+            this.useSSL = false;
         }
         else
         {
             throw new Exception("\"activated\" attribute must be either \"on\" or \"off\"");
         }
+        // Now get the location of the keystore
+        NodeList keystoreList = sslNode.getElementsByTagName("keystore");
+        if (keystoreList.getLength() != 1)
+        {
+            throw new Exception("There must be one and only one keystore element");
+        }
+        Element keystoreNode = (Element)keystoreList.item(0);
+        this.keystore = keystoreNode.getAttribute("location");
     }
     
     /**
@@ -191,8 +204,7 @@ public class SGSServerConfig
             Element gridService = (Element)gridServicesList.item(i);
             // TODO: could check that these attributes exist, but this should
             // be handled by the parser validating against the DTD
-            this.gridServices.add(new SGSConfig(gridService.getAttribute("name"),
-                gridService.getAttribute("command"), sgsRoot));
+            this.gridServices.add(new SGSConfig(gridService, sgsRoot));
         }        
     }
     
@@ -213,6 +225,14 @@ public class SGSServerConfig
     }
     
     /**
+     * @return the location of the keystore file
+     */
+    public String getKeystoreLocation()
+    {
+        return this.keystore;
+    }
+    
+    /**
      * @return iterator of all the SGSConfig objects (one per SGS)
      */
     public Iterator getSGSConfigInfo()
@@ -228,28 +248,35 @@ public class SGSServerConfig
         private String name;    // The name of this SGS
         private String command; // The command that is run by this SGS
         private String workDir; // The working directory of this SGS
+        private Vector params;  // The parameters for this SGS
         
         /**
-         * @param name The name of the SGS
-         * @param command The command that will be run when the SGS is started
-         * @param sgsRoot The directory in the local filesystem where all the
-         * temporary data and cache files for all the SGS instances will be kept.
-         * (E.g. if this is "C:\\SGS", instance 4 of the "md5sum" SGS will have
-         * its working directory in "C:\\SGS\\md5sum\\4".) 
+         * @param gridService The Element in the XML config file that is at the
+         * root of this Styx Grid Service
+         * @param sgsRootDir The root of the working directory of this SGS
          * @throws IllegalArgumentException if the name of the SGS contains
          * a space.
          */
-        public SGSConfig(String name, String command, String sgsRoot)
+        public SGSConfig(Element gridService, String sgsRootDir)
         {
+            this.name = gridService.getAttribute("name");
             // Check that the name is valid
-            if (name.indexOf(" ") != -1)
+            if (this.name.indexOf(" ") != -1)
             {
                 // TODO: check for other whitespace characters
                 throw new IllegalArgumentException("The name of an SGS cannot contain a space");
             }
-            this.name = name;
-            this.command = command;
-            this.workDir = sgsRoot + "\\" + name;
+            this.command = gridService.getAttribute("command");
+            this.workDir = sgsRootDir + "\\" + name;
+            
+            // Now create the parameters
+            this.params = new Vector();
+            NodeList paramList = gridService.getElementsByTagName("param");
+            for (int i = 0; i < paramList.getLength(); i++)
+            {
+                Element paramEl = (Element)paramList.item(i);
+                this.params.add(new SGSParam(paramEl));
+            }
         }
         
         /**
@@ -277,6 +304,47 @@ public class SGSServerConfig
         {
             return this.workDir;
         }
+        
+        /** 
+         * @return Vector of SGSParam objects containing details of all the 
+         * parameters
+         */
+        public Vector getParams()
+        {
+            return this.params;
+        }
     }
     
+    /**
+     * Class containing information about a single SGS parameter
+     */
+    public class SGSParam
+    {
+        private String name;
+        private String type;
+        private Object defaultValue;
+        private String description;
+        
+        /**
+         * Creates a parameter object for a SGS.
+         * @param paramNode The XML element representing the parameter
+         */
+        public SGSParam(Element paramNode)
+        {
+            this.name = paramNode.getAttribute("name");
+            String type = paramNode.getAttribute("type");
+            String description = paramNode.getAttribute("description");
+            // TODO: Deal with default value
+        }
+        
+        public String getName()
+        {
+            return this.name;
+        }
+        
+        public String getDescription()
+        {
+            return this.description;
+        }
+    }
 }

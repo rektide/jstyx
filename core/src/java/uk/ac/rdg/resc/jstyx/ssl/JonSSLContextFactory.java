@@ -20,6 +20,7 @@ package uk.ac.rdg.resc.jstyx.ssl;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.FileInputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 
@@ -45,7 +46,7 @@ public class JonSSLContextFactory
     /**
      * Bougus Server certificate keystore file name.
      */
-    private static final String BOGUS_KEYSTORE = "bogus.cert";
+    private static final String BOGUS_KEYSTORE = "c:\\bogus.cert";
 
     // NOTE: The keystore was generated using keytool:
     //   keytool -genkey -alias bogus -keysize 512 -validity 3650
@@ -70,7 +71,7 @@ public class JonSSLContextFactory
      * @throws java.security.GeneralSecurityException
      *
      */
-    public static SSLContext getInstance( boolean server )
+    public static SSLContext getInstance( boolean server, String keystore )
             throws GeneralSecurityException
     {
         SSLContext retInstance = null;
@@ -84,7 +85,7 @@ public class JonSSLContextFactory
                     {
                         try
                         {
-                            serverInstance = createBougusServerSSLContext();
+                            serverInstance = createBougusServerSSLContext(keystore);
                         }
                         catch( Exception ioe )
                         {
@@ -113,7 +114,7 @@ public class JonSSLContextFactory
         return retInstance;
     }
 
-    private static SSLContext createBougusServerSSLContext()
+    private static SSLContext createBougusServerSSLContext(String keystore)
             throws GeneralSecurityException, IOException
     {
         // Create keystore
@@ -121,8 +122,9 @@ public class JonSSLContextFactory
         InputStream in = null;
         try
         {
-            in = JonSSLContextFactory.class
-                    .getResourceAsStream( BOGUS_KEYSTORE );
+            //in = JonSSLContextFactory.class
+            //        .getResourceAsStream( BOGUS_KEYSTORE );
+            in = new FileInputStream(keystore);
             if (in == null)
             {
                 System.err.println("Could not read keystore");

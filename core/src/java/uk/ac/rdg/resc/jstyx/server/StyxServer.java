@@ -30,7 +30,7 @@ package uk.ac.rdg.resc.jstyx.server;
 
 import java.net.InetSocketAddress;
 import java.io.IOException;
-import java.security.GeneralSecurityException;
+import javax.net.ssl.SSLContext;
 
 import org.apache.mina.io.IoHandlerFilter;
 import org.apache.mina.io.filter.IoThreadPoolFilter;
@@ -54,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/24 07:57:41  jonblower
+ * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
+ *
  * Revision 1.4  2005/03/14 16:40:02  jonblower
  * Modifications for using SSL
  *
@@ -84,7 +87,7 @@ public class StyxServer
     private ProtocolProvider provider;
     private int port;
     
-    private boolean useSSL; // True if we want to secure the server
+    private SSLContext sslContext; // Non-null if we want to secure the server
     
     /**
      * Creates a Styx server that exposes the given directory under the given
@@ -94,7 +97,7 @@ public class StyxServer
      */
     public StyxServer(int port, StyxDirectory root)
     {
-        this(port, root, false); // By default, don't use SSL
+        this(port, root, null); // By default, don't use SSL
     }
     
     /**
@@ -103,9 +106,9 @@ public class StyxServer
      * @throws IllegalArgumentException if the port number is invalid or the
      * root is null.
      */
-    public StyxServer(int port, StyxDirectory root, boolean useSSL)
+    public StyxServer(int port, StyxDirectory root, SSLContext sslContext)
     {
-        this(port, new StyxServerProtocolProvider(root), useSSL);
+        this(port, new StyxServerProtocolProvider(root), sslContext);
     }
     
     /**
@@ -116,7 +119,7 @@ public class StyxServer
      */
     public StyxServer(int port, ProtocolProvider provider)
     {
-        this(port, provider, false); // Don't use SSL by default
+        this(port, provider, null); // By default, don't use SSL
     }
     
     /**
@@ -125,7 +128,7 @@ public class StyxServer
      * @throws IllegalArgumentException if the port number is invalid or the
      * provider is null.
      */
-    public StyxServer(int port, ProtocolProvider provider, boolean useSSL)
+    public StyxServer(int port, ProtocolProvider provider, SSLContext sslContext)
     {
         if (provider == null)
         {
@@ -139,7 +142,7 @@ public class StyxServer
         }
         this.port = port;
         this.provider = provider;
-        this.useSSL = useSSL;
+        this.sslContext = sslContext;
     }
     
     /**
@@ -176,19 +179,9 @@ public class StyxServer
         acceptor.addFilter( Integer.MAX_VALUE, protocolThreadPoolFilter );
         
         // Add SSL filter if SSL is enabled.
-        if( this.useSSL )
+        if( this.sslContext != null )
         {
-            SSLFilter sslFilter;
-            try
-            {
-                // TODO: Create a proper SSLContextFactory
-                sslFilter = new SSLFilter( JonSSLContextFactory.getInstance( true ) );
-            }
-            catch(GeneralSecurityException gse)
-            {
-                throw new StyxException("GeneralSecurityException occurred when" +
-                    " adding SSLFilter: " + gse.getMessage());
-            }
+            SSLFilter sslFilter = new SSLFilter( this.sslContext );
             //sslFilter.setDebug(SSLFilter.Debug.ON);
             acceptor.getIoAcceptor().addFilter( Integer.MAX_VALUE - 1, sslFilter );
         }
@@ -205,6 +198,6 @@ public class StyxServer
         }
         
         log.info( "Listening on port " + this.port + ", SSL " +
-            (this.useSSL ? "enabled" : "disabled"));
+            (this.sslContext == null ? "disabled" : "enabled"));
     }
 }
