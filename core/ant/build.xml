@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <!-- JStyx build file -->
 <!-- Author: Jon Blower -->
 <!-- CVS $Revision$ -->
 <!-- CVS Last modified $Date$ by $Author$ -->
+
 <project name="jstyx" default="jar" basedir=".">
     <description>
         Builds the JStyx source into classes and creates JAR file
@@ -15,7 +17,6 @@
 	<property name="javadoc.dir" value="../javadoc"/>
 	<!-- The directory containing other third-party Java libraries (log4j, Netty etc) -->
 	<property name="lib.dir" value="../lib"/>
-	<property name="packages" value="uk.ac.rdg.resc.jstyx.*"/>
 	
 	<target name="compile" description="compile the source">
 		<mkdir dir="${classes.dir}"/>
@@ -44,7 +45,7 @@
 
 	<target name="javadoc" description="build javadoc">
 		<mkdir dir="${javadoc.dir}"/>
-		<javadoc sourcepath="${src.dir}" packagenames="${packages}" destdir="${javadoc.dir}"/>
+		<javadoc sourcepath="${src.dir}" packagenames="*" destdir="${javadoc.dir}"/>
 	</target>
 
 </project>
