@@ -82,15 +82,14 @@ TestServer program creates the hierarchy of files from the local filesystem.
 Let's look at the key parts of the TestServer program (it's in the
 <tt>uk.ac.rdg.resc.jstyx.examples</tt> package):</p>
 <blockquote>
-<pre>
-// ... (we've already got the port number by this stage)
-String home = System.getProperty("user.home");
-// Set up the file tree
-StyxDirectory root = new DirectoryOnDisk(home);
-// Set up the server and start it
-StyxServer server = new StyxServer(port, root);
-server.start();
-</pre>
+<tt>
+<font color="#000000">String&nbsp;home&nbsp;=&nbsp;System.getProperty</font><font color="#000000">(</font><font color="#2a00ff">&#34;user.home&#34;</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#3f7f5f">//&nbsp;Set&nbsp;up&nbsp;the&nbsp;file&nbsp;tree</font><br/>
+<font color="#000000">StyxDirectory&nbsp;root&nbsp;=&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">DirectoryOnDisk</font><font color="#000000">(</font><font color="#000000">home</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#3f7f5f">//&nbsp;Set&nbsp;up&nbsp;the&nbsp;server&nbsp;and&nbsp;start&nbsp;it</font><br/>
+<font color="#000000">StyxServer&nbsp;server&nbsp;=&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">StyxServer</font><font color="#000000">(</font><font color="#000000">port,&nbsp;root</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#000000">server.start</font><font color="#000000">()</font><font color="#000000">;</font><br/>
+</tt>
 </blockquote>
 <p>It's very simple. We create a <tt>StyxServer</tt> object, passing it the
 number of the port we want it to listen on and a <tt>StyxDirectory</tt> that
@@ -119,18 +118,18 @@ subclass of <tt>StyxFile</tt> and <tt>DirectoryOnDisk</tt> is a subclass of
 <tt>StyxDirectory</tt>.) So let's create a class called <tt>DateFile</tt> that
 inherits from <tt>StyxFile</tt>:</p>
 <blockquote>
-<pre>
-import uk.ac.rdg.resc.jstyx.StyxException;
-import uk.ac.rdg.resc.jstyx.server.StyxFile;
-
-public class DateFile extends StyxFile
-{
-    public DateFile() throws StyxException
-    {
-        super("date");
-    }
-}
-</pre>
+<tt>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.StyxException;</font><br/>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.server.StyxFile;</font><br/>
+<br/>
+<font color="#7f0055"><b>public&nbsp;class&nbsp;</b></font><font color="#000000">DateFile&nbsp;</font><font color="#7f0055"><b>extends&nbsp;</b></font><font color="#000000">StyxFile</font><br/>
+<font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>public&nbsp;</b></font><font color="#000000">DateFile</font><font color="#000000">()&nbsp;</font><font color="#7f0055"><b>throws&nbsp;</b></font><font color="#000000">StyxException</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>super</b></font><font color="#000000">(</font><font color="#2a00ff">&#34;date&#34;</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+<font color="#000000">}</font><br/>
+</tt>
 </blockquote>
 
 <p>There are many constructors for
@@ -149,18 +148,18 @@ later.) We shan't allow writing to this file so we shall always throw a
 back to the client):</p>
 
 <blockquote>
-<pre>
-import java.nio.ByteBuffer;
-import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
-...
-    public void write(StyxFileClient client, long offset, long count,
-        ByteBuffer data, String user, boolean truncate, int tag)
-        throws StyxException
-    {
-        throw new StyxException("Cannot write to this file");
-    }
-....
-</pre>
+<tt>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">java.nio.ByteBuffer;</font><br/>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.server.StyxFileClient;</font><br/>
+...<br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>public&nbsp;</b></font><font color="#7f0055"><b>void&nbsp;</b></font><font color="#000000">write</font><font color="#000000">(</font><font color="#000000">StyxFileClient&nbsp;client,&nbsp;</font><font color="#7f0055"><b>long&nbsp;</b></font><font color="#000000">offset,&nbsp;</font><font color="#7f0055"><b>long&nbsp;</b></font><font color="#000000">count,</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">ByteBuffer&nbsp;data,&nbsp;String&nbsp;user,&nbsp;</font><font color="#7f0055"><b>boolean&nbsp;</b></font><font color="#000000">truncate,&nbsp;</font><font color="#7f0055"><b>int&nbsp;</b></font><font color="#000000">tag</font><font color="#000000">)</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>throws&nbsp;</b></font><font color="#000000">StyxException</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>throw&nbsp;new&nbsp;</b></font><font color="#000000">StyxException</font><font color="#000000">(</font><font color="#2a00ff">&#34;Cannot&nbsp;write&nbsp;to&nbsp;this&nbsp;file&#34;</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+....<br/>
+</tt>
 </blockquote>
 
 <p>Note that we have to import a couple more classes. We shan't worry about all
@@ -174,45 +173,45 @@ different clients. We shall see more of this later.</p>
 the actual work. It will return the current date and time to the user:</p>
 
 <blockquote>
-<pre>
-import java.util.Date;
-import uk.ac.rdg.resc.jstyx.StyxUtils;
+<tt>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">java.util.Date;</font><br/>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.StyxUtils;</font><br/>
+...<br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>public&nbsp;</b></font><font color="#7f0055"><b>void&nbsp;</b></font><font color="#000000">read</font><font color="#000000">(</font><font color="#000000">StyxFileClient&nbsp;client,&nbsp;</font><font color="#7f0055"><b>long&nbsp;</b></font><font color="#000000">offset,&nbsp;</font><font color="#7f0055"><b>long&nbsp;</b></font><font color="#000000">count,&nbsp;</font><font color="#7f0055"><b>int&nbsp;</b></font><font color="#000000">tag</font><font color="#000000">)</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>throws&nbsp;</b></font><font color="#000000">StyxException</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Get&nbsp;the&nbsp;current&nbsp;date&nbsp;and&nbsp;time&nbsp;in&nbsp;String&nbsp;format</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">String&nbsp;dateStr&nbsp;=&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">Date</font><font color="#000000">()</font><font color="#000000">.toString</font><font color="#000000">()</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Convert&nbsp;the&nbsp;String&nbsp;to&nbsp;bytes&nbsp;in&nbsp;UTF-8&nbsp;format</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>byte</b></font><font color="#000000">[]&nbsp;</font><font color="#000000">dateBytes&nbsp;=&nbsp;StyxUtils.strToUTF8</font><font color="#000000">(</font><font color="#000000">dateStr</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">ByteBuffer&nbsp;buf;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>if&nbsp;</b></font><font color="#000000">((</font><font color="#7f0055"><b>int</b></font><font color="#000000">)</font><font color="#000000">offset&nbsp;&gt;=&nbsp;dateBytes.length</font><font color="#000000">)</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;If&nbsp;the&nbsp;client&nbsp;has&nbsp;requested&nbsp;bytes&nbsp;from&nbsp;an&nbsp;offset&nbsp;greater&nbsp;than&nbsp;the</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;length&nbsp;of&nbsp;the&nbsp;string,&nbsp;return&nbsp;zero&nbsp;bytes&nbsp;(signifies&nbsp;end-of-file)</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">buf&nbsp;=&nbsp;ByteBuffer.allocate</font><font color="#000000">(</font><font color="#990000">0</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>else</b></font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Work&nbsp;out&nbsp;the&nbsp;number&nbsp;of&nbsp;bytes&nbsp;to&nbsp;return</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>int&nbsp;</b></font><font color="#000000">bytesToReturn;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>if&nbsp;</b></font><font color="#000000">(</font><font color="#000000">count&nbsp;&gt;&nbsp;dateBytes.length&nbsp;-&nbsp;offset</font><font color="#000000">)</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">bytesToReturn&nbsp;=&nbsp;</font><font color="#000000">(</font><font color="#7f0055"><b>int</b></font><font color="#000000">)(</font><font color="#000000">dateBytes.length&nbsp;-&nbsp;offset</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>else</b></font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">bytesToReturn&nbsp;=&nbsp;</font><font color="#000000">(</font><font color="#7f0055"><b>int</b></font><font color="#000000">)</font><font color="#000000">count;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Wrap&nbsp;the&nbsp;appropriate&nbsp;portion&nbsp;of&nbsp;the&nbsp;array&nbsp;as&nbsp;a&nbsp;ByteBuffer</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">buf&nbsp;=&nbsp;ByteBuffer.wrap</font><font color="#000000">(</font><font color="#000000">dateBytes,&nbsp;</font><font color="#000000">(</font><font color="#7f0055"><b>int</b></font><font color="#000000">)</font><font color="#000000">offset,&nbsp;bytesToReturn</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Send&nbsp;the&nbsp;data&nbsp;back&nbsp;to&nbsp;the&nbsp;user</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>this</b></font><font color="#000000">.replyRead</font><font color="#000000">(</font><font color="#000000">client,&nbsp;buf,&nbsp;tag</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
 ...
-    public void read(StyxFileClient client, long offset, long count, int tag)
-        throws StyxException
-    {
-        // Get the current date and time in String format
-        String dateStr = new Date().toString();
-        // Convert the String to bytes in UTF-8 format
-        byte[] dateBytes = StyxUtils.strToUTF8(dateStr);
-        
-        ByteBuffer buf;
-        if ((int)offset >= dateBytes.length)
-        {
-            // If the client has requested bytes from an offset greater than the
-            // length of the string, return zero bytes (signifies end-of-file)
-            buf = ByteBuffer.allocate(0);
-        }
-        else
-        {
-            // Work out the number of bytes to return
-            int bytesToReturn;
-            if (count > dateBytes.length - offset)
-            {
-                bytesToReturn = (int)(dateBytes.length - offset);
-            }
-            else
-            {
-                bytesToReturn = (int)count;
-            }
-            // Wrap the appropriate portion of the array as a ByteBuffer
-            buf = ByteBuffer.wrap(dateBytes, (int)offset, bytesToReturn);
-        }
-        // Send the data back to the user
-        this.replyRead(client, buf, tag);
-    }
-...
-</pre>
+</tt>
 </blockquote>
 <p>Again, we have to import a couple more classes. The comments in the above
 method should explain what we're doing, but the gist of it is this:</p>
@@ -233,15 +232,15 @@ know the length of this file (it is always 28 bytes). We can make sure that
 client see the correct length by overriding the <tt>getLength()</tt> method of
 <tt>StyxFile</tt>:</p>
 <blockquote>
-<pre>
-import uk.ac.rdg.resc.jstyx.types.ULong;
-...
-    public ULong getLength()
-    {
-        return new ULong(28);
-    }
-...
-</pre>
+<tt>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.types.ULong;</font><br/>
+...<br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>public&nbsp;</b></font><font color="#000000">ULong&nbsp;getLength</font><font color="#000000">()</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>return&nbsp;new&nbsp;</b></font><font color="#000000">ULong</font><font color="#000000">(</font><font color="#990000">28</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+...<br/>
+</tt>
 </blockquote>
 <p><em>(The <tt>ULong</tt> type is a simulation of an unsigned long, a type that
 Java lacks.)</em></p>
@@ -249,21 +248,21 @@ Java lacks.)</em></p>
 <p>Now we can create a <tt>main()</tt> method that serves up this file in a Styx
 server:</p>
 <blockquote>
-<pre>
-import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
-import uk.ac.rdg.resc.jstyx.server.StyxServer;
-...
-    public static void main(String[] args) throws Exception
-    {
-        // Create the root directory of the Styx server
-        StyxDirectory root = new StyxDirectory("/");
-        // Add a DateFile to the root
-        root.addChild(new DateFile());
-        // Start a StyxServer, listening on port 9876
-        new StyxServer(9876, root).start();
-    }
-...
-</pre>
+<tt>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.server.StyxDirectory;</font><br/>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.server.StyxServer;</font><br/>
+...<br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>public&nbsp;static&nbsp;</b></font><font color="#7f0055"><b>void&nbsp;</b></font><font color="#000000">main</font><font color="#000000">(</font><font color="#000000">String</font><font color="#000000">[]&nbsp;</font><font color="#000000">args</font><font color="#000000">)&nbsp;</font><font color="#7f0055"><b>throws&nbsp;</b></font><font color="#000000">Exception</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Create&nbsp;the&nbsp;root&nbsp;directory&nbsp;of&nbsp;the&nbsp;Styx&nbsp;server</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">StyxDirectory&nbsp;root&nbsp;=&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">StyxDirectory</font><font color="#000000">(</font><font color="#2a00ff">&#34;/&#34;</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Add&nbsp;a&nbsp;DateFile&nbsp;to&nbsp;the&nbsp;root</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">root.addChild</font><font color="#000000">(</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">DateFile</font><font color="#000000">())</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Start&nbsp;a&nbsp;StyxServer,&nbsp;listening&nbsp;on&nbsp;port&nbsp;9876</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">StyxServer</font><font color="#000000">(</font><font color="#990000">9876</font><font color="#000000">,&nbsp;root</font><font color="#000000">)</font><font color="#000000">.start</font><font color="#000000">()</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+...<br/>
+</tt>
 </blockquote>
 
 <p>We can start the server by ... <em>(Use JStyxRun to set the classpath,
