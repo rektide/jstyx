@@ -32,7 +32,11 @@
 
 <!--- Items concerning configuration of the server -->
 <!ELEMENT port (#PCDATA)>
-<!ELEMENT serverConfig (port)>
+<!ELEMENT ssl EMPTY>
+<!ATTLIST ssl
+    activated (yes | no) #REQUIRED
+  >
+<!ELEMENT serverConfig (port, ssl)>
 
 <!--- Put your DTDDoc comment here. -->
 <!ELEMENT root (serverConfig, gridservices)>
