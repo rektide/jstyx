@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/24 09:48:31  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.3  2005/03/16 17:56:23  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -112,7 +115,7 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
     }
     
     public synchronized void read(StyxFileClient client, long offset,
-        long count, int tag) throws StyxException
+        int count, int tag) throws StyxException
     {
         // Check to see if this client has connected before
         ClientInfo cinfo = (ClientInfo)this.knownClients.get(client);
@@ -161,7 +164,7 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
      * This simply calls write() in the contained StyxFile object
      */
     public synchronized void write(StyxFileClient client, long offset,
-        long count, ByteBuffer data, String user, boolean truncate, int tag)
+        int count, ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
     {
         this.baseFile.write(client, offset, count, data, user, truncate, tag);
@@ -253,7 +256,7 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
      * Replies to a client and sets the fields of the ClientInfo
      */
     private void replyClient(ClientInfo cinfo, StyxFileClient client, long offset,
-        long count, int tag) throws StyxException
+        int count, int tag) throws StyxException
     {
         long now = System.currentTimeMillis();
         if (cinfo == null)
@@ -278,11 +281,11 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
         private StyxFileClient client;
         private int tag;
         private long offset; // The offset requested by the client
-        private long count; // The number of bytes requested by the client
+        private int count; // The number of bytes requested by the client
         private long versionLastRead; // the version of the file on the last read
         private long timeLastReply; // the time when data was last sent to this client
         
-        private ClientInfo(StyxFileClient client, int tag, long offset, long count,
+        private ClientInfo(StyxFileClient client, int tag, long offset, int count,
             long versionLastRead, long timeLastReply)
         {
             this.client = client;

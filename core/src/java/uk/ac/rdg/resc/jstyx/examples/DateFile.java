@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/24 09:48:28  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.2  2005/03/16 17:55:53  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -63,14 +66,14 @@ public class DateFile extends StyxFile
         super("date");
     }
     
-    public void write(StyxFileClient client, long offset, long count,
+    public void write(StyxFileClient client, long offset, int count,
         ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
     {
         throw new StyxException("Cannot write to this file");
     }
     
-    public void read(StyxFileClient client, long offset, long count, int tag)
+    public void read(StyxFileClient client, long offset, int count, int tag)
         throws StyxException
     {
         // Get the current date and time in String format
@@ -94,11 +97,11 @@ public class DateFile extends StyxFile
             int bytesToReturn;
             if (count > dateBytes.length - offset)
             {
-                bytesToReturn = (int)(dateBytes.length - offset);
+                bytesToReturn = dateBytes.length - (int)offset;
             }
             else
             {
-                bytesToReturn = (int)count;
+                bytesToReturn = count;
             }
             pos = (int)offset;
             n = bytesToReturn;

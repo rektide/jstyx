@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/24 09:48:31  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.3  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -69,7 +72,7 @@ class SDEFile extends StyxFile
         this.sde = sde;
     }
     
-    public void read(StyxFileClient client, long offset, long count, int tag)
+    public void read(StyxFileClient client, long offset, int count, int tag)
         throws StyxException
     {
         byte[] bytes = this.sde.getBytes();
@@ -94,7 +97,7 @@ class SDEFile extends StyxFile
      * contained in a single write message
      * @todo: what happens if this isn't the case?
      */
-    public void write(StyxFileClient client, long offset, long count,
+    public void write(StyxFileClient client, long offset, int count,
         ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
     {

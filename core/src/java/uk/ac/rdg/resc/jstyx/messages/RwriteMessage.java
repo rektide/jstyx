@@ -28,6 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
+import org.apache.mina.protocol.ProtocolViolationException;
+
 /**
  * Response to a TwriteMessage to write data to a file
  *
@@ -35,6 +37,9 @@ package uk.ac.rdg.resc.jstyx.messages;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/24 09:48:31  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.4  2005/03/15 09:01:48  jonblower
  * Message type now stored as short, not int
  *
@@ -54,7 +59,7 @@ package uk.ac.rdg.resc.jstyx.messages;
 public class RwriteMessage extends StyxMessage
 {
     
-    private long count; // Number of bytes actually written to the file
+    private int count; // Number of bytes actually written to the file
     
     /**
      * Creates a new RwriteMessage 
@@ -68,20 +73,22 @@ public class RwriteMessage extends StyxMessage
         this.name = "Rwrite";
     }
     
-    public RwriteMessage()
+    public RwriteMessage(int count)
     {
         this(11, (short)119, 0); // The tag will be added later
-    }
-    
-    public RwriteMessage(long count)
-    {
-        this();
         this.count = count;        
     }
     
     protected final void decodeBody(StyxBuffer buf)
+        throws ProtocolViolationException
     {
-        this.count = buf.getUInt();
+        long lngCount = buf.getUInt();
+        if (lngCount < 0 || lngCount > Integer.MAX_VALUE)
+        {
+            throw new ProtocolViolationException("Got illegal count of " + lngCount);
+        }
+        // We now know that this cast is safe
+        this.count = (int)lngCount;
     }
     
     protected final void encodeBody(StyxBuffer buf)

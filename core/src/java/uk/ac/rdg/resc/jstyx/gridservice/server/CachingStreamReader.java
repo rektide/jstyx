@@ -61,6 +61,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/24 09:48:31  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.3  2005/03/21 17:59:49  jonblower
  * Fixed bug with size of RandomAccessFile
  *
@@ -170,7 +173,7 @@ class CachingStreamReader extends StyxFile
      * the first byte of data requested.
      * @param count The maximum amount of data to return
      */
-    public void read(StyxFileClient client, long offset, long count, int tag)
+    public void read(StyxFileClient client, long offset, int count, int tag)
         throws StyxException
     {
         log.debug("Received request: offset = " + offset + ", count = " + count);
@@ -276,7 +279,7 @@ class CachingStreamReader extends StyxFile
                     this.cache.seek(dr.offset);
                     // Try to read the requested amount of data
                     // TODO: check the number of bytes remaining?
-                    byte[] arr = new byte[(int)dr.count];
+                    byte[] arr = new byte[dr.count];
                     log.debug("Reading " + arr.length + " bytes from cache at offset "
                         + dr.offset);
                     int n = this.cache.read(arr);
@@ -410,9 +413,9 @@ class CachingStreamReader extends StyxFile
         private StyxFileClient client;
         private int tag;
         private long offset; // The offset requested by the client
-        private long count; // number of bytes requested by the client
+        private int count; // number of bytes requested by the client
         
-        private DataRequest(StyxFileClient client, int tag, long offset, long count)
+        private DataRequest(StyxFileClient client, int tag, long offset, int count)
         {
             this.client = client;
             this.tag = tag;
@@ -421,7 +424,7 @@ class CachingStreamReader extends StyxFile
         }
     }
     
-    public void write(StyxFileClient client, long offset, long count,
+    public void write(StyxFileClient client, long offset, int count,
         ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
     {

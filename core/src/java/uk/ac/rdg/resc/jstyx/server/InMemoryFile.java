@@ -28,8 +28,6 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
-import java.util.Date;
-
 import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
@@ -37,13 +35,16 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.types.ULong;
 
 /**
- * File whose underlying data are stored as a block in memory
+ * File whose underlying data are stored as a String in memory
  * @todo: put a limit on the amount of memory it can take up?
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/24 09:48:31  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.4  2005/03/16 17:56:23  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -62,7 +63,6 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  */
 public class InMemoryFile extends StyxFile
 {
-    
     protected String data; // TODO: use StringBuffer or ByteBuffer?
     
     /** Creates a new instance of InMemoryFile */
@@ -94,11 +94,11 @@ public class InMemoryFile extends StyxFile
         this(name, 0777);
     }
     
-    public synchronized void read(StyxFileClient client, long offset, long count, int tag)
-        throws StyxException
+    public synchronized void read(StyxFileClient client, long offset, int count,
+        int tag) throws StyxException
     {
         byte[] strBytes = StyxUtils.strToUTF8(this.data);
-        int numBytesToReturn = (strBytes.length - (int)offset) > (int)count ? 
+        int numBytesToReturn = (strBytes.length - (int)offset) > count ? 
             (int)count : strBytes.length - (int)offset;
         if (numBytesToReturn < 1)
         {
@@ -109,7 +109,7 @@ public class InMemoryFile extends StyxFile
     }
     
     public synchronized void write(StyxFileClient client, long offset,
-        long count, ByteBuffer data, String user, boolean truncate, int tag)
+        int count, ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
     {
         // Copy the contents of the data buffer
@@ -119,8 +119,7 @@ public class InMemoryFile extends StyxFile
         }
         // this buffer has no backing array. We'll have to copy the bytes
         // out "manually"
-        int numBytes = (data.remaining() > (int)count) ? (int)count : 
-            data.remaining();
+        int numBytes = (data.remaining() > count) ? count : data.remaining();
         byte[] bytes = new byte[numBytes];
         data.get(bytes);
         
@@ -139,6 +138,9 @@ public class InMemoryFile extends StyxFile
         this.data = "";
     }
     
+    /**
+     * Used to set the data directly, i.e. not via the Styx interface
+     */
     public void setData(String s)
     {
         this.data = s;

@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/03/24 09:48:32  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.9  2005/03/24 07:57:41  jonblower
  * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
  *
@@ -437,7 +440,7 @@ public abstract class StyxFile
      * @param tag The tag of the incoming Tread message (this is needed when
      * calling readReply())
      */
-    public abstract void read(StyxFileClient client, long offset, long count, int tag)
+    public abstract void read(StyxFileClient client, long offset, int count, int tag)
         throws StyxException;
     
     /**
@@ -465,7 +468,7 @@ public abstract class StyxFile
      * @param tag The tag of the incoming Twrite message (this is needed when
      * calling writeReply())
      */
-    public abstract void write(StyxFileClient client, long offset, long count,
+    public abstract void write(StyxFileClient client, long offset, int count,
         ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException;
     
@@ -703,7 +706,7 @@ public abstract class StyxFile
      * @param count The number of bytes actually written to the file in question.
      * @param tag The tag to be attached to the message
      */
-    protected void replyWrite(StyxFileClient client, long count, int tag)
+    protected void replyWrite(StyxFileClient client, int count, int tag)
     {
         ProtocolSession session = client.getSession();
         StyxSessionState sessionState = (StyxSessionState)session.getAttachment();

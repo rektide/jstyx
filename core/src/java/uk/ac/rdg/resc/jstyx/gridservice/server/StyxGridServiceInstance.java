@@ -58,6 +58,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/24 09:48:31  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.4  2005/03/24 07:57:41  jonblower
  * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
  *
@@ -139,8 +142,7 @@ class StyxGridServiceInstance extends StyxDirectory
         this.paramDir = new StyxDirectory("params");
         for (int i = 0; i < params.size(); i++)
         {
-            SGSServerConfig.SGSParam param =
-                (SGSServerConfig.SGSParam)params.get(i);
+            SGSParam param = (SGSParam)params.get(i);
             this.paramDir.addChild(new InMemoryFile(param.getName()));
         }
         this.addChild(paramDir);
@@ -193,14 +195,14 @@ class StyxGridServiceInstance extends StyxDirectory
             this.instanceRoot = instanceRoot;
         }
         
-        public void read(StyxFileClient client, long offset, long count, int tag)
+        public void read(StyxFileClient client, long offset, int count, int tag)
             throws StyxException
         {
             // TODO: could return documentation about supported commands?
             throw new StyxException("can't read from a ctl file");
         }
         
-        public void write(StyxFileClient client, long offset, long count,
+        public void write(StyxFileClient client, long offset, int count,
             ByteBuffer data, String user, boolean truncate, int tag)
             throws StyxException
         {
@@ -464,7 +466,7 @@ class StyxGridServiceInstance extends StyxDirectory
          * undefined
          * @todo deal with request to flush the write message
          */
-        public void write(StyxFileClient client, long offset, long count,
+        public void write(StyxFileClient client, long offset, int count,
             ByteBuffer data, String user, boolean truncate, int tag)
             throws StyxException
         {
@@ -485,7 +487,7 @@ class StyxGridServiceInstance extends StyxDirectory
                 {
                     // Would normally be an error if count != data.remaining(),
                     // but we'll let the calling application pick this up
-                    bytesToWrite = (int)count;
+                    bytesToWrite = count;
                 }
                 byte[] arr = new byte[bytesToWrite];
                 data.get(arr);
@@ -502,7 +504,7 @@ class StyxGridServiceInstance extends StyxDirectory
             }
         }
 
-        public void read(StyxFileClient client, long offset, long count, int tag)
+        public void read(StyxFileClient client, long offset, int count, int tag)
             throws StyxException
         {
             throw new StyxException("cannot read from an input stream");

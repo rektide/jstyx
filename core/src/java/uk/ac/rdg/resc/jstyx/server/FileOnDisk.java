@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/24 09:48:31  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.4  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -135,11 +138,11 @@ public class FileOnDisk extends StyxFile
         }        
     }
     
-    public synchronized void read(StyxFileClient client, long offset, long count, int tag)
+    public synchronized void read(StyxFileClient client, long offset, int count, int tag)
         throws StyxException
     {
         this.checkChannel();
-        java.nio.ByteBuffer buf = java.nio.ByteBuffer.allocate((int)count);
+        java.nio.ByteBuffer buf = java.nio.ByteBuffer.allocate(count);
         int numRead = 0;
         try
         {
@@ -164,7 +167,7 @@ public class FileOnDisk extends StyxFile
     }
     
     public synchronized void write(StyxFileClient client, long offset, 
-        long count, ByteBuffer data, String user, boolean truncate, int tag)
+        int count, ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
     {
         this.checkChannel();
@@ -173,7 +176,7 @@ public class FileOnDisk extends StyxFile
             // Remember old limit and position
             int pos = data.position();
             int lim = data.limit();
-            data.limit(data.position() + (int)count);
+            data.limit(data.position() + count);
             int nWritten = this.chan.write(data.buf(), offset);
             // Reset former buffer positions
             data.limit(lim);

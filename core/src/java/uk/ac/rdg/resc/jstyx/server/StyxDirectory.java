@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/03/24 09:48:31  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.6  2005/03/22 17:48:27  jonblower
  * Removed debug code that tracked ByteBuffer allocation
  *
@@ -136,7 +139,7 @@ public class StyxDirectory extends StyxFile
     /**
      * Returns the directory contents. This method cannot be overridden.
      */
-    public final void read(StyxFileClient client, long offset, long count, int tag)
+    public final void read(StyxFileClient client, long offset, int count, int tag)
         throws StyxException
     {
         if (client == null)
@@ -193,7 +196,7 @@ public class StyxDirectory extends StyxFile
      * This always throws a StyxException as it is illegal to write to a
      * directory
      */
-    public void write(StyxFileClient client, long offset, long count,
+    public void write(StyxFileClient client, long offset, int count,
         ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
     {

@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/24 09:48:31  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.3  2005/03/24 07:57:41  jonblower
  * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
  *
@@ -85,7 +88,7 @@ public class StyxGridService
      * Creates a new StyxGridService.
      * @param sgsConfig Object containing the configuration of the SGS
      */
-    public StyxGridService(SGSServerConfig.SGSConfig sgsConfig) throws StyxException
+    public StyxGridService(SGSConfig sgsConfig) throws StyxException
     {
         this.instances = new Vector();
         this.root = new StyxDirectory(sgsConfig.getName());
@@ -163,7 +166,7 @@ public class StyxGridService
          * The permissions on this file should prevent this method from ever
          * being called
          */
-        public void write(StyxFileClient client, long offset, long count,
+        public void write(StyxFileClient client, long offset, int count,
             ByteBuffer data, String user, boolean truncate, int tag)
             throws StyxException
         {
@@ -175,9 +178,10 @@ public class StyxGridService
          * be created, and returns the ID of the service. The client must request
          * enough bytes to return the service ID, otherwise a StyxException will
          * be thrown.
-         * @todo should leave the file handle open on the ctl file of the new Service
+         * @todo Could also create the SGS when this file is opened, and leave
+         * the file handle open on the ctl file of the new Service
          */
-        public void read(StyxFileClient client, long offset, long count, int tag)
+        public void read(StyxFileClient client, long offset, int count, int tag)
             throws StyxException
         {
             if (offset == 0)
@@ -187,7 +191,7 @@ public class StyxGridService
                 // Construct the reply message
                 byte[] msgBytes = StyxUtils.strToUTF8("" + id);
                 // Check that the client has requested enough bytes for the reply
-                if (count < (long)msgBytes.length)
+                if (count < msgBytes.length)
                 {
                     returnInstanceID(id);
                     throw new StyxException("must request at least " + msgBytes.length + " bytes.");
@@ -220,7 +224,7 @@ public class StyxGridService
             Iterator it = config.getSGSConfigInfo();
             while(it.hasNext())
             {
-                SGSServerConfig.SGSConfig conf = (SGSServerConfig.SGSConfig)it.next();
+                SGSConfig conf = (SGSConfig)it.next();
                 root.addChild(new StyxGridService(conf).getRoot());
             }
             // Start the server

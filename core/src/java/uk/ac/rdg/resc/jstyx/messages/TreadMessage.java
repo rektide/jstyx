@@ -28,6 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
+import org.apache.mina.protocol.ProtocolViolationException;
+
 import uk.ac.rdg.resc.jstyx.types.ULong;
 
 /**
@@ -37,6 +39,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/24 09:48:31  jonblower
+ * Changed 'count' from long to int throughout for reading and writing
+ *
  * Revision 1.4  2005/03/15 09:01:48  jonblower
  * Message type now stored as short, not int
  *
@@ -58,7 +63,7 @@ public class TreadMessage extends StyxMessage
     
     private long fid;     // The fid to read data from
     private ULong offset; // The offset in the file from which to read data
-    private long count;   // The number of bytes to read from the file    
+    private int count;    // The number of bytes to read from the file    
     
     /**
      * Creates a new TreadMessage. This constructor will be called by the
@@ -73,19 +78,30 @@ public class TreadMessage extends StyxMessage
         this.name = "Tread";
     }
     
-    public TreadMessage(long fid, ULong offset, long count)
+    public TreadMessage(long fid, ULong offset, int count)
     {
         this(23, (short)116, 0); // The tag will be set later
         this.fid = fid;
         this.offset = offset;
+        if (count < 0)
+        {
+            throw new IllegalArgumentException("count < 0");
+        }
         this.count = count;
     }
     
     protected final void decodeBody(StyxBuffer buf)
+        throws ProtocolViolationException
     {
         this.fid = buf.getUInt();
         this.offset = buf.getULong();
-        this.count = buf.getUInt();
+        long lngCount = buf.getUInt();
+        if (lngCount < 0 || lngCount > Integer.MAX_VALUE)
+        {
+            throw new ProtocolViolationException("Got illegal count of " + lngCount);
+        }
+        // We now know that this cast is safe
+        this.count = (int)lngCount;
     }
     
     protected final void encodeBody(StyxBuffer buf)
@@ -113,12 +129,12 @@ public class TreadMessage extends StyxMessage
         this.offset = offset;
     }
 
-    public long getCount()
+    public int getCount()
     {
         return count;
     }
 
-    public void setCount(long count)
+    public void setCount(int count)
     {
         this.count = count;
     }
