@@ -204,7 +204,8 @@ public class JTreeTable extends JTable
                     {
                         FileNode node = (FileNode)obj;
                         // Show the context menu for this node
-                        popup.showContext(node, e.getComponent(), e.getX(), e.getY());
+                        // TODO: enable this when the popup menu is ready + debugged
+                        //popup.showContext(node, e.getComponent(), e.getX(), e.getY());
                     }
                 }
             }
