@@ -46,8 +46,11 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:35  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 17:52:32  jonblower
+ * Constructor for StyxSessionState no longer throws StyxException
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:35  jonblower
+ * Initial import
  *
  */
 class StyxSessionState
@@ -72,7 +75,7 @@ class StyxSessionState
     private static final int READ = 2;    // and should NOT be changed
     
     /** Creates a new instance of StyxSessionState */
-    public StyxSessionState(Session session) throws StyxException
+    public StyxSessionState(Session session)
     {
         this.versionNegotiated = false;
         this.maxMessageSize = 0;

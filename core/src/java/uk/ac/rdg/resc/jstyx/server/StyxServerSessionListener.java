@@ -55,8 +55,11 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:34  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 17:52:32  jonblower
+ * Constructor for StyxSessionState no longer throws StyxException
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:34  jonblower
+ * Initial import
  *
  */
 public class StyxServerSessionListener implements SessionListener
@@ -75,15 +78,7 @@ public class StyxServerSessionListener implements SessionListener
     public void connectionEstablished(Session session)
     {
         SessionLog.info(log, session, "Connection established.");
-        try
-        {
-            session.setAttachment(new StyxSessionState(session));
-        }
-        catch(StyxException se)
-        {
-            SessionLog.error(log, session, se.getMessage());
-            session.close();
-        }
+        session.setAttachment(new StyxSessionState(session));
     }
     
     public void connectionClosed(Session session)
