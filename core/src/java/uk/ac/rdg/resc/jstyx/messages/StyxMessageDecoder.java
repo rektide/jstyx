@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/15 16:56:19  jonblower
+ * Changed to allow re-use of ByteBuffers once message is finished with
+ *
  * Revision 1.3  2005/03/15 09:03:58  jonblower
  * Now uses MINA's ByteBuffer to read header info, not StyxBuffer
  *
@@ -143,6 +146,9 @@ class StyxMessageDecoder implements ProtocolDecoder
                 // We have read a complete message. Output it, then reset the
                 // state of this class, ready for a new message
                 out.write(message);
+                // We've finished with the message's underlying ByteBuffer now
+                // (we will have kept a copy of any data we need)
+                this.message.release();
                 this.message = null;
                 this.headerBuf.clear();
             }

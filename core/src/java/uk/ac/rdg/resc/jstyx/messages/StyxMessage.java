@@ -28,10 +28,12 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import uk.ac.rdg.resc.jstyx.StyxUtils;
-
 import org.apache.mina.common.ByteBuffer;
 import org.apache.mina.protocol.ProtocolViolationException;
+
+import org.apache.log4j.Logger;
+
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * Abstract superclass for all Styx messages.
@@ -40,6 +42,9 @@ import org.apache.mina.protocol.ProtocolViolationException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/15 16:56:19  jonblower
+ * Changed to allow re-use of ByteBuffers once message is finished with
+ *
  * Revision 1.5  2005/03/15 09:01:48  jonblower
  * Message type now stored as short, not int
  *
@@ -59,6 +64,8 @@ import org.apache.mina.protocol.ProtocolViolationException;
 public abstract class StyxMessage
 {
     
+    private static final Logger log = Logger.getLogger(StyxMessage.class);
+    
     protected int length;  // The length of the StyxMessage (although in Styx
                            // this is an *unsigned* int, we guarantee in
                            // StyxMessageDecoder that we can't have messages
@@ -68,6 +75,7 @@ public abstract class StyxMessage
     protected String name; // The name of the message (e.g. "Tversion")
     private ByteBuffer buf; // Contains the bytes of the body of the
                             // StyxMessage (i.e. not the header)
+    private int bytesRead;  // The number of bytes we have read into the buffer
     
     /**
      * Creates a new instance of StyxMessage.
@@ -159,12 +167,33 @@ public abstract class StyxMessage
         }
         if (this.buf == null)
         {
+            this.bytesRead = 0;
             // This is the first time we've called this method for this
-            // message. Create a buffer to hold the bytes. This buffer comes
-            // from MINA's pool
-            this.buf = ByteBuffer.allocate(bodyLength);
+            // message.
+            if (in.remaining() == bodyLength)
+            {
+                // If the input buffer contains the full body of the message (and
+                // nothing more) we can just use the input buffer.  This is a very
+                // common occurrence in practice.
+                // TODO: should we allow this to happen if in.remaining() > bodyLength?
+                log.debug("input buffer contains a whole message; won't create new buffer");
+                // Increment the reference count for this buffer so it doesn't get
+                // released before we want it to be
+                in.acquire();
+                this.buf = in;
+                this.bytesRead = bodyLength; // Signify that we have read all of the body
+                // We have the full message already. Decode it and return true
+                this.decode();
+                return true;
+            }
+            else
+            {
+                // Create a buffer to hold the bytes. This buffer comes
+                // from MINA's pool
+                this.buf = ByteBuffer.allocate(bodyLength);
+            }
         }
-        if (this.buf.position() >= bodyLength)
+        if (this.bytesRead >= bodyLength) // N.B. should never be > bodyLength
         {
             // We don't need to read any bytes; we already have the full message
             return true;
@@ -173,20 +202,22 @@ public abstract class StyxMessage
         // Calculate the number of bytes we can read from the input buffer.
         // We can't rely on this.buf.remaining() here because the buffer could be
         // bigger than the message length
-        int bytesLeft = bodyLength - this.buf.position();
+        int bytesLeft = bodyLength - this.bytesRead;
         int bytesToRead = bytesLeft < in.remaining() ? bytesLeft : in.remaining();
         
         // Read the bytes and write to this message
         byte[] b = new byte[bytesToRead];
         in.get(b);
         this.buf.put(b);
+        this.bytesRead += b.length;
         
         // Return true if the buffer is now full (i.e. we have the whole message);
         // false otherwise
-        if (this.buf.position() >= bodyLength)
+        if (this.bytesRead >= bodyLength) // N.B. Should never be > bodyLength
         {
             // We now have the full message. Decode these bytes into meaningful
             // information
+            this.buf.flip();
             this.decode();
             return true;
         }
@@ -197,12 +228,12 @@ public abstract class StyxMessage
     }
     
     /**
-     * Called when we have a complete message. Simply flips the buffer and 
-     * wraps it as a StyxBuffer to make it easy to read Styx primitives
+     * Called when we have a complete message. Simply wraps the buffer as a
+     * StyxBuffer to make it easy to read Styx primitives and calls
+     * this.decodeBody()
      */
     private void decode() throws ProtocolViolationException
     {
-        this.buf.flip();
         StyxBuffer styxBuf = new StyxBuffer(this.buf.buf());
         this.decodeBody(styxBuf);
     }
@@ -210,7 +241,9 @@ public abstract class StyxMessage
     /**
      * Called when a complete message has arrived; signals that we are ready
      * to interpret the raw bytes in the buffer and turn them into meaningful
-     * information.
+     * information. Subclasses should make sure that the buffer is no longer
+     * needed once this method has finished, as the underlying buffer will
+     * be reused.
      * @throws ProtocolViolationException if the buffer doesn't contain a valid
      * StyxMessage body
      */
@@ -272,6 +305,20 @@ public abstract class StyxMessage
     public String toFriendlyString()
     {
         return this.getElements();
+    }
+    
+    /**
+     * Sends request to release the underlying ByteBuffer back to the pool.
+     * Actually, this just decrements the reference count for the buffer; the
+     * buffer is only released when this count reaches zero. This is called 
+     * once the StyxMessageDecoder.decode() method has finished.
+     */
+    public void release()
+    {
+        if (this.buf != null)
+        {
+            this.buf.release();
+        }
     }
     
     /**
