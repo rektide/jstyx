@@ -8,8 +8,6 @@ package uk.ac.rdg.resc.jstyx.server;
 
 import java.net.InetSocketAddress;
 
-import uk.ac.rdg.resc.jstyx.gridservice.server.StyxGridService;
-
 /**
  * Simple main class to start a Styx server
  * @author  Jon
@@ -43,8 +41,7 @@ public class TestServer
         // Get the user's home directory
         String home = System.getProperty("user.home");
         
-        // Set up the file tree        
-        //StyxFile root = new StyxGridService("testService", "python c:\\md5lines.py 0.2").getRoot();
+        // Set up the file tree
         StyxDirectory root = new DirectoryOnDisk("C:\\Inferno");
         
         // Set up the server and start it
