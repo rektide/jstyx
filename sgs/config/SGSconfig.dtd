@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<!--
+    TODO define vocabulary indentification
+    PUBLIC ID: -//vendor//vocabulary//EN
+    SYSTEM ID: http://server/path/SGSconfig.dtd
+
+--><!--
+    An example how to use this DTD from your XML document:
+
+    <?xml version="1.0"?>
+
+    <!DOCTYPE root SYSTEM "SGSconfig.dtd">
+
+    <root>
+    ...
+    </root>
+-->
+
+<!--- Element that defines a Styx Grid Service -->
+<!ELEMENT gridservice EMPTY>
+<!ATTLIST gridservice
+    name CDATA #REQUIRED
+    command CDATA #REQUIRED
+  >
+
+<!--- The gridservices tag can contain zero or more gridservices -->
+<!ELEMENT gridservices (gridservice)*>
+<!ATTLIST gridservices
+    root CDATA #REQUIRED
+  >
+
+<!--- Items concerning configuration of the server -->
+<!ELEMENT port (#PCDATA)>
+<!ELEMENT serverConfig (port)>
+
+<!--- Put your DTDDoc comment here. -->
+<!ELEMENT root (serverConfig, gridservices)>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Document   : SGSconfig.xml
+    Created on : 03 February 2005, 15:51
+    Author     : jdb
+    Description:
+        Config file for setting up Styx Grid Services
+        Here's a half-decent DTD tutorial: http://www.zvon.org/xxl/DTDTutorial/General/contents.html
+-->
+
+<!DOCTYPE root SYSTEM "SGSconfig.dtd">
+
+<root>
+
+    <!-- Configuration of the server -->
+    <serverConfig>
+        <port>9092</port>
+        <!-- TODO: will set proxy settings etc here -->
+    </serverConfig>
+    
+    <!-- The Styx Grid Services that will appear under this server -->
+    <!-- TODO: could define service data elements here -->
+    <gridservices root="C:\StyxGridServices">
+        <gridservice name="md5sum" command="python c:\md5lines.py 0.1"></gridservice>
+        <gridservice name="simple" command="python c:\simple.py"></gridservice>
+    </gridservices>
+
+</root>
