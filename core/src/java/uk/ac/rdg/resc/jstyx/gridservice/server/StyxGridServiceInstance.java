@@ -58,6 +58,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/24 14:47:47  jonblower
+ * Provided default read() and write() methods for StyxFile so it is no longer abstract
+ *
  * Revision 1.5  2005/03/24 09:48:31  jonblower
  * Changed 'count' from long to int throughout for reading and writing
  *
@@ -182,7 +185,10 @@ class StyxGridServiceInstance extends StyxDirectory
         return this.workDir;
     }
     
-    // The ctl file
+    /**
+     * File used to control the service instance (start, stop, destroy etc)
+     * @todo Reading from this file could return a list of supported commands.
+     */
     private class ControlFile extends StyxFile
     {
         
@@ -193,13 +199,6 @@ class StyxGridServiceInstance extends StyxDirectory
         {
             super("ctl");
             this.instanceRoot = instanceRoot;
-        }
-        
-        public void read(StyxFileClient client, long offset, int count, int tag)
-            throws StyxException
-        {
-            // TODO: could return documentation about supported commands?
-            throw new StyxException("can't read from a ctl file");
         }
         
         public void write(StyxFileClient client, long offset, int count,
@@ -250,7 +249,7 @@ class StyxGridServiceInstance extends StyxDirectory
                     throw new StyxException("Internal error: could not start "
                         + "reading from output and error streams");
                 }
-                String urlStr = inputURL.getData();
+                String urlStr = inputURL.getDataAsString();
                 if (urlStr.equals(""))
                 {
                     // We haven't set a URL
@@ -500,15 +499,9 @@ class StyxGridServiceInstance extends StyxDirectory
             catch(IOException ioe)
             {
                 throw new StyxException("IOException occurred when writing to "
-                    + "the stream: " + ioe.getMessage());
+                        + "the stream: " + ioe.getMessage());
             }
         }
-
-        public void read(StyxFileClient client, long offset, int count, int tag)
-            throws StyxException
-        {
-            throw new StyxException("cannot read from an input stream");
-        }        
     }
     
 }

@@ -46,9 +46,13 @@ import uk.ac.rdg.resc.jstyx.types.Qid;
 import uk.ac.rdg.resc.jstyx.types.ULong;
 
 /**
- * Abstract class representing a file (or directory) on a Styx server. There may
+ * Class representing a file (or directory) on a Styx server. There may
  * be different types of file; a file might map directly to a file on disk, or 
- * it may be a synthetic file representing a program interface.
+ * it may be a synthetic file representing a program interface.  This class
+ * creates a StyxFile that does nothing useful, returning errors when reading
+ * from or writing to it.  Subclasses should override the read(), write()
+ * and getLength() methods to implement the desired behaviour.
+ *
  * Currently each StyxFile has exactly one parent. Therefore symbolic links
  * on the host filesystem cannot currently be handled.
  *
@@ -56,11 +60,15 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/03/24 14:47:47  jonblower
+ * Provided default read() and write() methods for StyxFile so it is no longer abstract
+ *
  * Revision 1.10  2005/03/24 09:48:32  jonblower
  * Changed 'count' from long to int throughout for reading and writing
  *
  * Revision 1.9  2005/03/24 07:57:41  jonblower
- * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
+ * Improved code for reading SSL info from SGSconfig file and included parameter
+ * information for the Grid Services in the config file
  *
  * Revision 1.8  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
@@ -93,7 +101,7 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * Initial import
  *
  */
-public abstract class StyxFile
+public class StyxFile
 {
     
     protected String name;           // The name of the file
@@ -434,14 +442,23 @@ public abstract class StyxFile
      * creating a java.nio.ByteBuffer or byte array of data, then calling the 
      * appropriate readReply() (this can be done at any time; it does not have 
      * to be done within the read() method).
+     *
+     * This default implementation simply throws a StyxException, which will 
+     * result in an Rerror message being sent back to the client. Subclasses 
+     * should override this to provide the desired behaviour when the file is
+     * read.
+     *
      * @param client The client that is performing the read
      * @param offset The point in the file at which to start reading
      * @param count The maximum number of bytes to read
      * @param tag The tag of the incoming Tread message (this is needed when
      * calling readReply())
      */
-    public abstract void read(StyxFileClient client, long offset, int count, int tag)
-        throws StyxException;
+    public void read(StyxFileClient client, long offset, int count, int tag)
+        throws StyxException
+    {
+        throw new StyxException("Cannot read from this file");
+    }
     
     /**
      * Writes data to this file. Must check that the file is open for writing
@@ -456,6 +473,11 @@ public abstract class StyxFile
      * this method is complete, they should call data.acquire() to increase
      * the reference count to the buffer.
      *
+     * This default implementation simply throws a StyxException, which will 
+     * result in an Rerror message being sent back to the client. Subclasses 
+     * should override this to provide the desired behaviour when the file is
+     * written to.
+     *
      * @param client The client that is performing the write operation
      * @param offset The place in the file where the new data will be added
      * @param count The number of bytes to write
@@ -468,9 +490,12 @@ public abstract class StyxFile
      * @param tag The tag of the incoming Twrite message (this is needed when
      * calling writeReply())
      */
-    public abstract void write(StyxFileClient client, long offset, int count,
+    public void write(StyxFileClient client, long offset, int count,
         ByteBuffer data, String user, boolean truncate, int tag)
-        throws StyxException;
+        throws StyxException
+    {
+        throw new StyxException("Cannot write to this file");
+    }
     
     /**
      * Refreshes this file (if it represents another entity, such as a file on disk,

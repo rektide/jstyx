@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/24 14:47:36  jonblower
+ * Provided default read() and write() methods for StyxFile so it is no longer abstract
+ *
  * Revision 1.3  2005/03/24 09:48:28  jonblower
  * Changed 'count' from long to int throughout for reading and writing
  *
@@ -64,13 +67,6 @@ public class DateFile extends StyxFile
     public DateFile() throws StyxException
     {
         super("date");
-    }
-    
-    public void write(StyxFileClient client, long offset, int count,
-        ByteBuffer data, String user, boolean truncate, int tag)
-        throws StyxException
-    {
-        throw new StyxException("Cannot write to this file");
     }
     
     public void read(StyxFileClient client, long offset, int count, int tag)

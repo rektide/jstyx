@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/24 14:47:47  jonblower
+ * Provided default read() and write() methods for StyxFile so it is no longer abstract
+ *
  * Revision 1.4  2005/03/24 09:48:31  jonblower
  * Changed 'count' from long to int throughout for reading and writing
  *
@@ -160,17 +163,6 @@ public class StyxGridService
         public CloneFile() throws StyxException
         {
             super("clone", 0444);
-        }
-        
-        /**
-         * The permissions on this file should prevent this method from ever
-         * being called
-         */
-        public void write(StyxFileClient client, long offset, int count,
-            ByteBuffer data, String user, boolean truncate, int tag)
-            throws StyxException
-        {
-            throw new StyxException("cannot write to the clone file");
         }
         
         /**
