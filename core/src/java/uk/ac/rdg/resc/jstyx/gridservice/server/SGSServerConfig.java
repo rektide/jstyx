@@ -51,6 +51,9 @@ import org.w3c.dom.Element;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/22 17:45:25  jonblower
+ * Now reads SSL switch from config file
+ *
  * Revision 1.1  2005/03/16 22:16:44  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -62,6 +65,7 @@ public class SGSServerConfig
 {
     
     protected int port; // The port on which the server will listen
+    protected boolean useSSL; // True if the server is to be secured with SSL
     protected Vector gridServices; // Information about all the SGSs
     private Element root; // The root of the XML document
     private Element serverConfigNode; // The root of the serverConfig section
@@ -83,6 +87,7 @@ public class SGSServerConfig
             Document doc = builder.parse(new File(xmlFilename));
             this.root = doc.getDocumentElement();
             this.port = this.findPort();
+            this.useSSL = this.findUseSSL();
             this.getSGSConfig();
         }
         catch(ParserConfigurationException pce)
@@ -133,6 +138,42 @@ public class SGSServerConfig
     }
     
     /**
+     * @return true if this server will use SSL
+     */
+    private boolean findUseSSL() throws Exception
+    {
+        NodeList list = this.root.getElementsByTagName("serverConfig");
+        if (list.getLength() != 1)
+        {
+            throw new Exception("There cannot be more than one serverConfig element");
+        }
+        this.serverConfigNode = (Element)list.item(0);
+        NodeList serverConfigList = this.serverConfigNode.getElementsByTagName("ssl");
+        if (serverConfigList.getLength() != 1)
+        {
+            throw new Exception("There cannot be more than one ssl tag");
+        }
+        Element sslNode = (Element)serverConfigList.item(0);
+        if (sslNode == null)
+        {
+            throw new Exception("Can't find ssl tag");
+        }
+        String activated = sslNode.getAttribute("activated");
+        if (activated.equalsIgnoreCase("yes"))
+        {
+            return true;
+        }
+        else if (activated.equalsIgnoreCase("no"))
+        {
+            return false;
+        }
+        else
+        {
+            throw new Exception("\"activated\" attribute must be either \"on\" or \"off\"");
+        }
+    }
+    
+    /**
      * Get the configuration of each Styx Grid Service
      */
     private void getSGSConfig() throws Exception
@@ -161,6 +202,14 @@ public class SGSServerConfig
     public int getPort()
     {
         return this.port;
+    }
+    
+    /**
+     * @return true if the server is to use SSL, false otherwise
+     */
+    public boolean getUseSSL()
+    {
+        return this.useSSL;
     }
     
     /**

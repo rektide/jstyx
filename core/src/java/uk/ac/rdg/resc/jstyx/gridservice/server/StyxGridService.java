@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/22 17:45:25  jonblower
+ * Now reads SSL switch from config file
+ *
  * Revision 1.1  2005/03/16 22:16:44  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -214,7 +217,8 @@ public class StyxGridService
             }
             // Start the server
             int port = config.getPort();
-            new StyxServer(port, root).start();
+            boolean useSSL = config.getUseSSL();
+            new StyxServer(port, root, useSSL).start();
             System.out.println("Started StyxGridServices, listening on port " + port);
         }
         catch(Exception e)
