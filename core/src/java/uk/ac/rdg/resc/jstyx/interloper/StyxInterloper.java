@@ -37,6 +37,8 @@ import net.gleamynode.netty2.ThreadPooledEventDispatcher;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
 import uk.ac.rdg.resc.jstyx.server.StyxServer;
+import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -48,34 +50,28 @@ import java.io.IOException;
 /**
  * A StyxInterloper listens for Styx messages, then forwards them directly to
  * another Styx server. The replies from the other Styx server are sent back to 
- * the client.  (I.e. it performs a similar function to TCPMon.)  This allows the
- * Styx messages sent between systems to be investigated.
+ * the client.  This allows the Styx messages sent between systems to be
+ * investigated. 
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.4  2005/02/24 09:07:23  jonblower
- * *** empty log message ***
- *
- * Revision 1.3  2005/02/24 07:42:44  jonblower
- * *** empty log message ***
- *
- * Revision 1.2  2005/02/21 18:09:45  jonblower
- * *** empty log message ***
+ * Revision 1.5  2005/02/28 12:08:18  jonblower
+ * Tidied up interaction between StyxInterloper and StyxMon
  *
  * Revision 1.1.1.1  2005/02/16 18:58:26  jonblower
  * Initial import
  *
  */
-public class StyxInterloper
+public class StyxInterloper implements InterloperListener
 {
     
     private static final Log log = LogFactory.getLog(StyxInterloper.class);
     
-    private int port;
-    private InetSocketAddress destSockAddr;
-    private StyxServer styxServer;
+    protected int port;
+    protected InetSocketAddress destSockAddr;
+    protected StyxServer styxServer;
     
     /**
      * Creates a new StyxInterloper.
@@ -89,13 +85,75 @@ public class StyxInterloper
     {
         this.port = port;
         InetSocketAddress destSockAddr = new InetSocketAddress(serverHost, serverPort);
-        //this.styxServer = new StyxServer(port, new StyxInterloperServerSessionListener(destSockAddr));
-        //this.styxServer.start();
+        this.styxServer = new StyxServer(port,
+            new StyxInterloperServerSessionListener(destSockAddr, this));
+        this.styxServer.start();
     }
     
-    public static void main (String[] args) throws Throwable
+    /**
+     * Called when a Tmessage arrives from a client. Does nothing here (the
+     * message will already have been logged)
+     */
+    public void tMessageReceived(StyxMessage message)
     {
-        new StyxInterloper(2911, "localhost", 7777);
+        
+    }
+    
+    /**
+     * Called when an Rmessage has been sent back to the client. Does nothing
+     * here (the message will already have been logged)
+     */
+    public void rMessageSent(StyxMessage message)
+    {
+        
+    }
+    
+    public static void main (String[] args)
+    {
+        try
+        {
+            checkArgs(args);
+            new StyxInterloper(Integer.parseInt(args[0]), args[1],
+                Integer.parseInt(args[2]));
+        }
+        catch(Exception e)
+        {
+            System.err.println(e.getMessage());
+        }
+    }
+    
+    /**
+     * Checks the command-line arguments, throwing an Exception if there is
+     * a problem
+     */
+    protected static void checkArgs(String[] args) throws Exception
+    {
+        if (args.length != 3)
+        {
+            throw new Exception("Usage: java StyxMon <port> <remote host> <remote port>");
+        }
+        int port;
+        int remotePort;
+        try
+        {
+            port = Integer.parseInt(args[0]);
+            if (port < 0 || port > StyxUtils.MAXUSHORT)
+            {
+                throw new Exception("Port number must be between 0 and " + StyxUtils.MAXUSHORT);
+            }
+        }
+        catch(NumberFormatException nfe)
+        {
+            throw new Exception("Invalid port number");
+        }
+        try
+        {
+            remotePort = Integer.parseInt(args[2]);
+        }
+        catch(NumberFormatException nfe)
+        {
+            throw new Exception("Invalid remote port number");
+        }
     }
     
 }

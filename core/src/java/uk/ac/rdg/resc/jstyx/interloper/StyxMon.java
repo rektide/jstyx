@@ -41,7 +41,6 @@ import java.net.InetSocketAddress;
 import java.util.Hashtable;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
-import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.server.StyxServer;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.messages.TattachMessage;
@@ -51,7 +50,7 @@ import info.clearthought.layout.TableLayout;
 
 /**
  * TCPMon-like GUI application that displays all the messages going between
- * a Styx client and server
+ * a Styx client and server.  (i.e. a GUI version of the StyxInterloper)
  * @todo Make sure all connections are closed properly on exit, and that
  * all threads are stopped.
  * @todo Merge more closely with StyxInterloper
@@ -65,6 +64,9 @@ import info.clearthought.layout.TableLayout;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/02/28 12:08:18  jonblower
+ * Tidied up interaction between StyxInterloper and StyxMon
+ *
  * Revision 1.7  2005/02/26 10:00:24  jonblower
  * Removed redundant methods
  *
@@ -80,14 +82,11 @@ import info.clearthought.layout.TableLayout;
  * Revision 1.3  2005/02/24 09:07:12  jonblower
  * Added code to support filtering by pop-up menu
  *
- * Revision 1.2  2005/02/24 07:42:44  jonblower
- * *** empty log message ***
- *
  * Revision 1.1  2005/02/21 18:08:52  jonblower
  * Initial import
  *
  */
-public class StyxMon implements InterloperListener
+public class StyxMon extends StyxInterloper
 {
     
     // Styx components
@@ -118,11 +117,8 @@ public class StyxMon implements InterloperListener
     public StyxMon(int port, String serverHost, int serverPort)
         throws StyxException
     {
-        // Create a StyxServer that will listen for connections from clients
-        this.server = new StyxServer(port, new
-                StyxInterloperServerSessionListener(new InetSocketAddress(serverHost,
-                serverPort), this));
-        this.server.start();
+        // The superclass (StyxInterloper) creates the StyxServer and starts it
+        super(port, serverHost, serverPort);
         
         frame = new JFrame("Styx Monitor");
         frame.setBounds (100, 100, 550, 500);
@@ -326,39 +322,18 @@ public class StyxMon implements InterloperListener
         }
     };
     
-    public static void main(String[] args) throws Exception
+    public static void main(String[] args)
     {
-        if (args.length != 3)
-        {
-            System.err.println("Usage: java StyxMon <port> <remote host> <remote port>");
-            return;
-        }
-        int port;
-        int remotePort;
         try
         {
-            port = Integer.parseInt(args[0]);
-            if (port < 0 || port > StyxUtils.MAXUSHORT)
-            {
-                System.err.println("Port number must be between 0 and " + StyxUtils.MAXUSHORT);
-                return;
-            }
+            checkArgs(args);
+            new StyxMon(Integer.parseInt(args[0]), args[1],
+                Integer.parseInt(args[2]));
         }
-        catch(NumberFormatException nfe)
+        catch(Exception e)
         {
-            System.err.println("Invalid port number");
-            return;
+            System.err.println(e.getMessage());
         }
-        try
-        {
-            remotePort = Integer.parseInt(args[2]);
-        }
-        catch(NumberFormatException nfe)
-        {
-            System.err.println("Invalid remote port number");
-            return;
-        }
-        new StyxMon(port, args[1], remotePort);
     }
     
 }
