@@ -22,7 +22,7 @@
     <!-- The Styx Grid Services that will appear under this server -->
     <!-- TODO: could define service data elements here -->
     <gridservices root="C:\StyxGridServices">
-        <gridservice name="md5sum" command="python c:\md5lines.py 0.1"></gridservice>
+        <gridservice name="md5sum" command="python c:\md5lines.py 0.01"></gridservice>
         <gridservice name="simple" command="python c:\simple.py"></gridservice>
     </gridservices>
 
