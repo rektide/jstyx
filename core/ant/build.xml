@@ -2,24 +2,20 @@
 <!-- JStyx build file -->
 <!-- Author: Jon Blower -->
 <!-- CVS $Revision$ -->
-<!-- CVS Last modified $Date$ -->
-<!-- CVS $Log$
-<!-- CVS Revision 1.1  2005/02/28 21:59:19  jonblower
-<!-- CVS Moved build.xml to ant directory
-<!-- CVS
-<!-- CVS Revision 1.1  2005/02/28 17:44:15  jonblower
-<!-- CVS Initial import of build.xml
-<!-- CVS -->
+<!-- CVS Last modified $Date$ by $author$ -->
 <project name="jstyx" default="jar" basedir=".">
     <description>
         Builds the JStyx source into classes and creates JAR file
     </description>
+
 	<property name="version" value="0.04"/>
-	<property name="src.dir" value="src"/>
-	<property name="classes.dir" value="classes"/>
-	<property name="dist.dir" value="dist"/>
-	<!-- The directory containing other third-party Java libraries (log4j, netty etc) -->
-	<property name="lib.dir" value="lib"/>
+	<property name="src.dir" value="../src"/>
+	<property name="classes.dir" value="../classes"/>
+	<property name="dist.dir" value="../dist"/>
+	<property name="javadoc.dir" value="../javadoc"/>
+	<!-- The directory containing other third-party Java libraries (log4j, Netty etc) -->
+	<property name="lib.dir" value="../lib"/>
+	<property name="packages" value="uk.ac.rdg.resc.jstyx.*"/>
 	
 	<target name="compile" description="compile the source">
 		<mkdir dir="${classes.dir}"/>
@@ -34,12 +30,21 @@
 			</classpath>
 		</javac>
 	</target>
+
 	<target name="jar" depends="compile" description="generate the JStyx jar file">
 		<mkdir dir="${dist.dir}"/>
 		<jar destfile="${dist.dir}/jstyx-${version}.jar" basedir="${classes.dir}"/>
 	</target>
+
 	<target name="clean" description="clean up">
 		<delete dir="${classes.dir}"/>
 		<delete dir="${dist.dir}"/>
+		<delete dir="${javadoc.dir}"/>
 	</target>
+
+	<target name="javadoc" description="build javadoc">
+		<mkdir dir="${javadoc.dir}"/>
+		<javadoc sourcepath="${src.dir}" packagenames="${packages}" destdir="${javadoc.dir}"/>
+	</target>
+
 </project>
