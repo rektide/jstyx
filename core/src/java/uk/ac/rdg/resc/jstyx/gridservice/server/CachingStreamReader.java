@@ -36,6 +36,8 @@ import java.io.IOException;
 import java.util.Vector;
 import java.util.Iterator;
 
+import org.apache.log4j.Logger;
+
 import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
@@ -59,6 +61,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/21 17:59:49  jonblower
+ * Fixed bug with size of RandomAccessFile
+ *
  * Revision 1.2  2005/03/18 13:56:00  jonblower
  * Improved freeing of ByteBuffers, and bug fixes
  *
@@ -77,6 +82,7 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  */
 class CachingStreamReader extends StyxFile
 {
+    private static final Logger log = Logger.getLogger(CachingStreamReader.class);
     
     private StyxGridServiceInstance sgsInstance; // The SGS instance that owns this
     private InputStream is; // The input stream from which we will read
@@ -167,6 +173,7 @@ class CachingStreamReader extends StyxFile
     public void read(StyxFileClient client, long offset, long count, int tag)
         throws StyxException
     {
+        log.debug("Received request: offset = " + offset + ", count = " + count);
         if (this.is == null)
         {
             throw new StyxException("Stream not ready for reading");
@@ -225,12 +232,20 @@ class CachingStreamReader extends StyxFile
         {
             try
             {
+                if (log.isDebugEnabled())
+                {
+                    log.debug("Processing request: offset = " + dr.offset +
+                        ", count = " + dr.count + ": cacheLength = " +
+                        this.cacheLength + ", actual length = " + this.cache.length());
+                }
                 if (dr.offset >= this.cacheLength)
                 {
                     // We're asking for data not (yet) in the cache
                     if (this.eof)
                     {
                         // We've reached the end of the stream.
+                        log.debug("Offset >= cache length and EOF reached."
+                            + " Returning 0 bytes");
                         this.replyRead(dr.client, new byte[0], dr.tag);
                         return true;
                     }
@@ -241,12 +256,15 @@ class CachingStreamReader extends StyxFile
                         {
                             // An error has occurred so the data will never
                             // arrive.
+                            log.debug("Got error message. Returning Rerror");
                             StyxServerProtocolHandler.reply(dr.client.getSession(),
                                 rGlobErrMsg, dr.tag);
                             return true;
                         }
                         else
                         {
+                            log.debug("Offset >= cache length but EOF not reached."
+                                + " Holding request.");
                             return false;
                         }
                     }
@@ -259,16 +277,21 @@ class CachingStreamReader extends StyxFile
                     // Try to read the requested amount of data
                     // TODO: check the number of bytes remaining?
                     byte[] arr = new byte[(int)dr.count];
+                    log.debug("Reading " + arr.length + " bytes from cache at offset "
+                        + dr.offset);
                     int n = this.cache.read(arr);
+                    log.debug("Actually read " + n + " bytes");
                     if (n < 0)
                     {
                         // We reached EOF - this shouldn't happen because we've already
                         // checked the file length
+                        log.error("Internal error: no bytes read from stream");
                         return false;
                     }
                     else
                     {
                         // Return the bytes read to the client
+                        log.debug("Returning " + n + " bytes to client");
                         this.replyRead(dr.client, arr, 0, n, dr.tag);
                         return true;
                     }
@@ -276,6 +299,10 @@ class CachingStreamReader extends StyxFile
             }
             catch(IOException ioe)
             {
+                if (log.isDebugEnabled())
+                {
+                    ioe.printStackTrace();
+                }
                 // We have to reply with an error message here (as opposed to
                 // throwing a StyxException) because we're no longer within
                 // the readFile() method
@@ -308,6 +335,7 @@ class CachingStreamReader extends StyxFile
                 while(!eof)
                 {
                     int n = is.read(arr);
+                    log.debug("Read " + n + " bytes from input stream");
                     synchronized(cache)
                     {
                         if (n < 0)
@@ -318,9 +346,18 @@ class CachingStreamReader extends StyxFile
                         else
                         {
                             // put the newly-read bytes to the end of the cache
+                            log.debug("Seeking to " + cacheLength);
                             cache.seek(cacheLength);
+                            log.debug("Writing " + n + " bytes to cache file");
                             cache.write(arr, 0, n);
                             cacheLength += n;
+                            log.debug("New cache length = " + cacheLength);
+                            // For some reason, the length() of the RandomAccessFile
+                            // isn't always correct (particularly when first created)
+                            // so we have to set it explicitly.
+                            // TODO: could we just set this to zero when the
+                            // RAF is first created?  Will we notice?
+                            cache.setLength(cacheLength);
                         }
                         // Now process any outstanding requests
                         processOutstandingRequests();
@@ -329,7 +366,10 @@ class CachingStreamReader extends StyxFile
             }
             catch(Exception e)
             {
-                // TODO: log the stack trace somewhere.
+                if (log.isDebugEnabled())
+                {
+                    e.printStackTrace();
+                }
                 // Set the global exception object so that any further
                 // attemps to read this stream return an error.
                 rGlobErrMsg = new RerrorMessage("An internal error occurred reading from the stream: "
@@ -347,8 +387,13 @@ class CachingStreamReader extends StyxFile
                 }
                 catch(Exception e)
                 {
-                    rGlobErrMsg = new RerrorMessage("An internal error occurred closing and reopening the cache file: "
-                        + e.getClass() + ", " + e.getMessage());
+                    if (log.isDebugEnabled())
+                    {
+                        e.printStackTrace();
+                    }
+                    rGlobErrMsg = new RerrorMessage("An internal error occurred "
+                        + "closing and reopening the cache file: " + e.getClass()
+                        + ", " + e.getMessage());
                 }
             }
             running = false;
