@@ -242,7 +242,7 @@ client see the correct length by overriding the <tt>getLength()</tt> method of
 ...<br/>
 </tt>
 </blockquote>
-<p><em>(The <tt>ULong</tt> type is a simulation of an unsigned long, a type that
+<p><em>(The <tt>ULong</tt> class is a simulation of an unsigned long, a type that
 Java lacks.)</em></p>
 
 <p>Now we can create a <tt>main()</tt> method that serves up this file in a Styx
@@ -265,8 +265,143 @@ server:</p>
 </tt>
 </blockquote>
 
-<p>We can start the server by ... <em>(Use JStyxRun to set the classpath,
-etc)</em></p>
+<p>The complete <tt>DateFile</tt> class is included in the JStyx distribution in
+the <tt>uk.ac.rdg.resc.jstyx.examples</tt> package. To run the server, we must be
+sure to set the classpath correctly. There is a handy script in the <tt>bin</tt>
+directory of the distribution called <tt>JStyxRun</tt> that does this for us.
+Change into the <tt>bin</tt> directory and run:</p>
+<blockquote>
+<tt>
+JStyxRun uk.ac.rdg.resc.jstyx.examples.DateFile
+</tt>
+</blockquote>
+<p>If all is well, you should see a log message saying that the <tt>StyxServer</tt>
+is listening on port 9876.</p>
+
+<h2>Creating a client program</h2>
+<p>Now that we have our server, we can create a client program that reads the
+file to obtain the current date and time. There are several ways of doing this
+using JStyx.</p>
+
+<em><p>Note for Inferno users: you can use Inferno to interact with the server 
+too, of course. Open a new shell window and enter:</p>
+<blockquote>
+<tt>mount -A tcp!hostname!9876 /n/remote<br/>
+cd /n/remote<br/>
+cat date<br/></tt>
+</blockquote>
+<p>Note that you may need to run <tt>ndb/cs</tt> before doing this so that Inferno
+can resolve hostnames into IP addresses.</p>
+</em>
+
+<h3>Method 1: Access the file via a URL</h3>
+<p>Since everything in the Styx world is represented as a file or set of files,
+Styx resources are very easily represented as URLs. In the case of our
+<tt>DateFile</tt> that we created above, the URL of the file is:</p>
+<blockquote><tt>styx://myhostname:9876/date</tt></blockquote>
+<p>(where <tt>myhostname</tt> is the name of the machine running the server 
+program, e.g. <tt>&quot;localhost&quot;</tt>). The first client program that we
+shall create will use the Java URL class to get an <tt>InputStream</tt> that we
+will use to read the file:</p>
+
+<blockquote>
+<tt>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">java.net.URL;</font><br/>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">java.io.*;</font><br/>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.client.StyxFileInputStreamReader;</font><br/>
+<font color="#ffffff"></font><br/>
+<font color="#7f0055"><b>public&nbsp;class&nbsp;</b></font><font color="#000000">DateFileURLClient</font><br/>
+<font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>public&nbsp;static&nbsp;</b></font><font color="#7f0055"><b>void&nbsp;</b></font><font color="#000000">main</font><font color="#000000">(</font><font color="#000000">String</font><font color="#000000">[]&nbsp;</font><font color="#000000">args</font><font color="#000000">)&nbsp;</font><font color="#7f0055"><b>throws&nbsp;</b></font><font color="#000000">Exception</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">URL&nbsp;url&nbsp;=&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">URL</font><font color="#000000">(</font><font color="#2a00ff">&#34;styx://localhost:9876/date&#34;</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">InputStream&nbsp;in&nbsp;=&nbsp;url.openStream</font><font color="#000000">()</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Use&nbsp;of&nbsp;StyxFileInputStreamReader&nbsp;ensures&nbsp;that&nbsp;UTF-8&nbsp;is&nbsp;used&nbsp;to</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;convert&nbsp;the&nbsp;bytes&nbsp;from&nbsp;the&nbsp;stream&nbsp;into&nbsp;characters</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">InputStreamReader&nbsp;reader&nbsp;=&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">StyxFileInputStreamReader</font><font color="#000000">(</font><font color="#000000">in</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">BufferedReader&nbsp;bufRead&nbsp;=&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">BufferedReader</font><font color="#000000">(</font><font color="#000000">reader</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Read&nbsp;the&nbsp;input&nbsp;data&nbsp;a&nbsp;line&nbsp;at&nbsp;a&nbsp;time&nbsp;and&nbsp;print&nbsp;to&nbsp;standard&nbsp;output</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">String&nbsp;line&nbsp;=&nbsp;</font><font color="#7f0055"><b>null</b></font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>do</b></font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">line&nbsp;=&nbsp;bufRead.readLine</font><font color="#000000">()</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>if&nbsp;</b></font><font color="#000000">(</font><font color="#000000">line&nbsp;!=&nbsp;</font><font color="#7f0055"><b>null</b></font><font color="#000000">)</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">System.out.println</font><font color="#000000">(</font><font color="#000000">line</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}&nbsp;</font><font color="#7f0055"><b>while&nbsp;</b></font><font color="#000000">(</font><font color="#000000">line&nbsp;!=&nbsp;</font><font color="#7f0055"><b>null</b></font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Close&nbsp;the&nbsp;stream</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">bufRead.close</font><font color="#000000">()</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+<font color="#000000">}</font></code>
+</tt>
+</blockquote>
+
+<p>This should be very familiar to Java programmers; we get an <tt>InputStream</tt>
+to read the data, wrap it in a <tt>Reader</tt> to convert the binary data correctly
+into characters, wrap that in a <tt>BufferedReader</tt> to allow us to read a line
+of data at a time, then read data until we get a null return. The complete class
+is included in the distribution as <tt>uk.ac.rdg.resc.jstyx.examples.DateFileURLClient</tt>.</p>
+
+<p>To run this program, we not only have to set the classpath correctly, but we
+also need to tell Java how to deal with <tt>styx://</tt> URLs, using the
+<tt>java.protocol.handler.pkgs</tt> system property. Both of these things
+are done by the <tt>JStyxRun</tt> script, so we can simply run (from the <tt>bin</tt>
+directory of the distribution):</p>
+<blockquote><tt>JStyxRun uk.ac.rdg.resc.jstyx.examples.DateFileURLClient</tt></blockquote>
+
+<p><em>TODO: deal with debug messages</em></p>
+
+<h3>Method 2: Use the <tt>CStyxFile</tt> class</h3>
+<p>By using URLs we can download data from a Styx server whilst knowing very little
+about how the JStyx libraries work. Sometimes, however, we want to get in a bit
+deeper so we have more control over our programs. A key class from the client's
+point of view is <tt>uk.ac.rdg.resc.jstyx.client.CStyxFile</tt>. (It is called
+<tt>CStyxFile</tt> to avoid confusion with the server-side <tt>StyxFile</tt> class.)
+</p>
+
+<blockquote>
+<tt>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">java.nio.ByteBuffer;</font><br/>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.client.StyxConnection;</font><br/>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.client.CStyxFile;</font><br/>
+<font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.StyxUtils;</font><br/>
+<font color="#ffffff"></font><br/>
+<font color="#7f0055"><b>public&nbsp;class&nbsp;</b></font><font color="#000000">DateFileClient2</font><br/>
+<font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>public&nbsp;static&nbsp;</b></font><font color="#7f0055"><b>void&nbsp;</b></font><font color="#000000">main</font><font color="#000000">(</font><font color="#000000">String</font><font color="#000000">[]&nbsp;</font><font color="#000000">args</font><font color="#000000">)&nbsp;</font><font color="#7f0055"><b>throws&nbsp;</b></font><font color="#000000">Exception</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Create&nbsp;and&nbsp;open&nbsp;a&nbsp;connection&nbsp;to&nbsp;the&nbsp;remote&nbsp;server</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">StyxConnection&nbsp;conn&nbsp;=&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">StyxConnection</font><font color="#000000">(</font><font color="#2a00ff">&#34;localhost&#34;</font><font color="#000000">,&nbsp;</font><font color="#990000">9876</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">conn.connect</font><font color="#000000">()</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Get&nbsp;a&nbsp;CStyxFile&nbsp;representing&nbsp;the&nbsp;DateFile&nbsp;at&nbsp;the&nbsp;remote&nbsp;end,</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;opening&nbsp;it&nbsp;for&nbsp;reading</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">CStyxFile&nbsp;dateFile&nbsp;=&nbsp;conn.openFile</font><font color="#000000">(</font><font color="#2a00ff">&#34;date&#34;</font><font color="#000000">,&nbsp;StyxUtils.OREAD</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">ByteBuffer&nbsp;buf&nbsp;=&nbsp;</font><font color="#7f0055"><b>null</b></font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>do</b></font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Read&nbsp;a&nbsp;chunk&nbsp;of&nbsp;data&nbsp;from&nbsp;the&nbsp;file</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">buf&nbsp;=&nbsp;dateFile.read</font><font color="#000000">()</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;If&nbsp;we&nbsp;have&nbsp;reached&nbsp;EOF,&nbsp;there&nbsp;will&nbsp;be&nbsp;no&nbsp;bytes&nbsp;in&nbsp;the&nbsp;buffer</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>if&nbsp;</b></font><font color="#000000">(</font><font color="#000000">buf.hasRemaining</font><font color="#000000">())</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">{</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Convert&nbsp;the&nbsp;data&nbsp;in&nbsp;the&nbsp;buffer&nbsp;to&nbsp;a&nbsp;string&nbsp;and&nbsp;print&nbsp;it</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">String&nbsp;s&nbsp;=&nbsp;StyxUtils.dataToString</font><font color="#000000">(</font><font color="#000000">buf</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">System.out.print</font><font color="#000000">(</font><font color="#000000">s</font><font color="#000000">)</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}&nbsp;</font><font color="#7f0055"><b>while&nbsp;</b></font><font color="#000000">(</font><font color="#000000">buf.hasRemaining</font><font color="#000000">())</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#3f7f5f">//&nbsp;Close&nbsp;the&nbsp;file&nbsp;and&nbsp;the&nbsp;connection</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">dateFile.close</font><font color="#000000">()</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">conn.close</font><font color="#000000">()</font><font color="#000000">;</font><br/>
+<font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
+<font color="#000000">}</font>
+</tt>
+</blockquote>
 
 </body>
 </html>
