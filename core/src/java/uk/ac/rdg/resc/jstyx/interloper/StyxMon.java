@@ -35,6 +35,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
 import java.awt.Container;
+import java.awt.Point;
 import java.awt.event.*;
 import java.net.InetSocketAddress;
 import java.util.Hashtable;
@@ -64,6 +65,9 @@ import info.clearthought.layout.TableLayout;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/02/24 09:07:12  jonblower
+ * Added code to support filtering by pop-up menu
+ *
  * Revision 1.2  2005/02/24 07:42:44  jonblower
  * *** empty log message ***
  *
@@ -85,10 +89,14 @@ public class StyxMon implements InterloperListener
     private JLabel lblPort;
     private JLabel lblRemoteServer;
     private JButton btnFilter;
+    private JButton btnShowAll;
+    private StyxMonPopupMenu popup;
     
     private int nextFreeRow;    // The next free row in the table
     private Hashtable rowTags;  // Links tags to their row numbers
     private Hashtable fidNames; // Links fids to the file name
+    
+    private static final String NOT_APPLICABLE = "N/A";
     
     /**
      * Creates a new instance of StyxMon
@@ -114,6 +122,7 @@ public class StyxMon implements InterloperListener
         lblRemoteServer = new JLabel("Remote server: " + serverHost + ":"
             + serverPort);
         btnFilter = new JButton("Filter");
+        btnShowAll = new JButton("Show All");
         
         // Create the table model
         this.model = new StyxMonTableModel();
@@ -160,6 +169,10 @@ public class StyxMon implements InterloperListener
         contentPane.add(lblRemoteServer, "1, 3, l, f");
         contentPane.add(scrollPane, "1, 5, 3, 5, f, f");
         contentPane.add(btnFilter, "3, 1, c, f");
+        contentPane.add(btnShowAll, "3, 3, c, f");
+        
+        // Create the popup menu
+        this.popup = new StyxMonPopupMenu(this.model);
         
         // Allow user to close the window to terminate the program
         frame.addWindowListener
@@ -184,6 +197,21 @@ public class StyxMon implements InterloperListener
             }
         );
         
+        btnShowAll.addActionListener
+        (
+            new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e)
+                {
+                    showAllClicked();
+                }
+            }
+        );
+        
+        // Add the mouse listener that will listen for right-click events
+        // on the table
+        this.table.addMouseListener(ml);
+        
         frame.setVisible(true);
     }
     
@@ -205,6 +233,14 @@ public class StyxMon implements InterloperListener
     }
     
     /**
+     * Removes any filters from the data
+     */
+    private void showAllClicked()
+    {
+        this.model.showAllData();
+    }
+    
+    /**
      * Required by the InterloperListener interface. Called when a Tmessage
      * arrives from a client
      */
@@ -215,7 +251,7 @@ public class StyxMon implements InterloperListener
         if (path == null)
         {
             // This happens for messages that aren't associated with a fid
-            path = "N/A";
+            path = NOT_APPLICABLE;
         }
         // If this is a TattachMessage we know what fid is associated with the root
         // of the remote server
@@ -232,10 +268,8 @@ public class StyxMon implements InterloperListener
             this.fidNames.put(new Long(tWalkMsg.getNewFid()), path + tWalkMsg.getPath());
         }
         int theRow = this.getRow(message.getTag());
-        model.setValueAt(getMessageName(message.getName()), theRow, 0);
-        model.setValueAt("" + message.getTag(), theRow, 1);
-        model.setValueAt(path, theRow, 2);
-        model.setValueAt(message.toFriendlyString(), theRow, 3);
+        model.addTMessageData(theRow, getMessageName(message.getName()),
+            message.getTag(), path, message.toFriendlyString());
         table.repaint();
     }
     
@@ -289,6 +323,41 @@ public class StyxMon implements InterloperListener
             return intRow.intValue();
         }
     }
+    
+    /**
+     * Listens for right clicks (i.e. requests for the pop-up menu)
+     * Note that for platform independence we must check for the popup trigger
+     * in both mousePressed and mouseReleased
+     */
+    private MouseListener ml = new MouseAdapter()
+    {
+        public void mousePressed(MouseEvent e)
+        {
+            maybeShowPopup(e);
+        }
+        public void mouseReleased(MouseEvent e)
+        {
+            maybeShowPopup(e);
+        }
+        private void maybeShowPopup(MouseEvent e)
+        {
+            if (e.isPopupTrigger())
+            {
+                int row = table.rowAtPoint(new Point(e.getX(), e.getY()));
+                if (row != -1)
+                {
+                    // Get the filename at this row
+                    String filename = (String)model.getValueAt(row, 2);
+                    if (filename != null && !filename.equals("") &&
+                        !filename.equals(NOT_APPLICABLE))
+                    {
+                        System.out.println("filtering on filename " + model.getValueAt(row, 2));
+                        popup.showContext(filename, table, e.getX(), e.getY());
+                    }
+                }
+            }
+        }
+    };
     
     public static void main(String[] args) throws Exception
     {

@@ -39,6 +39,9 @@ import java.util.Vector;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/02/24 09:07:12  jonblower
+ * Added code to support filtering by pop-up menu
+ *
  * Revision 1.1  2005/02/24 07:42:07  jonblower
  * Initial import
  *
@@ -52,7 +55,9 @@ class StyxMonTableModel extends AbstractTableModel
     private Vector rows; // Vector of String arrays containing the actual
                          // underlying data (one String array per row)
     private Vector filter; // Contains the indices of all the rows in the "rows"
-                           // Vector that are visible
+                           // Vector that are visible. If this is null, all the
+                           // rows will be visible
+    private String filterFilename;
     
     /**
      * Creates a new StyxMonTableModel
@@ -179,10 +184,29 @@ class StyxMonTableModel extends AbstractTableModel
     }
     
     /**
+     * Adds data when a Tmessage arrives. Checks to see if the data should be
+     * included in the current filtered view. The row will have already been
+     * created by this point.
+     */
+    public synchronized void addTMessageData(int row, String messageName,
+        int tag, String filename, String message)
+    {
+        this.setValueAt(messageName, row, 0);
+        this.setValueAt("" + tag, row, 1);
+        this.setValueAt(filename, row, 2);
+        // Now check to see if this should be included in the filter
+        if (this.filter != null && filename.equals(this.filterFilename))
+        {
+            this.filter.add(new Integer(row));
+        }
+        this.setValueAt(message, row, 3);
+    }
+    
+    /**
      * @return true if the given row contains a message pair (i.e. both a
      * Tmessage and an Rmessage). Used by the StyxMonTableCellRenderer.
      */
-    boolean containsMessagePair(int row)
+    public boolean containsMessagePair(int row)
     {
         String[] rowData = this.getRowData(row, 0);
         // If the "Rmessage" column is empty, return false
@@ -199,7 +223,7 @@ class StyxMonTableModel extends AbstractTableModel
      * Rmessage column start with "ERROR" (not the best way perhaps as it relies
      * on the output of RerrorMessage.getFriendlyString()).
      */
-    boolean containsError(int row)
+    public boolean containsError(int row)
     {
         String[] rowData = this.getRowData(row, 0);
         // If the "Rmessage" column is empty, return false
@@ -210,19 +234,42 @@ class StyxMonTableModel extends AbstractTableModel
         return rowData[4].startsWith("ERROR");
     }
     
+    /**
+     * Presents a view of the data that only includes rows that contain
+     * the given filename. Does not affect the actual data and can be undone
+     * with this.showAllData().
+     */
     public synchronized void filterByFilename(String filename)
     {
+        this.filterFilename = filename.trim();
         this.filter = new Vector();
         // Search through all the rows to find the rows that contain this filename
         for (int i = 0; i < this.rows.size(); i++)
         {
             String[] rowData = this.getRowData(i, 0);
-            if (rowData[2].equals(filename.trim()))
+            if (rowData[2].equals(this.filterFilename.trim()))
             {
                 this.filter.add(new Integer(i));
             }
         }
         this.fireTableDataChanged();
+    }
+    
+    /**
+     * Removes any filters, allowing all the data in the model to be displayed
+     */
+    public synchronized void showAllData()
+    {
+        this.filter = null;
+        this.fireTableDataChanged();
+    }
+    
+    /**
+     * @return true if the data model is currently filtered
+     */
+    public boolean isFiltered()
+    {
+        return (this.filter != null);
     }
     
 }
