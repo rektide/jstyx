@@ -38,8 +38,11 @@ import uk.ac.rdg.resc.jstyx.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:28  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:43  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:28  jonblower
+ * Initial import
  *
  */
 public class RwriteMessage extends StyxMessage
@@ -93,6 +96,11 @@ public class RwriteMessage extends StyxMessage
     protected String getElements()
     {
         return ", " + this.count;
+    }
+    
+    public String toFriendlyString()
+    {
+        return this.count + " bytes written";
     }
     
 }

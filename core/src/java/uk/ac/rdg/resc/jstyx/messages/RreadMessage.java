@@ -43,8 +43,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:27  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:43  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:27  jonblower
+ * Initial import
  *
  */
 public class RreadMessage extends StyxMessage
@@ -136,24 +139,14 @@ public class RreadMessage extends StyxMessage
     
     protected String getElements()
     {
-        StringBuffer s = new StringBuffer(", " + this.count);
-        // Print the first few bytes of data
-        byte[] bytes;
-        synchronized(this.data)
-        {
-            int numBytes = this.data.remaining() < 30 ? this.data.remaining() : 30;
-            bytes = new byte[numBytes];
-            this.data.get(bytes);
-            // Reset the position of the data buffer
-            this.data.position(this.data.position() - numBytes);
-        }
-        s.append(", \"" + StyxUtils.utf8ToString(bytes) + "\"");
-        int moreBytes = this.data.remaining() - bytes.length;
-        if (moreBytes > 0)
-        {
-            s.append(" (plus " + moreBytes + " more bytes)");
-        }
+        StringBuffer s = new StringBuffer(", " + this.count + ", ");
+        s.append(StyxUtils.getDataSummary(30, this.data));
         return s.toString();
+    }
+    
+    public String toFriendlyString()
+    {
+        return "count: " + this.count + ", " + StyxUtils.getDataSummary(30, this.data);
     }
     
 }

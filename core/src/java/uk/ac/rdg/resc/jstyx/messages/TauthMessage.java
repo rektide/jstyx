@@ -40,8 +40,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:28  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:43  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:28  jonblower
+ * Initial import
  *
  */
 public class TauthMessage extends StyxMessage
@@ -96,4 +99,10 @@ public class TauthMessage extends StyxMessage
         return ", " + this.afid + ", " + this.uname + ", " + this.aname;
     }
     
+    public String toFriendlyString()
+    {
+        return "afid: " + this.afid + ", user: " + this.uname + ", aname: " +
+            this.aname;
+    }
+
 }

@@ -40,8 +40,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:29  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:44  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:29  jonblower
+ * Initial import
  *
  */
 public class TremoveMessage extends StyxMessage
@@ -88,6 +91,11 @@ public class TremoveMessage extends StyxMessage
     protected String getElements()
     {
         return ", " + this.fid;
+    }
+    
+    public String toFriendlyString()
+    {
+        return "fid: " + this.fid;
     }
     
 }

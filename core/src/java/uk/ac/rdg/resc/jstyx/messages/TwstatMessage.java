@@ -35,13 +35,17 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
 
 /**
  * Message sent to change the attributes of a file
+ * @todo Implement getFriendlyString()
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:30  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:44  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:30  jonblower
+ * Initial import
  *
  */
 public class TwstatMessage extends StyxMessage

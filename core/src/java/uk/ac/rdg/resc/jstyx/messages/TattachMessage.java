@@ -40,8 +40,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:28  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:43  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:28  jonblower
+ * Initial import
  *
  */
 public class TattachMessage extends StyxMessage
@@ -125,4 +128,9 @@ public class TattachMessage extends StyxMessage
         return aname;
     }
     
+    public String toFriendlyString()
+    {
+        return "fid: " + this.fid + ", auth fid: " + this.afid + 
+            ", user: " + this.uname + ", aname: " + this.aname;
+    }
 }

@@ -40,8 +40,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:29  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:43  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:29  jonblower
+ * Initial import
  *
  */
 public class TcreateMessage extends StyxMessage
@@ -147,6 +150,13 @@ public class TcreateMessage extends StyxMessage
     {
         return ", " + this.fid + ", " + this.fileName + ", " + this.perm + ", " + 
             this.mode;
+    }
+    
+    public String toFriendlyString()
+    {
+        // TODO: make mode/perm more friendly-looking ("rwxr-xr-x" etc)
+        return "fid: " + this.fid + ", name: " + this.fileName + ", perm: " +
+            this.perm + ", mode: " + this.mode;
     }
     
 }

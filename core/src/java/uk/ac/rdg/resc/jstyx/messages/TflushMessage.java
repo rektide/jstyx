@@ -39,8 +39,11 @@ import uk.ac.rdg.resc.jstyx.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:29  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:43  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:29  jonblower
+ * Initial import
  *
  */
 public class TflushMessage extends StyxMessage
@@ -90,6 +93,11 @@ public class TflushMessage extends StyxMessage
     protected String getElements()
     {
         return ", " + this.oldTag;
+    }
+    
+    public String toFriendlyString()
+    {
+        return "tag: " + this.oldTag;
     }
     
 }

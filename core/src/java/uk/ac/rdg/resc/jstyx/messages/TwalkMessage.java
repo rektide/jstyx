@@ -42,8 +42,11 @@ import java.util.Vector;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:29  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:44  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:29  jonblower
+ * Initial import
  *
  */
 public class TwalkMessage extends StyxMessage
@@ -136,6 +139,23 @@ public class TwalkMessage extends StyxMessage
     }
     
     /**
+     * @return the path of this TwalkMessage as a string
+     */
+    public String getPath()
+    {
+        StringBuffer s = new StringBuffer();
+        for (int i = 0; i < this.pathElements.size(); i++)
+        {
+            s.append((String)this.pathElements.get(i));
+            if (i < this.pathElements.size() - 1)
+            {
+                s.append("/");
+            }
+        }
+        return s.toString();
+    }
+    
+    /**
      * @param path The /-delimited path (if this starts with a / it is an
      * absolute path, otherwise it is a relative path (relative to the file
      * represented by fid)
@@ -190,6 +210,21 @@ public class TwalkMessage extends StyxMessage
             s += ", " + (String)this.pathElements.get(i);
         }
         return s;
+    }
+    
+    public String toFriendlyString()
+    {
+        String pathEls = "";
+        for (int i = 0; i < this.pathElements.size(); i++)
+        {
+            pathEls += (String)this.pathElements.get(i);
+            if (i < this.pathElements.size() - 1)
+            {
+                pathEls += "/";
+            }
+        }
+        return "fid: " + this.fid + ", new fid: " + this.newFid + ", path: "
+            + pathEls;
     }
     
 }

@@ -35,13 +35,17 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
 
 /**
  * Message returned by the server in response to a TstatMessage
+ * @todo Implement toFriendlyString() method
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:27  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:43  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:27  jonblower
+ * Initial import
  *
  */
 public class RstatMessage extends StyxMessage

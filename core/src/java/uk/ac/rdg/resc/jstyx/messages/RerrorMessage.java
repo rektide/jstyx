@@ -40,8 +40,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:27  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:43  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:27  jonblower
+ * Initial import
  *
  */
 public class RerrorMessage extends StyxMessage
@@ -94,6 +97,11 @@ public class RerrorMessage extends StyxMessage
     protected String getElements()
     {
         return ", " + this.message;
+    }
+    
+    public String toFriendlyString()
+    {
+        return "ERROR: \"" + this.message + "\"";
     }
     
 }

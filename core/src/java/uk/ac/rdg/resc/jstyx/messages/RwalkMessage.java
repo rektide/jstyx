@@ -42,8 +42,11 @@ import java.util.Vector;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:28  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:43  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:28  jonblower
+ * Initial import
  *
  */
 public class RwalkMessage extends StyxMessage
@@ -127,6 +130,24 @@ public class RwalkMessage extends StyxMessage
             s += ", " + this.qids.get(i);
         }
         return s;
+    }
+    
+    public String toFriendlyString()
+    {
+        if (this.qids.size() == 0)
+        {
+            // An Rwalk with no qids represents a successful walk of zero
+            // length; a walk which results in an error will either return
+            // Rerror or at least one qid
+            return "(fid cloned)";
+        }
+        StringBuffer s = new StringBuffer();
+        for (int i = 0; i < this.qids.size(); i++)
+        {
+            Qid qid = (Qid)this.qids.get(i);
+            s.append("(" + qid.toFriendlyString() + ") ");
+        }
+        return s.toString();
     }
     
 }

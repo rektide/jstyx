@@ -33,6 +33,7 @@ import net.gleamynode.netty2.Message;
 import net.gleamynode.netty2.MessageParseException;
 
 import uk.ac.rdg.resc.jstyx.StyxBuffer;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * Base class for all Styx Messages.  Contains header information common
@@ -47,8 +48,11 @@ import uk.ac.rdg.resc.jstyx.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:28  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:43  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:28  jonblower
+ * Initial import
  *
  */
 public abstract class StyxMessage implements Message
@@ -146,6 +150,16 @@ public abstract class StyxMessage implements Message
     }
     
     /**
+     * @return a human-readable string that displays the contents of the message,
+     * without the header info. This implementation does nothing useful; subclasses
+     * should override this.
+     */
+    public String toFriendlyString()
+    {
+        return "a StyxMessage";
+    }
+    
+    /**
      * @return the message's tag number
      */
     public int getTag()
@@ -162,13 +176,31 @@ public abstract class StyxMessage implements Message
     }
     
     /**
+     * @return the fid of this message, or StyxUtils.NOFID if this message isn't associated
+     * with a fid (most Tmessages are). This default implementation just returns
+     * -1; subclasses will override this.
+     */
+    public long getFid()
+    {
+        return StyxUtils.NOFID;
+    }
+    
+    /**
      * @return the type of the message as an integer
      * @todo return this as a string for easier debugging?
      */
     public int getType()
     {
         return this.type;
-    }    
+    }
+    
+    /**
+     * @return the name of this message ("Tread", "Rwstat" etc)
+     */
+    public String getName()
+    {
+        return this.name;
+    }
     
     /**
      * @return the elements of this message as a string

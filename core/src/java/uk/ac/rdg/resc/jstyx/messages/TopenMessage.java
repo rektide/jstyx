@@ -40,8 +40,11 @@ import uk.ac.rdg.resc.jstyx.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:29  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:44:44  jonblower
+ * Added getFriendlyString()
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:29  jonblower
+ * Initial import
  *
  */
 public class TopenMessage extends StyxMessage
@@ -109,6 +112,11 @@ public class TopenMessage extends StyxMessage
     public void setMode(int mode)
     {
         this.mode = mode;
+    }
+    
+    public String toFriendlyString()
+    {
+        return "fid: " + this.fid + ", mode: " + this.mode;
     }
     
 }
