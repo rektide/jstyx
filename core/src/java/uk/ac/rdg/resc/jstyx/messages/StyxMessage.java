@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/01 13:47:04  jonblower
+ * Set getFriendlyString() so it defaults to this.getElements()
+ *
  * Revision 1.2  2005/02/24 07:44:43  jonblower
  * Added getFriendlyString()
  *
@@ -151,12 +154,12 @@ public abstract class StyxMessage implements Message
     
     /**
      * @return a human-readable string that displays the contents of the message,
-     * without the header info. This implementation does nothing useful; subclasses
-     * should override this.
+     * without the header info. This default implementation simply calls 
+     * this.getElements(): subclasses should override this behaviour
      */
     public String toFriendlyString()
     {
-        return "a StyxMessage";
+        return this.getElements();
     }
     
     /**
