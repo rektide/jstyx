@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnection;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/09 17:02:44  jonblower
+ * *** empty log message ***
+ *
  * Revision 1.1  2005/03/07 08:27:51  jonblower
  * Initial import
  *
@@ -256,6 +259,23 @@ public class StyxFileSystemView extends FileSystemView
     }
     
     /**
+     * @return true if the file is a directory
+     */
+    public Boolean isTraversable(File f)
+    {
+        log.debug("Called isTraversable(" + f.getClass().getName() 
+            + ", " + f.getPath() + "); returning " + f.isDirectory());
+        return Boolean.valueOf(f.isDirectory());
+    }
+    
+    protected File createFileSystemRoot(File f)
+    {
+        log.debug("Called createFileSystemRoot(" + f.getPath() + ")");
+        // TODO: implement properly
+        return super.createFileSystemRoot(f);
+    }
+    
+    /**
      * Test function for StyxFileSystemView
      */
     public static void main (String[] args)
@@ -285,23 +305,6 @@ public class StyxFileSystemView extends FileSystemView
                 conn.close();
             }
         }
-    }
-    
-    /**
-     * @return true if the file is a directory
-     */
-    public Boolean isTraversable(File f)
-    {
-        log.debug("Called isTraversable(" + f.getClass().getName() 
-            + ", " + f.getPath() + "); returning " + f.isDirectory());
-        return Boolean.valueOf(f.isDirectory());
-    }
-    
-    protected File createFileSystemRoot(File f)
-    {
-        log.debug("Called createFileSystemRoot(" + f.getPath() + ")");
-        // TODO: implement properly
-        return super.createFileSystemRoot(f);
     }
     
 }
