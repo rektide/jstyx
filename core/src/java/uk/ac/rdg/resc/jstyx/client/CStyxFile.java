@@ -28,6 +28,9 @@
 
 package uk.ac.rdg.resc.jstyx.client;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.nio.ByteBuffer;
 import java.util.Vector;
 import java.util.Iterator;
@@ -53,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/02/28 11:43:36  jonblower
+ * Tidied up logging code
+ *
  * Revision 1.5  2005/02/21 18:06:13  jonblower
  * Un-synchronized many methods, made more robust in case of multiple calls to asynchronous methods
  *
@@ -71,6 +77,8 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  */
 public class CStyxFile extends MessageCallback
 {
+    
+    private static final Log log = LogFactory.getLog(CStyxFile.class);
     
     private StyxConnection conn; // The connection on which the file sits
     private String path;         // The path of the file relative to the
@@ -393,8 +401,8 @@ public class CStyxFile extends MessageCallback
             }
             else
             {
-                // Shouldn't happen; TODO log error more neatly
-                System.err.println("Illegal state: got Rwalk when both fid" +
+                // Shouldn't happen
+                log.error("Illegal state: got Rwalk when both fid" +
                     " and openFid are set");
             }
         }
@@ -1148,7 +1156,7 @@ public class CStyxFile extends MessageCallback
         else
         {
             // TODO: do something more useful here?
-            System.err.println("Internal error: got message that isn't a Rread or Rwrite");
+            log.error("Internal error: got message that isn't a Rread or Rwrite");
         }
     }
     

@@ -28,6 +28,9 @@
 
 package uk.ac.rdg.resc.jstyx.client.browser;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
 import java.awt.event.ActionListener;
@@ -49,12 +52,17 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/02/28 11:43:38  jonblower
+ * Tidied up logging code
+ *
  * Revision 1.3  2005/02/18 17:52:40  jonblower
  * Added client.browser package
  *
  */
 public class StyxBrowserPopupMenu extends JPopupMenu
 {
+    
+    private static final Log log = LogFactory.getLog(StyxBrowserPopupMenu.class);
     
     private JMenuItem openItem;
     private JMenuItem writeItem;
@@ -78,7 +86,6 @@ public class StyxBrowserPopupMenu extends JPopupMenu
         {
             public void actionPerformed(ActionEvent e)
             {
-                System.out.println("Refresh button pressed");
                 if (node != null)
                 {
                     node.refresh();
@@ -121,7 +128,6 @@ public class StyxBrowserPopupMenu extends JPopupMenu
     {
         public void actionPerformed(ActionEvent e)
         {
-            System.out.println("Open button pressed");
             // "file" should never be null but we check just in case
             if (node != null)
             {
@@ -140,7 +146,7 @@ public class StyxBrowserPopupMenu extends JPopupMenu
             }
             else
             {
-                System.err.println("node is null");
+                log.error("node is null");
             }
         }
     }

@@ -181,7 +181,7 @@ public class JTreeTable extends JTable
                 if (e.getClickCount() == 2)
                 {
                     // Open default menu option
-                    System.out.println("Double-clicked on " + selRow + ", " + selPath);
+                    //System.out.println("Double-clicked on " + selRow + ", " + selPath);
                 }
             }
         }

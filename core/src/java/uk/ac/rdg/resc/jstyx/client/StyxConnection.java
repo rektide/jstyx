@@ -69,6 +69,9 @@ import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/02/28 11:43:36  jonblower
+ * Tidied up logging code
+ *
  * Revision 1.4  2005/02/21 18:07:23  jonblower
  * Separated constructor and connect methods
  *
@@ -84,6 +87,8 @@ import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
  */
 public class StyxConnection extends Session implements SessionListener
 {
+    
+    private static final Log log = LogFactory.getLog(StyxConnection.class);
     
     private String host; // The host and port to which this is connected
     private int port;
@@ -109,8 +114,6 @@ public class StyxConnection extends Session implements SessionListener
     private Vector listeners;     // The StyxConnectionListeners that will be informed of events
     
     private ThreadPooledEventDispatcher eventDispatcher;
-    
-    private static final Log log = LogFactory.getLog(TestClient.class);
     
     private static StyxMessageRecognizer recognizer = 
         new StyxMessageRecognizer(StyxMessageRecognizer.CLIENT_MODE);
@@ -242,7 +245,7 @@ public class StyxConnection extends Session implements SessionListener
      */
     public void close()
     {
-        System.err.println("Closing StyxConnection");
+        log.debug("Closing StyxConnection");
         if (this.connected)
         {
             // Start off the chain of clunking fids by clunking the last fid 
@@ -261,8 +264,7 @@ public class StyxConnection extends Session implements SessionListener
                     }
                     public void error(String message, int tag)
                     {
-                        // TODO: log error properly
-                        System.err.println("Error clunking fid: " + message);
+                        log.error("Error clunking fid: " + message);
                         clunkNextFid(this);
                     }
                 }
@@ -270,8 +272,7 @@ public class StyxConnection extends Session implements SessionListener
         }
         else
         {
-            // TODO: log this somewhere more useful.
-            System.err.println("Connection was not open");
+            log.debug("Connection was not open");
             // Make sure the threads are stopped
             this.connectionClosed(this);
         }
@@ -368,12 +369,11 @@ public class StyxConnection extends Session implements SessionListener
             if (this.attached || message instanceof TversionMessage ||
                 message instanceof TattachMessage)
             {
-                // Send the message TODO: check return value
+                // Send the message
                 if (!super.write(message))
                 {
-                    // TODO: log this somewhere more useful
-                    // Or throw an Exception?
-                    System.err.println("Message not sent; connection is closed");
+                    // Is error the right log level? Throw an Exception?
+                    log.error("Message not sent; connection is closed");
                 }
             }
             else
@@ -677,8 +677,7 @@ public class StyxConnection extends Session implements SessionListener
      */
     private void fireStyxConnectionReady()
     {
-        // TODO: log this properly
-        System.err.println("***** CONNECTION OPENED TO " + host + ":" + port
+        log.info("***** CONNECTION OPENED TO " + host + ":" + port
             + " *****");
         synchronized(this)
         {
@@ -701,7 +700,7 @@ public class StyxConnection extends Session implements SessionListener
             while(it.hasNext())
             {
                 StyxMessage message = (StyxMessage)it.next();
-                System.err.println("Sending message now connection is ready");
+                log.debug("Sending message now connection is ready");
                 super.write(message);
                 it.remove();
             }
@@ -713,8 +712,7 @@ public class StyxConnection extends Session implements SessionListener
      */
     private void fireStyxConnectionClosed()
     {
-        // TODO: log this properly
-        System.err.println("***** CONNECTION TO " + this.host + ":" + this.port
+        log.info("***** CONNECTION TO " + this.host + ":" + this.port
             + " CLOSED *****");
         synchronized(this.listeners)
         {
@@ -737,8 +735,7 @@ public class StyxConnection extends Session implements SessionListener
         {
             this.notifyAll();
         }
-        // TODO: log this properly
-        System.err.println("***** ERROR OCCURRED ON CONNECTION TO " + this.host +
+        log.info("***** ERROR OCCURRED ON CONNECTION TO " + this.host +
             ":" + this.port + " (" + message + ") *****");
         synchronized(this.listeners)
         {
