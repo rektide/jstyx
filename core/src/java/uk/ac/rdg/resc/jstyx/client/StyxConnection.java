@@ -63,14 +63,17 @@ import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
  * @todo Queue up messages that are requested to be sent before the handshaking is complete
  * @todo Handle state (open, closed) carefully
  * @todo have a waitconnected() method?
- * @todo fire events (and have a StyxConnectionListener)?
+ * @todo handle case where connection goes down unexpectedly - need a connect() method
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:19  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/17 18:03:35  jonblower
+ * Minor changes to comments
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:19  jonblower
+ * Initial import
  *
  */
 public class StyxConnection extends Session implements SessionListener

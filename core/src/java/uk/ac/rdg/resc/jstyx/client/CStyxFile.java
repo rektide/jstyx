@@ -46,13 +46,17 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * a CStyxFile in order to avoid confusion with the server-side StyxFile class.)
  * @todo should we keep a cache of all the children of this file?
  * @todo implement a create() method
+ * @todo implement changing of stat data (length etc) via a Twstat message
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:17  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/17 18:03:35  jonblower
+ * Minor changes to comments
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:17  jonblower
+ * Initial import
  *
  */
 public class CStyxFile extends MessageCallback
