@@ -32,6 +32,8 @@ import java.util.Vector;
 import java.util.Iterator;
 import java.util.Date;
 
+import org.apache.log4j.Logger;
+
 import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
@@ -53,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/03/18 13:55:59  jonblower
+ * Improved freeing of ByteBuffers, and bug fixes
+ *
  * Revision 1.9  2005/03/16 17:55:52  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -93,7 +98,7 @@ import uk.ac.rdg.resc.jstyx.messages.*;
 public class CStyxFile extends MessageCallback
 {
     
-    //private static final Log log = LogFactory.getLog(CStyxFile.class);
+    private static final Logger log = Logger.getLogger(CStyxFile.class);
     
     private StyxConnection conn; // The connection on which the file sits
     private String path;         // The path of the file relative to the
@@ -1202,7 +1207,7 @@ public class CStyxFile extends MessageCallback
         else
         {
             // TODO: do something more useful here?
-            //log.error("Internal error: got message that isn't a Rread or Rwrite");
+            log.error("Internal error: got message that isn't a Rread or Rwrite");
         }
     }
     

@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/03/18 13:55:59  jonblower
+ * Improved freeing of ByteBuffers, and bug fixes
+ *
  * Revision 1.8  2005/03/15 15:51:41  jonblower
  * Removed hard limit on maximum message size
  *
@@ -103,7 +106,7 @@ public class StyxBrowser
     {
         String s = user.trim().equals("") ? "anonymous" : user;
         JFrame frame = new JFrame(s + "@" + host + ":" + port);
-        final StyxConnection conn = new StyxConnection(host, port, user, 65536);
+        final StyxConnection conn = new StyxConnection(host, port, user, 8216);
         JTreeTable treeTable = new JTreeTable(new StyxFileSystemModel(conn));
         
         frame.addWindowListener(new WindowAdapter()

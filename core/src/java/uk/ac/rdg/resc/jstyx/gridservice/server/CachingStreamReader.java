@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/18 13:56:00  jonblower
+ * Improved freeing of ByteBuffers, and bug fixes
+ *
  * Revision 1.1  2005/03/16 22:16:44  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -254,6 +257,7 @@ class CachingStreamReader extends StyxFile
                     // Seek to the right position in the cache file
                     this.cache.seek(dr.offset);
                     // Try to read the requested amount of data
+                    // TODO: check the number of bytes remaining?
                     byte[] arr = new byte[(int)dr.count];
                     int n = this.cache.read(arr);
                     if (n < 0)

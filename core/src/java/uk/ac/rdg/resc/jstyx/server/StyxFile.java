@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/18 13:56:00  jonblower
+ * Improved freeing of ByteBuffers, and bug fixes
+ *
  * Revision 1.5  2005/03/16 22:16:43  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -636,8 +639,7 @@ public abstract class StyxFile
             // We can just use the backing array for this buffer
             bytes = buf.array();
             // Write the right number of bytes from the right position in the array
-            this.replyRead(client, bytes, buf.position(),
-                buf.limit() - buf.position(), tag);
+            this.replyRead(client, bytes, buf.position(), buf.remaining(), tag);
         }
         else
         {
@@ -671,7 +673,7 @@ public abstract class StyxFile
             if (sessionState.tagInUse(tag))
             {
                 this.setLastAccessTime(StyxUtils.now());
-                RreadMessage rReadMsg = new RreadMessage(bytes);
+                RreadMessage rReadMsg = new RreadMessage(bytes, pos, count);
                 rReadMsg.setTag(tag);
                 session.write(rReadMsg);
                 sessionState.releaseTag(tag);

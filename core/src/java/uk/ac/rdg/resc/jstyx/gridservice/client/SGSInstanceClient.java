@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/18 13:55:59  jonblower
+ * Improved freeing of ByteBuffers, and bug fixes
+ *
  * Revision 1.1  2005/03/16 22:16:44  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -223,10 +226,12 @@ public class SGSInstanceClient implements CStyxFileChangeListener
                 else if (file == status)
                 {
                     statusBuf.append(StyxUtils.dataToString(data));
+                    data.release();
                 }
                 else if (file == bytesConsumed)
                 {
                     bytesConsBuf.append(StyxUtils.dataToString(data));
+                    data.release();
                 }
                 file.readAsync();
             }

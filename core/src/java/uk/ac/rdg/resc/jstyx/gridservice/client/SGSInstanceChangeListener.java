@@ -38,6 +38,9 @@ import org.apache.mina.common.ByteBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/18 13:55:59  jonblower
+ * Improved freeing of ByteBuffers, and bug fixes
+ *
  * Revision 1.1  2005/03/16 22:16:44  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -64,12 +67,14 @@ public interface SGSInstanceChangeListener
     public void bytesConsumedChanged(String newBytesConsumed);
     
     /**
-     * Called when new data arrive from the standard output of the SGS instance
+     * Called when new data arrive from the standard output of the SGS instance.
+     * Remember to call newData.release() when you have finished with the data.
      */
     public void newStdoutData(ByteBuffer newData);
     
     /**
      * Called when new data arrive from the standard error of the SGS instance
+     * Remember to call newData.release() when you have finished with the data.
      */
     public void newStderrData(ByteBuffer newData);
     

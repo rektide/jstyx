@@ -40,6 +40,9 @@ import java.nio.charset.Charset;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/03/18 13:55:55  jonblower
+ * Improved freeing of ByteBuffers, and bug fixes
+ *
  * Revision 1.7  2005/03/16 22:16:41  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -151,9 +154,7 @@ public class StyxUtils
     {
         try
         {
-            String s = new String(bytes, offset, length, charsetName);
-            System.out.println("s = " + s);
-            return s;
+            return new String(bytes, offset, length, charsetName);
         }
         catch (UnsupportedEncodingException uee)
         {

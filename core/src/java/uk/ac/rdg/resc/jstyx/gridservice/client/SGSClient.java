@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/18 13:55:59  jonblower
+ * Improved freeing of ByteBuffers, and bug fixes
+ *
  * Revision 1.1  2005/03/16 22:16:44  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -120,6 +123,7 @@ public class SGSClient implements CStyxFileChangeListener
         {
             // A new instance has been created.
             String idStr = StyxUtils.dataToString(data);
+            data.release();
             this.fireNewInstanceCreated(idStr);
         }
     }

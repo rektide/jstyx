@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/03/18 13:56:00  jonblower
+ * Improved freeing of ByteBuffers, and bug fixes
+ *
  * Revision 1.7  2005/03/16 17:56:22  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -276,6 +279,7 @@ public abstract class StyxMessage
     public void encode() throws ProtocolViolationException
     {
         // Make sure we have a buffer of the appropriate length
+        log.debug("Allocating new ByteBuffer of length " + this.length);
         this.buf = ByteBuffer.allocate(this.length);
         // Wrap the buffer as a StyxBuffer to make it easy to write Styx
         // primitives

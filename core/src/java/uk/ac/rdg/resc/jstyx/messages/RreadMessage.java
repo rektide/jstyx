@@ -28,6 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
+import org.apache.log4j.Logger;
+
 import org.apache.mina.common.ByteBuffer;
 
 import org.apache.mina.protocol.ProtocolViolationException;
@@ -44,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/03/18 13:56:00  jonblower
+ * Improved freeing of ByteBuffers, and bug fixes
+ *
  * Revision 1.6  2005/03/16 22:16:43  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -71,6 +76,8 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  */
 public class RreadMessage extends StyxMessage
 {
+
+    private static final Logger log = Logger.getLogger(RreadMessage.class);
     
     private int count; // The amount of data in bytes in this message
     
@@ -113,14 +120,15 @@ public class RreadMessage extends StyxMessage
      * Creates an RreadMessage from the given byte array. This will return
      * <code>count</code> bytes, starting at position <code>pos</code> in the
      * given array
-     * @throws IllegalArgumentException if <code>pos + count < bytes.length</code>
+     * @throws IllegalArgumentException if <code>pos + count > bytes.length</code>
      */
     public RreadMessage(byte[] bytes, int pos, int count)
     {
         this(0, (short)117, 0); // We'll set the length and tag later
-        if (pos + count < bytes.length)
+        if (pos + count > bytes.length)
         {
-            throw new IllegalArgumentException("Not enough bytes in the given byte array");
+            throw new IllegalArgumentException("Not enough bytes in the given byte array:" +
+                " pos = " + pos + ", count = " + count + ", length = " + bytes.length);
         }
         this.bytes = bytes;
         this.pos = pos;
@@ -165,6 +173,8 @@ public class RreadMessage extends StyxMessage
         else
         {
             // We need to copy the data in this buffer.
+            log.debug("Need to make a copy of the data in this buffer: " +
+                this.count + " bytes");
             this.data = ByteBuffer.allocate(this.count);
             byte[] b = buf.getData(this.count);
             this.data.put(b);
@@ -195,6 +205,8 @@ public class RreadMessage extends StyxMessage
             ByteBuffer payload = this.getData();
             
             // Allocate a buffer for everything but the payload
+            log.debug("Allocating buffer for everything but payload: length "
+                + (this.length - payload.remaining()));
             this.buf = ByteBuffer.allocate(this.length - payload.remaining());
             // Wrap as a StyxBuffer
             StyxBuffer styxBuf = new StyxBuffer(this.buf);
