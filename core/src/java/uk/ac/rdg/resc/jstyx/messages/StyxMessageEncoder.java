@@ -28,63 +28,51 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
+import org.apache.mina.common.ByteBuffer;
+import org.apache.mina.protocol.ProtocolEncoder;
+import org.apache.mina.protocol.ProtocolEncoderOutput;
+import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.protocol.ProtocolViolationException;
+
+import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
+
 /**
- * Response to a TremoveMessage to delete a file
+ * Encoder for StyxMessages, used by MINA framework
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.3  2005/03/11 14:02:15  jonblower
+ * Revision 1.2  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
- * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
- * Changed to fit with MINA framework
+ * Revision 1.1.2.2  2005/03/10 18:28:44  jonblower
+ * Made decoder and encoder package-private
  *
- * Revision 1.2  2005/02/24 07:44:43  jonblower
- * Added getFriendlyString()
+ * Revision 1.1.2.1  2005/03/10 11:26:49  jonblower
+ * Moved from mina to messages package
  *
- * Revision 1.1.1.1  2005/02/16 18:58:27  jonblower
- * Initial import
+ * Revision 1.2  2005/03/09 16:58:42  jonblower
+ * Changes to MINA-related classes
+ *
+ * Revision 1.1  2005/03/09 08:52:25  jonblower
+ * Initial import of MINA-related classes
  *
  */
-public class RremoveMessage extends StyxMessage
+class StyxMessageEncoder implements ProtocolEncoder
 {
-    /**
-     * Creates a new RremoveMessage 
-     * @param length The total length of the message (including all header info)
-     * @param type The type of the message (a number between 100 and 127)
-     * @param tag The tag that identifies this message
-     */
-    public RremoveMessage(int length, int type, int tag)
+    public void encode( ProtocolSession session, Object message,
+        ProtocolEncoderOutput out )
+        throws ProtocolViolationException
     {
-        super(length, type, tag);
-        this.name = "Rremove";
+        if (!(message instanceof StyxMessage))
+        {
+            // This shouldn't happen
+            throw new ProtocolViolationException("message was not a StyxMessage");
+        }
+        StyxMessage styxMsg = (StyxMessage)message;
+        // Encode the message contents as bytes in the underlying ByteBuffer
+        styxMsg.encode();
+        out.write(styxMsg.getBuffer());
     }
-    
-    public RremoveMessage()
-    {
-        this(7, 123, 0);
-    }
-    
-    protected final void decodeBody(StyxBuffer buf)
-    {     
-        return;
-    }
-    
-    protected final void encodeBody(StyxBuffer buf)
-    {
-        return;
-    }
-    
-    protected String getElements()
-    {
-        return "";
-    }
-    
-    public String toFriendlyString()
-    {
-        return "(file removed)";
-    }
-    
 }

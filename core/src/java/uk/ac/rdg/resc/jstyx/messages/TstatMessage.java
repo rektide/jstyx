@@ -28,9 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import net.gleamynode.netty2.MessageParseException;
-
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * Message sent to enquire about the attributes of a file on a Styx server
@@ -39,6 +37,12 @@ import uk.ac.rdg.resc.jstyx.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
+ * Changed to fit with MINA framework
+ *
  * Revision 1.2  2005/02/24 07:44:44  jonblower
  * Added getFriendlyString()
  *
@@ -58,7 +62,7 @@ public class TstatMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TstatMessage(long length, int type, int tag)
+    public TstatMessage(int length, int type, int tag)
     {
         super(length, type, tag);
         this.name = "Tstat";
@@ -72,21 +76,19 @@ public class TstatMessage extends StyxMessage
     {
         this(0, 124, 0);
         this.fid = fid;
-        this.length = super.HEADER_LENGTH + 4;
+        this.length = StyxUtils.HEADER_LENGTH + 4;
     }
     
-    protected final boolean readBody(StyxBuffer buf) throws MessageParseException
+    protected final void decodeBody(StyxBuffer buf)
     {
         // Read the fid of the file to enquire about
         this.fid = buf.getUInt();
-        return true;
     }
     
-    protected final boolean writeBody(StyxBuffer buf)
+    protected final void encodeBody(StyxBuffer buf)
     {
         // Write the fid of the file to enquire about
         buf.putUInt(this.fid);
-        return true;
     }
     
     /**

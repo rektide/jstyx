@@ -28,8 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.client.browser;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
@@ -52,6 +51,12 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/11 13:58:54  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.4.2.1  2005/03/11 08:29:52  jonblower
+ * Moved to log4j logging system (from apache commons logging)
+ *
  * Revision 1.4  2005/02/28 11:43:38  jonblower
  * Tidied up logging code
  *
@@ -62,7 +67,7 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 public class StyxBrowserPopupMenu extends JPopupMenu
 {
     
-    private static final Log log = LogFactory.getLog(StyxBrowserPopupMenu.class);
+    private static final Logger log = Logger.getLogger(StyxBrowserPopupMenu.class);
     
     private JMenuItem openItem;
     private JMenuItem writeItem;

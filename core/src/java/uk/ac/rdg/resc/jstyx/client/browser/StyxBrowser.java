@@ -32,6 +32,7 @@ import javax.swing.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
@@ -42,6 +43,12 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/11 13:58:54  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.4.2.1  2005/03/10 11:47:36  jonblower
+ * Changed to create the StyxConnection in the StyxBrowser class so it can be closed cleanly
+ *
  * Revision 1.4  2005/02/28 16:16:26  jonblower
  * Specified anonymous user when logging on without a user name
  *
@@ -90,13 +97,15 @@ public class StyxBrowser
     {
         String s = user.trim().equals("") ? "anonymous" : user;
         JFrame frame = new JFrame(s + "@" + host + ":" + port);
-        JTreeTable treeTable = new JTreeTable(new StyxFileSystemModel(host, port, user));
+        final StyxConnection conn = new StyxConnection(host, port, user);
+        JTreeTable treeTable = new JTreeTable(new StyxFileSystemModel(conn));
         
         frame.addWindowListener(new WindowAdapter()
         {
             public void windowClosing(WindowEvent we)
             {
                 // TODO: disconnect from server cleanly
+                conn.close();
                 System.exit(0);
             }
         });

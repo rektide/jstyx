@@ -28,9 +28,6 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import net.gleamynode.netty2.MessageParseException;
-
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
@@ -41,6 +38,15 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
+ * Changed to fit with MINA framework
+ *
+ * Revision 1.1  2005/03/09 16:58:42  jonblower
+ * Changes to MINA-related classes
+ *
  * Revision 1.2  2005/02/24 07:44:44  jonblower
  * Added getFriendlyString()
  *
@@ -57,12 +63,12 @@ public class TversionMessage extends StyxMessage
     
     /** 
      * Creates a new TversionMessage. This constructor will be called by the
-     * MessageRecognizer.
+     * StyxMessage.createStyxMessage() method
      * @param length The total length of the message (including all header info)
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TversionMessage(long length, int type, int tag)
+    public TversionMessage(int length, int type, int tag)
     {
         super(length, type, tag);
         this.name = "Tversion";
@@ -106,22 +112,18 @@ public class TversionMessage extends StyxMessage
         this.setVersion(protocolVersion);
     }
     
-    protected final boolean readBody(StyxBuffer buf) throws MessageParseException
+    protected final void decodeBody(StyxBuffer styxBuf)
     {
         // Read the maximum message size
-        this.maxMessageSize = buf.getUInt();
+        this.maxMessageSize = styxBuf.getUInt();
         // Read the version string
-        this.version = buf.getString();        
-        return true;
+        this.version = styxBuf.getString();
     }
     
-    protected final boolean writeBody(StyxBuffer buf)
+    protected final void encodeBody(StyxBuffer styxBuf)
     {
-        // We have already checked that there is room in the buffer for the 
-        // message body
         // Write the max message size, then the version string
-        buf.putUInt(this.maxMessageSize).putString(this.version);
-        return true;
+        styxBuf.putUInt(this.maxMessageSize).putString(this.version);
     }
     
     /**
@@ -157,7 +159,7 @@ public class TversionMessage extends StyxMessage
     {
         this.version = version;
         int versionLen = StyxUtils.strToUTF8(version).length;
-        this.length = super.HEADER_LENGTH + 4 + 2 + versionLen;
+        this.length = StyxUtils.HEADER_LENGTH + 4 + 2 + versionLen;
     }
     
     protected String getElements()

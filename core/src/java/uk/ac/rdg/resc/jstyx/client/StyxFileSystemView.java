@@ -32,8 +32,7 @@ import java.io.File;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileSystemView;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 
@@ -47,8 +46,12 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnection;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.2  2005/03/09 17:02:44  jonblower
- * *** empty log message ***
+ * Revision 1.3  2005/03/11 13:58:25  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/11 08:29:52  jonblower
+ * Moved to log4j logging system (from apache commons logging)
+ *
  *
  * Revision 1.1  2005/03/07 08:27:51  jonblower
  * Initial import
@@ -57,7 +60,7 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 public class StyxFileSystemView extends FileSystemView
 {
     
-    private static final Log log = LogFactory.getLog(StyxFileSystemView.class);
+    private static final Logger log = Logger.getLogger(StyxFileSystemView.class);
     private StyxConnection conn;
     private FileWrapper[] roots;  // The filesystem roots (actually only one root)
     

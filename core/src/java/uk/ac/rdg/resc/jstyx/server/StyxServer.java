@@ -28,20 +28,19 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.net.InetSocketAddress;
 import java.io.IOException;
 
-import net.gleamynode.netty2.IoProcessor;
-import net.gleamynode.netty2.MessageRecognizer;
-import net.gleamynode.netty2.SessionServer;
-import net.gleamynode.netty2.SessionListener;
-import net.gleamynode.netty2.OrderedEventDispatcher;
-import net.gleamynode.netty2.ThreadPooledEventDispatcher;
+import org.apache.mina.io.IoHandlerFilter;
+import org.apache.mina.io.filter.IoThreadPoolFilter;
+import org.apache.mina.io.socket.SocketAcceptor;
+import org.apache.mina.protocol.ProtocolHandlerFilter;
+import org.apache.mina.protocol.ProtocolProvider;
+import org.apache.mina.protocol.filter.ProtocolThreadPoolFilter;
+import org.apache.mina.protocol.io.IoProtocolAcceptor;
 
-import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
+import org.apache.log4j.Logger;
+
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
@@ -52,8 +51,20 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.2  2005/02/21 18:09:48  jonblower
- * *** empty log message ***
+ * Revision 1.3  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.6  2005/03/11 08:30:30  jonblower
+ * Moved to log4j logging system (from apache commons logging)
+ *
+ * Revision 1.2.2.5  2005/03/10 18:32:18  jonblower
+ * Minor change to layout
+ *
+ * Revision 1.2.2.3 and 1.2.2.4  2005/03/10 14:38:10  jonblower
+ * Modified for MINA framework
+ *
+ * Revision 1.2.2.1  2005/03/09 19:44:18  jonblower
+ * Changes concerned with migration to MINA
  *
  * Revision 1.1.1.1  2005/02/16 18:58:33  jonblower
  * Initial import
@@ -61,12 +72,10 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  */
 public class StyxServer
 {
-    private static final Log log = LogFactory.getLog(StyxServer.class);
     
-    private static final int DISPATCHER_THREAD_POOL_SIZE = 16;
+    private static final Logger log = Logger.getLogger(StyxServer.class);
     
-    private SessionListener listener = null;
-    private StyxDirectory root;
+    private ProtocolProvider provider;
     private int port;
     
     /**
@@ -77,87 +86,75 @@ public class StyxServer
      */
     public StyxServer(int port, StyxDirectory root)
     {
-        this(port, root, null);
+        this(port, new StyxServerProtocolProvider(root));
     }
     
     /**
      * Creates a Styx server that listens on the given port and uses the
-     * given session listener (This is used by the Styx interloper class)
+     * given protocol provider (This is used by the Styx interloper class)
      * @throws IllegalArgumentException if the port number is invalid or the
-     * listener is null.
+     * provider is null.
      */
-    public StyxServer(int port, SessionListener listener)
+    public StyxServer(int port, ProtocolProvider provider)
     {
-        this(port, null, listener);
-        if (listener == null)
+        if (provider == null)
         {
-            throw new IllegalArgumentException("Listener cannot be null");
+            throw new IllegalArgumentException("ProtocolProvider cannot be null");
         }
-    }
-    
-    private StyxServer(int port, StyxDirectory root, SessionListener listener)
-    {
         // Check that the port number is valid
         // TODO: should we disallow other port numbers?
         if (port < 0 || port > StyxUtils.MAXUSHORT)
         {
             throw new IllegalArgumentException("Invalid port number");
         }
-        this.root = root;
         this.port = port;
-        this.listener = listener;
+        this.provider = provider;
     }
     
+    /**
+     * Starts the Styx server.
+     * @throws StyxException if an error occurred
+     */
     public void start() throws StyxException
     {
-        // initialize I/O processor and event dispatcher
-        IoProcessor ioProcessor;
+        // Create I/O and Protocol thread pool filter.
+        // I/O thread pool performs encoding and decoding of messages.
+        // Protocol thread pool performs actual protocol flow.
+        IoThreadPoolFilter ioThreadPoolFilter = new IoThreadPoolFilter();
+        ProtocolThreadPoolFilter protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
+        
+        // and start both.
+        ioThreadPoolFilter.start();
+        protocolThreadPoolFilter.start();
+        
+        // Create a TCP/IP acceptor.
+        IoProtocolAcceptor acceptor;
         try
         {
-            ioProcessor = StyxUtils.getIoProcessor();
+             acceptor = new IoProtocolAcceptor( new SocketAcceptor() );
         }
         catch(IOException ioe)
         {
-            log.fatal("Could not get IoProcessor: " + ioe.getMessage());
-            throw new StyxException("Could not start the server: " + ioe.getMessage());
-        }
-        ThreadPooledEventDispatcher eventDispatcher = new OrderedEventDispatcher();
-        eventDispatcher.setThreadPoolSize(DISPATCHER_THREAD_POOL_SIZE);
-        eventDispatcher.start();
-        
-        // The event dispatcher and ioProcessor will have already been started
-        
-        // prepare message recognizer
-        MessageRecognizer recognizer = new StyxMessageRecognizer(StyxMessageRecognizer.SERVER_MODE);
-        
-        // prepare session event listener which will provide communication workflow.
-        if (this.listener == null)
-        {
-            // We haven't set our own session listener, so we create a new one
-            // for exposing the tree rooted at the given StyxDirectory
-            this.listener = new StyxServerSessionListener(this.root);
+            throw new StyxException("An IOException occurred when creating the "
+                + "IoProtocolAcceptor: " + ioe.getMessage());
         }
         
-        // prepare session server
-        SessionServer server = new SessionServer();
-        server.setIoProcessor(ioProcessor);
-        server.setEventDispatcher(eventDispatcher);
-        server.setMessageRecognizer(recognizer);
+        // Add both thread pool filters.
+        // I don't think the values of the priority constants matter much here
+        acceptor.getIoAcceptor().addFilter( 99, ioThreadPoolFilter );
+        acceptor.addFilter( 99, protocolThreadPoolFilter );
         
-        server.addSessionListener(listener);
-        server.setBindAddress(new InetSocketAddress(this.port));
-        
-        // open the server port, accept connections, and start communication
-        log.info("Listening on port " + port);
+        // Bind
         try
         {
-            server.start();
+            acceptor.bind( new InetSocketAddress(this.port), this.provider);
         }
         catch(IOException ioe)
         {
-            log.fatal(ioe.getMessage());
-            throw new StyxException("An IOException occurred when starting " +
-                "the server: " + ioe.getMessage());            
+            throw new StyxException("An IOException occurred when calling acceptor.bind(): "
+                + ioe.getMessage());
         }
+        
+        log.info( "Listening on port " + this.port );
     }
 }

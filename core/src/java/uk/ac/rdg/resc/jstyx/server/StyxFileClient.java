@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
-import net.gleamynode.netty2.Session;
+import org.apache.mina.protocol.ProtocolSession;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
@@ -40,14 +40,20 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:33  jonblower
- * Initial revision
+ * Revision 1.2  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.1.1.1.2.1  2005/03/09 19:44:18  jonblower
+ * Changes concerned with migration to MINA
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:33  jonblower
+ * Initial import
  *
  */
 public class StyxFileClient
 {
     
-    private Session session;       // The connection that the client sits on
+    private ProtocolSession session;  // The connection that the client sits on
     private long fid;              // The client's identifier for the file
     
     private boolean truncate;      // true if the client wants to truncate the file
@@ -71,7 +77,7 @@ public class StyxFileClient
      * @param mode the file mode as it appears in the TopenMessage (including
      * the OTRUNC and ORCLOSE bits)
      */
-    public StyxFileClient(Session session, long fid, int mode)
+    public StyxFileClient(ProtocolSession session, long fid, int mode)
     {
         this.session = session;
         this.fid = fid;
@@ -88,7 +94,7 @@ public class StyxFileClient
         this.nextFileToRead = 0;
     }
     
-    public Session getSession()
+    public ProtocolSession getSession()
     {
         return this.session;
     }

@@ -40,6 +40,15 @@ import uk.ac.rdg.resc.jstyx.server.StyxServer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/11 14:00:29  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.1.2.2  2005/03/11 08:31:50  jonblower
+ * Change to default port number
+ *
+ * Revision 1.1.2.1  2005/03/10 11:53:54  jonblower
+ * Modified for MINA framework
+ *
  * Revision 1.1  2005/02/28 16:17:35  jonblower
  * Initial import of TestServer
  *

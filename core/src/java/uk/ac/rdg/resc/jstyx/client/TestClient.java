@@ -5,8 +5,7 @@ import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Hashtable;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.types.*;
@@ -19,7 +18,8 @@ import uk.ac.rdg.resc.jstyx.client.*;
  */
 public class TestClient extends CStyxFileChangeAdapter
 {
-    private static final Log log = LogFactory.getLog(TestClient.class);
+    private static final Logger log = Logger.getLogger(TestClient.class);
+    
     private static final String HOSTNAME = "localhost";
     private static final int PORT = 7777;
     

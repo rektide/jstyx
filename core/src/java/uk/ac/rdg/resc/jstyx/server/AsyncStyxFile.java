@@ -34,8 +34,6 @@ import java.util.Vector;
 import java.util.Enumeration;
 import java.util.Iterator;
 
-import net.gleamynode.netty2.Session;
-
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.server.StyxSessionState;
 import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
@@ -50,8 +48,14 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:31  jonblower
- * Initial revision
+ * Revision 1.2  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.1.1.1.2.1  2005/03/09 19:44:18  jonblower
+ * Changes concerned with migration to MINA
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:31  jonblower
+ * Initial import
  *
  */
 public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
@@ -189,7 +193,7 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
                         // We have to deal with the StyxException here and send an
                         // error message back to the client
                         RerrorMessage rErrMsg = new RerrorMessage(se.getMessage());
-                        StyxServerSessionListener.reply(cinfo.client.getSession(),
+                        StyxServerProtocolHandler.reply(cinfo.client.getSession(),
                             rErrMsg, cinfo.tag);
                     }
                     it.remove();

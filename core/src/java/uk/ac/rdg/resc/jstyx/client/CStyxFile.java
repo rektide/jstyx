@@ -28,9 +28,6 @@
 
 package uk.ac.rdg.resc.jstyx.client;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.nio.ByteBuffer;
 import java.util.Vector;
 import java.util.Iterator;
@@ -38,7 +35,6 @@ import java.util.Date;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
 
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.types.ULong;
@@ -56,6 +52,18 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/03/11 13:58:25  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.7.2.3  2005/03/11 12:30:29  jonblower
+ * Changed so that message payloads are always ints, not longs
+ *
+ * Revision 1.7.2.2  2005/03/10 20:54:57  jonblower
+ * Removed references to Netty
+ *
+ * Revision 1.7.2.1  2005/03/10 11:49:17  jonblower
+ * Removed unneeded reference to StyxBuffer
+ *
  * Revision 1.7  2005/03/07 08:29:18  jonblower
  * Minor changes (better handling of path building)
  *
@@ -81,7 +89,7 @@ import uk.ac.rdg.resc.jstyx.messages.*;
 public class CStyxFile extends MessageCallback
 {
     
-    private static final Log log = LogFactory.getLog(CStyxFile.class);
+    //private static final Log log = LogFactory.getLog(CStyxFile.class);
     
     private StyxConnection conn; // The connection on which the file sits
     private String path;         // The path of the file relative to the
@@ -405,8 +413,8 @@ public class CStyxFile extends MessageCallback
             else
             {
                 // Shouldn't happen
-                log.error("Illegal state: got Rwalk when both fid" +
-                    " and openFid are set");
+                //log.error("Illegal state: got Rwalk when both fid" +
+                //    " and openFid are set");
             }
         }
     }
@@ -828,7 +836,7 @@ public class CStyxFile extends MessageCallback
      * @return The number of bytes written to the file
      * @throws StyxException if there is an error writing to the file
      */
-    public long write(ByteBuffer buf, long offset, long count) throws StyxException
+    public long write(ByteBuffer buf, long offset, int count) throws StyxException
     {
         StyxReplyCallback callback = new StyxReplyCallback();
         this.writeAsync(buf, offset, count, callback);
@@ -882,7 +890,7 @@ public class CStyxFile extends MessageCallback
      * @param callback The replyArrived() method of this callback object will be
      * called when the write confirmation arrives
      */
-    private void writeAsync(ByteBuffer buf, long offset, long count,
+    private void writeAsync(ByteBuffer buf, long offset, int count,
         MessageCallback callback)
     {
         if (this.mode < 0)
@@ -970,8 +978,8 @@ public class CStyxFile extends MessageCallback
     {
         private ByteBuffer buf;
         private long offset;
-        private long count;
-        public WriteContents(ByteBuffer buf, long offset, long count)
+        private int count;
+        public WriteContents(ByteBuffer buf, long offset, int count)
         {
             this.buf = buf;
             this.offset = offset;
@@ -1165,7 +1173,7 @@ public class CStyxFile extends MessageCallback
         else
         {
             // TODO: do something more useful here?
-            log.error("Internal error: got message that isn't a Rread or Rwrite");
+            //log.error("Internal error: got message that isn't a Rread or Rwrite");
         }
     }
     

@@ -28,63 +28,52 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
+import org.apache.mina.protocol.ProtocolCodecFactory;
+import org.apache.mina.protocol.ProtocolDecoder;
+import org.apache.mina.protocol.ProtocolEncoder;
+
 /**
- * Response to a TremoveMessage to delete a file
+ * Codec Factory for the Styx protocol. Only has one static method (getInstance())
+ * for returning the appropriate ProtocolCodecFactory. Used by all ProtocolHandlers.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.3  2005/03/11 14:02:15  jonblower
+ * Revision 1.2  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
- * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
- * Changed to fit with MINA framework
- *
- * Revision 1.2  2005/02/24 07:44:43  jonblower
- * Added getFriendlyString()
- *
- * Revision 1.1.1.1  2005/02/16 18:58:27  jonblower
+ * Revision 1.1.2.1  2005/03/10 18:27:25  jonblower
  * Initial import
  *
  */
-public class RremoveMessage extends StyxMessage
+public class StyxCodecFactory
 {
     /**
-     * Creates a new RremoveMessage 
-     * @param length The total length of the message (including all header info)
-     * @param type The type of the message (a number between 100 and 127)
-     * @param tag The tag that identifies this message
+     * Singleton object - only one instance is ever needed
      */
-    public RremoveMessage(int length, int type, int tag)
+    private static ProtocolCodecFactory CODEC_FACTORY = new ProtocolCodecFactory()
     {
-        super(length, type, tag);
-        this.name = "Rremove";
-    }
+        public ProtocolEncoder newEncoder()
+        {
+            // Create a new encoder.
+            return new StyxMessageEncoder();
+        }
+        
+        public ProtocolDecoder newDecoder()
+        {
+            // Create a new decoder.
+            return new StyxMessageDecoder();
+        }
+    };
     
-    public RremoveMessage()
+    /**
+     * @return a ProtocolCodecFactory for the Styx protocol (always the same
+     * object)
+     */
+    public static ProtocolCodecFactory getInstance()
     {
-        this(7, 123, 0);
-    }
-    
-    protected final void decodeBody(StyxBuffer buf)
-    {     
-        return;
-    }
-    
-    protected final void encodeBody(StyxBuffer buf)
-    {
-        return;
-    }
-    
-    protected String getElements()
-    {
-        return "";
-    }
-    
-    public String toFriendlyString()
-    {
-        return "(file removed)";
+        return CODEC_FACTORY;
     }
     
 }

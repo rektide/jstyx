@@ -28,9 +28,6 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import net.gleamynode.netty2.MessageParseException;
-
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
@@ -40,6 +37,15 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:15  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
+ * Changed to fit with MINA framework
+ *
+ * Revision 1.1  2005/03/09 16:58:42  jonblower
+ * Changes to MINA-related classes
+ *
  * Revision 1.2  2005/02/24 07:44:43  jonblower
  * Added getFriendlyString()
  *
@@ -56,13 +62,12 @@ public class TattachMessage extends StyxMessage
     private String aname; // The file tree that the user wishes to access
     
     /** 
-     * Creates a new TattachMessage. This constructor will be called by the
-     * MessageRecognizer.
+     * Creates a new TattachMessage.
      * @param length The total length of the message (including all header info)
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TattachMessage(long length, int type, int tag)
+    public TattachMessage(int length, int type, int tag)
     {
         super(length, type, tag);
         this.name = "Tattach";
@@ -79,7 +84,7 @@ public class TattachMessage extends StyxMessage
         int unameLen = StyxUtils.strToUTF8(uname).length;
         int anameLen = StyxUtils.strToUTF8(aname).length;
         // Set the length of the message
-        this.length = super.HEADER_LENGTH + 4 + 4 + 2 + unameLen + 2 + anameLen;
+        this.length = StyxUtils.HEADER_LENGTH + 4 + 4 + 2 + unameLen + 2 + anameLen;
     }
     
     public TattachMessage(long fid, String uname)
@@ -87,19 +92,17 @@ public class TattachMessage extends StyxMessage
         this(fid, StyxUtils.NOFID, uname, "");
     }
     
-    protected final boolean readBody(StyxBuffer buf) throws MessageParseException
+    protected final void decodeBody(StyxBuffer buf)
     {
         this.fid = buf.getUInt();
         this.afid = buf.getUInt();
         this.uname = buf.getString();
         this.aname = buf.getString();
-        return true;
     }
     
-    protected final boolean writeBody(StyxBuffer buf)
+    protected final void encodeBody(StyxBuffer buf)
     {
         buf.putUInt(this.fid).putUInt(this.afid).putString(this.uname).putString(this.aname);
-        return true;
     }
     
     protected String getElements()

@@ -33,17 +33,18 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import net.gleamynode.netty2.IoProcessor;
-
 /**
  * Set of constants and useful static methods for the Styx protocol
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/03/11 13:58:24  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.3.2.1  2005/03/10 20:54:55  jonblower
+ * Removed references to Netty
+ *
  * Revision 1.3  2005/03/09 16:59:51  jonblower
  * Added HEADER_LENGTH
  *
@@ -56,7 +57,7 @@ import net.gleamynode.netty2.IoProcessor;
  */
 public class StyxUtils
 {
-    private static final Log log = LogFactory.getLog(StyxUtils.class);
+    //private static final Log log = LogFactory.getLog(StyxUtils.class);
     
     // The header length of a StyxMessage
     public static final int HEADER_LENGTH = 7;
@@ -97,21 +98,6 @@ public class StyxUtils
     public static String NEWLINE = "\n"; // Newline is character 10 on Inferno
     public static String SYSTEM_NEWLINE = System.getProperty("line.separator"); // The newline character on the host OS
     public static String SYSTEM_FILE_SEPARATOR = System.getProperty("file.separator");
-    
-    // We share the IoProcessor and EventDispatcher between connections;
-    // there is only one of each of these objects per JVM
-    private static IoProcessor ioProcessor;
-    private static final int DISPATCHER_THREAD_POOL_SIZE = 16;
-    private static int numIoProcessors;
-    private static int numEventDispatchers;
-    
-    static
-    {
-        // Initialise the ioProcessor and eventDispatcher
-        //log.info("Initialising ioProcessor and eventDispatcher");
-        ioProcessor = new IoProcessor();
-        numIoProcessors = 0; // The number of times we have returned an IoProcessor
-    }
     
     /**
      * Converts a string to a byte array in UTF-8
@@ -226,48 +212,6 @@ public class StyxUtils
     {
         // TODO: use rounding instead of integer truncation? Does it really matter?
         return System.currentTimeMillis() / 1000;
-    }
-    
-    /**
-     * Gets the IoProcessor for the system - always returns the same object, 
-     * which can be shared between connections.  The IoProcessor is started
-     * within this method.
-     * @throws IOException if the IoProcessor could not be started
-     */
-    public static IoProcessor getIoProcessor() throws IOException
-    {
-        synchronized(ioProcessor)
-        {
-            if (numIoProcessors == 0)
-            {
-                //log.info("Starting ioProcessor");
-                ioProcessor.start();
-            }
-            numIoProcessors++;
-            //log.info("Number of references to ioProcessor: " + numIoProcessors);
-            return ioProcessor;
-        }
-    }
-    
-    /**
-     * Stops the IoProcessor. Actually this just decrements the count of active
-     * references to the IoProcessor.  The IoProcessor will only be stopped when
-     * the count reaches zero.
-     */
-    public static void stopIoProcessor()
-    {
-        synchronized(ioProcessor)
-        {
-            numIoProcessors--;
-            // TODO: should be debug-level logging
-            //log.info("Number of references to ioProcessor: " + numIoProcessors);
-            if (numIoProcessors <= 0)
-            {
-                // numIoProcessors should not be <0 but this is defensive
-                //log.info("Stopping ioProcessor");
-                ioProcessor.stop();
-            }
-        }
     }
     
 }

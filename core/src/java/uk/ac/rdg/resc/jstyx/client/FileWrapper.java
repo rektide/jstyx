@@ -34,8 +34,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.StyxException;
@@ -48,13 +47,19 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/11 13:58:25  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.1.2.1  2005/03/11 08:29:52  jonblower
+ * Moved to log4j logging system (from apache commons logging)
+ *
  * Revision 1.1  2005/03/07 08:27:51  jonblower
  * Initial import
  *
  */
 public class FileWrapper extends File
 {
-    private static final Log log = LogFactory.getLog(FileWrapper.class);
+    private static final Logger log = Logger.getLogger(FileWrapper.class);
     
     private CStyxFile file;
     

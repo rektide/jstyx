@@ -28,9 +28,6 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import net.gleamynode.netty2.MessageParseException;
-
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 import java.util.Vector;
@@ -42,6 +39,12 @@ import java.util.Vector;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
+ * Changed to fit with MINA framework
+ *
  * Revision 1.2  2005/02/24 07:44:44  jonblower
  * Added getFriendlyString()
  *
@@ -63,7 +66,7 @@ public class TwalkMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TwalkMessage(long length, int type, int tag)
+    public TwalkMessage(int length, int type, int tag)
     {
         super(length, type, tag);
         this.name = "Twalk";
@@ -82,13 +85,13 @@ public class TwalkMessage extends StyxMessage
         this(0, 110, 0);
         this.fid = fid;
         this.newFid = newFid;
-        this.length = super.HEADER_LENGTH + 4 + 4 + 2; // This length will be increased
+        this.length = StyxUtils.HEADER_LENGTH + 4 + 4 + 2; // This length will be increased
                                                    // as the individual path elements
                                                    // are added by setPath()
         this.setPath(path);
     }
     
-    protected final boolean readBody(StyxBuffer buf) throws MessageParseException
+    protected final void decodeBody(StyxBuffer buf)
     {
         // Read the original fid
         this.fid = buf.getUInt();
@@ -101,10 +104,9 @@ public class TwalkMessage extends StyxMessage
         {
             this.pathElements.add(buf.getString());
         }
-        return true;
     }
     
-    protected final boolean writeBody(StyxBuffer buf)
+    protected final void encodeBody(StyxBuffer buf)
     {
         // Write the old and new fids
         buf.putUInt(this.fid).putUInt(this.newFid);
@@ -115,7 +117,6 @@ public class TwalkMessage extends StyxMessage
         {
             buf.putString((String)this.pathElements.get(i));
         }
-        return true;
     }
     
     public long getFid()

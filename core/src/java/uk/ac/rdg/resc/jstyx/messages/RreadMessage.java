@@ -30,19 +30,28 @@ package uk.ac.rdg.resc.jstyx.messages;
 
 import java.nio.ByteBuffer;
 
-import net.gleamynode.netty2.MessageParseException;
+import org.apache.mina.protocol.ProtocolViolationException;
 
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * Message returned by the server in response to a TreadMessage
+ * @todo: Use MINA's ByteBuffer
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:15  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.2  2005/03/11 12:30:45  jonblower
+ * Changed so that message payloads are always ints, not longs
+ *
+ * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
+ * Changed to fit with MINA framework
+ *
  * Revision 1.2  2005/02/24 07:44:43  jonblower
  * Added getFriendlyString()
  *
@@ -53,7 +62,7 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 public class RreadMessage extends StyxMessage
 {
     
-    private long count; // The amount of data in bytes in this message (TODO: should be an int?)
+    private int count; // The amount of data in bytes in this message (TODO: should be an int?)
     private ByteBuffer data; // The actual data
     
     /** 
@@ -62,13 +71,13 @@ public class RreadMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public RreadMessage(long length, int type, int tag)
+    public RreadMessage(int length, int type, int tag)
     {
         super(length, type, tag);
         this.name = "Rread";
     }
     
-    public RreadMessage(long count, ByteBuffer data)
+    public RreadMessage(int count, ByteBuffer data)
     {
         this(0, 117, 0); // We'll set the length and tag later
         this.setData(count, data);
@@ -91,25 +100,34 @@ public class RreadMessage extends StyxMessage
         this(bytes.length, ByteBuffer.wrap(bytes));
     }
     
-    protected final boolean readBody(StyxBuffer buf) throws MessageParseException
+    /**
+     * @throws ProtocolViolationException if the payload of the message is more
+     * than Integer.MAX_VALUE
+     */
+    protected final void decodeBody(StyxBuffer buf)
+        throws ProtocolViolationException
     {
-        this.count = buf.getUInt();
-        this.data = ByteBuffer.wrap(buf.getData((int)this.count));
-        return true;
+        long n = buf.getUInt();
+        if (n < 0 || n > Integer.MAX_VALUE)
+        {
+            throw new ProtocolViolationException("Payload of Rread message " +
+                "cannot be less than 0 or greater than Integer.MAX_VALUE bytes");
+        }
+        this.count = (int)n; // We know this cast must be safe
+        this.data = ByteBuffer.wrap(buf.getData(this.count));
     }
     
-    protected final boolean writeBody(StyxBuffer buf)
+    protected final void encodeBody(StyxBuffer buf)
     {
         // Return some of the contents of the file
         buf.putUInt(this.count).putData(this.data, this.count);
-        return true;
     }
 
     /**
      * Sets the data and the number of bytes to add to the message
      * @throws IllegalArgumentException if data.remaining() < count
      */
-    private void setData(long count, ByteBuffer data)
+    private void setData(int count, ByteBuffer data)
     {
         if (data.remaining() < count)
         {
@@ -118,7 +136,7 @@ public class RreadMessage extends StyxMessage
         }
         this.count = count;
         this.data = data;
-        this.length = super.HEADER_LENGTH + 4 + this.count;
+        this.length = StyxUtils.HEADER_LENGTH + 4 + this.count;
     }
     
     /**
@@ -130,9 +148,9 @@ public class RreadMessage extends StyxMessage
     }
     
     /**
-     * @return the number of bytes returned in the message
+     * @return the number of bytes returned in the message (i.e. the payload size)
      */
-    public long getCount()
+    public int getCount()
     {
         return this.count;
     }

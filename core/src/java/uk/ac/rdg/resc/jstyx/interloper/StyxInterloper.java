@@ -28,20 +28,10 @@
 
 package uk.ac.rdg.resc.jstyx.interloper;
 
-import net.gleamynode.netty2.IoProcessor;
-import net.gleamynode.netty2.MessageRecognizer;
-import net.gleamynode.netty2.OrderedEventDispatcher;
-import net.gleamynode.netty2.SessionServer;
-import net.gleamynode.netty2.ThreadPooledEventDispatcher;
-
 import uk.ac.rdg.resc.jstyx.StyxException;
-import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
 import uk.ac.rdg.resc.jstyx.server.StyxServer;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import java.net.InetSocketAddress;
 import java.io.IOException;
@@ -57,6 +47,15 @@ import java.io.IOException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/11 14:01:59  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.5.2.2  2005/03/10 20:55:37  jonblower
+ * Removed references to Netty
+ *
+ * Revision 1.5.2.1  2005/03/10 14:31:48  jonblower
+ * Modified for MINA framework
+ *
  * Revision 1.5  2005/02/28 12:08:18  jonblower
  * Tidied up interaction between StyxInterloper and StyxMon
  *
@@ -66,8 +65,6 @@ import java.io.IOException;
  */
 public class StyxInterloper implements InterloperListener
 {
-    
-    private static final Log log = LogFactory.getLog(StyxInterloper.class);
     
     protected int port;
     protected InetSocketAddress destSockAddr;
@@ -86,7 +83,7 @@ public class StyxInterloper implements InterloperListener
         this.port = port;
         InetSocketAddress destSockAddr = new InetSocketAddress(serverHost, serverPort);
         this.styxServer = new StyxServer(port,
-            new StyxInterloperServerSessionListener(destSockAddr, this));
+            new StyxInterloperProtocolProvider(destSockAddr, this));
         this.styxServer.start();
     }
     
@@ -94,19 +91,13 @@ public class StyxInterloper implements InterloperListener
      * Called when a Tmessage arrives from a client. Does nothing here (the
      * message will already have been logged)
      */
-    public void tMessageReceived(StyxMessage message)
-    {
-        
-    }
+    public void tMessageReceived(StyxMessage message) {}
     
     /**
      * Called when an Rmessage has been sent back to the client. Does nothing
      * here (the message will already have been logged)
      */
-    public void rMessageSent(StyxMessage message)
-    {
-        
-    }
+    public void rMessageSent(StyxMessage message) {}
     
     public static void main (String[] args)
     {

@@ -36,8 +36,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
-import net.gleamynode.netty2.Session;
-
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.types.ULong;
 
@@ -51,8 +49,14 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:31  jonblower
- * Initial revision
+ * Revision 1.2  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.1.1.1.2.1  2005/03/10 20:55:37  jonblower
+ * Removed references to Netty
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:31  jonblower
+ * Initial import
  *
  */
 public class FileOnDisk extends StyxFile

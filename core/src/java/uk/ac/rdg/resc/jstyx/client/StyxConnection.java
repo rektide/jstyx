@@ -36,15 +36,18 @@ import java.util.Hashtable;
 import java.util.Vector;
 import java.util.Iterator;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.mina.io.IoHandlerFilter;
+import org.apache.mina.io.filter.IoThreadPoolFilter;
+import org.apache.mina.io.socket.SocketConnector;
+import org.apache.mina.protocol.ProtocolHandler;
+import org.apache.mina.protocol.ProtocolHandlerFilter;
+import org.apache.mina.protocol.ProtocolProvider;
+import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.protocol.filter.ProtocolThreadPoolFilter;
+import org.apache.mina.protocol.io.IoProtocolConnector;
+import org.apache.mina.common.IdleStatus;
 
-import net.gleamynode.netty2.Session;
-import net.gleamynode.netty2.SessionLog;
-import net.gleamynode.netty2.SessionListener;
-import net.gleamynode.netty2.Message;
-import net.gleamynode.netty2.OrderedEventDispatcher;
-import net.gleamynode.netty2.ThreadPooledEventDispatcher;
+import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.messages.TversionMessage;
@@ -56,7 +59,6 @@ import uk.ac.rdg.resc.jstyx.messages.RclunkMessage;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
-import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
 
 /**
  * Object representing a client connection to a Styx server.
@@ -69,6 +71,15 @@ import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/03/11 13:58:25  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.5.2.2  2005/03/11 08:29:52  jonblower
+ * Moved to log4j logging system (from apache commons logging)
+ *
+ * Revision 1.5.2.1  2005/03/10 11:48:30  jonblower
+ * Updated to fit in with MINA framework
+ *
  * Revision 1.5  2005/02/28 11:43:36  jonblower
  * Tidied up logging code
  *
@@ -85,10 +96,10 @@ import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
  * Initial import
  *
  */
-public class StyxConnection extends Session implements SessionListener
+public class StyxConnection implements ProtocolHandler
 {
     
-    private static final Log log = LogFactory.getLog(StyxConnection.class);
+    private static final Logger log = Logger.getLogger(StyxConnection.class);
     
     private String host; // The host and port to which this is connected
     private int port;
@@ -113,10 +124,11 @@ public class StyxConnection extends Session implements SessionListener
     
     private Vector listeners;     // The StyxConnectionListeners that will be informed of events
     
-    private ThreadPooledEventDispatcher eventDispatcher;
+    // MINA components
+    private ProtocolSession session;
+    private IoThreadPoolFilter ioThreadPoolFilter;
+    private ProtocolThreadPoolFilter protocolThreadPoolFilter;
     
-    private static StyxMessageRecognizer recognizer = 
-        new StyxMessageRecognizer(StyxMessageRecognizer.CLIENT_MODE);
     private static Integer numSessions = new Integer(0); // The number of sessions that have been opened
                                                          // This is an Integer object so we can use it as a lock
     private static final int CONNECT_TIMEOUT = 30; // seconds
@@ -138,16 +150,6 @@ public class StyxConnection extends Session implements SessionListener
         this.connected = false;
         this.errMsg = null;
         this.unsentMessages = new Vector();
-        this.setSocketAddress(new InetSocketAddress(host, port));
-        this.setMessageRecognizer(recognizer);
-        // Create a new eventDispatcher for each connection
-        this.eventDispatcher = new OrderedEventDispatcher();
-        this.eventDispatcher.setThreadPoolSize(DISPATCHER_THREAD_POOL_SIZE);
-        this.setEventDispatcher(this.eventDispatcher);
-        
-        this.getConfig().setConnectTimeout(CONNECT_TIMEOUT);
-        this.addSessionListener(this);
-        
         this.rootFid = 0;
         this.rootDirectory = new CStyxFile(this, "/", this.rootFid);
         this.tagsInUse = new Vector();
@@ -182,17 +184,37 @@ public class StyxConnection extends Session implements SessionListener
      */
     public synchronized void connectAsync() throws StyxException
     {
-        // The IoProcessor object is shared between all instances of StyxConnection.
+        this.ioThreadPoolFilter = new IoThreadPoolFilter();
+        this.protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
+
+        this.ioThreadPoolFilter.start();
+        this.protocolThreadPoolFilter.start();
+
+        IoProtocolConnector connector;
         try
         {
-            this.setIoProcessor(StyxUtils.getIoProcessor());
+            connector = new IoProtocolConnector( new SocketConnector() );
         }
         catch(IOException ioe)
         {
-            throw new StyxException("Internal error: could not start IoProcessor");
+            throw new StyxException("IOException occurred when creating IOProtocolConnector: "
+                + ioe.getMessage());
         }
-        this.eventDispatcher.start();
-        this.start();
+        // I don't think the values of the priority constants matter much
+        connector.getIoConnector().addFilter( 99, ioThreadPoolFilter );
+        connector.addFilter( 99,  protocolThreadPoolFilter );
+        
+        ProtocolProvider protocolProvider = new StyxClientProtocolProvider(this);
+        
+        try
+        {
+            this.session = connector.connect( new InetSocketAddress( this.host,
+                this.port ), CONNECT_TIMEOUT, protocolProvider );
+        }
+        catch( IOException e )
+        {
+            throw new StyxException("Failed to connect: " + e.getMessage());
+        }
     }
     
     /**
@@ -245,7 +267,7 @@ public class StyxConnection extends Session implements SessionListener
      */
     public void close()
     {
-        log.debug("Closing StyxConnection");
+        //log.debug("Closing StyxConnection");
         if (this.connected)
         {
             // Start off the chain of clunking fids by clunking the last fid 
@@ -264,7 +286,7 @@ public class StyxConnection extends Session implements SessionListener
                     }
                     public void error(String message, int tag)
                     {
-                        log.error("Error clunking fid: " + message);
+                        //log.error("Error clunking fid: " + message);
                         clunkNextFid(this);
                     }
                 }
@@ -272,9 +294,9 @@ public class StyxConnection extends Session implements SessionListener
         }
         else
         {
-            log.debug("Connection was not open");
+            //log.debug("Connection was not open");
             // Make sure the threads are stopped
-            this.connectionClosed(this);
+            this.sessionClosed(this.session);
         }
     }
     
@@ -308,7 +330,7 @@ public class StyxConnection extends Session implements SessionListener
         {
             // There were no more fids left to clunk. Close the connection completely
             this.attached = false;
-            super.close();
+            this.session.close();
         }
     }
     
@@ -370,11 +392,7 @@ public class StyxConnection extends Session implements SessionListener
                 message instanceof TattachMessage)
             {
                 // Send the message
-                if (!super.write(message))
-                {
-                    // Is error the right log level? Throw an Exception?
-                    log.error("Message not sent; connection is closed");
-                }
+                this.session.write(message);
             }
             else
             {
@@ -404,9 +422,12 @@ public class StyxConnection extends Session implements SessionListener
     /**
      * Called when a reply has arrived from a Styx server
      */
-    public void messageReceived(Session session, Message message)
+    public void messageReceived( ProtocolSession session, Object message )
     {
-        SessionLog.info(log, session, "RCVD: " + message);
+        if (log.isDebugEnabled())
+        {
+            log.debug("RCVD: " + message);
+        }
         StyxMessage rMessage = (StyxMessage)message;
         
         // Get the tag of the reply
@@ -528,10 +549,10 @@ public class StyxConnection extends Session implements SessionListener
     /**
      * Called when the socket connection to the remote server has been established
      */
-    public void connectionEstablished(Session session)
+    public void sessionOpened( ProtocolSession session )
     {
         this.connected = true;
-        SessionLog.info(log, this, "Connection established.");
+        log.debug("Connection established.");
         // TODO: allow other message sizes to be used
         TversionMessage tVerMsg = new TversionMessage(8192);
         this.sendAsync(tVerMsg, new TversionCallback());
@@ -568,18 +589,22 @@ public class StyxConnection extends Session implements SessionListener
     /**
      * Called when the connection is closed
      */
-    public void connectionClosed(Session session)
+    public void sessionClosed( ProtocolSession session )
     {
         if (this.connected)
         {
-            SessionLog.info(log, this, "Connection closed.");
+            log.debug("Connection closed.");
         }
         this.connected = false;
         this.attached = false;
-        // Stop the event dispatcher
-        this.eventDispatcher.stop();
+        
+        // Stop threads
+        this.ioThreadPoolFilter.stop();
+        this.protocolThreadPoolFilter.stop();
+        
         // The synchronization ensures that the numSessions static variable
         // can only be altered by one thread at once
+        // TODO: we're not using this at the moment. Can we get rid of it?
         synchronized(numSessions)
         {
             numSessions = new Integer(numSessions.intValue() - 1);
@@ -587,17 +612,18 @@ public class StyxConnection extends Session implements SessionListener
             {
                 // If this is the last session that has been closed, request that
                 // the IoProcessor thread stopped.
-                StyxUtils.stopIoProcessor();
+                // TODO: what do we do here in MINA?
+                // StyxUtils.stopIoProcessor();
             }
         }
         this.fireStyxConnectionClosed();
     }
     
     /**
-     * Called when an exception is caught by Netty; fires the connectError()
+     * Called when an exception is caught by MINA; fires the connectError()
      * event on all registered listeners and closes the connection.
      */
-    public void exceptionCaught(Session session, Throwable cause)
+    public void exceptionCaught( ProtocolSession session, Throwable cause )
     {
         this.fireStyxConnectionError(cause.getClass().getName() + ":" +
             cause.getMessage());
@@ -701,7 +727,7 @@ public class StyxConnection extends Session implements SessionListener
             {
                 StyxMessage message = (StyxMessage)it.next();
                 log.debug("Sending message now connection is ready");
-                super.write(message);
+                this.session.write(message);
                 it.remove();
             }
         }
@@ -735,7 +761,7 @@ public class StyxConnection extends Session implements SessionListener
         {
             this.notifyAll();
         }
-        log.info("***** ERROR OCCURRED ON CONNECTION TO " + this.host +
+        log.error("***** ERROR OCCURRED ON CONNECTION TO " + this.host +
             ":" + this.port + " (" + message + ") *****");
         synchronized(this.listeners)
         {
@@ -764,17 +790,20 @@ public class StyxConnection extends Session implements SessionListener
     }
     
     /**
-     * Called by Netty when a message has been sent
+     * Called by MINA when a message has been sent
      */
-    public void messageSent(Session session, Message message)
+    public void messageSent( ProtocolSession session, Object message )
     {
-        SessionLog.info(log, session, "SENT: " + message);
+        if (log.isDebugEnabled())
+        {
+            log.debug("SENT: " + message);
+        }
     }
     
     /**
-     * Required by the SessionListener interface. Does nothing in this class.
+     * Required by the ProtocolHandler interface. Does nothing in this class.
      */
-    public void sessionIdle(Session session)
+    public void sessionIdle( ProtocolSession session, IdleStatus status )
     {
         return;
     }

@@ -28,9 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import net.gleamynode.netty2.MessageParseException;
-
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 
 /**
@@ -41,6 +39,12 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
+ * Changed to fit with MINA framework
+ *
  * Revision 1.2  2005/02/24 07:44:44  jonblower
  * Added getFriendlyString()
  *
@@ -61,7 +65,7 @@ public class TwstatMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TwstatMessage(long length, int type, int tag)
+    public TwstatMessage(int length, int type, int tag)
     {
         super(length, type, tag);
         this.name = "Twstat";
@@ -73,21 +77,19 @@ public class TwstatMessage extends StyxMessage
         this.fid = fid;
         this.dirEntry = dirEntry;
         // Set the length of the message
-        this.length = super.HEADER_LENGTH + 4 + 2 + this.dirEntry.getSize();
+        this.length = StyxUtils.HEADER_LENGTH + 4 + 2 + this.dirEntry.getSize();
     }
         
-    protected final boolean readBody(StyxBuffer buf) throws MessageParseException
+    protected final void decodeBody(StyxBuffer buf)
     {
         this.fid = buf.getUInt();
         int sizeOfDirEntry = buf.getUShort(); // size of DirEntry, ignored
         this.dirEntry = buf.getDirEntry();
-        return true;
     }
     
-    protected final boolean writeBody(StyxBuffer buf)
+    protected final void encodeBody(StyxBuffer buf)
     {
         buf.putUInt(this.fid).putUShort(this.dirEntry.getSize()).putDirEntry(this.dirEntry);
-        return true;
     }
     
     public long getFid()

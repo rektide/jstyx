@@ -26,65 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.jstyx.messages;
+package uk.ac.rdg.resc.jstyx.client;
+
+import org.apache.mina.protocol.ProtocolCodecFactory;
+import org.apache.mina.protocol.ProtocolHandler;
+import org.apache.mina.protocol.ProtocolProvider;
+
+import uk.ac.rdg.resc.jstyx.messages.StyxCodecFactory;
+import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
+import uk.ac.rdg.resc.jstyx.server.StyxServerProtocolHandler;
 
 /**
- * Response to a TremoveMessage to delete a file
+ * Protocol provider for Styx client (i.e. a StyxConnection), used by MINA framework
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.3  2005/03/11 14:02:15  jonblower
+ * Revision 1.2  2005/03/11 13:58:25  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
- * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
- * Changed to fit with MINA framework
+ * Revision 1.1.2.2  2005/03/10 18:29:41  jonblower
+ * Changed to use StyxCodecFactory
  *
- * Revision 1.2  2005/02/24 07:44:43  jonblower
- * Added getFriendlyString()
- *
- * Revision 1.1.1.1  2005/02/16 18:58:27  jonblower
+ * Revision 1.1.2.1  2005/03/10 11:48:09  jonblower
  * Initial import
  *
  */
-public class RremoveMessage extends StyxMessage
+public class StyxClientProtocolProvider implements ProtocolProvider
 {
-    /**
-     * Creates a new RremoveMessage 
-     * @param length The total length of the message (including all header info)
-     * @param type The type of the message (a number between 100 and 127)
-     * @param tag The tag that identifies this message
-     */
-    public RremoveMessage(int length, int type, int tag)
+    
+    StyxConnection conn;
+    
+    public StyxClientProtocolProvider(StyxConnection conn)
     {
-        super(length, type, tag);
-        this.name = "Rremove";
+        this.conn = conn;
     }
     
-    public RremoveMessage()
+    public ProtocolCodecFactory getCodecFactory()
     {
-        this(7, 123, 0);
+        return StyxCodecFactory.getInstance();
     }
     
-    protected final void decodeBody(StyxBuffer buf)
-    {     
-        return;
-    }
-    
-    protected final void encodeBody(StyxBuffer buf)
+    public ProtocolHandler getHandler()
     {
-        return;
-    }
-    
-    protected String getElements()
-    {
-        return "";
-    }
-    
-    public String toFriendlyString()
-    {
-        return "(file removed)";
+        // The ProtocolHandler is the StyxConnection itself
+        return this.conn;
     }
     
 }
+

@@ -28,9 +28,6 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import net.gleamynode.netty2.MessageParseException;
-
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
@@ -40,6 +37,12 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:15  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
+ * Changed to fit with MINA framework
+ *
  * Revision 1.2  2005/02/24 07:44:43  jonblower
  * Added getFriendlyString()
  *
@@ -65,7 +68,7 @@ public class TcreateMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TcreateMessage(long length, int type, int tag)
+    public TcreateMessage(int length, int type, int tag)
     {
         super(length, type, tag);
         this.name = "Tcreate";
@@ -82,7 +85,7 @@ public class TcreateMessage extends StyxMessage
         // Get the length of the name string
         int nameLen = StyxUtils.strToUTF8(name).length;
         // Set the length of the message
-        this.length = super.HEADER_LENGTH + 4 + 2 + nameLen + 4 + 1;
+        this.length = StyxUtils.HEADER_LENGTH + 4 + 2 + nameLen + 4 + 1;
     }
     
     /**
@@ -111,19 +114,17 @@ public class TcreateMessage extends StyxMessage
         }
     }
     
-    protected final boolean readBody(StyxBuffer buf) throws MessageParseException
+    protected final void decodeBody(StyxBuffer buf)
     {
         this.fid = buf.getUInt();
         this.fileName = buf.getString();
         this.perm = buf.getUInt();
         this.mode = buf.getUByte();
-        return true;
     }
     
-    protected final boolean writeBody(StyxBuffer buf)
+    protected final void encodeBody(StyxBuffer buf)
     {
         buf.putUInt(this.fid).putString(this.name).putUInt(this.perm).putUByte(this.mode);
-        return true;
     }
     
     public long getFid()

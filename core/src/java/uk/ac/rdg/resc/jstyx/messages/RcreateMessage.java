@@ -28,9 +28,6 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import net.gleamynode.netty2.MessageParseException;
-
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
 import uk.ac.rdg.resc.jstyx.types.Qid;
 
 /**
@@ -40,6 +37,12 @@ import uk.ac.rdg.resc.jstyx.types.Qid;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:15  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
+ * Changed to fit with MINA framework
+ *
  * Revision 1.2  2005/02/24 07:44:43  jonblower
  * Added getFriendlyString()
  *
@@ -61,7 +64,7 @@ public class RcreateMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public RcreateMessage(long length, int type, int tag)
+    public RcreateMessage(int length, int type, int tag)
     {
         super(length, type, tag);
         this.name = "Rcreate";
@@ -74,17 +77,15 @@ public class RcreateMessage extends StyxMessage
         this.ioUnit = ioUnit;
     }
     
-    protected final boolean readBody(StyxBuffer buf) throws MessageParseException
+    protected final void decodeBody(StyxBuffer buf)
     {
         this.qid = buf.getQid();  
         this.ioUnit = buf.getUInt();
-        return true;
     }
     
-    protected final boolean writeBody(StyxBuffer buf)
+    protected final void encodeBody(StyxBuffer buf)
     {
         buf.putQid(this.qid).putUInt(this.ioUnit);
-        return true;
     }
 
     public Qid getQid()

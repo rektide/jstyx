@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
-import net.gleamynode.netty2.Session;
+import org.apache.mina.protocol.ProtocolSession;
 
 import java.nio.ByteBuffer;
 import java.util.Date;
@@ -38,7 +38,6 @@ import java.util.Enumeration;
 import uk.ac.rdg.resc.jstyx.messages.RreadMessage;
 import uk.ac.rdg.resc.jstyx.messages.RwriteMessage;
 
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
@@ -57,6 +56,15 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.2  2005/03/10 11:53:54  jonblower
+ * Modified for MINA framework
+ *
+ * Revision 1.2.2.1  2005/03/09 19:44:18  jonblower
+ * Changes concerned with migration to MINA
+ *
  * Revision 1.2  2005/03/01 13:47:43  jonblower
  * Changed default user and group to 'user' and 'group'
  *
@@ -495,7 +503,7 @@ public abstract class StyxFile
      * Gets the StyxFileClient associated with the given Session and fid, or null
      * if client does not exist
      */
-    public StyxFileClient getClient(Session session, long fid)
+    public StyxFileClient getClient(ProtocolSession session, long fid)
     {
         synchronized (this.clients)
         {
@@ -540,7 +548,7 @@ public abstract class StyxFile
             for (int i = 0; i < this.clients.size(); i++)
             {
                 StyxFileClient client = (StyxFileClient)this.clients.get(i);
-                Session session = client.getSession();
+                ProtocolSession session = client.getSession();
                 if (session == null || !session.isConnected())
                 {
                     this.removeClient(client);
@@ -600,7 +608,7 @@ public abstract class StyxFile
      */
     protected void replyRead(StyxFileClient client, ByteBuffer buf, int tag)
     {
-        Session session = client.getSession();
+        ProtocolSession session = client.getSession();
         StyxSessionState sessionState = (StyxSessionState)session.getAttachment();
         synchronized (sessionState)
         {
@@ -625,7 +633,7 @@ public abstract class StyxFile
      */
     protected void replyWrite(StyxFileClient client, long count, int tag)
     {
-        Session session = client.getSession();
+        ProtocolSession session = client.getSession();
         StyxSessionState sessionState = (StyxSessionState)session.getAttachment();
         synchronized (sessionState)
         {

@@ -35,7 +35,7 @@ import java.util.Iterator;
 import uk.ac.rdg.resc.jstyx.types.ULong;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.StyxException;
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
+import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
 
 /**
  * Class representing a directory on a Styx server. One would only rarely need 
@@ -46,6 +46,12 @@ import uk.ac.rdg.resc.jstyx.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/10 11:53:54  jonblower
+ * Modified for MINA framework
+ *
  * Revision 1.2  2005/03/01 13:47:43  jonblower
  * Changed default user and group to 'user' and 'group'
  *

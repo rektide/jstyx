@@ -78,12 +78,11 @@ public class StyxFileSystemModel extends AbstractTreeTableModel
     // The the returned file length for directories.
     public static final Integer ZERO = new Integer(0);
     
-    public StyxFileSystemModel(String host, int port, String user) throws Exception
+    public StyxFileSystemModel(StyxConnection conn) throws Exception
     {
         super();
-        StyxConnection session = new StyxConnection(host, port, user);
-        session.connectAsync();
-        this.setRoot(new FileNode(session.getRootDirectory()));
+        conn.connectAsync();
+        this.setRoot(new FileNode(conn.getRootDirectory()));
     }
     
     //

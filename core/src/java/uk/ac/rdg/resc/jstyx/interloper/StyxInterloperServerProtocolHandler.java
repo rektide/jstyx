@@ -28,66 +28,81 @@
 
 package uk.ac.rdg.resc.jstyx.interloper;
 
-import net.gleamynode.netty2.Message;
-import net.gleamynode.netty2.Session;
-import net.gleamynode.netty2.SessionListener;
-import net.gleamynode.netty2.SessionLog;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.net.InetSocketAddress;
+
+import org.apache.mina.common.IdleStatus;
+import org.apache.mina.protocol.ProtocolHandler;
+import org.apache.mina.protocol.ProtocolSession;
+
+import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.messages.TversionMessage;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 
 /**
- * Session listener for the StyxInterloper server
+ * Protocol handler for the StyxInterloper server
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.2  2005/02/24 07:42:44  jonblower
- * *** empty log message ***
+ * Revision 1.2  2005/03/11 14:02:15  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.1.2.2  2005/03/11 08:30:30  jonblower
+ * Moved to log4j logging system (from apache commons logging)
+ *
+ * Revision 1.1.2.1  2005/03/10 14:30:48  jonblower
+ * Replaced SessionListeners with ProtocolHandlers
  *
  * Revision 1.1.1.1  2005/02/16 18:58:26  jonblower
  * Initial import
  *
  */
-class StyxInterloperServerSessionListener implements SessionListener
+class StyxInterloperServerProtocolHandler implements ProtocolHandler
 {
-    private static final Log log = LogFactory.getLog(StyxInterloperServerSessionListener.class);
+    private static final Logger log = Logger.getLogger(StyxInterloperServerProtocolHandler.class);
     
     private InetSocketAddress destSockAddr;
     private InterloperListener listener;
     
-    public StyxInterloperServerSessionListener(InetSocketAddress destSockAddr,
+    public StyxInterloperServerProtocolHandler(InetSocketAddress destSockAddr,
         InterloperListener listener)
     {
         this.destSockAddr = destSockAddr;
         this.listener = listener;
     }
     
-    public void connectionEstablished(Session session)
+    public void sessionOpened(ProtocolSession session )
     {
-        SessionLog.info(log, session, "Client connection established.");
+        log.info("Client connection established.");
         // Now connect to the destination server
         InterloperClient client = new InterloperClient(this.destSockAddr, session, this.listener);
-        client.start();
-        session.setAttachment(client);
+        if (client.start())
+        {
+            // client started successfully
+            session.setAttachment(client);
+        }
+        else
+        {
+            // Couldn't start the client. close the session.
+            session.close();
+        }
     }
     
-    public void connectionClosed(Session session)
+    public void sessionClosed(ProtocolSession session )
     {
-        SessionLog.info(log, session, "Client connection closed.");
+        log.info("Client connection closed.");
         InterloperClient client = (InterloperClient)session.getAttachment();
         client.stop();
     }
     
-    public synchronized void messageReceived(Session session, Message message)
+    public void messageReceived(ProtocolSession session, Object message )
     {
-        SessionLog.info(log, session, "RCVD from client: " + message);
+        if (log.isDebugEnabled())
+        {
+            log.debug("RCVD from client: " + message);
+        }
         listener.tMessageReceived((StyxMessage)message);
         
         // Make sure the message size is <= 8192 bytes (TODO: allow for message
@@ -106,23 +121,26 @@ class StyxInterloperServerSessionListener implements SessionListener
         client.send(message);
     }
     
-    public void messageSent(Session session, Message message)
+    public void messageSent( ProtocolSession session, Object message )
     {
-        SessionLog.info(log, session, "SENT to client: " + message);
+        if (log.isDebugEnabled())
+        {
+            log.debug("SENT to client: " + message);
+        }
         // We notify the InterloperListener from the StyxInterloperClientSessionListener
         // because if we did it from here, we can end up with a situation in
         // which the interloper thinks that there are more than one message
         // with the same tag outstanding
     }
     
-    public void sessionIdle(Session session)
+    public void sessionIdle( ProtocolSession session, IdleStatus status )
     {
         // Sessions are never disconnected if they are idle - is this OK?
     }
     
-    public void exceptionCaught(Session session, Throwable cause)
+    public void exceptionCaught( ProtocolSession session, Throwable cause )
     {
-        SessionLog.error(log, session, "Unexpected exception.", cause);
+        log.error(cause.getMessage());
     }
     
 }

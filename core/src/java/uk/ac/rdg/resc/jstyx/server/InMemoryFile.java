@@ -31,8 +31,6 @@ package uk.ac.rdg.resc.jstyx.server;
 import java.nio.ByteBuffer;
 import java.util.Date;
 
-import net.gleamynode.netty2.Session;
-
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.types.ULong;
@@ -45,6 +43,12 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/10 20:55:38  jonblower
+ * Removed references to Netty
+ *
  * Revision 1.2  2005/03/01 13:47:43  jonblower
  * Changed default user and group to 'user' and 'group'
  *

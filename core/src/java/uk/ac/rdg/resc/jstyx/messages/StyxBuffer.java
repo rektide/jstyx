@@ -26,11 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.jstyx;
+package uk.ac.rdg.resc.jstyx.messages;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.types.Qid;
 import uk.ac.rdg.resc.jstyx.types.ULong;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
@@ -51,6 +52,12 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.1.2.1  2005/03/10 11:35:28  jonblower
+ * Moved from JStyx root package
+ *
  * Revision 1.2  2005/03/09 17:01:23  jonblower
  * Added more methods reflecting methods in underlying ByteBuffer
  *

@@ -32,7 +32,7 @@ import java.util.Hashtable;
 import java.util.Vector;
 import java.util.Enumeration;
 
-import net.gleamynode.netty2.Session;
+import org.apache.mina.protocol.ProtocolSession;
 
 import uk.ac.rdg.resc.jstyx.types.Qid;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -46,6 +46,12 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:16  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/09 19:44:18  jonblower
+ * Changes concerned with migration to MINA
+ *
  * Revision 1.2  2005/02/24 17:52:32  jonblower
  * Constructor for StyxSessionState no longer throws StyxException
  *
@@ -55,7 +61,7 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  */
 class StyxSessionState
 {
-    private Session session;           // The Session object representing the 
+    private ProtocolSession session;   // The object representing the 
                                        // connection to the client
     private boolean versionNegotiated; // True when the version and message size
                                        // has been negotiated (i.e. after exchange
@@ -75,7 +81,7 @@ class StyxSessionState
     private static final int READ = 2;    // and should NOT be changed
     
     /** Creates a new instance of StyxSessionState */
-    public StyxSessionState(Session session)
+    public StyxSessionState(ProtocolSession session)
     {
         this.versionNegotiated = false;
         this.maxMessageSize = 0;

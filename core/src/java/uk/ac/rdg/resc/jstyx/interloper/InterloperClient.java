@@ -28,21 +28,21 @@
 
 package uk.ac.rdg.resc.jstyx.interloper;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.net.InetSocketAddress;
 import java.io.IOException;
 
-import net.gleamynode.netty2.IoProcessor;
-import net.gleamynode.netty2.MessageRecognizer;
-import net.gleamynode.netty2.OrderedEventDispatcher;
-import net.gleamynode.netty2.SessionServer;
-import net.gleamynode.netty2.ThreadPooledEventDispatcher;
-import net.gleamynode.netty2.Session;
-import net.gleamynode.netty2.Message;
+import org.apache.mina.io.IoHandlerFilter;
+import org.apache.mina.io.filter.IoThreadPoolFilter;
+import org.apache.mina.io.socket.SocketConnector;
+import org.apache.mina.protocol.ProtocolHandler;
+import org.apache.mina.protocol.ProtocolHandlerFilter;
+import org.apache.mina.protocol.ProtocolProvider;
+import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.protocol.filter.ProtocolThreadPoolFilter;
+import org.apache.mina.protocol.io.IoProtocolConnector;
 
-import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
+import org.apache.log4j.Logger;
+
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
@@ -52,8 +52,14 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.2  2005/02/24 07:42:44  jonblower
- * *** empty log message ***
+ * Revision 1.3  2005/03/11 14:01:59  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.2  2005/03/11 08:30:30  jonblower
+ * Moved to log4j logging system (from apache commons logging)
+ *
+ * Revision 1.2.2.1  2005/03/10 14:31:48  jonblower
+ * Modified for MINA framework
  *
  * Revision 1.1.1.1  2005/02/16 18:58:26  jonblower
  * Initial import
@@ -61,84 +67,79 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  */
 public class InterloperClient
 {
-    private static final Log log = LogFactory.getLog(InterloperClient.class);
-    private static final int DISPATCHER_THREAD_POOL_SIZE = 1;
+    private static final Logger log = Logger.getLogger(InterloperClient.class);
+    
     private static final int CONNECT_TIMEOUT = 30; // seconds
     
-    private IoProcessor ioProcessor;
-    private ThreadPooledEventDispatcher eventDispatcher;
-    private Session session;
-    private Session serverSession;
+    private ProtocolSession session;
+    private ProtocolSession serverSession;
+    private IoThreadPoolFilter ioThreadPoolFilter;
+    private ProtocolThreadPoolFilter protocolThreadPoolFilter;
     
     private InterloperListener listener;
     
     private InetSocketAddress sockAddress;
     
     /** Creates a new instance of InterloperClient */
-    public InterloperClient(InetSocketAddress sockAddress, Session serverSession,
-        InterloperListener listener)
+    public InterloperClient(InetSocketAddress sockAddress,
+        ProtocolSession serverSession, InterloperListener listener)
     {
         this.sockAddress = sockAddress;
         this.serverSession = serverSession;
         this.listener = listener;
     }    
     
-    public void start()
+    /**
+     * Starts the InterloperClient
+     * @return true if the client was started successfully, false otherwise
+     */
+    public boolean start()
     {
-        // initialize I/O processor and event dispatcher
-        eventDispatcher = new OrderedEventDispatcher();
-        
-        // start with the default number of I/O worker threads
+        this.ioThreadPoolFilter = new IoThreadPoolFilter();
+        this.protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
+
+        this.ioThreadPoolFilter.start();
+        this.protocolThreadPoolFilter.start();
+
+        IoProtocolConnector connector;
         try
         {
-            ioProcessor = StyxUtils.getIoProcessor(); //new IoProcessor();
+            connector = new IoProtocolConnector( new SocketConnector() );
         }
         catch(IOException ioe)
         {
-            throw new ExceptionInInitializerError(ioe);
+            log.error("IOException occurred when creating IOProtocolConnector: "
+                + ioe.getMessage());
+            return false;
         }
+        // I don't think the values of the priority constants matter much
+        connector.getIoConnector().addFilter( 99, ioThreadPoolFilter );
+        connector.addFilter( 99,  protocolThreadPoolFilter );
         
-        // start with a few event dispatcher threads
-        eventDispatcher.setThreadPoolSize(DISPATCHER_THREAD_POOL_SIZE);
-        eventDispatcher.start();
+        ProtocolProvider protocolProvider =
+            new StyxInterloperProtocolProvider(this.serverSession, this.listener);
         
-        // prepare message recognizer
-        MessageRecognizer recognizer = new StyxMessageRecognizer(StyxMessageRecognizer.CLIENT_MODE);
-        
-        // create a client session
-        session = new Session(ioProcessor, this.sockAddress, recognizer, eventDispatcher);
-        
-        // set configuration
-        session.getConfig().setConnectTimeout(CONNECT_TIMEOUT);
-        
-        // suscribe and start communication
-        StyxInterloperClientSessionListener listener = new StyxInterloperClientSessionListener(this.serverSession, this.listener);
-        session.addSessionListener(listener);
-        
-        log.info("Connecting to " + session.getSocketAddress());
-        session.start();
-        
-        // wait until the client is connected
-        while ( !listener.isConnected() )
+        try
         {
-            try
-            {
-                Thread.sleep(500);
-            }
-            catch(InterruptedException ie)
-            {
-            }
+            this.session = connector.connect( this.sockAddress, CONNECT_TIMEOUT,
+                protocolProvider );
         }
+        catch( IOException e )
+        {
+            log.error("Failed to connect: " + e.getMessage());
+            return false;
+        }
+        return true;
     }
     
     public void stop()
     {        
-        // stop I/O processor and event dispatcher
-        eventDispatcher.stop();
-        ioProcessor.stop();        
+        // stop threads
+        this.ioThreadPoolFilter.stop();
+        this.protocolThreadPoolFilter.start();
     }
     
-    public void send(Message message)
+    public void send(Object message)
     {
         session.write(message);
     }

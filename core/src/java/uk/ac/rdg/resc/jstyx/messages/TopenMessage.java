@@ -28,10 +28,6 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import net.gleamynode.netty2.MessageParseException;
-
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
-
 /**
  * Message sent to request that a Styx server checks file permissions and
  * prepare a fid for I/O
@@ -40,6 +36,12 @@ import uk.ac.rdg.resc.jstyx.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/11 14:02:15  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
+ * Changed to fit with MINA framework
+ *
  * Revision 1.2  2005/02/24 07:44:44  jonblower
  * Added getFriendlyString()
  *
@@ -60,7 +62,7 @@ public class TopenMessage extends StyxMessage
      * @param type The type of the message (a number between 100 and 127)
      * @param tag The tag that identifies this message
      */
-    public TopenMessage(long length, int type, int tag)
+    public TopenMessage(int length, int type, int tag)
     {
         super(length, type, tag);
         this.name = "Topen";
@@ -76,17 +78,15 @@ public class TopenMessage extends StyxMessage
         this.mode = mode;
     }
     
-    protected final boolean readBody(StyxBuffer buf) throws MessageParseException
+    protected final void decodeBody(StyxBuffer buf)
     {
         this.fid = buf.getUInt();
         this.mode = buf.getUByte();
-        return true;
     }
     
-    protected final boolean writeBody(StyxBuffer buf)
+    protected final void encodeBody(StyxBuffer buf)
     {
         buf.putUInt(this.fid).putUByte(this.mode);
-        return true;
     }
     
     protected String getElements()

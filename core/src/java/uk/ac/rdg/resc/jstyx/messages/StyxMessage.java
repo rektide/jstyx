@@ -28,129 +28,238 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import java.nio.ByteBuffer;
-import net.gleamynode.netty2.Message;
-import net.gleamynode.netty2.MessageParseException;
-
-import uk.ac.rdg.resc.jstyx.StyxBuffer;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
+import org.apache.mina.common.ByteBuffer;
+import org.apache.mina.protocol.ProtocolViolationException;
+
 /**
- * Base class for all Styx Messages.  Contains header information common
- * to all messages.
- * @todo Allow for message sizes > 8192. Can achieve this by returning false from
- * Message.read() and Message.write() until the message is completely read. Easiest
- * to do this by creating a buffer for each message (or getting one from a pool)
- * of the correct size, reading the message into the buffer and copying the buffer
- * to Netty's own buffers, piece by piece.
+ * Abstract superclass for all Styx messages.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.3  2005/03/01 13:47:04  jonblower
- * Set getFriendlyString() so it defaults to this.getElements()
+ * Revision 1.4  2005/03/11 14:02:15  jonblower
+ * Merged MINA-Test_20059309 into main line of development
  *
- * Revision 1.2  2005/02/24 07:44:43  jonblower
- * Added getFriendlyString()
+ * Revision 1.3.2.3  2005/03/11 12:30:46  jonblower
+ * Changed so that message payloads are always ints, not longs
  *
- * Revision 1.1.1.1  2005/02/16 18:58:28  jonblower
- * Initial import
+ * Revision 1.3.2.2  2005/03/10 14:05:26  jonblower
+ * Reinstated getFid() and getName() methods
+ *
+ * Revision 1.3.2.1  2005/03/10 11:50:59  jonblower
+ * Changed to fit with MINA framework
  *
  */
-public abstract class StyxMessage implements Message
-{    
-    public static final int HEADER_LENGTH = 7; // Length of Styx header
+public abstract class StyxMessage
+{
     
-    protected long length; // Length of the message (TODO: realistically, an int would be fine)
-    private int type;      // Type of the message (number between 100 and 127) (TODO: could be a short)
-    private int tag;       // The tag of the message
+    protected int length;  // The length of the StyxMessage (although in Styx
+                           // this is an *unsigned* int, we guarantee in
+                           // StyxMessageDecoder that we can't have messages
+                           // longer than Integer.MAX_VALUE
+    protected int type;    // The type of the StyxMessage
+    protected int tag;     // The tag of the StyxMessage
+    protected String name; // The name of the message (e.g. "Tversion")
+    private ByteBuffer buf; // Contains the bytes of the body of the
+                            // StyxMessage (i.e. not the header)
     
-    protected String name; // The name of this message type (e.g. "Rversion", "Twalk")
-    
-    private boolean headerWritten; // For a message that's being transmitted, 
-                                   // this flag is true once the header has been sent
-    private int msgStart;          // Records the start point of a message
-    
-    /** 
-     * Creates a new StyxMessage: this method will be called from 
-     * StyxMessageRecognizer when a message arrives
-     * @param length The total length of the message (including all header info)
-     * @param type The type of the message (a number between 100 and 127)
-     * @param tag The tag that identifies this message
+    /**
+     * Creates a new instance of StyxMessage.
      */
-    public StyxMessage(long length, int type, int tag)
+    protected StyxMessage(int length, int type, int tag)
     {
         this.length = length;
         this.type = type;
         this.tag = tag;
-        this.name = "StyxMessage"; // Will be overwritten by subclasses
-        this.headerWritten = false;
+        this.name = "StyxMessage"; // This will be overridden in subclasses
+        this.buf = null; // The buffer gets allocated later, when we're sure
+                         // what the message length is
     }
     
     /**
-     * Creates a new StyxMessage: this method is typically called when creating
-     * a message from scratch.
-     * @param type The type of the message (a number between 100 and 127)
+     * @return The name of this message (e.g. "Tread", "Rwalk", etc)
      */
-    public StyxMessage(int type)
+    public final String getName()
     {
-        this(0, type, 0); // The message length and the tag are figured out
-                          // automatically before the message is sent
+        return this.name;
     }
     
     /**
-     * Reads the message. Remember that by this stage, the header information
-     * (length, type, tag) has already been read, but the buffer position is at
-     * the beginning of the message.
+     * @return The total length of the StyxMessage in bytes
      */
-    public final boolean read(ByteBuffer buf) throws MessageParseException
+    public final int getLength()
     {
-        // Check that the whole message has arrived
-        if (buf.remaining() < this.length)
+        return this.length;
+    }
+    
+    /**
+     * @return The type of the message
+     */
+    public final int getType()
+    {
+        return this.type;
+    }
+    
+    /**
+     * @return The tag of the message
+     */
+    public final int getTag()
+    {
+        return this.tag;
+    }
+    
+    /**
+     * Sets the tag of the message
+     */
+    public final void setTag(int newTag)
+    {
+        this.tag = newTag;
+    }
+    
+    /**
+     * @return the buffer containing the body of this message
+     */
+    public final ByteBuffer getBuffer()
+    {
+        return this.buf;
+    }
+    
+    /**
+     * @return the fid associated with this message. This default implementation
+     * returns StyxUtils.NOFID; subclasses should override this.  This method
+     * only exists in this superclass as a convenience for the StyxMon application.
+     */
+    public long getFid()
+    {
+        return StyxUtils.NOFID;
+    }
+    
+    /**
+     * Read bytes from the given ByteBuffer into this Message. There may still
+     * be bytes remaining in the input buffer after this method has been called.
+     * @param buf The org.apache.mina.common.ByteBuffer that contains the data.
+     * @return true if we now have a complete StyxMessage, false otherwise
+     * @throws ProtocolViolationException if the bytes do not represent a valid
+     * StyxMessage
+     */
+    public final boolean readBytesFrom(ByteBuffer in)
+        throws ProtocolViolationException
+    {
+        int bodyLength = this.length - StyxUtils.HEADER_LENGTH;
+        if (bodyLength == 0)
+        {
+            // We don't need to read any bytes; this message has no body
+            return true;
+        }
+        if (this.buf == null)
+        {
+            // This is the first time we've called this method for this
+            // message. Create a buffer to hold the bytes. This buffer comes
+            // from MINA's pool
+            this.buf = ByteBuffer.allocate(bodyLength);
+        }
+        if (this.buf.position() >= bodyLength)
+        {
+            // We don't need to read any bytes; we already have the full message
+            return true;
+        }
+        
+        // Calculate the number of bytes we can read from the input buffer.
+        // We can't rely on this.buf.remaining() here because the buffer could be
+        // bigger than the message length
+        int bytesLeft = bodyLength - this.buf.position();
+        int bytesToRead = bytesLeft < in.remaining() ? bytesLeft : in.remaining();
+        
+        // Read the bytes and write to this message
+        byte[] b = new byte[bytesToRead];
+        in.get(b);
+        this.buf.put(b);
+        
+        // Return true if the buffer is now full (i.e. we have the whole message);
+        // false otherwise
+        if (this.buf.position() >= bodyLength)
+        {
+            // We now have the full message. Decode these bytes into meaningful
+            // information
+            this.decode();
+            return true;
+        }
+        else
         {
             return false;
         }
-        // We've already got the header information so we can skip these bytes
-        buf.position(buf.position() + HEADER_LENGTH);
-        // Convert the ByteBuffer into a StyxBuffer for ease of retrieval
-        // of Styx primitives
-        StyxBuffer styxBuf = new StyxBuffer(buf);
-        // Now read the message body
-        return this.readBody(styxBuf);
     }
     
-    protected abstract boolean readBody(StyxBuffer buf) throws MessageParseException;
+    /**
+     * Called when we have a complete message. Simply flips the buffer and 
+     * wraps it as a StyxBuffer to make it easy to read Styx primitives
+     */
+    private void decode() throws ProtocolViolationException
+    {
+        this.buf.flip();
+        StyxBuffer styxBuf = new StyxBuffer(this.buf.buf());
+        this.decodeBody(styxBuf);
+    }
     
     /**
-     * Write the message to the output buffer. The message length needs to be
-     * set before this is called; this is usually done automatically by the
-     * constructor and setter methods of the subclass. The message tag does not
-     * need to be set; it is set automatically by the StyxSession object
+     * Called when a complete message has arrived; signals that we are ready
+     * to interpret the raw bytes in the buffer and turn them into meaningful
+     * information.
+     * @throws ProtocolViolationException if the buffer doesn't contain a valid
+     * StyxMessage body
      */
-    public final boolean write(ByteBuffer buf)
+    protected abstract void decodeBody(StyxBuffer styxBuf)
+        throws ProtocolViolationException;
+    
+    /**
+     * Called by StyxMessageEncoder when we are about to send a message. Creates
+     * the underlying ByteBuffer, wraps it as a StyxBuffer, writes the header
+     * information, calls encodeBody() to write the body information, then 
+     * flips the buffer so that it is ready for writing to the output stream.
+     * @throws ProtocolViolationException if a problem occurred encoding the
+     * message (shouldn't happen)
+     */
+    public void encode() throws ProtocolViolationException
     {
-        // Convert the ByteBuffer into a StyxBuffer for ease of writing
-        // of Styx primitives
-        StyxBuffer styxBuf = new StyxBuffer(buf);        
-        // Now write the message body, checking that there is enough space in
-        // the buffer
-        if (buf.remaining() < this.length)
-        {
-            return false;
-        }
-        // Write the message header
+        // Make sure we have a buffer of the appropriate length
+        this.buf = ByteBuffer.allocate(this.length);
+        // Wrap the buffer as a StyxBuffer to make it easy to write Styx
+        // primitives
+        StyxBuffer styxBuf = new StyxBuffer(this.buf.buf());
         styxBuf.putUInt(this.length).putUByte(this.type).putUShort(this.tag);
-        return this.writeBody(styxBuf);
+        this.encodeBody(styxBuf);
+        this.buf.flip();
     }
     
-    protected abstract boolean writeBody(StyxBuffer buf);
+    /**
+     * Encode the body of the message into bytes in the underlying buffer
+     */
+    protected abstract void encodeBody(StyxBuffer styxBuf)
+        throws ProtocolViolationException;
     
+    /**
+     * @return String representation of this StyxMessage
+     */
     public String toString()
     {
-        return this.name + " " + this.length + ", " + this.type +
-            ", " + this.tag + this.getElements();
+        StringBuffer s = new StringBuffer(this.name);
+        s.append(": ");
+        s.append(this.length);
+        s.append(", ");
+        s.append(this.type);
+        s.append(", ");
+        s.append(this.tag);
+        s.append(this.getElements());
+        return s.toString();
     }
+    
+    /**
+     * @return the body elements of this message as a string
+     */
+    protected abstract String getElements();
     
     /**
      * @return a human-readable string that displays the contents of the message,
@@ -163,50 +272,131 @@ public abstract class StyxMessage implements Message
     }
     
     /**
-     * @return the message's tag number
+     * Static factory method for creating a StyxMessage. Called by StyxMessageDecoder
+     * when the header of a message has been decoded. Returns the appropriate
+     * subclass of StyxMessage, depending on the provided type.
+     * @param length The total length of the message (header and body)
+     * @param type The numeric code representing the message type
+     * @param tag The message tag
+     * @return A StyxMessage of the appropriate type, depending on the tag
+     * @throws ProtocolViolationException if the message is of an unknown type
      */
-    public int getTag()
+    public static StyxMessage createStyxMessage(int length, int type, int tag)
+        throws ProtocolViolationException
     {
-        return this.tag;
+        if (type == 100)
+        {
+            return new TversionMessage(length, type, tag);
+        }
+        else if (type == 101)
+        {
+            return new RversionMessage(length, type, tag);
+        }
+        else if (type == 102)
+        {
+            return new TauthMessage(length, type, tag);
+        }
+        else if (type == 103)
+        {
+            return new RauthMessage(length, type, tag);
+        }
+        else if (type == 104)
+        {
+            return new TattachMessage(length, type, tag);
+        }
+        else if (type == 105)
+        {
+            return new RattachMessage(length, type, tag);
+        }
+        // There is no message of type 106 ("Terror" doesn't exist)
+        else if (type == 107)
+        {
+            return new RerrorMessage(length, type, tag);
+        }
+        else if (type == 108)
+        {
+            return new TflushMessage(length, type, tag);
+        }
+        else if (type == 109)
+        {
+            return new RflushMessage(length, type, tag);
+        }
+        else if (type == 110)
+        {
+            return new TwalkMessage(length, type, tag);
+        }
+        else if (type == 111)
+        {
+            return new RwalkMessage(length, type, tag);
+        }
+        else if (type == 112)
+        {
+            return new TopenMessage(length, type, tag);
+        }
+        else if (type == 113)
+        {
+            return new RopenMessage(length, type, tag);
+        }
+        else if (type == 114)
+        {
+            return new TcreateMessage(length, type, tag);
+        }
+        else if (type == 115)
+        {
+            return new RcreateMessage(length, type, tag);
+        }
+        else if (type == 116)
+        {
+            return new TreadMessage(length, type, tag);
+        }
+        else if (type == 117)
+        {
+            return new RreadMessage(length, type, tag);
+        }
+        else if (type == 118)
+        {
+            return new TwriteMessage(length, type, tag);
+        }
+        else if (type == 119)
+        {
+            return new RwriteMessage(length, type, tag);
+        }
+        else if (type == 120)
+        {
+            return new TclunkMessage(length, type, tag);
+        }
+        else if (type == 121)
+        {
+            return new RclunkMessage(length, type, tag);
+        }
+        else if (type == 122)
+        {
+            return new TremoveMessage(length, type, tag);
+        }
+        else if (type == 123)
+        {
+            return new RremoveMessage(length, type, tag);
+        }
+        else if (type == 124)
+        {
+            return new TstatMessage(length, type, tag);
+        }
+        else if (type == 125)
+        {
+            return new RstatMessage(length, type, tag);
+        }
+        else if (type == 126)
+        {
+            return new TwstatMessage(length, type, tag);
+        }
+        else if (type == 127)
+        {
+            return new RwstatMessage(length, type, tag);
+        }
+        else
+        {
+            throw new ProtocolViolationException("Unknown message type " + type);
+        }
     }
     
-    /**
-     * Sets the tag of the StyxMessage (called by StyxSession.write())
-     */
-    public void setTag(int tag)
-    {
-        this.tag = tag;
-    }
-    
-    /**
-     * @return the fid of this message, or StyxUtils.NOFID if this message isn't associated
-     * with a fid (most Tmessages are). This default implementation just returns
-     * -1; subclasses will override this.
-     */
-    public long getFid()
-    {
-        return StyxUtils.NOFID;
-    }
-    
-    /**
-     * @return the type of the message as an integer
-     * @todo return this as a string for easier debugging?
-     */
-    public int getType()
-    {
-        return this.type;
-    }
-    
-    /**
-     * @return the name of this message ("Tread", "Rwstat" etc)
-     */
-    public String getName()
-    {
-        return this.name;
-    }
-    
-    /**
-     * @return the elements of this message as a string
-     */
-    protected abstract String getElements();
 }

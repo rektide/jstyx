@@ -28,61 +28,69 @@
 
 package uk.ac.rdg.resc.jstyx.interloper;
 
-import net.gleamynode.netty2.Message;
-import net.gleamynode.netty2.Session;
-import net.gleamynode.netty2.SessionListener;
-import net.gleamynode.netty2.SessionLog;
+import org.apache.mina.common.IdleStatus;
+import org.apache.mina.protocol.ProtocolHandler;
+import org.apache.mina.protocol.ProtocolSession;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 
 /**
- * Session listener for the StyxInterloperClient
+ * Protocol handler for the StyxInterloperClient
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.2  2005/02/24 07:42:44  jonblower
- * *** empty log message ***
+ * Revision 1.2  2005/03/11 14:01:59  jonblower
+ * Merged MINA-Test_20059309 into main line of development
+ *
+ * Revision 1.1.2.2  2005/03/11 08:30:30  jonblower
+ * Moved to log4j logging system (from apache commons logging)
+ *
+ * Revision 1.1.2.1  2005/03/10 14:30:48  jonblower
+ * Replaced SessionListeners with ProtocolHandlers
  *
  * Revision 1.1.1.1  2005/02/16 18:58:26  jonblower
  * Initial import
  *
  */
-class StyxInterloperClientSessionListener implements SessionListener
+class StyxInterloperClientProtocolHandler implements ProtocolHandler
 {
-    private static final Log log = LogFactory.getLog(StyxInterloperClientSessionListener.class);
+    private static final Logger log = Logger.getLogger(StyxInterloperClientProtocolHandler.class);
     
-    private Session serverSession;
+    private ProtocolSession serverSession;
     private InterloperListener listener;
     
     private boolean connected;
     
-    public StyxInterloperClientSessionListener(Session serverSession, InterloperListener listener)
+    public StyxInterloperClientProtocolHandler(ProtocolSession serverSession,
+        InterloperListener listener)
     {
         this.connected = false;
         this.serverSession = serverSession;
         this.listener = listener;
     }
     
-    public void connectionEstablished(Session session)
+    public void sessionOpened(ProtocolSession session )
     {
-        SessionLog.info(log, session, "Destination connection established.");
+        log.info("Destination connection established.");
         this.connected = true;
     }
     
-    public void connectionClosed(Session session)
+    public void sessionClosed(ProtocolSession session )
     {
-        SessionLog.info(log, session, "Destination connection closed.");
+        log.info("Destination connection closed.");
         this.connected = false;
     }
     
-    public synchronized void messageReceived(Session session, Message message)
+    public void messageReceived(ProtocolSession session, Object message )
     {
-        //SessionLog.info(log, session, "RCVD from destination: " + message);
+        if (log.isDebugEnabled())
+        {
+            log.debug("RCVD from destination: " + message);
+        }
         // Have to notify the listener before we write the message back to the
         // client, otherwise we can get a situation where the interloper thinks
         // that there are more than one message outstanding with the same tag.
@@ -90,19 +98,22 @@ class StyxInterloperClientSessionListener implements SessionListener
         this.serverSession.write(message);
     }
     
-    public void messageSent(Session session, Message message)
+    public void messageSent( ProtocolSession session, Object message )
     {
-        //SessionLog.info(log, session, "SENT to destination: " + message);
+        if (log.isDebugEnabled())
+        {
+            log.debug("SENT to destination: " + message);
+        }
     }
     
-    public void sessionIdle(Session session)
+    public void sessionIdle( ProtocolSession session, IdleStatus status )
     {
         // Sessions are never disconnected if they are idle - is this OK?
     }
     
-    public void exceptionCaught(Session session, Throwable cause)
+    public void exceptionCaught( ProtocolSession session, Throwable cause )
     {
-        SessionLog.error(log, session, "Unexpected exception.", cause);
+        log.error(cause.getMessage());
     }
     
     public boolean isConnected()

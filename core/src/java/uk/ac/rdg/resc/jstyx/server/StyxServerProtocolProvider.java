@@ -26,65 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.jstyx.messages;
+package uk.ac.rdg.resc.jstyx.server;
+
+import org.apache.mina.protocol.ProtocolCodecFactory;
+import org.apache.mina.protocol.ProtocolHandler;
+import org.apache.mina.protocol.ProtocolProvider;
+
+import uk.ac.rdg.resc.jstyx.messages.StyxCodecFactory;
 
 /**
- * Response to a TremoveMessage to delete a file
+ * Protocol provider for a Styx server, used by MINA framework
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.3  2005/03/11 14:02:15  jonblower
+ * Revision 1.2  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
- * Revision 1.2.2.1  2005/03/10 11:50:59  jonblower
- * Changed to fit with MINA framework
+ * Revision 1.1.2.2  2005/03/10 18:30:56  jonblower
+ * Changed to use StyxCodecFactory
  *
- * Revision 1.2  2005/02/24 07:44:43  jonblower
- * Added getFriendlyString()
- *
- * Revision 1.1.1.1  2005/02/16 18:58:27  jonblower
+ * Revision 1.1.2.1  2005/03/10 11:59:42  jonblower
  * Initial import
  *
  */
-public class RremoveMessage extends StyxMessage
+public class StyxServerProtocolProvider implements ProtocolProvider
 {
-    /**
-     * Creates a new RremoveMessage 
-     * @param length The total length of the message (including all header info)
-     * @param type The type of the message (a number between 100 and 127)
-     * @param tag The tag that identifies this message
-     */
-    public RremoveMessage(int length, int type, int tag)
+    
+    // We must store the root directory of the Styx server to pass to the
+    // protocol handler
+    StyxDirectory root;
+    
+    public StyxServerProtocolProvider(StyxDirectory root)
     {
-        super(length, type, tag);
-        this.name = "Rremove";
+        this.root = root;
     }
     
-    public RremoveMessage()
+    public ProtocolCodecFactory getCodecFactory()
     {
-        this(7, 123, 0);
+        return StyxCodecFactory.getInstance();
     }
     
-    protected final void decodeBody(StyxBuffer buf)
-    {     
-        return;
-    }
-    
-    protected final void encodeBody(StyxBuffer buf)
+    public ProtocolHandler getHandler()
     {
-        return;
-    }
-    
-    protected String getElements()
-    {
-        return "";
-    }
-    
-    public String toFriendlyString()
-    {
-        return "(file removed)";
+        // Must create a new StyxServerProtocolHandler for each server because
+        // each server may have a different file tree to serve up
+        return new StyxServerProtocolHandler(this.root);
     }
     
 }
