@@ -69,6 +69,9 @@ import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/02/18 17:56:31  jonblower
+ * Set root directory in constructor; doesn't need to wait until connection is made
+ *
  * Revision 1.2  2005/02/17 18:03:35  jonblower
  * Minor changes to comments
  *
@@ -150,6 +153,7 @@ public class StyxConnection extends Session implements SessionListener
         this.addSessionListener(this);
         
         this.rootFid = 0;
+        this.rootDirectory = new CStyxFile(this, "/", this.rootFid);
         this.tagsInUse = new Vector();
         this.fidsInUse = new Vector();
         this.msgQueue = new Hashtable();
@@ -480,7 +484,6 @@ public class StyxConnection extends Session implements SessionListener
     {
         public void replyArrived(StyxMessage message)
         {
-            setRootDirectory();
             ready = true;
             fireStyxConnectionReady();
         }
@@ -488,15 +491,6 @@ public class StyxConnection extends Session implements SessionListener
         {
             fireStyxConnectionError(message);
         }
-    }
-    
-    /**
-     * Once the root fid has been set and the Tattach message has arrived, 
-     * this sets the root directory.
-     */
-    private void setRootDirectory()
-    {
-        this.rootDirectory = new CStyxFile(this, "/", this.rootFid);
     }
     
     /**
