@@ -36,6 +36,8 @@ import net.gleamynode.netty2.SessionLog;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
+
 /**
  * Session listener for the StyxInterloperClient
  *
@@ -43,8 +45,11 @@ import org.apache.commons.logging.LogFactory;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:26  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:42:44  jonblower
+ * *** empty log message ***
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:26  jonblower
+ * Initial import
  *
  */
 class StyxInterloperClientSessionListener implements SessionListener
@@ -52,13 +57,15 @@ class StyxInterloperClientSessionListener implements SessionListener
     private static final Log log = LogFactory.getLog(StyxInterloperClientSessionListener.class);
     
     private Session serverSession;
+    private InterloperListener listener;
     
     private boolean connected;
     
-    public StyxInterloperClientSessionListener(Session serverSession)
+    public StyxInterloperClientSessionListener(Session serverSession, InterloperListener listener)
     {
         this.connected = false;
         this.serverSession = serverSession;
+        this.listener = listener;
     }
     
     public void connectionEstablished(Session session)
@@ -73,9 +80,13 @@ class StyxInterloperClientSessionListener implements SessionListener
         this.connected = false;
     }
     
-    public void messageReceived(Session session, Message message)
+    public synchronized void messageReceived(Session session, Message message)
     {
         //SessionLog.info(log, session, "RCVD from destination: " + message);
+        // Have to notify the listener before we write the message back to the
+        // client, otherwise we can get a situation where the interloper thinks
+        // that there are more than one message outstanding with the same tag.
+        this.listener.rMessageSent((StyxMessage)message);
         this.serverSession.write(message);
     }
     

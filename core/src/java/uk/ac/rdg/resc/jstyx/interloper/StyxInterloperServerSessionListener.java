@@ -39,6 +39,7 @@ import org.apache.commons.logging.LogFactory;
 import java.net.InetSocketAddress;
 
 import uk.ac.rdg.resc.jstyx.messages.TversionMessage;
+import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 
 /**
  * Session listener for the StyxInterloper server
@@ -47,8 +48,11 @@ import uk.ac.rdg.resc.jstyx.messages.TversionMessage;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:26  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:42:44  jonblower
+ * *** empty log message ***
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:26  jonblower
+ * Initial import
  *
  */
 class StyxInterloperServerSessionListener implements SessionListener
@@ -56,17 +60,20 @@ class StyxInterloperServerSessionListener implements SessionListener
     private static final Log log = LogFactory.getLog(StyxInterloperServerSessionListener.class);
     
     private InetSocketAddress destSockAddr;
+    private InterloperListener listener;
     
-    public StyxInterloperServerSessionListener(InetSocketAddress destSockAddr)
+    public StyxInterloperServerSessionListener(InetSocketAddress destSockAddr,
+        InterloperListener listener)
     {
         this.destSockAddr = destSockAddr;
+        this.listener = listener;
     }
     
     public void connectionEstablished(Session session)
     {
         SessionLog.info(log, session, "Client connection established.");
         // Now connect to the destination server
-        InterloperClient client = new InterloperClient(this.destSockAddr, session);
+        InterloperClient client = new InterloperClient(this.destSockAddr, session, this.listener);
         client.start();
         session.setAttachment(client);
     }
@@ -78,9 +85,10 @@ class StyxInterloperServerSessionListener implements SessionListener
         client.stop();
     }
     
-    public void messageReceived(Session session, Message message)
+    public synchronized void messageReceived(Session session, Message message)
     {
         SessionLog.info(log, session, "RCVD from client: " + message);
+        listener.tMessageReceived((StyxMessage)message);
         
         // Make sure the message size is <= 8192 bytes (TODO: allow for message
         // sizes larger than this)
@@ -101,6 +109,10 @@ class StyxInterloperServerSessionListener implements SessionListener
     public void messageSent(Session session, Message message)
     {
         SessionLog.info(log, session, "SENT to client: " + message);
+        // We notify the InterloperListener from the StyxInterloperClientSessionListener
+        // because if we did it from here, we can end up with a situation in
+        // which the interloper thinks that there are more than one message
+        // with the same tag outstanding
     }
     
     public void sessionIdle(Session session)

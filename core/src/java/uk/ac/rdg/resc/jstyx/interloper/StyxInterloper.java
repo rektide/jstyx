@@ -55,6 +55,9 @@ import java.io.IOException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/02/24 07:42:44  jonblower
+ * *** empty log message ***
+ *
  * Revision 1.2  2005/02/21 18:09:45  jonblower
  * *** empty log message ***
  *
@@ -66,7 +69,6 @@ public class StyxInterloper
 {
     
     private static final Log log = LogFactory.getLog(StyxInterloper.class);
-    private static final int DISPATCHER_THREAD_POOL_SIZE = 16;
     
     private int port;
     private InetSocketAddress destSockAddr;

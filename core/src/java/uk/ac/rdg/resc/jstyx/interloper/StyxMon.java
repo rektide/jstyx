@@ -30,49 +30,65 @@ package uk.ac.rdg.resc.jstyx.interloper;
 
 import javax.swing.*;
 import javax.swing.table.TableColumn;
+import javax.swing.table.TableModel;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+
 import java.awt.Container;
 import java.awt.event.*;
-
-import net.gleamynode.netty2.Message;
-import net.gleamynode.netty2.Session;
-import net.gleamynode.netty2.SessionListener;
+import java.net.InetSocketAddress;
+import java.util.Hashtable;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.server.StyxServer;
-import uk.ac.rdg.resc.jstyx.client.StyxConnection;
-import uk.ac.rdg.resc.jstyx.client.MessageCallback;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
-import uk.ac.rdg.resc.jstyx.messages.TversionMessage;
-import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
+import uk.ac.rdg.resc.jstyx.messages.TattachMessage;
+import uk.ac.rdg.resc.jstyx.messages.TwalkMessage;
 
 import info.clearthought.layout.TableLayout;
 
 /**
  * TCPMon-like GUI application that displays all the messages going between
  * a Styx client and server
+ * @todo Make sure all connections are closed properly on exit, and that
+ * all threads are stopped.
+ * @todo Merge more closely with StyxInterloper
+ * @todo Handle more events such as clients connecting, disconnecting,
+ * server connection going down, etc (feed back to GUI)
+ * @todo Filter messages by type, whether they have been replied to, errors, filename
+ * @todo Add a "hint" column containing a description of what the message is doing
+ *       ... or maybe just identify each message with a file name
  *
  * @author Jon Blower
  * $Revision$
- * $Date $
+ * $Date$
  * $Log$
+ * Revision 1.2  2005/02/24 07:42:44  jonblower
+ * *** empty log message ***
+ *
  * Revision 1.1  2005/02/21 18:08:52  jonblower
  * Initial import
  *
  */
-public class StyxMon implements SessionListener
+public class StyxMon implements InterloperListener
 {
     
     // Styx components
     StyxServer server;   // The server that listens for incoming messages
-    StyxConnection conn; // The client that forwards the messages to the remote
-                         // server.
     
     // GUI components
     private JFrame frame;
     private Container contentPane;
     private JTable table;
+    private StyxMonTableModel model;
     private JLabel lblPort;
     private JLabel lblRemoteServer;
+    private JButton btnFilter;
+    
+    private int nextFreeRow;    // The next free row in the table
+    private Hashtable rowTags;  // Links tags to their row numbers
+    private Hashtable fidNames; // Links fids to the file name
     
     /**
      * Creates a new instance of StyxMon
@@ -84,11 +100,10 @@ public class StyxMon implements SessionListener
     public StyxMon(int port, String serverHost, int serverPort)
         throws StyxException
     {
-        // Create a StyxConnection as an anonymous user. This does not actually
-        // open the connection.
-        this.conn = new StyxConnection(serverHost, serverPort, "");
         // Create a StyxServer that will listen for connections from clients
-        this.server = new StyxServer(port, this);
+        this.server = new StyxServer(port, new
+                StyxInterloperServerSessionListener(new InetSocketAddress(serverHost,
+                serverPort), this));
         this.server.start();
         
         frame = new JFrame("Styx Monitor");
@@ -98,25 +113,28 @@ public class StyxMon implements SessionListener
         lblPort = new JLabel("Listening on port " + port);
         lblRemoteServer = new JLabel("Remote server: " + serverHost + ":"
             + serverPort);
+        btnFilter = new JButton("Filter");
         
-        // Create the column headings for the JTable
-        String[] columnHeadings = {"Type", "Tag", "TMessage", "RMessage", "Hint"};
-        // Create the table data (a line of blank data)
-        Object[][] data = { {"", "", "", "", ""} };
-        table = new JTable(data, columnHeadings);
+        // Create the table model
+        this.model = new StyxMonTableModel();
+        this.table = new JTable(model);
+        // All the cells in the table are Strings, so the StyxMonTableCellRenderer
+        // will be used by all cells
+        this.table.setDefaultRenderer(String.class, new StyxMonTableCellRenderer());
+        
+        this.rowTags = new Hashtable();
+        this.fidNames = new Hashtable();
+        
         // Set the table column widths (the Tag column should be much narrower
         // than the rest)
         TableColumn column = null;
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < this.model.getColumnCount(); i++)
         {
             column = table.getColumnModel().getColumn(i);
-            if (i == 0)
+            if (i == 0 || i == 1)
             {
-                column.setPreferredWidth(50); // The message type column
-            }
-            else if (i == 1)
-            {
-                column.setPreferredWidth(20); // The tag column
+                column.setPreferredWidth(50);
+                column.setMaxWidth(50);
             }
             else
             {
@@ -125,6 +143,7 @@ public class StyxMon implements SessionListener
         }
         // Prevent users from editing the table
         table.setEnabled(false);
+        this.nextFreeRow = 0; // The first free row in the table
         
         // Create the scroll pane and add the table to it
         JScrollPane scrollPane = new JScrollPane(table);
@@ -132,16 +151,15 @@ public class StyxMon implements SessionListener
         // Create the table layout
         double size[][] =
         {
-            { 10, TableLayout.FILL, 10}, // Columns
+            { 10, TableLayout.FILL, 10, TableLayout.FILL, 10}, // Columns
             { 10, 20, 10, 20, 20, TableLayout.FILL, 10 }  // Rows
         };
         contentPane.setLayout(new TableLayout(size));
-
-        // Add the buttons in the centre of the box, fully-justified in the
-        // vertical direction
+        // Add the components to the table layout
         contentPane.add(lblPort, "1, 1, l, f");
         contentPane.add(lblRemoteServer, "1, 3, l, f");
-        contentPane.add(scrollPane, "1, 5, f, f");
+        contentPane.add(scrollPane, "1, 5, 3, 5, f, f");
+        contentPane.add(btnFilter, "3, 1, c, f");
         
         // Allow user to close the window to terminate the program
         frame.addWindowListener
@@ -151,6 +169,17 @@ public class StyxMon implements SessionListener
                 public void windowClosing(WindowEvent e)
                 {
                     exit();
+                }
+            }
+        );
+        
+        btnFilter.addActionListener
+        (
+            new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e)
+                {
+                    filterClicked();
                 }
             }
         );
@@ -168,115 +197,133 @@ public class StyxMon implements SessionListener
     }
     
     /**
-     * Required by SessionListener interface. Called when a client connects
-     * to this server
-     * @todo this should raise an error if more than one client tries to connect
+     * Filters the data
      */
-    public void connectionEstablished(Session session)
+    private void filterClicked()
     {
-        // TODO: send the client's details to the GUI?
-        System.err.println("Got connection from client.");
-        try
-        {
-            // Starts the connection process. If we try to send messages on 
-            // this connection before the connection/handshaking is finished,
-            // this doesn't matter because the message will be queued.
-            this.conn.connect();
-        }
-        catch(StyxException se)
-        {
-            // This shouldn't happen; it only happens if the IOProcessor
-            // could not be started
-            this.exceptionCaught(session, se);
-        }
+        this.model.filterByFilename("/md5sum/1/ctl");
     }
     
     /**
-     * Required by SessionListener interface. Called when a client disconnects
-     * from this server
+     * Required by the InterloperListener interface. Called when a Tmessage
+     * arrives from a client
      */
-    public void connectionClosed(Session session)
+    public synchronized void tMessageReceived(StyxMessage message)
     {
-        System.err.println("Client connection closed.");
-        this.conn.close();
+        // Get the full path of the file represented by this fid
+        String path = (String)this.fidNames.get(new Long(message.getFid()));
+        if (path == null)
+        {
+            // This happens for messages that aren't associated with a fid
+            path = "N/A";
+        }
+        // If this is a TattachMessage we know what fid is associated with the root
+        // of the remote server
+        if (message instanceof TattachMessage)
+        {
+            TattachMessage tAttMsg = (TattachMessage)message;
+            this.fidNames.put(new Long(tAttMsg.getFid()), "/");
+        }
+        // If this is a TwalkMessage we can associate the new fid with the
+        // path of the file in questions
+        else if (message instanceof TwalkMessage)
+        {
+            TwalkMessage tWalkMsg = (TwalkMessage)message;
+            this.fidNames.put(new Long(tWalkMsg.getNewFid()), path + tWalkMsg.getPath());
+        }
+        int theRow = this.getRow(message.getTag());
+        model.setValueAt(getMessageName(message.getName()), theRow, 0);
+        model.setValueAt("" + message.getTag(), theRow, 1);
+        model.setValueAt(path, theRow, 2);
+        model.setValueAt(message.toFriendlyString(), theRow, 3);
+        table.repaint();
     }
     
     /**
-     * Required by SessionListener interface. Called when a Tmessage is received
-     * from the client
+     * Required by the InterloperListener interface. Called when an Rmessage
+     * has been sent back to the client
      */
-    public void messageReceived(Session session, Message message)
+    public synchronized void rMessageSent(StyxMessage message)
     {
-        System.err.println("RCVD from client: " + message);
+        // Get the row number for this message
+        int theRow = this.getRow(message.getTag());
+        model.setValueAt(message.toFriendlyString(), theRow, 4);
+        table.repaint();
+    }
         
-        // Make sure the message size is <= 8192 bytes (TODO: allow for message
-        // sizes larger than this)
-        if (message instanceof TversionMessage)
+    /**
+     * Converts the name of a Tmessage (e.g. "Tread") into the generic name
+     * of the message (e.g. "Read")
+     */
+    private String getMessageName(String tMessageName)
+    {
+        // Strip off first two letters
+        String lastBit = tMessageName.substring(2);
+        // Capitalise the second letter of the original string
+        String firstLetter = tMessageName.substring(1, 2).toUpperCase();
+        return firstLetter + lastBit;
+    }
+    
+    /**
+     * @return the row corresponding to the given tag. If the tag does not exist
+     * in the cache, the index of the next free row in the data model will be
+     * returned (creating a new row if necessary).
+     */
+    private synchronized int getRow(int tag)
+    {
+        // Find out if we have a row for this tag
+        Integer intRow = (Integer)rowTags.remove(new Integer(tag));
+        if (intRow == null)
         {
-            TversionMessage tVerMsg = (TversionMessage)message;
-            if (tVerMsg.getMaxMessageSize() > 8192)
-            {
-                tVerMsg.setMaxMessageSize(8192);
-            }
+            // We don't have a row for this tag. Create a new row in the data model
+            model.addRow();
+            // Associate the new row with the tag
+            rowTags.put(new Integer(tag), new Integer(nextFreeRow));
+            int r = nextFreeRow;
+            nextFreeRow++;
+            return r;
         }
-        this.conn.sendAsync((StyxMessage)message, new StyxMonCallback(session));
-    }
-    
-    /**
-     * Required by SessionListener interface. Called when an RMessage is sent
-     * back to the client.
-     */
-    public void messageSent(Session session, Message message)
-    {
-        System.err.println("SENT to client: " + message);
-    }
-    
-    /**
-     * Required by SessionListener interface. Does nothing here.
-     */
-    public void sessionIdle(Session session)
-    {
-        // Sessions are never disconnected if they are idle - is this OK?
-    }
-    
-    /**
-     * Required by SessionListener interface.
-     */
-    public void exceptionCaught(Session session, Throwable cause)
-    {
-        System.err.println("Unexpected exception: " + cause);
-    }
-    
-    /**
-     * Callback class whose methods will be called when a reply arrives from
-     * the remote server
-     */
-    private class StyxMonCallback extends MessageCallback
-    {
-        private Session session;
-        public StyxMonCallback(Session session)
+        else
         {
-            this.session = session;
-        }
-        public void replyArrived(StyxMessage message)
-        {
-            System.err.println("Arrived from client: " + message);
-            this.session.write(message);
-        }
-        public void error(String message, int tag)
-        {
-            System.err.println("Error from client: " + message);
-            // We have to reconstruct the Rerror message; TODO is there a better
-            // way of doing this?
-            RerrorMessage rErrMsg = new RerrorMessage(message);
-            rErrMsg.setTag(tag);
-            this.session.write(rErrMsg);
+            // We already have a row for this tag
+            return intRow.intValue();
         }
     }
     
     public static void main(String[] args) throws Exception
     {
-        new StyxMon(9999, "localhost", 7777);
+        /*if (args.length != 3)
+        {
+            System.err.println("Usage: java StyxMon <port> <remote host> <remote port>");
+            return;
+        }
+        int port;
+        int remotePort;
+        try
+        {
+            port = Integer.parseInt(args[0]);
+            if (port < 0 || port > StyxUtils.MAXUSHORT)
+            {
+                System.err.println("Port number must be between 0 and " + StyxUtils.MAXUSHORT);
+                return;
+            }
+        }
+        catch(NumberFormatException nfe)
+        {
+            System.err.println("Invalid port number");
+            return;
+        }
+        try
+        {
+            remotePort = Integer.parseInt(args[2]);
+        }
+        catch(NumberFormatException nfe)
+        {
+            System.err.println("Invalid remote port number");
+            return;
+        }
+        new StyxMon(port, args[1], remotePort);*/
+        new StyxMon(9999, "localhost", 9092);
     }
     
 }

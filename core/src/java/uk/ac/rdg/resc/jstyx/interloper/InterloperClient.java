@@ -43,6 +43,7 @@ import net.gleamynode.netty2.Session;
 import net.gleamynode.netty2.Message;
 
 import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * The client-side part of an Interloper
@@ -51,14 +52,17 @@ import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:26  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:42:44  jonblower
+ * *** empty log message ***
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:26  jonblower
+ * Initial import
  *
  */
 public class InterloperClient
 {
     private static final Log log = LogFactory.getLog(InterloperClient.class);
-    private static final int DISPATCHER_THREAD_POOL_SIZE = 16;
+    private static final int DISPATCHER_THREAD_POOL_SIZE = 1;
     private static final int CONNECT_TIMEOUT = 30; // seconds
     
     private IoProcessor ioProcessor;
@@ -66,25 +70,28 @@ public class InterloperClient
     private Session session;
     private Session serverSession;
     
+    private InterloperListener listener;
+    
     private InetSocketAddress sockAddress;
     
     /** Creates a new instance of InterloperClient */
-    public InterloperClient(InetSocketAddress sockAddress, Session serverSession)
+    public InterloperClient(InetSocketAddress sockAddress, Session serverSession,
+        InterloperListener listener)
     {
         this.sockAddress = sockAddress;
         this.serverSession = serverSession;
+        this.listener = listener;
     }    
     
     public void start()
     {
         // initialize I/O processor and event dispatcher
-        ioProcessor = new IoProcessor();
         eventDispatcher = new OrderedEventDispatcher();
         
         // start with the default number of I/O worker threads
         try
         {
-            ioProcessor.start();
+            ioProcessor = StyxUtils.getIoProcessor(); //new IoProcessor();
         }
         catch(IOException ioe)
         {
@@ -105,7 +112,7 @@ public class InterloperClient
         session.getConfig().setConnectTimeout(CONNECT_TIMEOUT);
         
         // suscribe and start communication
-        StyxInterloperClientSessionListener listener = new StyxInterloperClientSessionListener(this.serverSession);
+        StyxInterloperClientSessionListener listener = new StyxInterloperClientSessionListener(this.serverSession, this.listener);
         session.addSessionListener(listener);
         
         log.info("Connecting to " + session.getSocketAddress());
