@@ -37,8 +37,11 @@ import java.math.BigInteger;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:35  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/24 07:46:05  jonblower
+ * Added toFriendlyString() for benefit of StyxMon
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:35  jonblower
+ * Initial import
  *
  */
 public class Qid
@@ -83,6 +86,16 @@ public class Qid
     public String toString()
     {
         return this.type + ", " + this.version + ", " + this.path.asBigInteger();
+    }
+    
+    /**
+     * @return human-readable representation of this Qid
+     */
+    public String toFriendlyString()
+    {
+        // TODO: friendlier representation of type
+        return "type: " + this.type + ", version: " + this.version +
+            ", pathcode: " + this.path;
     }
     
 }
