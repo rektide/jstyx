@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-    Document   : SGSconfig.xml
-    Created on : 03 February 2005, 15:51
-    Author     : jdb
+    Author     : Jon Blower
+    Last modified $Date$ by $Author$
     Description:
         Config file for setting up Styx Grid Services
         Here's a half-decent DTD tutorial: http://www.zvon.org/xxl/DTDTutorial/General/contents.html
