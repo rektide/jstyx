@@ -133,8 +133,8 @@ a time, pipe the output to <code>p</code>, the pager command: <code>&quot;man cp
 <li>To read a file, use <code>cat</code> (e.g. <code>&quot;cat /LICENCE | p&quot;</code>
 or <code>&quot;cat /dev/user&quot;</code>).</li>
 <li>To output a string to the terminal, use <code>echo</code> (e.g. <code>&quot;echo
-hello world&quot;</code>).  To output without the trailing newline use <code>&quote;echo –n.&quot;</code></li>
-<li>To write to a file (creating a new one if it doesn’t exist), use the<code>&gt;</code>
+hello world&quot;</code>).  To output without the trailing newline use <code>&quot;echo –n.&quot;</code></li>
+<li>To write to a file (creating a new one if it doesn’t exist), use the <code>&gt;</code>
 operator, e.g. <code>&quot;echo hello world &gt; hello.txt&quot;</code>.  To
 append to a file, use <code>&gt;&gt;</code>, e.g. <code>&quot;echo from mars &gt;&gt;
 hello.txt&quot;.</code></li>
@@ -300,14 +300,71 @@ contents of the file with <code>&quot;cat hello.txt&quot;</code>.</p>
 <code>listen</code> command runs a server process to listen for network connections
 (run <code>&quot;man listen&quot;</code> for more details).  The <code>&quot;-A&quot;</code>
 switch means &quot;do not require authentication&quot;.  The argument <code>&quot;tcp!*!1234&quot;</code>
-is Inferno’s version of a URL; it means &quot;listen for TCP connections on port 1234&quot;.
+is Inferno's version of a URL; it means &quot;listen for TCP connections on port 1234&quot;.
 The asterisk means &quot;this server&quot; (analogous to &quot;localhost&quot;).
 When a connection is made, the command in the braces is run.  This exports the
 directory <code>/usr/Jon</code> on the connection.</p>
 
 <p>The screenshot below shows all these commands being executed in the shell window:</p>
 
+<img src="./images/hello.txt.jpg"/>
 
+<h2>Making a connection</h2>
+<p>On <code>computer2</code> (or a new shell window), we will now make a connection to this server.
+<em>(TODO: run ndb/cs.)</em> This is done in a single line: <code>&quot;mount -A tcp!computer1!1234 /n/remote&quot;</code>.
+(If you're running this as two shell windows on the same machine, replace <code>&quot;computer1&quot;</code>
+with <code>&quot;localhost&quot;</code> or <code>&quot;127.0.0.1&quot;</code>.)  Again, the 
+<code>&quot;-A&quot;</code> switch means &quot;do not use authentication&quot;.  You can view
+the contents of <code>/n/remote</code> with the command <code>&quot;lc /n/remote&quot;</code>.
+You should see the contents of <code>/usr/Jon</code> on <code>computer1</code>, complete with
+the file <code>hello.txt</code> that we just created.  You can read the contents of <code>hello.txt</code>
+with the command <code>&quot;cat /n/remote/hello.txt&quot;</code>.  You should get the response
+<code>&quot;hello from computer 1&quot;</code>.</p>
+
+<p>The picture below shows all these commands (with the window bar coloured red to represent
+that this is <code>computer2</code>):</p>
+
+<img src="./images/hello.txt2.jpg"/>
+
+<p>That’s how easy it is to create a simple distributed system in Inferno; just use the <code>listen</code>
+and <code>mount</code> commands.  We have just shared some files (literal files on the hard disk),
+but because everything in Inferno is a file, exactly the same method is used for sharing <em>any</em> namespace.</p>
+
+<h3>Per-process namespaces</h3>
+<p>On <code>computer2</code>, open another shell window and examine the contents of the
+<code>/n/remote</code> directory with <code>&quot;lc /n/remote&quot;</code>.  There’s nothing there!
+Why?  This is another important concept in Inferno.  Every process (and hence every shell window)
+maintains its <em>own</em> namespace.  So if we modify the namespace in one shell window,
+all other shell windows (and all other processes) are unaffected.  This is very handy.  An
+application can mount resources in <code>/n/remote</code> without first having to check that
+this mount point is in use.</p>
+
+<p>An exception to this is if a file on hard disk is changed within a namespace.  In this
+case, all processes will see the change.</p>
+
+<h2>A note about security</h2>
+<p>There are several important features of Inferno that we haven't covered in this tutorial.
+A key feature is security; in all the above examples, we turned off authentication, but we
+could have made <em>secure</em> connections between systems.  In this case, the server and client
+mutually authenticate each other through certificates that are issued by a common certificate authority.
+Optionally, the messages passing between the systems could have been encrypted using a variety
+of algorithms.</p>
+
+<p>Once established, a secure connection behaves exactly the same (from an application's point of 
+view) as an insecure one. The Inferno OS transparently handles the task of encrypting and decrypting the Styx
+messages and so the application does not know that the connection is secure.</p>
+
+<h2>Conclusions</h2>
+<p>We've had a very brief look at Inferno, but we've seen many important things in action:</p>
+<ul>
+<li>Inferno is a lightweight OS that runs as a hosted application under many other OSs (e.g.
+Windows, Linux, MacOSX, FreeBSD).</li>
+<li>Inferno's command-line syntax is very much like Unix's.</li>
+<li>Everything in the Inferno world is represented as a file.</li>
+<li>The Styx protocol is used to access all files in Inferno, whether local or remote.</li>
+<li>Therefore we can use Styx to access <em>any</em> remote resource.</li>
+<li>Therefore distributed systems are easy to build.</li>
+</ul>
 
 
 </body>

@@ -29,40 +29,40 @@ system.</p>
 <p>Download the latest JStyx distribution from
 <a href="http://jstyx.sourceforge.net">http://jstyx.sourceforge.net</a> and
 simply extract the archive file in a directory of your choice. The 
-distribution contains a pre-built JAR (Java archive) in the <tt>dist</tt>
+distribution contains a pre-built JAR (Java archive) in the <code>dist</code>
 directory. This has been built with the Sun Java SDK 1.4.2. If you would like
 to build the JAR again (if you have changed the source or you need a version
-for a different version of Java), change into the <tt>bin</tt> directory and
-enter <tt>build</tt> (this should work on most systems, Windows and *nix).
+for a different version of Java), change into the <code>bin</code> directory and
+enter <code>build</code> (this should work on most systems, Windows and *nix).
 Note that you need <a href="http://ant.apache.org/">Apache Ant</a> to build
 the distribution from source using this method.</p>
 
 <h2>Testing the installation</h2>
 <p>First, make sure that you have a valid setup. To do this, open a console window,
 change into the
-<tt>bin</tt> directory of your distribution and enter <tt>TestServer</tt>.
+<code>bin</code> directory of your distribution and enter <code>TestServer</code>.
 This creates a Styx server that serves up your home directory (as identified by
-the Java system property <tt>user.home</tt>) under the port 8080. This might
+the Java system property <code>user.home</code>) under the port 8080. This might
 take a short while to start up, especially if your home directory contains a
 large number of files. When it is ready, you will see a message like this in your
 console window:</p>
 <blockquote>
-<tt>
+<code>
 2005-03-01 16:05:03,890 [main] INFO uk.ac.rdg.resc.jstyx.server.StyxServer -
 Listening on port 8080
-</tt>
+</code>
 </blockquote>
 <p><em>This is example output from the <a
 href="http://logging.apache.org/log4j/docs/index.html">log4j</a> logging system.
 Your message might differ slightly.</em> If you are familiar with Inferno, you
 should be able to interact with this server; open an Inferno shell and enter:</p>
 <blockquote>
-<tt>mount -A tcp!localhost!8080 /n/remote</tt>
+<code>mount -A tcp!localhost!8080 /n/remote</code>
 </blockquote><p>If you are not familiar with
 Inferno, or want to try another tool anyway, you can open a new console window,
-change into the <tt>bin</tt> directory once more and enter:</p>
+change into the <code>bin</code> directory once more and enter:</p>
 <blockquote>
-<tt>StyxBrowser localhost 8080</tt>
+<code>StyxBrowser localhost 8080</code>
 </blockquote><p>You should see a graphical interface with a directory tree
 in the left-hand column and some information in the other columns, like this:</p>
 
@@ -80,30 +80,30 @@ that our setup works. Now we can learn a bit more about the JStyx library.</p>
 hierarchy of files, then serving it up and waiting for connections. The
 TestServer program creates the hierarchy of files from the local filesystem.
 Let's look at the key parts of the TestServer program (it's in the
-<tt>uk.ac.rdg.resc.jstyx.examples</tt> package):</p>
+<code>uk.ac.rdg.resc.jstyx.examples</code> package):</p>
 <blockquote>
-<tt>
+<code>
 <font color="#000000">String&nbsp;home&nbsp;=&nbsp;System.getProperty</font><font color="#000000">(</font><font color="#2a00ff">&#34;user.home&#34;</font><font color="#000000">)</font><font color="#000000">;</font><br/>
 <font color="#3f7f5f">//&nbsp;Set&nbsp;up&nbsp;the&nbsp;file&nbsp;tree</font><br/>
 <font color="#000000">StyxDirectory&nbsp;root&nbsp;=&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">DirectoryOnDisk</font><font color="#000000">(</font><font color="#000000">home</font><font color="#000000">)</font><font color="#000000">;</font><br/>
 <font color="#3f7f5f">//&nbsp;Set&nbsp;up&nbsp;the&nbsp;server&nbsp;and&nbsp;start&nbsp;it</font><br/>
 <font color="#000000">StyxServer&nbsp;server&nbsp;=&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">StyxServer</font><font color="#000000">(</font><font color="#000000">port,&nbsp;root</font><font color="#000000">)</font><font color="#000000">;</font><br/>
 <font color="#000000">server.start</font><font color="#000000">()</font><font color="#000000">;</font><br/>
-</tt>
+</code>
 </blockquote>
-<p>It's very simple. We create a <tt>StyxServer</tt> object, passing it the
-number of the port we want it to listen on and a <tt>StyxDirectory</tt> that
+<p>It's very simple. We create a <code>StyxServer</code> object, passing it the
+number of the port we want it to listen on and a <code>StyxDirectory</code> that
 represents the root of the file hierarchy we want to expose. In this case, the
-<tt>StyxDirectory</tt> is a <tt>DirectoryOnDisk</tt>, which simply mirrors a
+<code>StyxDirectory</code> is a <code>DirectoryOnDisk</code>, which simply mirrors a
 directory in the host filesystem. When requests come in to read the children of
-the <tt>DirectoryOnDisk</tt>, it simply reads the list of child files from the
+the <code>DirectoryOnDisk</code>, it simply reads the list of child files from the
 host filesystem.</p>
 
 <p>The steps to create any Styx server are always the same:</p>
 <ol>
-	<li>Create a file hierarchy and root it in a <tt>StyxDirectory</tt>.</li>
-	<li>Create a <tt>StyxServer</tt> object from the <tt>StyxDirectory</tt> and a port number.</li>
-	<li>Start the <tt>StyxServer</tt>.</li>
+	<li>Create a file hierarchy and root it in a <code>StyxDirectory</code>.</li>
+	<li>Create a <code>StyxServer</code> object from the <code>StyxDirectory</code> and a port number.</li>
+	<li>Start the <code>StyxServer</code>.</li>
 </ol>
 
 <p>Often, the file hierarchy we want create will not simply be a mirror of the
@@ -113,12 +113,12 @@ some task. We'll go through the process of creating a Styx server that serves up
 a file that users can read to obtain the current date and time.</p>
 
 <p>All files in a server-side JStyx hierarchy subclass the abstract class
-<tt>uk.ac.rdg.resc.jstyx.server.StyxFile</tt>. (<tt>StyxDirectory</tt> is also a
-subclass of <tt>StyxFile</tt> and <tt>DirectoryOnDisk</tt> is a subclass of
-<tt>StyxDirectory</tt>.) So let's create a class called <tt>DateFile</tt> that
-inherits from <tt>StyxFile</tt>:</p>
+<code>uk.ac.rdg.resc.jstyx.server.StyxFile</code>. (<code>StyxDirectory</code> is also a
+subclass of <code>StyxFile</code> and <code>DirectoryOnDisk</code> is a subclass of
+<code>StyxDirectory</code>.) So let's create a class called <code>DateFile</code> that
+inherits from <code>StyxFile</code>:</p>
 <blockquote>
-<tt>
+<code>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.StyxException;</font><br/>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.server.StyxFile;</font><br/>
 <br/>
@@ -129,26 +129,26 @@ inherits from <tt>StyxFile</tt>:</p>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>super</b></font><font color="#000000">(</font><font color="#2a00ff">&#34;date&#34;</font><font color="#000000">)</font><font color="#000000">;</font><br/>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
 <font color="#000000">}</font><br/>
-</tt>
+</code>
 </blockquote>
 
 <p>There are many constructors for
-<tt>StyxFile</tt>, but we'll stick with the simplest for the moment, i.e. the
+<code>StyxFile</code>, but we'll stick with the simplest for the moment, i.e. the
 one that simply sets the name for the file (other constructors set file
-permissions, the owner/group and other things). Note that all the <tt>StyxFile</tt>
-constructors throw <tt>StyxException</tt> and so our constructor must do this
+permissions, the owner/group and other things). Note that all the <code>StyxFile</code>
+constructors throw <code>StyxException</code> and so our constructor must do this
 too (this will only be thrown if we attempt to create a file with the illegal
-names <tt>&quot;.&quot;</tt> or <tt>&quot;..&quot;</tt>).</p>
+names <code>&quot;.&quot;</code> or <code>&quot;..&quot;</code>).</p>
 
-<p>We must implement two abstract methods, <tt>read()</tt> and <tt>write()</tt>.
+<p>We must implement two abstract methods, <code>read()</code> and <code>write()</code>.
 These methods control what happens when users try to read from or write to the
 file. (There are other methods that we can override, but we'll leave this till
 later.) We shan't allow writing to this file so we shall always throw a
-<tt>StyxException</tt> when a write request arrives (this sends an error message
+<code>StyxException</code> when a write request arrives (this sends an error message
 back to the client):</p>
 
 <blockquote>
-<tt>
+<code>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">java.nio.ByteBuffer;</font><br/>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.server.StyxFileClient;</font><br/>
 ...<br/>
@@ -159,21 +159,21 @@ back to the client):</p>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>throw&nbsp;new&nbsp;</b></font><font color="#000000">StyxException</font><font color="#000000">(</font><font color="#2a00ff">&#34;Cannot&nbsp;write&nbsp;to&nbsp;this&nbsp;file&#34;</font><font color="#000000">)</font><font color="#000000">;</font><br/>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
 ....<br/>
-</tt>
+</code>
 </blockquote>
 
 <p>Note that we have to import a couple more classes. We shan't worry about all
-the arguments to <tt>write()</tt> for the moment (see the javadoc or the source
-for <tt>StyxFile</tt> if you're interested). Note, however, the first argument:
+the arguments to <code>write()</code> for the moment (see the javadoc or the source
+for <code>StyxFile</code> if you're interested). Note, however, the first argument:
 it allows us to find out which client is accessing the file. This raises the
 intriguing and powerful possibility that the file could behave differently for
 different clients. We shall see more of this later.</p>
 
-<p>Now we can implement the <tt>read()</tt> method. This is the bit that does
+<p>Now we can implement the <code>read()</code> method. This is the bit that does
 the actual work. It will return the current date and time to the user:</p>
 
 <blockquote>
-<tt>
+<code>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">java.util.Date;</font><br/>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.StyxUtils;</font><br/>
 ...<br/>
@@ -211,7 +211,7 @@ the actual work. It will return the current date and time to the user:</p>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>this</b></font><font color="#000000">.replyRead</font><font color="#000000">(</font><font color="#000000">client,&nbsp;buf,&nbsp;tag</font><font color="#000000">)</font><font color="#000000">;</font><br/>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
 ...
-</tt>
+</code>
 </blockquote>
 <p>Again, we have to import a couple more classes. The comments in the above
 method should explain what we're doing, but the gist of it is this:</p>
@@ -221,18 +221,18 @@ method should explain what we're doing, but the gist of it is this:</p>
 	the provided offset and count.</li>
 	<li>If the supplied offset takes us off the end of the data array, return
 	zero bytes to signify end-of-file.</li>
-	<li>Wrap the subset of the array as a <tt>java.nio.ByteBuffer</tt> and send
-	it back to the client with the <tt>replyRead()</tt> method of StyxFile.</li>
+	<li>Wrap the subset of the array as a <code>java.nio.ByteBuffer</code> and send
+	it back to the client with the <code>replyRead()</code> method of StyxFile.</li>
 </ol>
-<p>These steps are followed for the vast majority of <tt>StyxFile</tt>s that
+<p>These steps are followed for the vast majority of <code>StyxFile</code>s that
 will be created. (Note that Styx always uses the UTF-8 encoding for strings.)</p>
 
 <p><em>Optional:</em> Since the date is always returned in the same format, we
 know the length of this file (it is always 28 bytes). We can make sure that
-client see the correct length by overriding the <tt>getLength()</tt> method of
-<tt>StyxFile</tt>:</p>
+client see the correct length by overriding the <code>getLength()</code> method of
+<code>StyxFile</code>:</p>
 <blockquote>
-<tt>
+<code>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.types.ULong;</font><br/>
 ...<br/>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>public&nbsp;</b></font><font color="#000000">ULong&nbsp;getLength</font><font color="#000000">()</font><br/>
@@ -240,15 +240,15 @@ client see the correct length by overriding the <tt>getLength()</tt> method of
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>return&nbsp;new&nbsp;</b></font><font color="#000000">ULong</font><font color="#000000">(</font><font color="#990000">28</font><font color="#000000">)</font><font color="#000000">;</font><br/>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
 ...<br/>
-</tt>
+</code>
 </blockquote>
-<p><em>(The <tt>ULong</tt> class is a simulation of an unsigned long, a type that
+<p><em>(The <code>ULong</code> class is a simulation of an unsigned long, a type that
 Java lacks.)</em></p>
 
-<p>Now we can create a <tt>main()</tt> method that serves up this file in a Styx
+<p>Now we can create a <code>main()</code> method that serves up this file in a Styx
 server:</p>
 <blockquote>
-<tt>
+<code>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.server.StyxDirectory;</font><br/>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.server.StyxServer;</font><br/>
 ...<br/>
@@ -262,20 +262,20 @@ server:</p>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#7f0055"><b>new&nbsp;</b></font><font color="#000000">StyxServer</font><font color="#000000">(</font><font color="#990000">9876</font><font color="#000000">,&nbsp;root</font><font color="#000000">)</font><font color="#000000">.start</font><font color="#000000">()</font><font color="#000000">;</font><br/>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
 ...<br/>
-</tt>
+</code>
 </blockquote>
 
-<p>The complete <tt>DateFile</tt> class is included in the JStyx distribution in
-the <tt>uk.ac.rdg.resc.jstyx.examples</tt> package. To run the server, we must be
-sure to set the classpath correctly. There is a handy script in the <tt>bin</tt>
-directory of the distribution called <tt>JStyxRun</tt> that does this for us.
-Change into the <tt>bin</tt> directory and run:</p>
+<p>The complete <code>DateFile</code> class is included in the JStyx distribution in
+the <code>uk.ac.rdg.resc.jstyx.examples</code> package. To run the server, we must be
+sure to set the classpath correctly. There is a handy script in the <code>bin</code>
+directory of the distribution called <code>JStyxRun</code> that does this for us.
+Change into the <code>bin</code> directory and run:</p>
 <blockquote>
-<tt>
+<code>
 JStyxRun uk.ac.rdg.resc.jstyx.examples.DateFile
-</tt>
+</code>
 </blockquote>
-<p>If all is well, you should see a log message saying that the <tt>StyxServer</tt>
+<p>If all is well, you should see a log message saying that the <code>StyxServer</code>
 is listening on port 9876.</p>
 
 <h2>Creating a client program</h2>
@@ -286,26 +286,26 @@ using JStyx.</p>
 <em><p>Note for Inferno users: you can use Inferno to interact with the server 
 too, of course. Open a new shell window and enter:</p>
 <blockquote>
-<tt>mount -A tcp!hostname!9876 /n/remote<br/>
+<code>mount -A tcp!hostname!9876 /n/remote<br/>
 cd /n/remote<br/>
-cat date<br/></tt>
+cat date<br/></code>
 </blockquote>
-<p>Note that you may need to run <tt>ndb/cs</tt> before doing this so that Inferno
+<p>Note that you may need to run <code>ndb/cs</code> before doing this so that Inferno
 can resolve hostnames into IP addresses.</p>
 </em>
 
 <h3>Method 1: Access the file via a URL</h3>
 <p>Since everything in the Styx world is represented as a file or set of files,
 Styx resources are very easily represented as URLs. In the case of our
-<tt>DateFile</tt> that we created above, the URL of the file is:</p>
-<blockquote><tt>styx://myhostname:9876/date</tt></blockquote>
-<p>(where <tt>myhostname</tt> is the name of the machine running the server 
-program, e.g. <tt>&quot;localhost&quot;</tt>). The first client program that we
-shall create will use the Java URL class to get an <tt>InputStream</tt> that we
+<code>DateFile</code> that we created above, the URL of the file is:</p>
+<blockquote><code>styx://myhostname:9876/date</code></blockquote>
+<p>(where <code>myhostname</code> is the name of the machine running the server 
+program, e.g. <code>&quot;localhost&quot;</code>). The first client program that we
+shall create will use the Java URL class to get an <code>InputStream</code> that we
 will use to read the file:</p>
 
 <blockquote>
-<tt>
+<code>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">java.net.URL;</font><br/>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">java.io.*;</font><br/>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.client.StyxFileInputStreamReader;</font><br/>
@@ -337,34 +337,34 @@ will use to read the file:</p>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">bufRead.close</font><font color="#000000">()</font><font color="#000000">;</font><br/>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
 <font color="#000000">}</font></code>
-</tt>
+</code>
 </blockquote>
 
-<p>This should be very familiar to Java programmers; we get an <tt>InputStream</tt>
-to read the data, wrap it in a <tt>Reader</tt> to convert the binary data correctly
-into characters, wrap that in a <tt>BufferedReader</tt> to allow us to read a line
+<p>This should be very familiar to Java programmers; we get an <code>InputStream</code>
+to read the data, wrap it in a <code>Reader</code> to convert the binary data correctly
+into characters, wrap that in a <code>BufferedReader</code> to allow us to read a line
 of data at a time, then read data until we get a null return. The complete class
-is included in the distribution as <tt>uk.ac.rdg.resc.jstyx.examples.DateFileURLClient</tt>.</p>
+is included in the distribution as <code>uk.ac.rdg.resc.jstyx.examples.DateFileURLClient</code>.</p>
 
 <p>To run this program, we not only have to set the classpath correctly, but we
-also need to tell Java how to deal with <tt>styx://</tt> URLs, using the
-<tt>java.protocol.handler.pkgs</tt> system property. Both of these things
-are done by the <tt>JStyxRun</tt> script, so we can simply run (from the <tt>bin</tt>
+also need to tell Java how to deal with <code>styx://</code> URLs, using the
+<code>java.protocol.handler.pkgs</code> system property. Both of these things
+are done by the <code>JStyxRun</code> script, so we can simply run (from the <code>bin</code>
 directory of the distribution):</p>
-<blockquote><tt>JStyxRun uk.ac.rdg.resc.jstyx.examples.DateFileURLClient</tt></blockquote>
+<blockquote><code>JStyxRun uk.ac.rdg.resc.jstyx.examples.DateFileURLClient</code></blockquote>
 
 <p><em>TODO: deal with debug messages</em></p>
 
-<h3>Method 2: Use the <tt>CStyxFile</tt> class</h3>
+<h3>Method 2: Use the <code>CStyxFile</code> class</h3>
 <p>By using URLs we can download data from a Styx server whilst knowing very little
 about how the JStyx libraries work. Sometimes, however, we want to get in a bit
 deeper so we have more control over our programs. A key class from the client's
-point of view is <tt>uk.ac.rdg.resc.jstyx.client.CStyxFile</tt>. (It is called
-<tt>CStyxFile</tt> to avoid confusion with the server-side <tt>StyxFile</tt> class.)
+point of view is <code>uk.ac.rdg.resc.jstyx.client.CStyxFile</code>. (It is called
+<code>CStyxFile</code> to avoid confusion with the server-side <code>StyxFile</code> class.)
 </p>
 
 <blockquote>
-<tt>
+<code>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">java.nio.ByteBuffer;</font><br/>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.client.StyxConnection;</font><br/>
 <font color="#7f0055"><b>import&nbsp;</b></font><font color="#000000">uk.ac.rdg.resc.jstyx.client.CStyxFile;</font><br/>
@@ -400,7 +400,7 @@ point of view is <tt>uk.ac.rdg.resc.jstyx.client.CStyxFile</tt>. (It is called
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">conn.close</font><font color="#000000">()</font><font color="#000000">;</font><br/>
 <font color="#ffffff">&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#000000">}</font><br/>
 <font color="#000000">}</font>
-</tt>
+</code>
 </blockquote>
 
 </body>
