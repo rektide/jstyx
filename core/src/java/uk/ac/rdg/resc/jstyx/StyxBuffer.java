@@ -51,14 +51,17 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:16  jonblower
- * Initial revision
+ * Revision 1.2  2005/03/09 17:01:23  jonblower
+ * Added more methods reflecting methods in underlying ByteBuffer
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:16  jonblower
+ * Initial import
  *
  */
 public class StyxBuffer
 {
     
-    private ByteBuffer buf;
+    private ByteBuffer buf;  // The underlying java.nio.ByteBuffer
     
     /** 
      * Creates a new instance of StyxBuffer
@@ -326,6 +329,12 @@ public class StyxBuffer
         return bytes;
     }
     
+    public StyxBuffer put(byte[] bytes)
+    {
+        this.buf.put(bytes);
+        return this;
+    }
+    
     /**
      * Puts a chunk of data to the buffer.
      * @param data The data to write. The position and limit of this buffer will
@@ -369,5 +378,21 @@ public class StyxBuffer
     public ByteBuffer getBuffer()
     {
         return this.buf;
+    }
+    
+    /**
+     * @return the number of bytes remaining in the underlying buffer
+     */
+    public int remaining()
+    {
+        return this.buf.remaining();
+    }
+    
+    /**
+     * Flip the underlying buffer
+     */
+    public void flip()
+    {
+        this.buf.flip();
     }
 }
