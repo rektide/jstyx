@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- JStyx build file -->
+<!-- Author: Jon Blower -->
+<!-- CVS $Revision$ -->
+<!-- CVS Last modified $Date$ -->
+<!-- CVS $Log$
+<!-- CVS Revision 1.1  2005/02/28 17:44:15  jonblower
+<!-- CVS Initial import of build.xml
+<!-- CVS -->
+<project name="jstyx" default="jar" basedir=".">
+    <description>
+        Builds the JStyx source into classes and creates JAR file
+    </description>
+	<property name="version" value="0.04"/>
+	<property name="src.dir" value="src"/>
+	<property name="classes.dir" value="classes"/>
+	<property name="dist.dir" value="dist"/>
+	<!-- The directory containing other third-party Java libraries (log4j, netty etc) -->
+	<property name="lib.dir" value="lib"/>
+	
+	<target name="compile" description="compile the source">
+		<mkdir dir="${classes.dir}"/>
+		<!-- Compile the java code from ${src.dir} into ${classes.dir} -->
+		<javac srcdir="${src.dir}" destdir="${classes.dir}" debug="on">
+			<!-- Set the classpath -->
+			<classpath>
+				<pathelement path="${java.class.path}"/>
+				<fileset dir="${lib.dir}">
+					<include name="**/*.jar"/>
+				</fileset>
+			</classpath>
+		</javac>
+	</target>
+	<target name="jar" depends="compile" description="generate the JStyx jar file">
+		<mkdir dir="${dist.dir}"/>
+		<jar destfile="${dist.dir}/jstyx-${version}.jar" basedir="${classes.dir}"/>
+	</target>
+	<target name="clean" description="clean up">
+		<delete dir="${classes.dir}"/>
+		<delete dir="${dist.dir}"/>
+	</target>
+</project>
