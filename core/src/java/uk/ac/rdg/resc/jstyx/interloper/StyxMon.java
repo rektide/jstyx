@@ -65,6 +65,9 @@ import info.clearthought.layout.TableLayout;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/02/26 10:00:24  jonblower
+ * Removed redundant methods
+ *
  * Revision 1.6  2005/02/25 07:48:05  jonblower
  * Fixed bug with displaying filename in table
  *
@@ -203,22 +206,6 @@ public class StyxMon implements InterloperListener
     {
         // TODO: close the connection
         System.exit(0);
-    }
-    
-    /**
-     * Filters the data
-     */
-    private void filterClicked()
-    {
-        this.model.filterByFilename("/md5sum/1/ctl");
-    }
-    
-    /**
-     * Removes any filters from the data
-     */
-    private void showAllClicked()
-    {
-        this.model.showAllData();
     }
     
     /**
