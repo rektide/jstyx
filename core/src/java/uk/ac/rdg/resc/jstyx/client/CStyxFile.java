@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/02/18 17:57:31  jonblower
+ * Changed a constructor to private access
+ *
  * Revision 1.3  2005/02/18 09:11:35  jonblower
  * Remove 'synchronized' from some methods, added some comments
  *
@@ -121,16 +124,6 @@ public class CStyxFile extends MessageCallback
     }
     
     /**
-     * Creates a new instance of CStyxFile. This doesn't actually open the file;
-     * use open() for this.
-     */
-    public CStyxFile(StyxConnection conn, String basePath, DirEntry dirEntry)
-    {
-        this(conn, basePath + "/" + dirEntry.getFileName());
-        this.dirEntry = dirEntry;
-    }
-    
-    /**
      * Package-private constructor that is used by StyxConnection to create a 
      * CStyxFile representing the root of the server; the fid is already known
      * in this case. Should not be used normally.
@@ -139,6 +132,15 @@ public class CStyxFile extends MessageCallback
     {
         this(conn, path);
         this.fid = fid;
+    }
+    
+    /**
+     * Creates a new instance of CStyxFile. Used by this.getChildren()
+     */
+    private CStyxFile(StyxConnection conn, String basePath, DirEntry dirEntry)
+    {
+        this(conn, basePath + "/" + dirEntry.getFileName());
+        this.dirEntry = dirEntry;
     }
     
     /**
