@@ -45,7 +45,7 @@ public class TestServer
         StyxDirectory root = new DirectoryOnDisk("C:\\Inferno");
         
         // Set up the server and start it
-        StyxServer server = new StyxServer(root, port);
+        StyxServer server = new StyxServer(port, root);
         server.start();
         
     }

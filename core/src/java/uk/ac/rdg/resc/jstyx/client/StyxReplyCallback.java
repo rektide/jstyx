@@ -40,8 +40,11 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:20  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/21 18:09:43  jonblower
+ * *** empty log message ***
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:20  jonblower
+ * Initial import
  *
  */
 class StyxReplyCallback extends MessageCallback
@@ -98,7 +101,7 @@ class StyxReplyCallback extends MessageCallback
      * the server, the reply was of an unexpected type, or something else - 
      * see MessageCallback).
      */
-    public synchronized void error(String message)
+    public synchronized void error(String message, int tag)
     {
         errorMsg = message;
         notifyAll();

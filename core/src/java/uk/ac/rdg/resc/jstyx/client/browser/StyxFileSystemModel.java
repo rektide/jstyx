@@ -81,6 +81,7 @@ public class StyxFileSystemModel extends AbstractTreeTableModel
     {
         super();
         StyxConnection session = new StyxConnection(host, port, user);
+        session.connectAsync();
         this.setRoot(new FileNode(session.getRootDirectory()));
     }
     

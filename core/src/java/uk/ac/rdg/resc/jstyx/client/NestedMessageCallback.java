@@ -41,8 +41,11 @@ import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:18  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/21 18:09:43  jonblower
+ * *** empty log message ***
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:18  jonblower
+ * Initial import
  *
  */
 public class NestedMessageCallback extends MessageCallback
@@ -94,8 +97,8 @@ public class NestedMessageCallback extends MessageCallback
      * This default implementation simply passes the error message to the nested
      * callback.
      */
-    public void error(String message)
+    public void error(String message, int tag)
     {
-        this.nestedCallback.error(message);
+        this.nestedCallback.error(message, tag);
     }
 }

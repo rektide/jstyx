@@ -40,6 +40,9 @@ import java.awt.event.WindowEvent;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/02/21 18:09:43  jonblower
+ * *** empty log message ***
+ *
  * Revision 1.1  2005/02/18 17:52:40  jonblower
  * Added client.browser package
  *
@@ -50,7 +53,7 @@ public class StyxBrowser
     public static void main(String[] args) throws Throwable
     {
         // TODO take details from command line
-        new StyxBrowser("localhost", 9092, "jon");
+        new StyxBrowser("localhost", 9999, "jon");
     }
     
     public StyxBrowser(String host, int port, String user) throws Throwable

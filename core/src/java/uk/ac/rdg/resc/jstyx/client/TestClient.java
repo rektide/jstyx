@@ -34,14 +34,18 @@ public class TestClient extends CStyxFileChangeAdapter
         try
         {
             conn = new StyxConnection(HOSTNAME, PORT);
-            file = new CStyxFile(conn, "bbe.txt");
-            file.addChangeListener(new TestClient());
+            conn.connect();
+            //Thread.sleep(200);
+            //conn.close();
+            //file = new CStyxFile(conn, "bbe.txt");
+            //file.addChangeListener(new TestClient());
             //Thread.sleep(1000);
-            file.openAsync(StyxUtils.OREAD);
+            //file.refreshAsync();
+            //file.openAsync(StyxUtils.OREAD);
             //file.refreshAsync();
             //System.out.println("file length = " + file.getLength());
             //System.out.println("last modified = " + file.getLastModified());
-            Thread.sleep(1000);
+            //Thread.sleep(1000);
         }
         catch(Throwable e)
         {

@@ -37,6 +37,7 @@ import java.io.IOException;
 import net.gleamynode.netty2.IoProcessor;
 import net.gleamynode.netty2.MessageRecognizer;
 import net.gleamynode.netty2.SessionServer;
+import net.gleamynode.netty2.SessionListener;
 import net.gleamynode.netty2.OrderedEventDispatcher;
 import net.gleamynode.netty2.ThreadPooledEventDispatcher;
 
@@ -51,8 +52,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:33  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/21 18:09:48  jonblower
+ * *** empty log message ***
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:33  jonblower
+ * Initial import
  *
  */
 public class StyxServer
@@ -61,19 +65,47 @@ public class StyxServer
     
     private static final int DISPATCHER_THREAD_POOL_SIZE = 16;
     
+    private SessionListener listener = null;
     private StyxDirectory root;
     private int port;
     
-    public StyxServer(StyxDirectory root, int port) throws StyxException
+    /**
+     * Creates a Styx server that exposes the given directory under the given
+     * port.
+     * @throws IllegalArgumentException if the port number is invalid or the
+     * root is null.
+     */
+    public StyxServer(int port, StyxDirectory root)
+    {
+        this(port, root, null);
+    }
+    
+    /**
+     * Creates a Styx server that listens on the given port and uses the
+     * given session listener (This is used by the Styx interloper class)
+     * @throws IllegalArgumentException if the port number is invalid or the
+     * listener is null.
+     */
+    public StyxServer(int port, SessionListener listener)
+    {
+        this(port, null, listener);
+        if (listener == null)
+        {
+            throw new IllegalArgumentException("Listener cannot be null");
+        }
+    }
+    
+    private StyxServer(int port, StyxDirectory root, SessionListener listener)
     {
         // Check that the port number is valid
         // TODO: should we disallow other port numbers?
         if (port < 0 || port > StyxUtils.MAXUSHORT)
         {
-            throw new StyxException("Invalid port number");
+            throw new IllegalArgumentException("Invalid port number");
         }
         this.root = root;
         this.port = port;
+        this.listener = listener;
     }
     
     public void start() throws StyxException
@@ -99,7 +131,12 @@ public class StyxServer
         MessageRecognizer recognizer = new StyxMessageRecognizer(StyxMessageRecognizer.SERVER_MODE);
         
         // prepare session event listener which will provide communication workflow.
-        StyxServerSessionListener listener = new StyxServerSessionListener(this.root);
+        if (this.listener == null)
+        {
+            // We haven't set our own session listener, so we create a new one
+            // for exposing the tree rooted at the given StyxDirectory
+            this.listener = new StyxServerSessionListener(this.root);
+        }
         
         // prepare session server
         SessionServer server = new SessionServer();

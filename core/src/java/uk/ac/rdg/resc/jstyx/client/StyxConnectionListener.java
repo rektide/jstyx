@@ -36,8 +36,11 @@ package uk.ac.rdg.resc.jstyx.client;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:19  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/21 18:09:43  jonblower
+ * *** empty log message ***
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:19  jonblower
+ * Initial import
  *
  */
 public interface StyxConnectionListener
@@ -58,6 +61,6 @@ public interface StyxConnectionListener
      * Called when an error has occurred when connecting.
      * @param message String describing the problem
      */
-    public void connectError(String message);
+    public void connectionError(String message);
     
 }

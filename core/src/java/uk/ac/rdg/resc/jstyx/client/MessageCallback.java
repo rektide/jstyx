@@ -41,8 +41,11 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:18  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/21 18:09:42  jonblower
+ * *** empty log message ***
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:18  jonblower
+ * Initial import
  *
  */
 public abstract class MessageCallback
@@ -75,14 +78,14 @@ public abstract class MessageCallback
     {
         if (message instanceof RerrorMessage)
         {
-            this.error(((RerrorMessage)message).getMessage());
+            this.error(((RerrorMessage)message).getMessage(), message.getTag());
         }
         else
         {
             if (message.getType() != this.tMessage.getType() + 1)
             {
                 this.error("Unexpected type of reply (" + message.getType() +
-                    ") to message of type " + this.tMessage.getType());
+                    ") to message of type " + this.tMessage.getType(), message.getTag());
             }
             else
             {
@@ -102,7 +105,9 @@ public abstract class MessageCallback
      * Rerror message, or if the reply was not of the expected type, or for 
      * other reasons).
      * @param message The error string
+     * @param tag The tag of the message that caused the error. If this is -1
+     * then no message was sent but an error was still generated
      */
-    public abstract void error(String message);
+    public abstract void error(String message, int tag);
     
 }

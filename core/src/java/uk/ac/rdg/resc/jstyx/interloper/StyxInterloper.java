@@ -34,7 +34,9 @@ import net.gleamynode.netty2.OrderedEventDispatcher;
 import net.gleamynode.netty2.SessionServer;
 import net.gleamynode.netty2.ThreadPooledEventDispatcher;
 
+import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxMessageRecognizer;
+import uk.ac.rdg.resc.jstyx.server.StyxServer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -53,8 +55,11 @@ import java.io.IOException;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:26  jonblower
- * Initial revision
+ * Revision 1.2  2005/02/21 18:09:45  jonblower
+ * *** empty log message ***
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:26  jonblower
+ * Initial import
  *
  */
 public class StyxInterloper
@@ -65,55 +70,27 @@ public class StyxInterloper
     
     private int port;
     private InetSocketAddress destSockAddr;
+    private StyxServer styxServer;
     
     /**
      * Creates a new StyxInterloper.
-     * @param serverPort The port on which this server will listen
-     * @param destHost The host of the destination to which this server will connect
-     * @param destPort The port of the destination to which this server will connect
+     * @param port The port on which this server will listen
+     * @param serverost The host of the destination to which this server will connect
+     * @param serverPort The port of the destination to which this server will connect
+     * @throws StyxException if there was an error starting the Styx server
      */
-    public StyxInterloper(int serverPort, String destHost, int destPort)
+    public StyxInterloper(int port, String serverHost, int serverPort)
+        throws StyxException
     {
-        this.port = serverPort;
-        this.destSockAddr = new InetSocketAddress(destHost, destPort);
-    }   
-    
-    public void start() throws IOException
-    {
-        // initialize I/O processor and event dispatcher
-        IoProcessor ioProcessor = new IoProcessor();
-        ThreadPooledEventDispatcher eventDispatcher = new OrderedEventDispatcher();
-        
-        // start with the default number of I/O worker threads
-        ioProcessor.start();
-        
-        // start with a few event dispatcher threads
-        eventDispatcher.setThreadPoolSize(DISPATCHER_THREAD_POOL_SIZE);
-        eventDispatcher.start();
-        
-        // prepare message recognizer
-        MessageRecognizer recognizer = new StyxMessageRecognizer(StyxMessageRecognizer.SERVER_MODE);
-        
-        // prepare session event listener which will provide communication workflow.
-        StyxInterloperServerSessionListener listener = new StyxInterloperServerSessionListener(destSockAddr);
-        
-        // prepare session server
-        SessionServer server = new SessionServer();
-        server.setIoProcessor(ioProcessor);
-        server.setEventDispatcher(eventDispatcher);
-        server.setMessageRecognizer(recognizer);
-        
-        server.addSessionListener(listener);
-        server.setBindAddress(new InetSocketAddress(this.port));
-        
-        // open the server port, accept connections, and start communication
-        log.info("Listening on port " + this.port);
-        server.start();
+        this.port = port;
+        InetSocketAddress destSockAddr = new InetSocketAddress(serverHost, serverPort);
+        this.styxServer = new StyxServer(port, new StyxInterloperServerSessionListener(destSockAddr));
+        this.styxServer.start();
     }
     
     public static void main (String[] args) throws Throwable
     {
-        new StyxInterloper(2910, "lovejoy.nerc-essc.ac.uk", 6678).start();
+        new StyxInterloper(2911, "localhost", 7777);
     }
     
 }
