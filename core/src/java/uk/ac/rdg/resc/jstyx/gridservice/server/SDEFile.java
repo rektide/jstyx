@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/03/18 16:45:18  jonblower
+ * Released ByteBuffers after use
+ *
  * Revision 1.1  2005/03/16 22:16:44  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -102,6 +105,7 @@ class SDEFile extends StyxFile
         byte[] bytes = new byte[(int)count];
         data.get(bytes);
         this.sde.setValue(bytes);
+        data.release(); // Allow the ByteBuffer to be re-used.
         this.replyWrite(client, count, tag);
     }
 

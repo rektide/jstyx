@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/03/18 16:45:14  jonblower
+ * Released ByteBuffers after use
+ *
  * Revision 1.2  2005/03/18 13:55:59  jonblower
  * Improved freeing of ByteBuffers, and bug fixes
  *
@@ -216,6 +219,7 @@ public class SGSInstanceClient implements CStyxFileChangeListener
                 if (file == stdout)
                 {
                     stdoutBuf.append(StyxUtils.dataToString(data));
+                    // We don't release the data here; we do this 
                     this.fireNewStdoutData(data);
                 }
                 else if (file == stderr)
@@ -237,7 +241,8 @@ public class SGSInstanceClient implements CStyxFileChangeListener
             }
             else
             {
-                // We have reached EOF
+                // We have reached EOF, so we don't need the data
+                data.release();
                 if (file == status)
                 {
                     this.fireStatusChanged(statusBuf.toString());
