@@ -65,6 +65,9 @@ import info.clearthought.layout.TableLayout;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/02/24 17:53:13  jonblower
+ * Added code to read args from command line
+ *
  * Revision 1.4  2005/02/24 11:23:32  jonblower
  * Handles filtering by filename correctly
  *
@@ -326,7 +329,6 @@ public class StyxMon implements InterloperListener
                     if (filename != null && !filename.equals("") &&
                         !filename.equals(NOT_APPLICABLE))
                     {
-                        System.out.println("filtering on filename " + model.getValueAt(row, 2));
                         popup.showContext(filename, table, e.getX(), e.getY());
                     }
                 }
@@ -336,7 +338,7 @@ public class StyxMon implements InterloperListener
     
     public static void main(String[] args) throws Exception
     {
-        /*if (args.length != 3)
+        if (args.length != 3)
         {
             System.err.println("Usage: java StyxMon <port> <remote host> <remote port>");
             return;
@@ -366,8 +368,7 @@ public class StyxMon implements InterloperListener
             System.err.println("Invalid remote port number");
             return;
         }
-        new StyxMon(port, args[1], remotePort);*/
-        new StyxMon(9999, "localhost", 9092);
+        new StyxMon(port, args[1], remotePort);
     }
     
 }
