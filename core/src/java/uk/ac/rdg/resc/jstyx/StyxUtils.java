@@ -39,6 +39,9 @@ import java.nio.charset.Charset;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/03/15 15:52:17  jonblower
+ * Added constant for maximum allowable message size
+ *
  * Revision 1.4  2005/03/11 13:58:24  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -61,6 +64,12 @@ public class StyxUtils
     
     // The header length of a StyxMessage
     public static final int HEADER_LENGTH = 7;
+    
+    /**
+     * The maximum length of a single Styx message.  This is actually an
+     * arbitrary figure; there is no reason why messages can't be larger than this
+     */
+    public static final int MAX_MESSAGE_SIZE = 65536;
     
     // Constants relating to max values of unsigned quantities
     public static final int  MAXUBYTE  = 0xff;
