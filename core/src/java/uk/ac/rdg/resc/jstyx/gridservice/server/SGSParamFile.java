@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/04/20 07:36:31  jonblower
+ * Further improvements
+ *
  * Revision 1.3  2005/03/29 19:17:38  jonblower
  * Continuing to implement automatic setting of parameters
  *
@@ -109,5 +112,73 @@ public class SGSParamFile extends InMemoryFile
     public String getCommandLineFragment()
     {
         return this.param.getSwitch() + this.getDataAsString();
+    }
+    
+    /**
+     * @return the value of the parameter as a string
+     */
+    public String getValue()
+    {
+        return this.value;
+    }
+    
+    /**
+     * @return the value of this parameter as a boolean (only valid if this
+     * parameter is of boolean type)
+     * @throws SGSConfigException if the value is not a valid boolean ("true"
+     * or "false")
+     */
+    public boolean getValueAsBoolean() throws SGSConfigException
+    {
+        if (this.value.trim().equalsIgnoreCase("true"))
+        {
+            return true;
+        }
+        else if (this.value.trim().equalsIgnoreCase("false"))
+        {
+            return false;
+        }
+        else
+        {
+            // TODO: should this be a StyxException?
+            throw new SGSConfigException("\"" + this.value +
+                "\" is not a valid boolean");
+        }
+    }
+    
+    /**
+     * @return the value of this parameter as a long integer (only valid if this
+     * parameter is of "int" type)
+     * @throws SGSConfigException if the value is not a valid long (8-byte)
+     * signed integer
+     */
+    public long getValueAsLong() throws SGSConfigException
+    {
+        try
+        {
+            return Long.parseLong(this.value);
+        }
+        catch(NumberFormatException nfe)
+        {
+            throw new SGSConfigException("\"" + this.value +
+                "\" is not a valid 8-byte signed integer");
+        }
+    }
+    
+    /**
+     * @return the value of this parameter as a double precision floating-point
+     * number (only valid if this parameter is of "float" type)
+     */
+    public double getValueAsDouble() throws SGSConfigException
+    {
+        try
+        {
+            return Double.parseDouble(this.value);
+        }
+        catch(NumberFormatException nfe)
+        {
+            throw new SGSConfigException("\"" + this.value +
+                "\" is not a valid double-precision floating-point number");
+        }
     }
 }

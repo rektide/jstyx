@@ -40,6 +40,9 @@ import org.w3c.dom.Element;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/04/20 07:36:28  jonblower
+ * Further improvements
+ *
  * Revision 1.3  2005/03/29 19:17:38  jonblower
  * Continuing to implement automatic setting of parameters
  *
@@ -149,9 +152,40 @@ class SGSParam
      */
     public void checkValue(String value) throws SGSConfigException
     {
+        // TODO: allow blank values?
         if (this.type == ParamType.BOOLEAN)
         {
-            
+            if (! (value.trim().equalsIgnoreCase("true") || 
+                   value.trim().equalsIgnoreCase("false")) )
+            {
+                // TODO: allow "yes" and "no"?
+                throw new SGSConfigException("Boolean parameter " + this.name
+                    + " must be either \"true\" or \"false\"");
+            }
+        }
+        else if (this.type == ParamType.INT)
+        {
+            try
+            {
+                long val = Long.parseLong(value);
+            }
+            catch(NumberFormatException nfe)
+            {
+                throw new SGSConfigException("Value for " + this.name +
+                    " must be a valid 8-byte signed integer");
+            }
+        }
+        else if (this.type == ParamType.FLOAT)
+        {
+            try
+            {
+                double val = Double.parseDouble(value);
+            }
+            catch(NumberFormatException nfe)
+            {
+                throw new SGSConfigException("Value for " + this.name +
+                    " must be a valid double-precision floating-point number");
+            }
         }
     }
 }
@@ -190,6 +224,9 @@ class ParamType
         }
     }
     
+    /**
+     * Constructor is made private to prevent other classes making instances
+     */
     private ParamType()
     {
     }
