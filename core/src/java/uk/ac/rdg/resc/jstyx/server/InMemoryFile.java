@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/04/26 07:46:11  jonblower
+ * Continuing to improve setting of parameters in Styx Grid Services
+ *
  * Revision 1.8  2005/03/24 15:11:07  jonblower
  * Changed so that underlying ByteBuffer is allocated on the first write to the file
  *
@@ -90,7 +93,10 @@ public class InMemoryFile extends StyxFile
      */
     protected int capacity;
     
-    /** Creates a new instance of InMemoryFile */
+    /**
+     * Creates a new instance of InMemoryFile with a capacity of 8KB. Use
+     * setCapacity() to increase this limit
+     */
     public InMemoryFile(String name, String userID, String groupID,
         int permissions, boolean isAppendOnly, boolean isExclusive)
         throws StyxException
@@ -230,7 +236,9 @@ public class InMemoryFile extends StyxFile
         {
             return "";
         }
+        // Make sure the position is set to zero
         this.buf.position(0);
+        // The limit will have already been set
         return StyxUtils.dataToString(this.buf);
     }
     

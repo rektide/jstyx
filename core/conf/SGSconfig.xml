@@ -5,7 +5,7 @@
     Last modified $Date$ by $Author$
     Description:
         Config file for setting up Styx Grid Services
-        Here's a half-decent DTD tutorial: http://www.zvon.org/xxl/DTDTutorial/General/contents.html
+        Here's a useful DTD tutorial: http://www.zvon.org/xxl/DTDTutorial/General/contents.html
 -->
 
 <!DOCTYPE root SYSTEM "SGSconfig.dtd">

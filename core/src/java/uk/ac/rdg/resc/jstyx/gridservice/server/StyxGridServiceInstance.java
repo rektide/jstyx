@@ -58,6 +58,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/04/26 07:46:11  jonblower
+ * Continuing to improve setting of parameters in Styx Grid Services
+ *
  * Revision 1.7  2005/03/24 17:33:51  jonblower
  * Improved reading of service parameters from config file
  *
@@ -355,6 +358,11 @@ class StyxGridServiceInstance extends StyxDirectory
                 (bytes.length - (int)offset);
             this.replyRead(client, bytes, (int)offset, bytesToReturn, tag);
         }
+        
+        // TODO: Shall we allow direct writing to this file?  This might either
+        // automatically populate the individual parameter files (hard) or
+        // simply disable the ability to read from or write to the parameter
+        // files (easy).
     }
     
     // Thread that waits for the executable to finish, then sets the status

@@ -43,11 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.4  2005/04/20 07:36:31  jonblower
- * Further improvements
+ * Revision 1.5  2005/04/26 07:46:11  jonblower
+ * Continuing to improve setting of parameters in Styx Grid Services
  *
- * Revision 1.3  2005/03/29 19:17:38  jonblower
- * Continuing to implement automatic setting of parameters
  *
  * Revision 1.2  2005/03/26 14:30:17  jonblower
  * Modified to use SGSConfigException
@@ -60,7 +58,6 @@ public class SGSParamFile extends InMemoryFile
 {
     
     private SGSParam param; // The logical representation of the parameter
-    private String value;   // The current value of this parameter
     
     public SGSParamFile(SGSParam param) throws StyxException
     {
@@ -95,7 +92,8 @@ public class SGSParamFile extends InMemoryFile
         // Check that the new value is within range
         try
         {
-            this.param.checkValue(newValue);
+            // TODO: need to check range, possible values etc
+            this.param.checkValidValue(newValue);
         }
         catch(SGSConfigException sce)
         {
@@ -115,11 +113,13 @@ public class SGSParamFile extends InMemoryFile
     }
     
     /**
-     * @return the value of the parameter as a string
+     * @return the value of this parameter as a string. Simply calls
+     * super.getDataAsString(); this is only here for consistency of naming with
+     * the other getValue...() methods
      */
-    public String getValue()
+    public String getValueAsString()
     {
-        return this.value;
+        return this.getDataAsString();
     }
     
     /**
@@ -130,19 +130,19 @@ public class SGSParamFile extends InMemoryFile
      */
     public boolean getValueAsBoolean() throws SGSConfigException
     {
-        if (this.value.trim().equalsIgnoreCase("true"))
+        String val = this.getDataAsString();
+        if (val.trim().equalsIgnoreCase("true"))
         {
             return true;
         }
-        else if (this.value.trim().equalsIgnoreCase("false"))
+        else if (val.trim().equalsIgnoreCase("false"))
         {
             return false;
         }
         else
         {
             // TODO: should this be a StyxException?
-            throw new SGSConfigException("\"" + this.value +
-                "\" is not a valid boolean");
+            throw new SGSConfigException("\"" + val + "\" is not a valid boolean");
         }
     }
     
@@ -154,13 +154,14 @@ public class SGSParamFile extends InMemoryFile
      */
     public long getValueAsLong() throws SGSConfigException
     {
+        String val = this.getDataAsString();
         try
         {
-            return Long.parseLong(this.value);
+            return Long.parseLong(val);
         }
         catch(NumberFormatException nfe)
         {
-            throw new SGSConfigException("\"" + this.value +
+            throw new SGSConfigException("\"" + val +
                 "\" is not a valid 8-byte signed integer");
         }
     }
@@ -171,13 +172,14 @@ public class SGSParamFile extends InMemoryFile
      */
     public double getValueAsDouble() throws SGSConfigException
     {
+        String val = this.getDataAsString();
         try
         {
-            return Double.parseDouble(this.value);
+            return Double.parseDouble(val);
         }
         catch(NumberFormatException nfe)
         {
-            throw new SGSConfigException("\"" + this.value +
+            throw new SGSConfigException("\"" + val +
                 "\" is not a valid double-precision floating-point number");
         }
     }

@@ -40,11 +40,9 @@ import org.w3c.dom.Element;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.4  2005/04/20 07:36:28  jonblower
- * Further improvements
+ * Revision 1.5  2005/04/26 07:46:11  jonblower
+ * Continuing to improve setting of parameters in Styx Grid Services
  *
- * Revision 1.3  2005/03/29 19:17:38  jonblower
- * Continuing to implement automatic setting of parameters
  *
  * Revision 1.2  2005/03/26 14:27:53  jonblower
  * Modified to use SGSConfigException
@@ -96,14 +94,14 @@ class SGSParam
             }
             if (this.type == ParamType.BOOLEAN || this.type == ParamType.STRING)
             {
-                throw new SGSConfigException("Boolean and string parameters cannot have "
-                    + "a minimum or maximum value");
+                throw new SGSConfigException("Boolean and string parameters"
+                    + " cannot have a minimum or maximum value");
             }
         }
         
         // Check that the minimum and maximum values are valid
-        this.checkValue(this.minValue);
-        this.checkValue(this.maxValue);
+        this.checkValidValue(this.minValue);
+        this.checkValidValue(this.maxValue);
         
         // Get the list of possible parameter values
         if (!vals.equals(""))
@@ -112,14 +110,14 @@ class SGSParam
             // Now check that all the values are valid
             for (int i = 0; i < this.values.length; i++)
             {
-                this.checkValue(this.values[i]);
+                this.checkValidValue(this.values[i]);
             }
         }
         
         if (!this.defaultValue.equals(""))
         {
             // Check that the default value is valid
-            this.checkValue(this.defaultValue);
+            this.checkValidValue(this.defaultValue);
         }
         
     }
@@ -145,12 +143,11 @@ class SGSParam
     /**
      * Checks that the proposed new value for the parameter is valid,
      * throwing a SGSConfigException if it isn't. To be valid, it must be
-     * parseable as a value of its type, be within the min/max range if
-     * specified, and be a member of the list of possible values, if specified
+     * parseable as a value of its type (boolean, int or float). If the type
+     * of the parameter is String, this method does nothing.
      * @param value the value to check
-     * @param allowBlank true if blank values are valid, false otherwise
      */
-    public void checkValue(String value) throws SGSConfigException
+    public void checkValidValue(String value) throws SGSConfigException
     {
         // TODO: allow blank values?
         if (this.type == ParamType.BOOLEAN)
