@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/04/27 17:24:14  jonblower
+ * Minor changes
+ *
  * Revision 1.10  2005/04/27 16:11:43  jonblower
  * Added capability to add documentation files to SGS namespace
  *
@@ -218,7 +221,7 @@ public class InMemoryFile extends StyxFile
      * Does nothing if the existing ByteBuffer's capacity is >= the given size.
      * When this method is done, the position of the buffer will be set to 
      */
-    private void growBuffer(int newSize)
+    private synchronized void growBuffer(int newSize)
     {
         if (newSize > this.buf.capacity())
         {
@@ -232,7 +235,6 @@ public class InMemoryFile extends StyxFile
             this.buf.release();
             // Keep the new buffer
             this.buf = newBuf;
-            log.debug("Grew buffer to size " + this.buf.capacity());
         }
     }
     
@@ -240,14 +242,14 @@ public class InMemoryFile extends StyxFile
     {
         if (this.buf == null)
         {
-            return new ULong(0);
+            return ULong.ZERO;
         }
         return new ULong(this.buf.limit());
     }
     
     /**
      * Frees the resources associated with the file (releases the underlying
-     * ByteBuffer back to the pool.  After this is called, the file can no
+     * ByteBuffer back to the pool).  After this is called, the file can no
      * longer be used.
      */
     public synchronized void delete()
