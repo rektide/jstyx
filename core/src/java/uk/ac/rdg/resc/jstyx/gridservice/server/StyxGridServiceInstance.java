@@ -58,6 +58,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/04/27 16:11:43  jonblower
+ * Added capability to add documentation files to SGS namespace
+ *
  * Revision 1.8  2005/04/26 07:46:11  jonblower
  * Continuing to improve setting of parameters in Styx Grid Services
  *
@@ -264,7 +267,7 @@ class StyxGridServiceInstance extends StyxDirectory
                     throw new StyxException("Internal error: could not start "
                         + "reading from output and error streams");
                 }
-                String urlStr = inputURL.getDataAsString();
+                String urlStr = inputURL.getContents();
                 if (urlStr.equals(""))
                 {
                     // We haven't set a URL

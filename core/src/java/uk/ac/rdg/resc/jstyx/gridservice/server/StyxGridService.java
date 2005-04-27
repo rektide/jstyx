@@ -33,12 +33,15 @@ import java.util.Iterator;
 import javax.net.ssl.SSLContext;
 
 import org.apache.mina.common.ByteBuffer;
+import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.AsyncStyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
 import uk.ac.rdg.resc.jstyx.server.StyxServer;
+import uk.ac.rdg.resc.jstyx.server.FileOnDisk;
+import uk.ac.rdg.resc.jstyx.server.InMemoryFile;
 
 import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
 
@@ -52,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/04/27 16:11:43  jonblower
+ * Added capability to add documentation files to SGS namespace
+ *
  * Revision 1.5  2005/03/24 14:47:47  jonblower
  * Provided default read() and write() methods for StyxFile so it is no longer abstract
  *
@@ -79,6 +85,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  */
 public class StyxGridService
 {
+    
+    private static final Logger log = Logger.getLogger(StyxGridService.class);
+    
     private Vector instances; // The ID numbers of the current Grid Service instances
     private StyxDirectory root; // The root of the Grid Service
     private String command; // The command to run when a Grid Service instance is started 
@@ -93,6 +102,7 @@ public class StyxGridService
      */
     public StyxGridService(SGSConfig sgsConfig) throws StyxException
     {
+        log.debug("Creating StyxGridService called " + sgsConfig.getName());
         this.instances = new Vector();
         this.root = new StyxDirectory(sgsConfig.getName());
         this.root.addChild(new CloneFile());
@@ -104,9 +114,35 @@ public class StyxGridService
         // This allows GUIs to automatically update when new SGS instances are
         // created or destroyed.
         this.root.addChild(new AsyncStyxFile(this.root, ".contents"));
+        
+        StyxDirectory docDir = new StyxDirectory("doc");
+        this.root.addChild(docDir);
+        // Add the "description" file as a read-only InMemoryFile
+        InMemoryFile descFile = new InMemoryFile("description", 0444);
+        descFile.setContents(sgsConfig.getDescription());
+        docDir.addChild(descFile);
+        // Add all the documentation files specified in the SGSConfig object
+        Vector docFiles = sgsConfig.getDocFiles();
+        for (int i = 0; i < docFiles.size(); i++)
+        {
+            DocFile docFile = (DocFile)docFiles.get(i);
+            // Create a FileOnDisk that wraps the documentation file or directory
+            // the .getFileOnDisk() method gets a StyxDirectory if the docFile
+            // is a directory, or a plain StyxFile otherwise
+            StyxFile sf = FileOnDisk.getFileOnDisk(docFile.getLocation());
+            // Set the name of the file or directory
+            sf.setName(docFile.getName());
+            // Make the file or directory read-only
+            // TODO: should ensure that all children are also read-only?
+            sf.setReadOnly();
+            docDir.addChild(sf);
+        }
+        
         this.command = sgsConfig.getCommand();
         this.workDir = sgsConfig.getWorkingDirectory();
+        log.debug("about to get params");
         this.params = sgsConfig.getParams();
+        log.debug("got params");
     }
     
     public StyxDirectory getRoot()

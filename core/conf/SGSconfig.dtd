@@ -46,14 +46,33 @@
     description CDATA #IMPLIED
   >
   
+<!-- A free-text documentation file describing the SGS.  Any number of these
+     can be given for an SGS. The name gives the name of the file as it will
+     appear in the doc/ directory of the SGS. This name must be a valid filename
+     and must not be "description" as this is reserved for the short description
+     of the service. If the name is not given, it defaults to the last part
+     of the location (i.e. ignoring any folder information).
+     The location is the location of the file on the host filesystem.
+     The location can also be a directory, in which case all files under this
+     directory will be made visible in the same hierarchy.
+     Documentation will be read-only. -->
+<!ELEMENT doc EMPTY>
+<!ATTLIST doc
+    name CDATA #IMPLIED
+    location CDATA #REQUIRED
+  >
+
 <!--- Element that defines a Styx Grid Service -->
-<!-- The gridservice takes zero or more parameters -->
-<!ELEMENT gridservice (param)*>
+<!-- The gridservice takes zero or more parameters and zero or more documentation
+     files. The description of the service will automatically appear as a file
+     called "description" in the doc/ directory of the SGS. -->
+<!ELEMENT gridservice (param*, doc*)>
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED
+    description CDATA #REQUIRED
   >
-
+  
 <!--- The gridservices tag can contain zero or more gridservices -->
 <!ELEMENT gridservices (gridservice)*>
 <!ATTLIST gridservices

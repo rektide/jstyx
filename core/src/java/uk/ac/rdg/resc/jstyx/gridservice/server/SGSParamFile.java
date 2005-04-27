@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/04/27 16:11:43  jonblower
+ * Added capability to add documentation files to SGS namespace
+ *
  * Revision 1.5  2005/04/26 07:46:11  jonblower
  * Continuing to improve setting of parameters in Styx Grid Services
  *
@@ -109,17 +112,17 @@ public class SGSParamFile extends InMemoryFile
      */
     public String getCommandLineFragment()
     {
-        return this.param.getSwitch() + this.getDataAsString();
+        return this.param.getSwitch() + this.getContents();
     }
     
     /**
      * @return the value of this parameter as a string. Simply calls
-     * super.getDataAsString(); this is only here for consistency of naming with
+     * super.getContents(); this is only here for consistency of naming with
      * the other getValue...() methods
      */
     public String getValueAsString()
     {
-        return this.getDataAsString();
+        return this.getContents();
     }
     
     /**
@@ -130,7 +133,7 @@ public class SGSParamFile extends InMemoryFile
      */
     public boolean getValueAsBoolean() throws SGSConfigException
     {
-        String val = this.getDataAsString();
+        String val = this.getContents();
         if (val.trim().equalsIgnoreCase("true"))
         {
             return true;
@@ -154,7 +157,7 @@ public class SGSParamFile extends InMemoryFile
      */
     public long getValueAsLong() throws SGSConfigException
     {
-        String val = this.getDataAsString();
+        String val = this.getContents();
         try
         {
             return Long.parseLong(val);
@@ -172,7 +175,7 @@ public class SGSParamFile extends InMemoryFile
      */
     public double getValueAsDouble() throws SGSConfigException
     {
-        String val = this.getDataAsString();
+        String val = this.getContents();
         try
         {
             return Double.parseDouble(val);

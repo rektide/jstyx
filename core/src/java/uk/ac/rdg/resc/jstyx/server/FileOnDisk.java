@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/04/27 16:11:43  jonblower
+ * Added capability to add documentation files to SGS namespace
+ *
  * Revision 1.5  2005/03/24 09:48:31  jonblower
  * Changed 'count' from long to int throughout for reading and writing
  *
@@ -96,18 +99,45 @@ public class FileOnDisk extends StyxFile
         }
     }
     
-    public FileOnDisk(String name) throws StyxException
+    /**
+     * Creates a new FileOnDisk that wraps the file at the given path
+     */
+    public FileOnDisk(String filepath) throws StyxException
     {
-        this(new File(name));
+        this(new File(filepath));
     }
     
     /**
+     * Creates a new FileOnDisk whose name is the same as that of (the last part
+     * of) the underlying file
      * @param file The java.io.File which this represents
      * @throws StyxException if the java.io.File does not exist
      */
     public FileOnDisk(File file) throws StyxException
     {
-        super(file.getName());
+        this(file.getName(), file);
+    }
+    
+    /**
+     * Creates a FileOnDisk with the default permissions (0666, rw-rw-rw-)
+     * @param name The name of this file as it will appear in the namespace
+     * @param file The java.io.File which this represents
+     * @throws StyxException if the java.io.File does not exist
+     */
+    public FileOnDisk(String name, File file) throws StyxException
+    {
+        this(name, file, 0666);
+    }
+    
+    /**
+     * @param name The name of this file as it will appear in the namespace
+     * @param file The java.io.File which this represents
+     * @param permissions the permissions of the file
+     * @throws StyxException if the java.io.File does not exist
+     */
+    public FileOnDisk(String name, File file, int permissions) throws StyxException
+    {
+        super(name.trim(), permissions);
         if (!file.exists())
         {
             throw new StyxException("file " + file.getName() + " does not exist");

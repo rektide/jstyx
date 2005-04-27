@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/04/27 16:11:43  jonblower
+ * Added capability to add documentation files to SGS namespace
+ *
  * Revision 1.9  2005/04/26 07:46:11  jonblower
  * Continuing to improve setting of parameters in Styx Grid Services
  *
@@ -119,10 +122,13 @@ public class InMemoryFile extends StyxFile
         this(name, permissions, false, false);
     }
     
+    /**
+     * Creates an InMemoryFile with default permissions (0666, rw-rw-rw-)
+     */
     public InMemoryFile(String name)
         throws StyxException
     {
-        this(name, 0777);
+        this(name, 0666);
     }
     
     public synchronized void read(StyxFileClient client, long offset, int count,
@@ -182,6 +188,31 @@ public class InMemoryFile extends StyxFile
     }
     
     /**
+     * Set the contents of this file to the given String.
+     */
+    public synchronized void setContents(String newContents)
+    {
+        // Convert the String to bytes
+        byte[] bytes = StyxUtils.strToUTF8(newContents);
+        // Create a buffer if we need to
+        if (this.buf == null)
+        {
+            this.buf = ByteBuffer.allocate(bytes.length);
+            log.debug("Allocated InMemoryFile with capacity " + this.buf.capacity());
+        }
+        else
+        {
+            // Make sure the buffer is big enough to hold the new data
+            this.growBuffer(bytes.length);
+        }
+        // Set the position and limit of the buffer
+        this.buf.position(0).limit(bytes.length);
+        this.buf.put(bytes);
+        // Notify that the contents of the file have changed
+        this.contentsChanged();
+    }
+    
+    /**
      * Grows the underlying ByteBuffer to the given size (actually allocates
      * a new ByteBuffer and copies all the bytes to the new buffer).
      * Does nothing if the existing ByteBuffer's capacity is >= the given size.
@@ -230,7 +261,7 @@ public class InMemoryFile extends StyxFile
     /**
      * Gets the data in this file as a String
      */
-    public synchronized String getDataAsString()
+    public synchronized String getContents()
     {
         if (this.buf == null)
         {

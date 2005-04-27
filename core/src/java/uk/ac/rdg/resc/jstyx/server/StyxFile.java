@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/04/27 16:11:43  jonblower
+ * Added capability to add documentation files to SGS namespace
+ *
  * Revision 1.11  2005/03/24 14:47:47  jonblower
  * Provided default read() and write() methods for StyxFile so it is no longer abstract
  *
@@ -332,6 +335,23 @@ public class StyxFile
     public int getPermissions()
     {
         return this.permissions;
+    }
+    
+    /**
+     * Sets the permissions of the file
+     * @param permissions the permissions of the file as an integer (e.g. 0755).
+     */
+    public void setPermissions(int permissions)
+    {
+        this.permissions = permissions;
+    }
+    
+    /**
+     * Makes the file read-only (e.g. rwxrwxr-x gets turned to r-xrr-xr-x).
+     */
+    public void setReadOnly()
+    {
+        this.permissions |= 0555;
     }
     
     /**
