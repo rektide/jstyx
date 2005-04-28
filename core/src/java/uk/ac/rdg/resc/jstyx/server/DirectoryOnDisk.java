@@ -35,14 +35,18 @@ import uk.ac.rdg.resc.jstyx.StyxException;
 
 /**
  * Class representing a directory on a hard disk (i.e. in the host filesystem)
- * See also FileOnDisk
+ * See also FileOnDisk.  To create a new file on the hard disk,
+ * use createChild().
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:31  jonblower
- * Initial revision
+ * Revision 1.2  2005/04/28 08:11:15  jonblower
+ * Modified permissions handling in documentation directory of SGS
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:31  jonblower
+ * Initial import
  *
  */
 public class DirectoryOnDisk extends StyxDirectory
@@ -103,7 +107,20 @@ public class DirectoryOnDisk extends StyxDirectory
                 {
                     try
                     {
-                        this.addChild(FileOnDisk.getFileOnDisk(files[i]));
+                        sf = FileOnDisk.getFileOnDisk(files[i]);
+                        // Set the permissions of the file correctly
+                        if (sf instanceof StyxDirectory)
+                        {
+                            sf.setPermissions(this.getPermissions());
+                        }
+                        else
+                        {
+                            // This is a StyxFile (a FileOnDisk). Set to the
+                            // same permissions as this host directory without
+                            // the "execute" flags
+                            sf.setPermissions(this.getPermissions() & 0666);
+                        }
+                        this.addChild(sf);
                     }
                     catch(StyxException se)
                     {
@@ -132,9 +149,9 @@ public class DirectoryOnDisk extends StyxDirectory
     
     /**
      * Creates a new file and adds it to this directory. This method will create
-     * a new file, then call addChild() to add it to this directory. The isAppOnly
-     * and isExclusive parameters are ignored as they might not be supported in
-     * the host filesystem.
+     * a new file in the underlying filesystem, then call addChild() to add it
+     * to this directory. The isAppOnly and isExclusive parameters are ignored
+     * as they might not be supported in the host filesystem.
      */
     public StyxFile createChild(String name, int perm, boolean isDir,
         boolean isAppOnly, boolean isExclusive)

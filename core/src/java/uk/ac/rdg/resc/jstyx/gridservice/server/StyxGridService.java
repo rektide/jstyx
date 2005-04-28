@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/04/28 08:11:14  jonblower
+ * Modified permissions handling in documentation directory of SGS
+ *
  * Revision 1.6  2005/04/27 16:11:43  jonblower
  * Added capability to add documentation files to SGS namespace
  *
@@ -115,7 +118,8 @@ public class StyxGridService
         // created or destroyed.
         this.root.addChild(new AsyncStyxFile(this.root, ".contents"));
         
-        StyxDirectory docDir = new StyxDirectory("doc");
+        StyxDirectory docDir = new StyxDirectory("doc", 0555);
+        //docDir.setReadOnly(); TODO Why doesn't this line work?
         this.root.addChild(docDir);
         // Add the "description" file as a read-only InMemoryFile
         InMemoryFile descFile = new InMemoryFile("description", 0444);
@@ -127,22 +131,18 @@ public class StyxGridService
         {
             DocFile docFile = (DocFile)docFiles.get(i);
             // Create a FileOnDisk that wraps the documentation file or directory
-            // the .getFileOnDisk() method gets a StyxDirectory if the docFile
-            // is a directory, or a plain StyxFile otherwise
+            // the .getFileOnDisk() method gets a DirectoryOnDisk if the docFile
+            // is a directory, or a FileOnDisk otherwise
             StyxFile sf = FileOnDisk.getFileOnDisk(docFile.getLocation());
             // Set the name of the file or directory
             sf.setName(docFile.getName());
-            // Make the file or directory read-only
-            // TODO: should ensure that all children are also read-only?
-            sf.setReadOnly();
+            // Add the file to the doc directory
             docDir.addChild(sf);
         }
         
         this.command = sgsConfig.getCommand();
         this.workDir = sgsConfig.getWorkingDirectory();
-        log.debug("about to get params");
         this.params = sgsConfig.getParams();
-        log.debug("got params");
     }
     
     public StyxDirectory getRoot()

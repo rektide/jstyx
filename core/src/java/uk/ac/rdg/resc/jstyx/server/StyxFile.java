@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/04/28 08:11:15  jonblower
+ * Modified permissions handling in documentation directory of SGS
+ *
  * Revision 1.12  2005/04/27 16:11:43  jonblower
  * Added capability to add documentation files to SGS namespace
  *
@@ -655,19 +658,6 @@ public class StyxFile
     protected void clientDisconnected(StyxFileClient client)
     {
         return;
-    }
-    
-    /**
-     * Creates a new file and adds it to this directory. This method will only
-     * be called if this file is a directory. This default implementation throws
-     * an exception; subclasses should override this method to allow files to
-     * be created.  Implementations should create a new file, then call
-     * this.addChild() to add it to this directory.
-     */
-    public StyxFile createChild(String name, int perm, boolean isDir,
-        boolean isAppOnly, boolean isExclusive) throws StyxException
-    {
-        throw new StyxException("cannot create a new file in this type of directory");
     }
     
     /**

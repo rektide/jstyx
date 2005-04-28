@@ -42,13 +42,15 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
 /**
  * Class representing a file on a hard drive. Note that creating a new instance
  * of this class does not create an actual new file on the hard disk; it simply
- * creates a wrapper for an existing file. To create a new file on the hard disk,
- * use createChild().
+ * creates a wrapper for an existing file.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/04/28 08:11:15  jonblower
+ * Modified permissions handling in documentation directory of SGS
+ *
  * Revision 1.6  2005/04/27 16:11:43  jonblower
  * Added capability to add documentation files to SGS namespace
  *
@@ -80,7 +82,8 @@ public class FileOnDisk extends StyxFile
     /**
      * Gets a StyxFile that wraps the given java.io.File. If the File is a 
      * directory, this will return an instance of DirectoryOnDisk, otherwise
-     * it will return an instance of FileOnDisk.
+     * it will return an instance of FileOnDisk. The permissions of the new
+     * file or directory are set to 
      * @throws StyxException if the File does not exist
      */
     public static StyxFile getFileOnDisk(File file) throws StyxException

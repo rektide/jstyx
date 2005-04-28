@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/04/28 08:11:15  jonblower
+ * Modified permissions handling in documentation directory of SGS
+ *
  * Revision 1.11  2005/04/27 17:24:14  jonblower
  * Minor changes
  *
@@ -219,7 +222,6 @@ public class InMemoryFile extends StyxFile
      * Grows the underlying ByteBuffer to the given size (actually allocates
      * a new ByteBuffer and copies all the bytes to the new buffer).
      * Does nothing if the existing ByteBuffer's capacity is >= the given size.
-     * When this method is done, the position of the buffer will be set to 
      */
     private synchronized void growBuffer(int newSize)
     {

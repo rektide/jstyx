@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/04/28 08:11:15  jonblower
+ * Modified permissions handling in documentation directory of SGS
+ *
  * Revision 1.7  2005/03/24 09:48:31  jonblower
  * Changed 'count' from long to int throughout for reading and writing
  *
@@ -93,6 +96,14 @@ public class StyxDirectory extends StyxFile
     public StyxDirectory(String name) throws StyxException
     {
         this(name, "user", "group", 0777);
+    }
+    
+    /**
+     * Creates a directory with the given permissions
+     */
+    public StyxDirectory(String name, int permissions) throws StyxException
+    {
+        this(name, "user", "group", permissions);
     }
     
     /**
@@ -300,6 +311,19 @@ public class StyxDirectory extends StyxFile
             }
         }
         return false;
+    }
+    
+    /**
+     * Creates a new file and adds it to this directory. This method will only
+     * be called if this file is a directory. This default implementation throws
+     * an exception; subclasses should override this method to allow files to
+     * be created.  Implementations should create a new file, then call
+     * this.addChild() to add it to this directory.
+     */
+    public StyxFile createChild(String name, int perm, boolean isDir,
+        boolean isAppOnly, boolean isExclusive) throws StyxException
+    {
+        throw new StyxException("cannot create a new file in this type of directory");
     }
     
     /**

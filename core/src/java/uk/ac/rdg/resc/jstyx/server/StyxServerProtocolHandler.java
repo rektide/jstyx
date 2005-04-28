@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/04/28 08:11:15  jonblower
+ * Modified permissions handling in documentation directory of SGS
+ *
  * Revision 1.6  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -356,11 +359,12 @@ public class StyxServerProtocolHandler implements ProtocolHandler
     private void replyCreate(ProtocolSession session, StyxSessionState sessionState,
         TcreateMessage tCrtMsg, int tag) throws StyxException
     {
-        StyxFile dir = sessionState.getStyxFile(tCrtMsg.getFid());
-        if (!(dir instanceof StyxDirectory))
+        StyxFile sf = sessionState.getStyxFile(tCrtMsg.getFid());
+        if (!(sf instanceof StyxDirectory))
         {
             throw new StyxException("can't create a file inside another file");
         }
+        StyxDirectory dir = (StyxDirectory)sf;
         // Check that the user has write permissions in this directory
         if (!sessionState.checkWrite(dir))
         {
