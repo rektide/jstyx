@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/04 16:25:49  jonblower
+ * Improved parameter naming in constructor
+ *
  * Revision 1.4  2005/03/22 10:19:52  jonblower
  * Fixed problem with ByteBuffer leak in StyxMessageDecoder and StyxFileInputStream
  *
@@ -65,7 +68,7 @@ public class StyxFileInputStream extends InputStream
     private ByteBuffer buf; // Buffer for storing the results of the last read
     private long offset;    // The current position in the file
     private boolean eof;
-    private boolean openedThroughURL; // If this is true, we shall close the underlying
+    private boolean closeConnectionWhenCloseStream; // If this is true, we shall close the underlying
         // StyxConnection when this stream is closed (this is normally set when
         // getting an input stream through the StyxURLConnection class)
     
@@ -75,7 +78,7 @@ public class StyxFileInputStream extends InputStream
      * StyxConnection when this stream is closed (this is normally set when
      * getting an input stream through the StyxURLConnection class)
      */
-    public StyxFileInputStream(CStyxFile file, boolean openedThroughURL)
+    public StyxFileInputStream(CStyxFile file, boolean closeConnectionWhenCloseStream)
     {
         if (file == null)
         {
@@ -85,7 +88,7 @@ public class StyxFileInputStream extends InputStream
         this.buf = null;
         this.offset = 0;
         this.eof = false;
-        this.openedThroughURL = openedThroughURL;
+        this.closeConnectionWhenCloseStream = closeConnectionWhenCloseStream;
     }
     
     public StyxFileInputStream(CStyxFile file)
@@ -160,7 +163,7 @@ public class StyxFileInputStream extends InputStream
             this.file.close();
             this.offset = 0;
             this.eof = false;
-            if (this.openedThroughURL)
+            if (this.closeConnectionWhenCloseStream)
             {
                 this.file.getConnection().close();
             }
