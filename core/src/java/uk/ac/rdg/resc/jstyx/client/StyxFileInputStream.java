@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/05 07:09:06  jonblower
+ * Improved comments
+ *
  * Revision 1.5  2005/05/04 16:25:49  jonblower
  * Improved parameter naming in constructor
  *
@@ -131,7 +134,7 @@ public class StyxFileInputStream extends InputStream
                 {
                     // We have reached the end of the file
                     this.eof = true;
-                    // We don't need the buffer
+                    // We don't need the buffer any more
                     this.buf.release();
                     return -1;
                 }
@@ -154,7 +157,9 @@ public class StyxFileInputStream extends InputStream
     }
     
     /**
-     * Closes the stream (clunks the underlying file)
+     * Closes the stream (clunks the underlying file). If this InputStream was
+     * created with <code>closeConnectionWhenCloseStream = true</code>, this will
+     * also close the StyxConnection.
      */
     public void close() throws IOException
     {
