@@ -36,11 +36,11 @@ import java.util.Hashtable;
 import java.util.Vector;
 import java.util.Iterator;
 
-import org.apache.mina.io.IoHandlerFilter;
+import org.apache.mina.io.IoFilter;
 import org.apache.mina.io.filter.IoThreadPoolFilter;
 import org.apache.mina.io.socket.SocketConnector;
 import org.apache.mina.protocol.ProtocolHandler;
-import org.apache.mina.protocol.ProtocolHandlerFilter;
+import org.apache.mina.protocol.ProtocolFilter;
 import org.apache.mina.protocol.ProtocolProvider;
 import org.apache.mina.protocol.ProtocolSession;
 import org.apache.mina.protocol.filter.ProtocolThreadPoolFilter;
@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/05/05 16:57:31  jonblower
+ * Updated MINA library to revision 168337 and changed code accordingly
+ *
  * Revision 1.11  2005/03/22 17:42:24  jonblower
  * Changed default message size to 8192 for efficiency in MINA
  *
@@ -248,8 +251,8 @@ public class StyxConnection implements ProtocolHandler
                 + ioe.getMessage());
         }
         // I don't think the values of the priority constants matter much
-        connector.getIoConnector().addFilter( 99, ioThreadPoolFilter );
-        connector.addFilter( 99,  protocolThreadPoolFilter );
+        connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
+        connector.getFilterChain().addLast("Protocol thread pool filter",  protocolThreadPoolFilter );
         
         ProtocolProvider protocolProvider = new StyxClientProtocolProvider(this);
         
@@ -591,6 +594,16 @@ public class StyxConnection implements ProtocolHandler
     public void setMaxMessageSize(int maxMessageSize)
     {
         this.maxMessageSize = maxMessageSize;
+    }
+    
+    /**
+     * Invoked when the session is created.  Initialize default socket
+     * parameters and user-defined attributes here.
+     */
+    public void sessionCreated( ProtocolSession session ) throws Exception
+    {
+        // TODO: not sure what should be done in this method
+        log.debug("Connection created");
     }
     
     /**

@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/05 16:57:37  jonblower
+ * Updated MINA library to revision 168337 and changed code accordingly
+ *
  * Revision 1.4  2005/03/16 17:55:53  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -78,6 +81,15 @@ class StyxInterloperServerProtocolHandler implements ProtocolHandler
     {
         this.destSockAddr = destSockAddr;
         this.listener = listener;
+    }
+    
+    /**
+     * Invoked when the session is created.  Initialize default socket
+     * parameters and user-defined attributes here.
+     */
+    public void sessionCreated( ProtocolSession session ) throws Exception
+    {
+        log.info("Client connection created.");
     }
     
     public void sessionOpened(ProtocolSession session )

@@ -31,11 +31,11 @@ package uk.ac.rdg.resc.jstyx.interloper;
 import java.net.InetSocketAddress;
 import java.io.IOException;
 
-import org.apache.mina.io.IoHandlerFilter;
+import org.apache.mina.io.IoFilter;
 import org.apache.mina.io.filter.IoThreadPoolFilter;
 import org.apache.mina.io.socket.SocketConnector;
 import org.apache.mina.protocol.ProtocolHandler;
-import org.apache.mina.protocol.ProtocolHandlerFilter;
+import org.apache.mina.protocol.ProtocolFilter;
 import org.apache.mina.protocol.ProtocolProvider;
 import org.apache.mina.protocol.ProtocolSession;
 import org.apache.mina.protocol.filter.ProtocolThreadPoolFilter;
@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/05 16:57:37  jonblower
+ * Updated MINA library to revision 168337 and changed code accordingly
+ *
  * Revision 1.3  2005/03/11 14:01:59  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -113,8 +116,10 @@ public class InterloperClient
             return false;
         }
         // I don't think the values of the priority constants matter much
-        connector.getIoConnector().addFilter( 99, ioThreadPoolFilter );
-        connector.addFilter( 99,  protocolThreadPoolFilter );
+        connector.getIoConnector().getFilterChain().addLast( "IO Thread pool filter",
+            ioThreadPoolFilter );
+        connector.getFilterChain().addLast( "Protocol Thread pool filter",
+            protocolThreadPoolFilter );
         
         ProtocolProvider protocolProvider =
             new StyxInterloperProtocolProvider(this.serverSession, this.listener);

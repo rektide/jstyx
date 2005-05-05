@@ -47,6 +47,9 @@ import java.io.IOException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/05/05 16:57:37  jonblower
+ * Updated MINA library to revision 168337 and changed code accordingly
+ *
  * Revision 1.6  2005/03/11 14:01:59  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -75,10 +78,10 @@ public class StyxInterloper implements InterloperListener
      * @param port The port on which this server will listen
      * @param serverost The host of the destination to which this server will connect
      * @param serverPort The port of the destination to which this server will connect
-     * @throws StyxException if there was an error starting the Styx server
+     * @throws IOException if there was an error starting the Styx server
      */
     public StyxInterloper(int port, String serverHost, int serverPort)
-        throws StyxException
+        throws IOException
     {
         this.port = port;
         InetSocketAddress destSockAddr = new InetSocketAddress(serverHost, serverPort);

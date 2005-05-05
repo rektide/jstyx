@@ -40,7 +40,8 @@ import java.awt.event.*;
 import java.net.InetSocketAddress;
 import java.util.Hashtable;
 
-import uk.ac.rdg.resc.jstyx.StyxException;
+import java.io.IOException;
+
 import uk.ac.rdg.resc.jstyx.server.StyxServer;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.messages.TattachMessage;
@@ -64,6 +65,9 @@ import info.clearthought.layout.TableLayout;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/05/05 16:57:38  jonblower
+ * Updated MINA library to revision 168337 and changed code accordingly
+ *
  * Revision 1.9  2005/02/28 12:53:47  jonblower
  * Improved message filtering
  *
@@ -115,10 +119,10 @@ public class StyxMon extends StyxInterloper
      * @param port The port on which this application will listen
      * @param serverHost The host of the remote Styx server
      * @param serverPort The port of the remote Styx server
-     * @throws StyxException if the server process could not be started.
+     * @throws IOException if the server process could not be started.
      */
     public StyxMon(int port, String serverHost, int serverPort)
-        throws StyxException
+        throws IOException
     {
         // The superclass (StyxInterloper) creates the StyxServer and starts it
         super(port, serverHost, serverPort);

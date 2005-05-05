@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/05 16:57:37  jonblower
+ * Updated MINA library to revision 168337 and changed code accordingly
+ *
  * Revision 1.2  2005/03/11 14:01:59  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -71,6 +74,16 @@ class StyxInterloperClientProtocolHandler implements ProtocolHandler
         this.connected = false;
         this.serverSession = serverSession;
         this.listener = listener;
+    }
+    
+    /**
+     * Invoked when the session is created.  Initialize default socket
+     * parameters and user-defined attributes here.
+     */
+    public void sessionCreated( ProtocolSession session ) throws Exception
+    {
+        // TODO: not sure what we're supposed to do in this method
+        log.info("Destination connection created.");
     }
     
     public void sessionOpened(ProtocolSession session )

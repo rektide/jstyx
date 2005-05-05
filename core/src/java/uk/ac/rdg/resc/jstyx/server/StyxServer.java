@@ -32,14 +32,13 @@ import java.net.InetSocketAddress;
 import java.io.IOException;
 import javax.net.ssl.SSLContext;
 
-import org.apache.mina.io.IoHandlerFilter;
-import org.apache.mina.io.filter.IoThreadPoolFilter;
+import org.apache.mina.common.TransportType;
+import org.apache.mina.registry.Service;
+import org.apache.mina.registry.ServiceRegistry;
+import org.apache.mina.registry.SimpleServiceRegistry;
+import org.apache.mina.io.IoAcceptor;
 import org.apache.mina.io.filter.SSLFilter;
-import org.apache.mina.io.socket.SocketAcceptor;
-import org.apache.mina.protocol.ProtocolHandlerFilter;
 import org.apache.mina.protocol.ProtocolProvider;
-import org.apache.mina.protocol.filter.ProtocolThreadPoolFilter;
-import org.apache.mina.protocol.io.IoProtocolAcceptor;
 
 import org.apache.log4j.Logger;
 
@@ -54,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/05 16:57:38  jonblower
+ * Updated MINA library to revision 168337 and changed code accordingly
+ *
  * Revision 1.5  2005/03/24 07:57:41  jonblower
  * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
  *
@@ -147,55 +149,25 @@ public class StyxServer
     
     /**
      * Starts the Styx server.
-     * @throws StyxException if an error occurred
+     * @throws IOException if an error occurred
      */
-    public void start() throws StyxException
+    public void start() throws IOException
     {
-        // Create I/O and Protocol thread pool filter.
-        // I/O thread pool performs encoding and decoding of messages.
-        // Protocol thread pool performs actual protocol flow.
-        IoThreadPoolFilter ioThreadPoolFilter = new IoThreadPoolFilter();
-        ProtocolThreadPoolFilter protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
-        
-        // and start both.
-        ioThreadPoolFilter.start();
-        protocolThreadPoolFilter.start();
-        
-        // Create a TCP/IP acceptor.
-        IoProtocolAcceptor acceptor;
-        try
-        {
-             acceptor = new IoProtocolAcceptor( new SocketAcceptor() );
-        }
-        catch(IOException ioe)
-        {
-            throw new StyxException("An IOException occurred when creating the "
-                + "IoProtocolAcceptor: " + ioe.getMessage());
-        }
-        
-        // Add both thread pool filters.
-        // I don't think the values of the priority constants matter much here
-        acceptor.getIoAcceptor().addFilter( Integer.MAX_VALUE, ioThreadPoolFilter );
-        acceptor.addFilter( Integer.MAX_VALUE, protocolThreadPoolFilter );
-        
+        ServiceRegistry registry = new SimpleServiceRegistry();
+
+        //addLogger( registry );
+
         // Add SSL filter if SSL is enabled.
         if( this.sslContext != null )
         {
             SSLFilter sslFilter = new SSLFilter( this.sslContext );
-            //sslFilter.setDebug(SSLFilter.Debug.ON);
-            acceptor.getIoAcceptor().addFilter( Integer.MAX_VALUE - 1, sslFilter );
+            IoAcceptor acceptor = registry.getIoAcceptor( TransportType.SOCKET );
+            acceptor.getFilterChain().addLast( "sslFilter", sslFilter );
         }
-        
+
         // Bind
-        try
-        {
-            acceptor.bind( new InetSocketAddress(this.port), this.provider);
-        }
-        catch(IOException ioe)
-        {
-            throw new StyxException("An IOException occurred when calling acceptor.bind(): "
-                + ioe.getMessage());
-        }
+        Service service = new Service( "styx", TransportType.SOCKET, this.port );
+        registry.bind( service, this.provider );
         
         log.info( "Listening on port " + this.port + ", SSL " +
             (this.sslContext == null ? "disabled" : "enabled"));

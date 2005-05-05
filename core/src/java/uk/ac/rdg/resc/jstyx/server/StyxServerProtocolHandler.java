@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/05/05 16:57:38  jonblower
+ * Updated MINA library to revision 168337 and changed code accordingly
+ *
  * Revision 1.7  2005/04/28 08:11:15  jonblower
  * Modified permissions handling in documentation directory of SGS
  *
@@ -92,6 +95,15 @@ public class StyxServerProtocolHandler implements ProtocolHandler
     public StyxServerProtocolHandler(StyxDirectory fileTreeRoot)
     {
         this.root = fileTreeRoot;
+    }
+    
+    /**
+     * Invoked when the session is created.  Initialize default socket
+     * parameters and user-defined attributes here.
+     */
+    public void sessionCreated( ProtocolSession session ) throws Exception
+    {
+        log.info( session.getRemoteAddress() + " CREATED" );
     }
     
     public void sessionOpened(ProtocolSession  session )
