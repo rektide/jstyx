@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/05/05 07:08:37  jonblower
+ * Improved handling of buffers in change listeners
+ *
  * Revision 1.11  2005/03/19 21:46:58  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -1289,11 +1292,19 @@ public class CStyxFile extends MessageCallback
     {
         synchronized(this.listeners)
         {
+            ByteBuffer data = rReadMsg.getData();
+            // Remember the position and limit of the buffer
+            int pos = data.position();
+            int limit = data.limit();
             for (int i = 0; i < listeners.size(); i++)
             {
                 CStyxFileChangeListener listener =
                     (CStyxFileChangeListener)this.listeners.get(i);
-                listener.dataArrived(this, tReadMsg, rReadMsg.getData());
+                listener.dataArrived(this, tReadMsg, data);
+                // Reset the position and limit of the buffer, ready for the next
+                // listener
+                data.position(pos);
+                data.limit(limit);
             }
         }
     }
