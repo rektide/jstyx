@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/09 07:10:37  jonblower
+ * Minor changes
+ *
  * Revision 1.4  2005/03/24 09:48:31  jonblower
  * Changed 'count' from long to int throughout for reading and writing
  *
@@ -87,7 +90,12 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
     
     public AsyncStyxFile(StyxFile file, String name) throws StyxException
     {
-        this(file, name, 0666, false, false);
+        this(file, name, 0666);
+    }
+    
+    public AsyncStyxFile(StyxFile file, String name, int permissions) throws StyxException
+    {
+        this(file, name, permissions, false, false);
     }
     
     public AsyncStyxFile(StyxFile file, String name, int permissions,
@@ -107,7 +115,8 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
      * Sets a minimum reply interval, i.e. the minimum amount of time that must
      * elapse between successive replies to the same client. This is most useful
      * when using this AsyncStyxFile to provide notification of a very
-     * rapidly-changing quantity.
+     * rapidly-changing quantity as it can save a lot of unnecessary messages
+     * being sent. (This is set to zero when the AsyncStyxFile is first created)
      */
     public void setMinReplyInterval(float seconds)
     {
@@ -296,6 +305,5 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
             this.timeLastReply = timeLastReply;
         }
     }
-    
     
 }
