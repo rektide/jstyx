@@ -30,7 +30,7 @@
                 description="The time (in seconds) to wait between reading each line of input"/>
             <!-- <doc location="C:\install.log"/> Will appear as "install.log" in the namespace -->
             <doc location="C:\md5lines.py" name="source"/>
-            <doc location="C:\j2sdk1.4.2_05\docs\api" name="javadoc"/> <!-- This is a directory -->
+            <!-- <doc location="C:\j2sdk1.4.2_05\docs\api" name="javadoc"/> This is a directory -->
         </gridservice>
         <gridservice name="simple" command="python c:\simple.py" description="doesn't do much really" />
         <gridservice name="lbflow" command="c:\cygwin\home\jdb\lbflow-0.1\src\lbflow -i /home/jdb/lbflow-0.1/tests/test.sim"
