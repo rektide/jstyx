@@ -5,16 +5,6 @@
     PUBLIC ID: -//vendor//vocabulary//EN
     SYSTEM ID: http://server/path/SGSconfig.dtd
 
---><!--
-    An example how to use this DTD from your XML document:
-
-    <?xml version="1.0"?>
-
-    <!DOCTYPE root SYSTEM "SGSconfig.dtd">
-
-    <root>
-    ...
-    </root>
 -->
 
 <!-- A parameter for a SGS (passed on the command-line to the executable) 

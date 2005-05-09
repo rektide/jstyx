@@ -58,6 +58,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/05/09 07:07:48  jonblower
+ * Minor change
+ *
  * Revision 1.9  2005/04/27 16:11:43  jonblower
  * Added capability to add documentation files to SGS namespace
  *
@@ -268,7 +271,7 @@ class StyxGridServiceInstance extends StyxDirectory
                         + "reading from output and error streams");
                 }
                 String urlStr = inputURL.getContents();
-                if (urlStr.equals(""))
+                if (urlStr.trim().equals(""))
                 {
                     // We haven't set a URL
                     stdin.setOutputStream(process.getOutputStream());
