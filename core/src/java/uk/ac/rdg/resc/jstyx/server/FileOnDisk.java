@@ -44,10 +44,18 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * of this class does not create an actual new file on the hard disk; it simply
  * creates a wrapper for an existing file.
  *
+ * Note that this class keeps the underlying file open for as long as possible,
+ * so other processes may not be able to change the underlying file.  This class
+ * should therefore be used when you know that other processes will not be
+ * modifying the underlying file.  TODO Change this behaviour?
+ *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/05/09 07:13:52  jonblower
+ * Changed getFileOnDisk() to getFileOrDirectoryOnDisk()
+ *
  * Revision 1.7  2005/04/28 08:11:15  jonblower
  * Modified permissions handling in documentation directory of SGS
  *
@@ -78,15 +86,19 @@ public class FileOnDisk extends StyxFile
     
     protected File file;
     protected FileChannel chan;
+    protected boolean closeAfterReadOrWrite; // If this is true, the underlying
+        // file will be closed after each read or write via the Styx interface.
+        // This is useful if another process writes to the file, but is inefficient
+        // otherwise.
     
     /**
      * Gets a StyxFile that wraps the given java.io.File. If the File is a 
      * directory, this will return an instance of DirectoryOnDisk, otherwise
-     * it will return an instance of FileOnDisk. The permissions of the new
-     * file or directory are set to 
+     * it will return an instance of FileOnDisk.
+     * @todo Set file permissions correctly
      * @throws StyxException if the File does not exist
      */
-    public static StyxFile getFileOnDisk(File file) throws StyxException
+    public static StyxFile getFileOrDirectoryOnDisk(File file) throws StyxException
     {
         if (!file.exists())
         {
@@ -147,6 +159,20 @@ public class FileOnDisk extends StyxFile
         }
         this.file = file;
         this.chan = null; // allocate this when the file is first read or written to
+        this.closeAfterReadOrWrite = false; // By default, file will be left open
+            // after each read or write.
+    }
+    
+    /**
+     * Sets whether or not the underlying file should be closed after each read or write
+     * via this Styx interface.  This is set false when a FileOnDisk is created.  This 
+     * should be set true if it is expected that another process might be writing to
+     * this file.  However, if other processes are not expected to be writing to the
+     * underlying file, this should be set false for efficiency.
+     */
+    public void setCloseAfterReadOrWrite(boolean flag)
+    {
+        this.closeAfterReadOrWrite = flag;
     }
     
     private void checkChannel() throws StyxException
@@ -180,6 +206,10 @@ public class FileOnDisk extends StyxFile
         try
         {
             numRead = this.chan.read(buf, offset);
+            if (this.closeAfterReadOrWrite)
+            {
+                this.chan.close();
+            }
         }
         catch(IOException ioe)
         {
@@ -217,6 +247,10 @@ public class FileOnDisk extends StyxFile
             if (truncate)
             {
                 this.chan.truncate(offset + nWritten);
+            }
+            if (this.closeAfterReadOrWrite)
+            {
+                this.chan.close();
             }
             this.replyWrite(client, nWritten, tag);
         }

@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/05/09 07:13:51  jonblower
+ * Changed getFileOnDisk() to getFileOrDirectoryOnDisk()
+ *
  * Revision 1.7  2005/04/28 08:11:14  jonblower
  * Modified permissions handling in documentation directory of SGS
  *
@@ -133,7 +136,7 @@ public class StyxGridService
             // Create a FileOnDisk that wraps the documentation file or directory
             // the .getFileOnDisk() method gets a DirectoryOnDisk if the docFile
             // is a directory, or a FileOnDisk otherwise
-            StyxFile sf = FileOnDisk.getFileOnDisk(docFile.getLocation());
+            StyxFile sf = FileOnDisk.getFileOrDirectoryOnDisk(docFile.getLocation());
             // Set the name of the file or directory
             sf.setName(docFile.getName());
             // Add the file to the doc directory

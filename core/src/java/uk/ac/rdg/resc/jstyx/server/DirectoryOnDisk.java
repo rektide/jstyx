@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/09 07:13:52  jonblower
+ * Changed getFileOnDisk() to getFileOrDirectoryOnDisk()
+ *
  * Revision 1.2  2005/04/28 08:11:15  jonblower
  * Modified permissions handling in documentation directory of SGS
  *
@@ -107,7 +110,7 @@ public class DirectoryOnDisk extends StyxDirectory
                 {
                     try
                     {
-                        sf = FileOnDisk.getFileOnDisk(files[i]);
+                        sf = FileOnDisk.getFileOrDirectoryOnDisk(files[i]);
                         // Set the permissions of the file correctly
                         if (sf instanceof StyxDirectory)
                         {
@@ -183,7 +186,7 @@ public class DirectoryOnDisk extends StyxDirectory
         // If we've got this far we must have created the file/directory
         // successfully.  Now we can create the StyxFile wrapper and add it to
         // this StyxDirectory.
-        StyxFile sf = FileOnDisk.getFileOnDisk(f);
+        StyxFile sf = FileOnDisk.getFileOrDirectoryOnDisk(f);
         // Note that addChild() will throw a FileExistsException if a StyxFile
         // with this name already exists.
         this.addChild(sf);
