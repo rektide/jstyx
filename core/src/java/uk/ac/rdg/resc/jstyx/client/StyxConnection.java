@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/05/09 13:35:48  jonblower
+ * Now throws an exception if try to send a message before connecting
+ *
  * Revision 1.12  2005/05/05 16:57:31  jonblower
  * Updated MINA library to revision 168337 and changed code accordingly
  *
@@ -136,6 +139,8 @@ public class StyxConnection implements ProtocolHandler
     private int port;
     private String user;
     
+    private boolean connecting;    // True if connect() or connectAsync() has been
+                                   // called, and the connection has not been closed
     private boolean connected;     // True if this is connected to the remote
                                    // server (handshaking might not have been done)
     private boolean attached;      // True if this session is attached for messages to be sent
@@ -179,6 +184,7 @@ public class StyxConnection implements ProtocolHandler
         this.port = port;
         this.user = user;
         this.attached = false;
+        this.connecting = false;
         this.connected = false;
         this.errMsg = null;
         this.unsentMessages = new Vector();
@@ -234,6 +240,8 @@ public class StyxConnection implements ProtocolHandler
      */
     public synchronized void connectAsync() throws StyxException
     {
+        this.connecting = true;
+        
         this.ioThreadPoolFilter = new IoThreadPoolFilter();
         this.protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
 
@@ -250,7 +258,7 @@ public class StyxConnection implements ProtocolHandler
             throw new StyxException("IOException occurred when creating IOProtocolConnector: "
                 + ioe.getMessage());
         }
-        // I don't think the values of the priority constants matter much
+        // TODO: do we need these thread pools for a client connection?
         connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
         connector.getFilterChain().addLast("Protocol thread pool filter",  protocolThreadPoolFilter );
         
@@ -317,6 +325,7 @@ public class StyxConnection implements ProtocolHandler
      */
     public void close()
     {
+        
         //log.debug("Closing StyxConnection");
         if (this.connected)
         {
@@ -401,10 +410,25 @@ public class StyxConnection implements ProtocolHandler
      * will be sent when the connection is ready (TODO this is convenient as it
      * saves waiting for the connectionReady() event, but is this the best thing
      * to do?)
+     *
+     * If this is called before connect() or connectAsync(), the callback's error
+     * function will be called.
+     *
      * @return the tag of the outgoing message
      */
     public int sendAsync(StyxMessage message, MessageCallback callback)
     {
+        if (!this.connecting)
+        {
+            if (callback != null)
+            {
+                callback.error("Must connect before sending a message", -1);
+            }
+            else
+            {
+                log.error("Attempt to send a message before connecting");
+            }
+        }
         // Set the tag for the message: this is also the key for the message
         // in the Hashtable of outstanding messages
         int tag;
@@ -457,7 +481,8 @@ public class StyxConnection implements ProtocolHandler
     
     /**
      * Sends a message and blocks until the corresponding reply arrives
-     * @throws StyxException if the message type is not as expected
+     * @throws StyxException if the message type is not as expected, or if the 
+     * connection has not been made.
      */
     public StyxMessage send(StyxMessage message) throws StyxException
     {
@@ -655,6 +680,7 @@ public class StyxConnection implements ProtocolHandler
             log.debug("Connection closed.");
         }
         this.connected = false;
+        this.connecting = false;
         this.attached = false;
         
         // Stop threads
