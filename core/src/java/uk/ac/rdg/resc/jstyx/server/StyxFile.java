@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/05/09 07:12:52  jonblower
+ * Clarified some comments
+ *
  * Revision 1.13  2005/04/28 08:11:15  jonblower
  * Modified permissions handling in documentation directory of SGS
  *
@@ -821,9 +824,11 @@ public class StyxFile
     }
     
     /**
-     * This method is called when the contents of the file change. To be precise,
-     * it is called just before the Rwrite message is sent to the client. It is
-     * also called when the contentsChanged() method is called.
+     * This method is called when the contents of the file change. This can be 
+     * due to two things: (1) When a client writes to the file using a
+     * TwriteMessage. In this case this method is called just before the Rwrite
+     * message is sent to the client. (2) It is also called when
+     * this.contentsChanged() is called.
      */
     protected void fireContentsChanged()
     {
