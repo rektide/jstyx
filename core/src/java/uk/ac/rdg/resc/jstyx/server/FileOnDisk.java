@@ -30,10 +30,12 @@ package uk.ac.rdg.resc.jstyx.server;
 
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 
+import org.apache.log4j.Logger;
 import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
@@ -44,15 +46,17 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * of this class does not create an actual new file on the hard disk; it simply
  * creates a wrapper for an existing file.
  *
- * Note that this class keeps the underlying file open for as long as possible,
- * so other processes may not be able to change the underlying file.  This class
- * should therefore be used when you know that other processes will not be
- * modifying the underlying file.  TODO Change this behaviour?
+ * This class opens a new Input/OutputStream every time a read/write message
+ * arrives, so it is probably not very efficient (but this was the simplest way
+ * to implement reliably).
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/05/10 12:43:57  jonblower
+ * Rewrote and simplified: now closes file after each read or write
+ *
  * Revision 1.9  2005/05/10 08:02:18  jonblower
  * Changes related to implementing MonitoredFileOnDisk
  *
@@ -86,18 +90,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  */
 public class FileOnDisk extends StyxFile
 {
+    private static final Logger log = Logger.getLogger(FileOnDisk.class);
     
     protected File file;
-    protected FileChannel chan;
-    protected boolean closeAfterReadOrWrite; // If this is true, the underlying
-        // file will be closed after each read or write via the Styx interface.
-        // This is useful if another process writes to the file, but is inefficient
-        // otherwise.
-    protected boolean mustExist; // If this is true and the java.io.File does not
-        // exist, an attempt to read from the file will result in an error being
-        // thrown and the StyxFile will be removed from the namespace.  If it is
-        // false, an attempt to read from a java.io.File that doesn't exist will
-        // result in EOF being sent to the client.
     
     /**
      * Gets a StyxFile that wraps the given java.io.File. If the File is a 
@@ -156,12 +151,7 @@ public class FileOnDisk extends StyxFile
      * @param name The name of this file as it will appear in the namespace
      * @param file The java.io.File which this represents
      * @param permissions the permissions of the file
-     * @param mustExist If this is true, an exception will be thrown if
-     * the java.io.File does not exist. If the java.io.File is later deleted,
-     * subsequent read attempts will result in an error.  If this is false, attempts
-     * to read from the file will result in EOF instead.
-     * @throws StyxException if the java.io.File does not exist and
-     * <code>mustExist</code> is <code>true</code>
+     * @throws StyxException if the java.io.File does not exist
      */
     public FileOnDisk(String name, File file, int permissions) throws StyxException
     {
@@ -171,82 +161,48 @@ public class FileOnDisk extends StyxFile
             throw new StyxException("file " + file.getName() + " does not exist");
         }
         this.file = file;
-        this.chan = null; // allocate this when the file is first read or written to
-        this.closeAfterReadOrWrite = false; // By default, file will be left open
-            // after each read or write.
-    }
-    
-    /**
-     * Sets whether or not the underlying file should be closed after each read or write
-     * via this Styx interface.  This is set false when a FileOnDisk is created.  This 
-     * should be set true if it is expected that another process might be writing to
-     * this file.  However, if other processes are not expected to be writing to the
-     * underlying file, this should be set false for efficiency.
-     */
-    public void setCloseAfterReadOrWrite(boolean flag)
-    {
-        this.closeAfterReadOrWrite = flag;
-    }
-    
-    private void checkChannel() throws StyxException
-    {
-        if (this.chan == null || !this.chan.isOpen())
-        {
-            if (!this.file.exists())
-            {
-                // remove this file from the directory tree
-                this.remove();
-                throw new StyxException("file " + file.getName() + " has been removed");
-            }
-            try
-            {
-                this.chan = new RandomAccessFile(this.file, "rw").getChannel();
-            }
-            catch(FileNotFoundException fnfe)
-            {
-                throw new StyxException("File " + this.file.getName() + 
-                    " cannot be opened");
-            }
-        }        
     }
     
     public synchronized void read(StyxFileClient client, long offset, int count, int tag)
         throws StyxException
     {
-        this.checkChannel();
-        
-        // Get a ByteBuffer from MINA's pool. This gets released when the
-        // RreadMessage is sent back to the client
-        ByteBuffer buf = ByteBuffer.allocate(count);
-        // Make sure the position and limit are set correctly
-        buf.position(0).limit(count);
-        
-        int numRead = 0;
         try
         {
-            numRead = this.chan.read(buf.buf(), offset);
-            if (this.closeAfterReadOrWrite)
-            {
-                this.chan.close();
-            }
-        }
-        catch(IOException ioe)
-        {
-            ioe.printStackTrace();
-            throw new StyxException("error reading " + this.file.getName() + 
-                ": " + ioe.getMessage());
-        }
-        if (numRead < 1)
-        {
-            // offset is past the end of the file
-            buf.release(); // Make sure the buffer is released
-            this.replyRead(client, new byte[0], tag);
-        }
-        else
-        {
+            // Open a new FileChannel for reading
+            FileChannel chan = new FileInputStream(this.file).getChannel();
+
+            // Get a ByteBuffer from MINA's pool. This gets released when the
+            // RreadMessage is sent back to the client
+            ByteBuffer buf = ByteBuffer.allocate(count);
+            // Make sure the position and limit are set correctly (remember that
+            // the actual buffer size might be larger than requested)
+            buf.position(0).limit(count);
+
+            // Read from the channel. If no bytes were read (due to EOF), the
+            // position of the buffer will not have changed
+            int numRead = chan.read(buf.buf(), offset);
+            log.debug("Read " + numRead + " bytes from " + this.file.getPath());
+            // Close the channel
+            chan.close();
+
             buf.flip();
             // The buffer will be released when the RreadMessage has been written
             this.replyRead(client, buf, tag);
+        }
+        catch(FileNotFoundException fnfe)
+        {
+            // The file has been removed
+            log.debug("The file " + this.file.getPath() +
+                " has been removed by another process");
+            // Remove the file from the Styx server
+            this.remove();
+            throw new StyxException("The file " + this.name + " was removed.");
+        }
+        catch(IOException ioe)
+        {
+            throw new StyxException("An error of class " + ioe.getClass() + 
+                " occurred when trying to read from " + this.getFullPath() +
+                ": " + ioe.getMessage());
         }
     }
     
@@ -254,29 +210,48 @@ public class FileOnDisk extends StyxFile
         int count, ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
     {
-        this.checkChannel();
         try
         {
+            // Open a new FileChannel for writing. Can't use FileOutputStream
+            // as this doesn't allow successful writing at a certain file offset
+            FileChannel chan = new RandomAccessFile(this.file, "rw").getChannel();
+            
             // Remember old limit and position
             int pos = data.position();
             int lim = data.limit();
+            // Make sure only the requested number of bytes get written
             data.limit(data.position() + count);
-            int nWritten = this.chan.write(data.buf(), offset);
+            
+            // Write to the file
+            int nWritten = chan.write(data.buf(), offset);
+            
             // Reset former buffer positions
             data.limit(lim).position(pos);
+            
+            // Truncate the file at the end of the new data if requested
             if (truncate)
             {
-                this.chan.truncate(offset + nWritten);
+                log.debug("Truncating file at " + (offset + nWritten) + " bytes");
+                //chan.truncate(offset + nWritten);
             }
-            if (this.closeAfterReadOrWrite)
-            {
-                this.chan.close();
-            }
+            // Close the channel
+            chan.close();
+            // Reply to the client
             this.replyWrite(client, nWritten, tag);
+        }
+        catch(FileNotFoundException fnfe)
+        {
+            // The file has been removed
+            log.debug("The file " + this.file.getPath() +
+                " has been removed by another process");
+            // Remove the file from the Styx server
+            this.remove();
+            throw new StyxException("The file " + this.name + " was removed.");
         }
         catch(IOException ioe)
         {
-            throw new StyxException("error writing to " + this.file.getName() + 
+            throw new StyxException("An error of class " + ioe.getClass() + 
+                " occurred when trying to write to " + this.getFullPath() +
                 ": " + ioe.getMessage());
         }
     }
@@ -296,33 +271,13 @@ public class FileOnDisk extends StyxFile
     }
     
     /**
-     * Removes the underlying file from the disk
+     * Closes the open FileChannel and removes the underlying file from the disk
      */
     protected synchronized void delete()
     {
-        this.file.delete();
-    }
-    
-    /**
-     * This is called when the file is clunked, just before the current client
-     * is removed from the list of active clients.
-     */
-    protected synchronized void clientDisconnected(StyxFileClient client)
-    {
-        // Only close the channel if this is the last client to disconnect
-        if (this.getNumClients() == 0)
+        if (this.file.exists())
         {
-            try
-            {
-                if (this.chan != null)
-                {
-                    this.chan.close();
-                }
-            }
-            catch (IOException ioe)
-            {
-                // ignore any exceptions
-            }
+            this.file.delete();
         }
     }
     
