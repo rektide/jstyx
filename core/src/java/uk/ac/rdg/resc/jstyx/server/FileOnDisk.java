@@ -54,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/05/10 19:19:05  jonblower
+ * Reinstated chan.truncate()
+ *
  * Revision 1.10  2005/05/10 12:43:57  jonblower
  * Rewrote and simplified: now closes file after each read or write
  *
@@ -232,7 +235,7 @@ public class FileOnDisk extends StyxFile
             if (truncate)
             {
                 log.debug("Truncating file at " + (offset + nWritten) + " bytes");
-                //chan.truncate(offset + nWritten);
+                chan.truncate(offset + nWritten);
             }
             // Close the channel
             chan.close();
