@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/05/10 19:17:54  jonblower
+ * Added dispose() method
+ *
  * Revision 1.10  2005/03/22 17:48:27  jonblower
  * Removed debug code that tracked ByteBuffer allocation
  *
@@ -338,12 +341,24 @@ public abstract class StyxMessage
      * buffer is only released when this count reaches zero. This is called 
      * once the StyxMessageDecoder.decode() method has finished.
      */
-    public void release()
+    void release()
     {
         if (this.buf != null)
         {
             this.buf.release();
         }
+    }
+    
+    /**
+     * This is called <b>after</b> the message has been sent (in
+     * StyxServerProtocolHandler.messageSent()) and is a signal to free any
+     * resources associated with the message (e.g. an RreadMessage can release
+     * the ByteBuffer holding the payload). This default implementation does
+     * nothing: subclasses should override if necessary.
+     */
+    public void dispose()
+    {
+        return;
     }
     
     /**

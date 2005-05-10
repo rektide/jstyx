@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/05/10 19:17:54  jonblower
+ * Added dispose() method
+ *
  * Revision 1.10  2005/05/10 08:02:06  jonblower
  * Changes related to implementing MonitoredFileOnDisk
  *
@@ -152,7 +155,7 @@ public class RreadMessage extends StyxMessage
     public RreadMessage(ByteBuffer data)
     {
         this(0, (short)117, 0); // We'll set the length and tag later
-        this.data = data; // TODO: should we call acquire()?
+        this.data = data;
         this.pos = data.position();
         this.dataPos = this.pos;
         this.count = data.limit() - this.pos;
@@ -224,12 +227,18 @@ public class RreadMessage extends StyxMessage
         else
         {
             // We already have the bulk of the data in a ByteBuffer, so we don't
-            // need to copy it to a new one.
-            ByteBuffer payload = this.getData();
+            // need to copy it to a new one. Make sure that the position is set
+            // correctly
+            this.data.position(dataPos);
+            this.data.acquire(); // Increment reference count to this ByteBuffer. We'll
+                            // release it once the message has been sent (in dispose(),
+                            // via StyxServerProtocolHandler.messageSent()). This makes
+                            // sure the data will still be valid if we make a call
+                            // to toString() after the message has been sent.
             
-            // Allocate a buffer for the header. This buffer will get freed
-            // when the header is written
-            this.buf = ByteBuffer.allocate(11);
+            // Allocate a buffer for the header and count only. This buffer will
+            // get freed when the header is written
+            this.buf = ByteBuffer.allocate(StyxUtils.HEADER_LENGTH + 4);
             // Wrap as a StyxBuffer
             StyxBuffer styxBuf = new StyxBuffer(this.buf);
             // Encode everything but the payload, then flip the buffer
@@ -242,7 +251,7 @@ public class RreadMessage extends StyxMessage
                 out.write(this.buf);
                 // Now write the payload; this releases the buffer so subsequent
                 // calls to getData() will not return valid results
-                out.write(payload);
+                out.write(this.data);
             }
         }
     }
@@ -294,6 +303,19 @@ public class RreadMessage extends StyxMessage
     public int getCount()
     {
         return this.count;
+    }
+    
+    /**
+     * This is called <b>after</b> the message has been sent (in
+     * StyxServerProtocolHandler.messageSent().  This releases the ByteBuffer
+     * holding the payload of the message, if one exists.
+     */
+    public void dispose()
+    {
+        if (this.data != null)
+        {
+            this.data.release();
+        }
     }
     
     protected String getElements()
