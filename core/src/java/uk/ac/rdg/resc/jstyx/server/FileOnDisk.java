@@ -53,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/05/10 08:02:18  jonblower
+ * Changes related to implementing MonitoredFileOnDisk
+ *
  * Revision 1.8  2005/05/09 07:13:52  jonblower
  * Changed getFileOnDisk() to getFileOrDirectoryOnDisk()
  *
@@ -90,6 +93,11 @@ public class FileOnDisk extends StyxFile
         // file will be closed after each read or write via the Styx interface.
         // This is useful if another process writes to the file, but is inefficient
         // otherwise.
+    protected boolean mustExist; // If this is true and the java.io.File does not
+        // exist, an attempt to read from the file will result in an error being
+        // thrown and the StyxFile will be removed from the namespace.  If it is
+        // false, an attempt to read from a java.io.File that doesn't exist will
+        // result in EOF being sent to the client.
     
     /**
      * Gets a StyxFile that wraps the given java.io.File. If the File is a 
@@ -148,7 +156,12 @@ public class FileOnDisk extends StyxFile
      * @param name The name of this file as it will appear in the namespace
      * @param file The java.io.File which this represents
      * @param permissions the permissions of the file
-     * @throws StyxException if the java.io.File does not exist
+     * @param mustExist If this is true, an exception will be thrown if
+     * the java.io.File does not exist. If the java.io.File is later deleted,
+     * subsequent read attempts will result in an error.  If this is false, attempts
+     * to read from the file will result in EOF instead.
+     * @throws StyxException if the java.io.File does not exist and
+     * <code>mustExist</code> is <code>true</code>
      */
     public FileOnDisk(String name, File file, int permissions) throws StyxException
     {
@@ -201,11 +214,17 @@ public class FileOnDisk extends StyxFile
         throws StyxException
     {
         this.checkChannel();
-        java.nio.ByteBuffer buf = java.nio.ByteBuffer.allocate(count);
+        
+        // Get a ByteBuffer from MINA's pool. This gets released when the
+        // RreadMessage is sent back to the client
+        ByteBuffer buf = ByteBuffer.allocate(count);
+        // Make sure the position and limit are set correctly
+        buf.position(0).limit(count);
+        
         int numRead = 0;
         try
         {
-            numRead = this.chan.read(buf, offset);
+            numRead = this.chan.read(buf.buf(), offset);
             if (this.closeAfterReadOrWrite)
             {
                 this.chan.close();
@@ -220,11 +239,13 @@ public class FileOnDisk extends StyxFile
         if (numRead < 1)
         {
             // offset is past the end of the file
+            buf.release(); // Make sure the buffer is released
             this.replyRead(client, new byte[0], tag);
         }
         else
         {
             buf.flip();
+            // The buffer will be released when the RreadMessage has been written
             this.replyRead(client, buf, tag);
         }
     }
@@ -242,8 +263,7 @@ public class FileOnDisk extends StyxFile
             data.limit(data.position() + count);
             int nWritten = this.chan.write(data.buf(), offset);
             // Reset former buffer positions
-            data.limit(lim);
-            data.position(pos);
+            data.limit(lim).position(pos);
             if (truncate)
             {
                 this.chan.truncate(offset + nWritten);

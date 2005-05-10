@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/10 08:02:18  jonblower
+ * Changes related to implementing MonitoredFileOnDisk
+ *
  * Revision 1.5  2005/05/09 07:10:37  jonblower
  * Minor changes
  *
@@ -170,7 +173,9 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
     }
     
     /**
-     * This simply calls write() in the contained StyxFile object
+     * This simply calls write() in the contained StyxFile object. This will
+     * cause the contentsChanged() method to be called, notifying any waiting
+     * clients of the change to the file
      */
     public synchronized void write(StyxFileClient client, long offset,
         int count, ByteBuffer data, String user, boolean truncate, int tag)
@@ -206,11 +211,9 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
                     }
                     catch(StyxException se)
                     {
-                        // We have to deal with the StyxException here and send an
-                        // error message back to the client
-                        RerrorMessage rErrMsg = new RerrorMessage(se.getMessage());
-                        StyxServerProtocolHandler.reply(cinfo.client.getSession(),
-                            rErrMsg, cinfo.tag);
+                        // This exception is thrown if there was an error reading
+                        // the file.
+                        this.handleReadError(se.getMessage(), cinfo.client, cinfo.tag);
                     }
                     it.remove();
                 }
@@ -280,6 +283,22 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
         cinfo.tag = tag;
         this.baseFile.read(client, offset, count, tag);
     }
+    
+    /**
+     * Called when an error occurs when reading the file that is wrapped by this
+     * AsyncStyxFile, for example if a FileOnDisk cannot be read because it is
+     * being used by another process. This can be overridden by subclasses. This
+     * implementation sends an error message back to the client
+     * @param message The error message
+     * @param client The client that is reading the file
+     * @param tag The tag of the client's original read message
+     */
+    protected void handleReadError(String message, StyxFileClient client, int tag)
+    {
+        StyxServerProtocolHandler.reply(client.getSession(),
+            new RerrorMessage(message), tag);
+    }
+    
     
     /**
      * Class representing a client that is waiting for a reply from an

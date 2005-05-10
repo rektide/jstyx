@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/05/10 08:02:18  jonblower
+ * Changes related to implementing MonitoredFileOnDisk
+ *
  * Revision 1.14  2005/05/09 07:12:52  jonblower
  * Clarified some comments
  *
@@ -711,6 +714,24 @@ public class StyxFile
     /**
      * Method to reply to a Read message. One of the replyRead() methods
      * must be called by all subclasses when sending data back to the client in
+     * response to a read request. Leaves the position of the input ByteBuffer
+     * unchanged.
+     * @param client The connection on which the reply will be sent
+     * @param buf a org.apache.mina.common.ByteBuffer containing the data to
+     * write to the file.  All the remaining data in the buffer will be sent
+     * back to the client.
+     * @param tag The tag to be attached to the message
+     */
+    protected void replyRead(StyxFileClient client, ByteBuffer buf, int tag)
+    {
+        RreadMessage rReadMsg = new RreadMessage(buf);
+        rReadMsg.setTag(tag);
+        this.replyRead(client, rReadMsg);
+    }
+    
+    /**
+     * Method to reply to a Read message. One of the replyRead() methods
+     * must be called by all subclasses when sending data back to the client in
      * response to a read request.
      * @param client The connection on which the reply will be sent
      * @param bytes The data to include in the message.
@@ -721,16 +742,30 @@ public class StyxFile
     protected void replyRead(StyxFileClient client, byte[] bytes, int pos,
         int count, int tag)
     {
+        RreadMessage rReadMsg = new RreadMessage(bytes, pos, count);
+        rReadMsg.setTag(tag);
+        this.replyRead(client, rReadMsg);
+    }
+    
+    /**
+     * Method to reply to a Read message. One of the replyRead() methods
+     * must be called by all subclasses when sending data back to the client in
+     * response to a read request.
+     * @param client The connection on which the reply will be sent
+     * @param rReadMsg The RreadMessage to send back to the client. The tag of
+     * this message must be set correctly.
+     */
+    protected void replyRead(StyxFileClient client, RreadMessage rReadMsg)
+    {
         ProtocolSession session = client.getSession();
         StyxSessionState sessionState = (StyxSessionState)session.getAttachment();
         synchronized (sessionState)
         {
+            int tag = rReadMsg.getTag();
             // If the tag has been flushed, don't reply
             if (sessionState.tagInUse(tag))
             {
                 this.setLastAccessTime(StyxUtils.now());
-                RreadMessage rReadMsg = new RreadMessage(bytes, pos, count);
-                rReadMsg.setTag(tag);
                 session.write(rReadMsg);
                 sessionState.releaseTag(tag);
             }

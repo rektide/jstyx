@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/05/10 08:02:06  jonblower
+ * Changes related to implementing MonitoredFileOnDisk
+ *
  * Revision 1.9  2005/03/22 17:48:27  jonblower
  * Removed debug code that tracked ByteBuffer allocation
  *
@@ -88,17 +91,18 @@ public class RreadMessage extends StyxMessage
     private int count; // The amount of data in bytes in this message
     
     private ByteBuffer data; // Buffer containing the data to write to the file.
-                             // This is only used if we have decoded this message
+                             // This is normally only used if we have decoded this message
                              // from bytes that have been read over the network
-                             // (i.e. only used by client programs)
+                             // (i.e. only used by client programs). It can also
+                             // be used if we have created this message from a
+                             // ByteBuffer (e.g. when reading from a FileOnDisk)
     private int dataPos;     // Stores the location of the first byte of payload
                              // data in the ByteBuffer
     
     private byte[] bytes; // The raw data bytes (only used if we have constructed
                           // this Tmessage from scratch before sending it).  It is
                           // not used if this message is decoded from bytes that
-                          // have been read over the network. I.e. this is only
-                          // used by server programs.
+                          // have been read over the network.
     private int pos;      // If the byte array is filled, this is the index of
                           // the first byte in the array to write
     
@@ -143,6 +147,19 @@ public class RreadMessage extends StyxMessage
     }
     
     /**
+     * Creates an RreadMessage from the given org.apache.mina.common.ByteBuffer
+     */
+    public RreadMessage(ByteBuffer data)
+    {
+        this(0, (short)117, 0); // We'll set the length and tag later
+        this.data = data; // TODO: should we call acquire()?
+        this.pos = data.position();
+        this.dataPos = this.pos;
+        this.count = data.limit() - this.pos;
+        this.length = StyxUtils.HEADER_LENGTH + 4 + this.count;
+    }
+    
+    /**
      * @throws ProtocolViolationException if the payload of the message is more
      * than Integer.MAX_VALUE
      */
@@ -173,7 +190,7 @@ public class RreadMessage extends StyxMessage
         
             // We need to set the position of the input buffer to its limit to make
             // sure that we don't keep reading from this buffer. We'll set the position
-            // to zero when we get the buffer using getData();
+            // back to zero when we get the buffer using getData();
             this.data.position(this.data.limit());
         }
         else
@@ -210,21 +227,23 @@ public class RreadMessage extends StyxMessage
             // need to copy it to a new one.
             ByteBuffer payload = this.getData();
             
-            // Allocate a buffer for everything but the payload
-            log.debug("Allocating buffer for everything but payload: length "
-                + (this.length - payload.remaining()));
-            this.buf = ByteBuffer.allocate(this.length - payload.remaining());
+            // Allocate a buffer for the header. This buffer will get freed
+            // when the header is written
+            this.buf = ByteBuffer.allocate(11);
             // Wrap as a StyxBuffer
             StyxBuffer styxBuf = new StyxBuffer(this.buf);
             // Encode everything but the payload, then flip the buffer
             styxBuf.putUInt(this.length).putUByte(this.type).putUShort(this.tag).putUInt(this.count);
             this.buf.flip();
             
-            // Write everything but the payload
-            out.write(this.buf);
-            // Now write the payload; this releases the buffer so subsequent
-            // calls to getData() will not return valid results
-            out.write(payload);
+            synchronized(out)
+            {
+                // Write the header
+                out.write(this.buf);
+                // Now write the payload; this releases the buffer so subsequent
+                // calls to getData() will not return valid results
+                out.write(payload);
+            }
         }
     }
     
@@ -256,10 +275,8 @@ public class RreadMessage extends StyxMessage
      * finished with the data, call buf.release() to return the buffer to the
      * pool.
      *
-     * This method should only be called by client (i.e. programs that 
-     * interpret RreadMessages that arrive over the network).  If the 
-     * RreadMessage has been created "from scratch" using a byte array, this 
-     * method will throw an IllegalStateException.
+     * @throws IllegalStateException if the ByteBuffer is null.  The ByteBuffer
+     * will be null if this RreadMessage has been created from a byte array.
      */
     public ByteBuffer getData()
     {
