@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/05/10 19:19:44  jonblower
+ * Added call to StyxMessage.dispose() in messageSent() callback
+ *
  * Revision 1.8  2005/05/05 16:57:38  jonblower
  * Updated MINA library to revision 168337 and changed code accordingly
  *
@@ -219,8 +222,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         TversionMessage tVerMsg, int tag) throws StyxException
     {
         long proposedMessageSize = tVerMsg.getMaxMessageSize();
-        long finalMessageSize = (proposedMessageSize < StyxUtils.MAX_MESSAGE_SIZE)
-            ? proposedMessageSize : StyxUtils.MAX_MESSAGE_SIZE;
+        long finalMessageSize = Math.min(proposedMessageSize, StyxUtils.MAX_MESSAGE_SIZE);
         if (!tVerMsg.getVersion().equals("9P2000"))
         {
             throw new StyxException("Error negotiating protocol version (must be 9P2000)");
@@ -668,12 +670,16 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         {
             log.debug( session.getRemoteAddress() + " SENT: " + message );
         }
+        // Release any resources associated with the message.
+        if (message instanceof StyxMessage)
+        {
+            ((StyxMessage)message).dispose();
+        }
     }
     
     public void sessionIdle( ProtocolSession session, IdleStatus status )
     {
-        log.debug( session.getRemoteAddress() + " IDLE(" + status
-            + ")" );
+        log.debug( session.getRemoteAddress() + " IDLE(" + status + ")" );
         // Sessions are never disconnected if they are idle - is this OK?
     }
     
