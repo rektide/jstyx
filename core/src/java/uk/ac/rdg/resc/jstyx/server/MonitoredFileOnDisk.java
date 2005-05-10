@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/10 12:47:44  jonblower
+ * Minor change - not much progress
+ *
  * Revision 1.2  2005/05/10 08:02:18  jonblower
  * Changes related to implementing MonitoredFileOnDisk
  *
@@ -218,9 +221,9 @@ public class MonitoredFileOnDisk extends AsyncStyxFile implements Runnable
      * the file result in EOF.  Attempts to write to a non-existent file will
      * result in a StyxException being thrown.
      */
-    private class ModFileOnDisk extends FileOnDisk
+    /*private class ModFileOnDisk extends FileOnDisk
     {
         
-    }
+    }*/
     
 }
