@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/05/10 19:21:18  jonblower
+ * Minor change: replaced ternary ?: operator with Math.min
+ *
  * Revision 1.7  2005/03/22 17:48:27  jonblower
  * Removed debug code that tracked ByteBuffer allocation
  *
@@ -112,8 +115,7 @@ public class StyxMessageDecoder implements ProtocolDecoder
                 // Note that we can't rely on this.headerBuf.remaining() because
                 // the buffer could be bigger than we have requested
                 int headerLeft = StyxUtils.HEADER_LENGTH - this.headerBuf.position();
-                int headerBytesToRead = headerLeft < in.remaining() ? headerLeft
-                    : in.remaining();
+                int headerBytesToRead = Math.min(headerLeft, in.remaining());
                 // Read the header bytes and write to the header buffer
                 byte[] bytes = new byte[headerBytesToRead];
                 in.get(bytes);
