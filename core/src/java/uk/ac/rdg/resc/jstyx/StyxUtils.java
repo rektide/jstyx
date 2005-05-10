@@ -40,6 +40,9 @@ import java.nio.charset.Charset;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/05/10 12:44:47  jonblower
+ * Minor change
+ *
  * Revision 1.8  2005/03/18 13:55:55  jonblower
  * Improved freeing of ByteBuffers, and bug fixes
  *
@@ -228,9 +231,10 @@ public class StyxUtils
         {
             int numBytes = data.remaining() < n ? data.remaining() : n;
             bytes = new byte[numBytes];
+            int pos = data.position();
             data.get(bytes);
             // Reset the position of the data buffer
-            data.position(data.position() - numBytes);
+            data.position(pos);
         }
         return getDataSummary(bytes.length, bytes);
     }
