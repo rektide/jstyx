@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/05/11 18:25:35  jonblower
+ * Added temporary debug code
+ *
  * Revision 1.12  2005/05/05 07:08:37  jonblower
  * Improved handling of buffers in change listeners
  *
@@ -1031,6 +1034,7 @@ public class CStyxFile extends MessageCallback
         StyxReplyCallback callback = new StyxReplyCallback();
         this.refreshAsync(callback);
         RstatMessage rStatMsg = (RstatMessage)callback.getReply();
+        // the dirEntry will already have been set by this stage
     }
     
     /**
@@ -1140,13 +1144,17 @@ public class CStyxFile extends MessageCallback
      */
     public CStyxFile[] getChildren() throws StyxException
     {
+        System.err.println("Called " + this.getName() + ".getChildren()");
         if (!this.isDirectory())
         {
             return null;
         }
+        System.err.println("Confirmed that " + this.getName() + " is a directory");
         Vector dirEntries = new Vector();
         // Read the contents of the directory
+        System.err.println("About to open " + this.getName());
         this.open(StyxUtils.OREAD);
+        System.err.println("Opened " + this.getName());
         boolean done = false;
         do
         {
