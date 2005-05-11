@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/11 15:13:25  jonblower
+ * Implementing automatic display of service data elements
+ *
  * Revision 1.4  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -109,6 +112,9 @@ public class SGSInstanceClient implements CStyxFileChangeListener
         // TODO: should we only open these when the service is started?
         stdout = this.instanceRoot.getFile("/io/out");
         stderr = this.instanceRoot.getFile("/io/err");
+        
+        // Discover the service data elements that we can read
+        
         status = this.instanceRoot.getFile("/serviceData/status");
         bytesConsumed = this.instanceRoot.getFile("/serviceData/bytesConsumed");
 

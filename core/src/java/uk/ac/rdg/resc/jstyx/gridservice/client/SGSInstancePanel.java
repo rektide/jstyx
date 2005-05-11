@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/11 15:13:25  jonblower
+ * Implementing automatic display of service data elements
+ *
  * Revision 1.3  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -90,7 +93,7 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         double size[][] =
         {
             { TableLayout.FILL, 20, 0.25, 10, 0.25}, // Columns
-            { 20, 10, 20, 10, 20, 20, 10, TableLayout.FILL}  // Rows
+            { 20, 10, 20, 10, 10, TableLayout.FILL}  // Rows
         };
         this.setLayout(new TableLayout(size));
         
@@ -99,8 +102,8 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         this.add(txtInputURL, "0, 2");
         this.add(btnStart, "2, 2");
         this.add(btnStop, "4, 2");
-        this.add(lblStatus, "0, 4, 3, 4");
-        this.add(lblBytesConsumed, "0, 5");
+        //this.add(lblStatus, "0, 4, 3, 4");
+        //this.add(lblBytesConsumed, "0, 5");
         JScrollPane scrStdout = new JScrollPane(txtStdout);
         this.add(scrStdout, "0, 7");
         JScrollPane scrStderr = new JScrollPane(txtStderr);
