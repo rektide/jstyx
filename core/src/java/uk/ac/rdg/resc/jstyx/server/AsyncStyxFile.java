@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/05/11 10:33:50  jonblower
+ * Implemented MonitoredFileOnDisk.java
+ *
  * Revision 1.6  2005/05/10 08:02:18  jonblower
  * Changes related to implementing MonitoredFileOnDisk
  *
@@ -212,8 +215,9 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
                     catch(StyxException se)
                     {
                         // This exception is thrown if there was an error reading
-                        // the file.
-                        this.handleReadError(se.getMessage(), cinfo.client, cinfo.tag);
+                        // the underlying StyxFile.
+                        StyxServerProtocolHandler.reply(cinfo.client.getSession(),
+                            new RerrorMessage(se.getMessage()), cinfo.tag);
                     }
                     it.remove();
                 }
@@ -266,6 +270,7 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
     
     /**
      * Replies to a client and sets the fields of the ClientInfo
+     * @throws StyxException if there was an error reading the underlying StyxFile
      */
     private void replyClient(ClientInfo cinfo, StyxFileClient client, long offset,
         int count, int tag) throws StyxException
@@ -283,22 +288,6 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
         cinfo.tag = tag;
         this.baseFile.read(client, offset, count, tag);
     }
-    
-    /**
-     * Called when an error occurs when reading the file that is wrapped by this
-     * AsyncStyxFile, for example if a FileOnDisk cannot be read because it is
-     * being used by another process. This can be overridden by subclasses. This
-     * implementation sends an error message back to the client
-     * @param message The error message
-     * @param client The client that is reading the file
-     * @param tag The tag of the client's original read message
-     */
-    protected void handleReadError(String message, StyxFileClient client, int tag)
-    {
-        StyxServerProtocolHandler.reply(client.getSession(),
-            new RerrorMessage(message), tag);
-    }
-    
     
     /**
      * Class representing a client that is waiting for a reply from an

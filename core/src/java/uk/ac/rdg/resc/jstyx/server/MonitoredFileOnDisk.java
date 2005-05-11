@@ -33,6 +33,8 @@ import org.apache.log4j.Logger;
 import java.io.File;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
+import uk.ac.rdg.resc.jstyx.types.ULong;
+import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
 
 /**
  * A file on disk that is continuously monitored.  This is basically an
@@ -45,15 +47,15 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * @todo Start monitoring when the first client opens this file?  Stop monitoring
  * when the last client closes the file?
  *
+ * @todo Link refresh() with notifications to clients?
+ *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.3  2005/05/10 12:47:44  jonblower
- * Minor change - not much progress
+ * Revision 1.4  2005/05/11 10:33:50  jonblower
+ * Implemented MonitoredFileOnDisk.java
  *
- * Revision 1.2  2005/05/10 08:02:18  jonblower
- * Changes related to implementing MonitoredFileOnDisk
  *
  * Revision 1.1  2005/05/09 13:22:43  jonblower
  * Initial import
@@ -68,11 +70,37 @@ public class MonitoredFileOnDisk extends AsyncStyxFile implements Runnable
     private long monitorInterval; // The time between polls to the filesystem,
                                   // in milliseconds
     private boolean fileExists;   // true if the file exists
-    private long lastModified;    // last modified time
-    private long length;          // length of file in bytes
+    private long length;          // length of the file in bytes
     
     private boolean monitoring;   // Set this false to stop the monitoring
     private Thread monitor;       // The thread that does the monitoring
+    
+    /**
+     * Creates a new instance of MonitoredFileOnDisk. Call startMonitoring() to
+     * start monitoring the underlying file.
+     * @param filename The name of the underlying file to monitor. Note that this
+     * file does not need to exist yet
+     * @param monitorInterval The time in milliseconds between each check to see
+     * if the file has changed
+     * @throws StyxException if the file name is illegal
+     */
+    public MonitoredFileOnDisk(String filename, long monitorInterval) throws StyxException
+    {
+        this(new File(filename), monitorInterval);
+    }
+    
+    /**
+     * Creates a new instance of MonitoredFileOnDisk that monitors the underlying
+     * file every 2 seconds. Call startMonitoring() to start monitoring the
+     * underlying file.
+     * @param filename The name of the underlying file to monitor. Note that this
+     * file does not need to exist yet
+     * @throws StyxException if the file name is illegal
+     */
+    public MonitoredFileOnDisk(String filename) throws StyxException
+    {
+        this(new File(filename));
+    }
     
     /**
      * Creates a new instance of MonitoredFileOnDisk. Call startMonitoring() to
@@ -85,22 +113,22 @@ public class MonitoredFileOnDisk extends AsyncStyxFile implements Runnable
      */
     public MonitoredFileOnDisk(File file, long monitorInterval) throws StyxException
     {
-        super(new FileOnDisk(file));
+        super(new FileOnDisk(file, false)); // The "false" means that the underlying
+            // java.io.File does not have to exist: if it does not exist, it will
+            // appear as an empty read-only file
         this.file = file;
         this.monitorInterval = monitorInterval;
         this.fileExists = file.exists();
-        if (fileExists)
-        {
-            this.lastModified = file.lastModified();
-            this.length = file.length();
-        }
+        this.lastModifiedTime = file.lastModified() / 1000;
+        this.length = file.length();
         // Prepare the thread but don't start monitoring the file yet
         this.monitor = new Thread(this);
     }
     
     /**
      * Creates a new instance of MonitoredFileOnDisk that monitors the underlying
-     * file every 2 seconds.
+     * file every 2 seconds. Call startMonitoring() to start monitoring the
+     * underlying file.
      * @param file The underlying file to monitor. Note that this file does not
      * need to exist yet
      * @throws StyxException if the file name is illegal
@@ -122,18 +150,18 @@ public class MonitoredFileOnDisk extends AsyncStyxFile implements Runnable
                 {
                     if (this.fileExists)
                     {
-                        // The existence of the file hasn't changed. Let's look at
-                        // the last modified time
-                        long newLastMod = this.file.lastModified();
-                        if (newLastMod != this.lastModified)
+                        // We already knew that this file exists. Let's look at
+                        // the last modified time.
+                        long newLastMod = this.file.lastModified() / 1000;
+                        if (newLastMod != this.lastModifiedTime)
                         {
-                            this.lastModified = newLastMod;
+                            this.lastModifiedTime = newLastMod;
                             // notify that the contents have changed.
                             this.contentsChanged();
                         }
                         // Last mod time hasn't changed.  Check the length of the file
                         // TODO: is this necessary?  Will this ever change if lastModified
-                        // hasn't changed?
+                        // hasn't changed?  Just a double-check really.
                         else
                         {
                             long newLength = this.file.length();
@@ -148,6 +176,8 @@ public class MonitoredFileOnDisk extends AsyncStyxFile implements Runnable
                     {
                         // This is the first time that we've noticed that the file exists
                         this.fileExists = true;
+                        this.length = this.file.length();
+                        this.lastModifiedTime = this.file.lastModified() / 1000;
                         this.contentsChanged();
                     }
                 }
@@ -157,7 +187,9 @@ public class MonitoredFileOnDisk extends AsyncStyxFile implements Runnable
                     if (this.fileExists)
                     {
                         // The file previously existed, now it has vanished.
-                        // TODO: write EOF to all clients?
+                        this.length = 0L;
+                        this.lastModifiedTime = 0L;
+                        this.contentsChanged(); // This will write EOF to all waiting clients
                     }
                 }
                 
@@ -182,6 +214,11 @@ public class MonitoredFileOnDisk extends AsyncStyxFile implements Runnable
         }
     }
     
+    public ULong getLength()
+    {
+        return new ULong(this.length);
+    }
+    
     /**
      * Starts monitoring the file
      */
@@ -203,27 +240,14 @@ public class MonitoredFileOnDisk extends AsyncStyxFile implements Runnable
     }
     
     /**
-     * This is called when an error occurs when reading the underlying file
-     * (see the corresponding method in AsyncStyxFile). This method simply logs
-     * the error and takes no further action.
+     * Simple test program
      */
-    protected void handleReadError(String message, StyxFileClient client, int tag)
+    public static void main (String[] args) throws Exception
     {
-        if (log.isDebugEnabled())
-        {
-            log.debug("Error reading from " + this.file.getPath() + ": " + message);
-        }
+        MonitoredFileOnDisk monFile = new MonitoredFileOnDisk("C:\\monitorme.txt");
+        monFile.startMonitoring();
+        StyxDirectory root = new StyxDirectory("/").addChild(monFile);
+        new StyxServer(9996, root).start();
     }
-    
-    /**
-     * Modified version of FileOnDisk that does not require the underlying file
-     * to actually exist. If the file does not exist, any attempts to read from
-     * the file result in EOF.  Attempts to write to a non-existent file will
-     * result in a StyxException being thrown.
-     */
-    /*private class ModFileOnDisk extends FileOnDisk
-    {
-        
-    }*/
     
 }

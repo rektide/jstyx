@@ -54,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/05/11 10:33:50  jonblower
+ * Implemented MonitoredFileOnDisk.java
+ *
  * Revision 1.11  2005/05/10 19:19:05  jonblower
  * Reinstated chan.truncate()
  *
@@ -96,6 +99,11 @@ public class FileOnDisk extends StyxFile
     private static final Logger log = Logger.getLogger(FileOnDisk.class);
     
     protected File file;
+    protected boolean mustExist; // If this is true, then an exception will be
+        // thrown by the constructor if the underlying java.io.File does not exist.
+        // Furthermore, if the File is deleted, the FileOnDisk will be removed
+        // from the namespace.  If this is set false, a non-existent File will be
+        // represented as a zero-length FileOnDisk in the namespace.
     
     /**
      * Gets a StyxFile that wraps the given java.io.File. If the File is a 
@@ -108,7 +116,7 @@ public class FileOnDisk extends StyxFile
     {
         if (!file.exists())
         {
-            throw new StyxException(file.getName() + " does not exist");
+            throw new StyxException("file " + file.getName() + " does not exist");
         }
         if (file.isDirectory())
         {
@@ -130,7 +138,7 @@ public class FileOnDisk extends StyxFile
     
     /**
      * Creates a new FileOnDisk whose name is the same as that of (the last part
-     * of) the underlying file
+     * of) the underlying file (i.e. file.getName())
      * @param file The java.io.File which this represents
      * @throws StyxException if the java.io.File does not exist
      */
@@ -147,25 +155,57 @@ public class FileOnDisk extends StyxFile
      */
     public FileOnDisk(String name, File file) throws StyxException
     {
-        this(name, file, 0666);
+        this(name, file, 0666, true);
+    }
+    
+    /**
+     * Creates a FileOnDisk with default permissions (0666). The name of the file
+     * in the namespace will be file.getName().
+     * @param file The java.io.File which this represents
+     * @param mustExist If this is true, then an exception will be thrown by this
+     * constructor if the underlying java.io.File does not exist.  Furthermore, 
+     * if the File is deleted, the FileOnDisk will be removed from the namespace.
+     * If this is set false, a non-existent File will be represented as a
+     * zero-length read-only FileOnDisk in the namespace.
+     * @throws StyxException if the java.io.File does not exist and mustExist=true
+     */
+    public FileOnDisk(File file, boolean mustExist)
+        throws StyxException
+    {
+        this(file.getName(), file, 0666, mustExist);
     }
     
     /**
      * @param name The name of this file as it will appear in the namespace
      * @param file The java.io.File which this represents
      * @param permissions the permissions of the file
-     * @throws StyxException if the java.io.File does not exist
+     * @param mustExist If this is true, then an exception will be thrown by this
+     * constructor if the underlying java.io.File does not exist.  Furthermore, 
+     * if the File is deleted, the FileOnDisk will be removed from the namespace.
+     * If this is set false, a non-existent File will be represented as a
+     * zero-length read-only FileOnDisk in the namespace.
+     * @throws StyxException if the java.io.File does not exist and mustExist=true
      */
-    public FileOnDisk(String name, File file, int permissions) throws StyxException
+    public FileOnDisk(String name, File file, int permissions, boolean mustExist)
+        throws StyxException
     {
         super(name.trim(), permissions);
-        if (!file.exists())
+        if (!file.exists() && mustExist)
         {
             throw new StyxException("file " + file.getName() + " does not exist");
         }
         this.file = file;
+        this.mustExist = mustExist;
     }
     
+    /**
+     * Reads from the underlying java.io.File.  This method opens a new file
+     * channel, reads the data, then closes the channel again.
+     *
+     * If the java.io.File does not exist and mustExist==true, this method will
+     * throw a StyxException.  If the File does not exist and mustExist==false,
+     * this method will simply return zero bytes to the client.
+     */
     public synchronized void read(StyxFileClient client, long offset, int count, int tag)
         throws StyxException
     {
@@ -194,12 +234,20 @@ public class FileOnDisk extends StyxFile
         }
         catch(FileNotFoundException fnfe)
         {
-            // The file has been removed
-            log.debug("The file " + this.file.getPath() +
-                " has been removed by another process");
-            // Remove the file from the Styx server
-            this.remove();
-            throw new StyxException("The file " + this.name + " was removed.");
+            // The file does not exist
+            if (mustExist)
+            {
+                log.debug("The file " + this.file.getPath() +
+                    " has been removed by another process");
+                // Remove the file from the Styx server
+                this.remove();
+                throw new StyxException("The file " + this.name + " was removed.");
+            }
+            else
+            {
+                // Simply return EOF
+                this.replyRead(client, new byte[0], tag);
+            }
         }
         catch(IOException ioe)
         {
@@ -209,6 +257,11 @@ public class FileOnDisk extends StyxFile
         }
     }
     
+    /**
+     * Writes data to the underlying java.io.File.  If the File does not exist,
+     * this method will throw a StyxException, regardless of the value of
+     * <code>mustExist</code> (it is meaningless to write to a non-existent file).
+     */
     public synchronized void write(StyxFileClient client, long offset, 
         int count, ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
@@ -216,7 +269,9 @@ public class FileOnDisk extends StyxFile
         try
         {
             // Open a new FileChannel for writing. Can't use FileOutputStream
-            // as this doesn't allow successful writing at a certain file offset
+            // as this doesn't allow successful writing at a certain file offset:
+            // for some reason everything before this offset gets turned into
+            // blank spaces.
             FileChannel chan = new RandomAccessFile(this.file, "rw").getChannel();
             
             // Remember old limit and position
@@ -244,12 +299,24 @@ public class FileOnDisk extends StyxFile
         }
         catch(FileNotFoundException fnfe)
         {
-            // The file has been removed
-            log.debug("The file " + this.file.getPath() +
-                " has been removed by another process");
-            // Remove the file from the Styx server
-            this.remove();
-            throw new StyxException("The file " + this.name + " was removed.");
+            if (mustExist)
+            {
+                // The file has been removed
+                log.debug("The file " + this.file.getPath() +
+                    " has been removed by another process");
+                // Remove the file from the Styx server
+                this.remove();
+                throw new StyxException("The file " + this.name + " was removed.");
+            }
+            else
+            {
+                // Even if the file isn't required to exist, we still throw an
+                // Exception as it is meaningless to write to a non-existent
+                // file.  However, we don't remove this FileOnDisk from the
+                // namespace.
+                throw new StyxException("Cannot write to this file (underlying "
+                    + "file does not exist");
+            }
         }
         catch(IOException ioe)
         {
@@ -265,11 +332,13 @@ public class FileOnDisk extends StyxFile
     public synchronized void refresh()
     {
         // Update the last modified time
+        // This returns zero (i.e. Jan 1 1970) if the file does not exist
         this.lastModifiedTime = this.file.lastModified() / 1000;
     }
     
     public ULong getLength()
     {
+        // This returns zero if the file does not exist
         return new ULong(this.file.length());
     }
     
