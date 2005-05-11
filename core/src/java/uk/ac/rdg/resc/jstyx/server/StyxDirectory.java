@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/05/11 10:34:31  jonblower
+ * Changed so that addChild() returns this StyxDirectory object to allow chaining
+ *
  * Revision 1.8  2005/04/28 08:11:15  jonblower
  * Modified permissions handling in documentation directory of SGS
  *
@@ -274,8 +277,10 @@ public class StyxDirectory extends StyxFile
     /**
      * Adds a file to this directory.  If a file with the same name already
      * exists, throws a FileExistsException
+     * @return this StyxDirectory object, so that calls can be chained:
+     * <code>StyxDirectory root = new StyxDirectory().addChild(file1).addChile(file2)</code>
      */
-    public synchronized void addChild(StyxFile sf) throws FileExistsException
+    public synchronized StyxDirectory addChild(StyxFile sf) throws FileExistsException
     {
         // check that a file with this name does not already exist
         synchronized (this.children)
@@ -290,6 +295,7 @@ public class StyxDirectory extends StyxFile
         // Notify all interested parties that the contents of this directory
         // have changed
         this.fireContentsChanged();
+        return this;
     }
     
     /**
