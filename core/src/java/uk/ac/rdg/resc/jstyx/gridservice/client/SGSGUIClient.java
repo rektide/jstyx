@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnection;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/05/11 18:25:00  jonblower
+ * Implementing automatic detection of service data elements
+ *
  * Revision 1.1  2005/03/16 22:16:44  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -208,19 +211,28 @@ public class SGSGUIClient implements SGSChangeListener
      */
     public void newInstanceCreated(String id)
     {
-        SGSInstanceClient client = this.client.getClientForInstance(id);
-        this.instanceClients.put(new Integer(id), client);
-        if (this.instancePanel == null)
+        try
         {
-            this.instancePanel = new SGSInstancePanel(client);
-            contentPane.add(this.instancePanel, "1, 3, 5, 3");
-            contentPane.validate();
+            SGSInstanceClient client = this.client.getClientForInstance(id);
+            this.instanceClients.put(new Integer(id), client);
+            if (this.instancePanel == null)
+            {
+                this.instancePanel = new SGSInstancePanel(client);
+                contentPane.add(this.instancePanel, "1, 3, 5, 3");
+                contentPane.validate();
+            }
+            else
+            {
+                this.instancePanel.setClient(client);
+            }
+            contentPane.repaint();
         }
-        else
+        catch (StyxException se)
         {
-            this.instancePanel.setClient(client);
+            // Called if the client could not be created
+            // TODO: do something more useful here
+            se.printStackTrace();
         }
-        contentPane.repaint();
     }
     
     public static void main (String args[]) throws Exception

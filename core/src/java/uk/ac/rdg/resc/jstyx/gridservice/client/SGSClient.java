@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/11 18:24:59  jonblower
+ * Implementing automatic detection of service data elements
+ *
  * Revision 1.4  2005/03/22 17:44:17  jonblower
  * Changed to use CStyxFileChangeAdapter instead of Listener and removed empty methods
  *
@@ -113,8 +116,9 @@ public class SGSClient extends CStyxFileChangeAdapter
     /**
      * Gets an SGSInstanceClient for the given instance id. This does not create
      * a new instance.
+     * @throws StyxException if the client could not be created
      */
-    public SGSInstanceClient getClientForInstance(String id)
+    public SGSInstanceClient getClientForInstance(String id) throws StyxException
     {
         return new SGSInstanceClient(this.sgsRoot.getFile(id));
     }

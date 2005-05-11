@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/11 18:25:00  jonblower
+ * Implementing automatic detection of service data elements
+ *
  * Revision 1.5  2005/05/11 15:13:25  jonblower
  * Implementing automatic display of service data elements
  *
@@ -84,14 +87,15 @@ public class SGSInstanceClient implements CStyxFileChangeListener
     // Styx files
     private CStyxFile stdout;
     private CStyxFile stderr;
-    private CStyxFile status;
-    private CStyxFile bytesConsumed;
     
     // State data
+    private CStyxFile[] serviceDataFiles;
+    private String[] sdNames; // Names of all the service data elements
+    private StringBuffer[] sdBufs; // Contents of each service data element
+    
     //private String inputURL = "http://www.nerc-essc.ac.uk/~jdb/bbe.txt";
     private String inputURL = "styx://localhost:7777/LICENCE";
-    private StringBuffer bytesConsBuf = new StringBuffer();
-    private StringBuffer statusBuf = new StringBuffer();
+    
     private StringBuffer stdoutBuf = new StringBuffer();
     private StringBuffer stderrBuf = new StringBuffer();
     
@@ -101,32 +105,46 @@ public class SGSInstanceClient implements CStyxFileChangeListener
     /**
      * Creates a new SGSInstanceClient for an instance that has its root in the
      * given CStyxFile
+     * @throws StyxException if there was an error creating the client
      */
-    public SGSInstanceClient(CStyxFile instanceRoot)
+    public SGSInstanceClient(CStyxFile instanceRoot) throws StyxException
     {
         this.instanceRoot = instanceRoot;
         this.ctlFile = this.instanceRoot.getFile("ctl");
         ctlFile.addChangeListener(this);
+        
+        //new Exception().printStackTrace();
         
         // Open the files that will give us data and service data
         // TODO: should we only open these when the service is started?
         stdout = this.instanceRoot.getFile("/io/out");
         stderr = this.instanceRoot.getFile("/io/err");
         
+        /*System.err.println("Refreshing instanceRoot");
+        instanceRoot.refreshAsync();
+        System.err.println("Refreshed instanceRoot");
         // Discover the service data elements that we can read
+        System.err.println("Getting handle to serviceData directory");
+        CStyxFile sdDir = this.instanceRoot.getFile("/serviceData");
+        System.err.println("Finding service data elements");
+        this.serviceDataFiles = sdDir.getChildren();
+        System.err.println("Found " + this.serviceDataFiles.length +
+            " elements of service data");*/
         
-        status = this.instanceRoot.getFile("/serviceData/status");
-        bytesConsumed = this.instanceRoot.getFile("/serviceData/bytesConsumed");
-
         // Register our interest in changes to these files
         stdout.addChangeListener(this);
         stderr.addChangeListener(this);
-        status.addChangeListener(this);
-        bytesConsumed.addChangeListener(this);
         
-        // Start reading the service data immediately
-        //status.readAsync(0);
-        //bytesConsumed.readAsync(0);
+        this.serviceDataFiles = new CStyxFile[0];
+        this.sdNames = new String[serviceDataFiles.length];
+        this.sdBufs = new StringBuffer[serviceDataFiles.length];
+        
+        for (int i = 0; i < this.serviceDataFiles.length; i++)
+        {
+            this.serviceDataFiles[i].addChangeListener(this);
+            this.sdNames[i] = this.serviceDataFiles[i].getName();
+            this.sdBufs[i] = new StringBuffer();
+        }
         
         this.changeListeners = new Vector();
     }
@@ -136,6 +154,7 @@ public class SGSInstanceClient implements CStyxFileChangeListener
      * connection, with the given service name and ID
      */
     public SGSInstanceClient(StyxConnection conn, String serviceName, int instanceID)
+        throws StyxException
     {
         this(new CStyxFile(conn, serviceName + "/" + instanceID));
     }
@@ -146,7 +165,7 @@ public class SGSInstanceClient implements CStyxFileChangeListener
      */
     public void startService() throws StyxException
     {
-        this.writeAsync(this.ctlFile, "start");
+        this.ctlFile.writeAsync("start");
     }
     
     /**
@@ -155,17 +174,7 @@ public class SGSInstanceClient implements CStyxFileChangeListener
      */
     public void stopService() throws StyxException
     {
-        this.writeAsync(this.ctlFile, "stop");
-    }
-    
-    /**
-     * Writes the given message to the given file; when the reply arrives, the
-     * dataSent() event will be fired. Records the message so that we can match
-     * it with its reply when it arrives
-     */
-    private void writeAsync(CStyxFile file, String message) throws StyxException
-    {
-        file.writeAsync(message);
+        this.ctlFile.writeAsync("stop");
     }
     
     /**
@@ -197,19 +206,11 @@ public class SGSInstanceClient implements CStyxFileChangeListener
     }
     
     /**
-     * @return The number of bytes consumed so far by this service, as a String
+     * Gets the names of all the service data elements exposed by this service
      */
-    public String getBytesConsumed()
+    public String[] getServiceDataNames()
     {
-        return this.bytesConsBuf.toString();
-    }
-    
-    /**
-     * @return The status of the service
-     */
-    public String getStatus()
-    {
-        return this.statusBuf.toString();
+        return this.sdNames;
     }
     
     /**
@@ -235,36 +236,39 @@ public class SGSInstanceClient implements CStyxFileChangeListener
                     stderrBuf.append(StyxUtils.dataToString(data));
                     this.fireNewStderrData(data);
                 }
-                else if (file == status)
+                else
                 {
-                    statusBuf.append(StyxUtils.dataToString(data));
-                }
-                else if (file == bytesConsumed)
-                {
-                    bytesConsBuf.append(StyxUtils.dataToString(data));
+                    // This is service data: update the relevant buffer
+                    for (int i = 0; i < this.serviceDataFiles.length; i++)
+                    {
+                        if (file == this.serviceDataFiles[i])
+                        {
+                            this.sdBufs[i].append(StyxUtils.dataToString(data));
+                            break;
+                        }
+                    }
                 }
                 file.readAsync();
             }
             else
             {
-                if (file == status)
+                // If this is service data, we start reading from the start of the
+                // file again
+                boolean isServiceData = false;
+                for (int i = 0; i < this.serviceDataFiles.length; i++)
                 {
-                    this.fireStatusChanged(statusBuf.toString());
-                    statusBuf.setLength(0);
-                    status.setOffset(0);
-                    status.readAsync();
+                    if (file == this.serviceDataFiles[i])
+                    {
+                        isServiceData = true;
+                        this.fireServiceDataChanged(file.getName(), this.sdBufs[i].toString());
+                        this.sdBufs[i].setLength(0);
+                        file.setOffset(0);
+                        file.readAsync();
+                    }
                 }
-                else if (file == bytesConsumed)
+                if (!isServiceData)
                 {
-                    this.fireBytesConsumedChanged(bytesConsBuf.toString());
-                    bytesConsBuf.setLength(0);
-                    // If this is service data, just try reading it again.
-                    bytesConsumed.setOffset(0);
-                    bytesConsumed.readAsync();
-                }
-                else
-                {
-                    // If we have no data, we have reached EOF and can stop reading.
+                    // This wasn't service data. We have reached EOF and can stop reading.
                     file.close();
                 }
             }
@@ -288,8 +292,11 @@ public class SGSInstanceClient implements CStyxFileChangeListener
             if (message.equalsIgnoreCase("start"))
             {
                 this.fireServiceStarted();
-                status.readAsync(0);
-                bytesConsumed.readAsync(0);
+                // Start reading the service data
+                for (int i = 0; i < this.serviceDataFiles.length; i++)
+                {
+                    this.serviceDataFiles[i].readAsync(0);
+                }
                 // Start reading data from the start of the files
                 stdout.readAsync(0);
                 stderr.readAsync(0);
@@ -388,25 +395,9 @@ public class SGSInstanceClient implements CStyxFileChangeListener
     }
     
     /**
-     * Fires the statusChanged() event on all registered change listeners
-     */
-    private void fireStatusChanged(String newStatus)
-    {
-        synchronized(this.changeListeners)
-        {
-            SGSInstanceChangeListener listener;
-            for (int i = 0; i < this.changeListeners.size(); i++)
-            {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
-                listener.statusChanged(newStatus);
-            }
-        }
-    }
-    
-    /**
      * Fires the bytesConsumedChanged() event on all registered change listeners
      */
-    private void fireBytesConsumedChanged(String bytesConsumed)
+    private void fireServiceDataChanged(String sdName, String newData)
     {
         synchronized(this.changeListeners)
         {
@@ -414,7 +405,7 @@ public class SGSInstanceClient implements CStyxFileChangeListener
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
-                listener.bytesConsumedChanged(bytesConsumed);
+                listener.serviceDataChanged(sdName, newData);
             }
         }
     }

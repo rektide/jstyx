@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/11 18:25:00  jonblower
+ * Implementing automatic detection of service data elements
+ *
  * Revision 1.4  2005/05/11 15:13:25  jonblower
  * Implementing automatic display of service data elements
  *
@@ -74,13 +77,14 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
     private SGSInstanceClient client = null;
     
     // GUI components
+    private TableLayout layout;
     private JLabel lblInstanceID;
     private JTextField txtInputURL = new JTextField();
     //private JTextField txtInputURL = new JTextField("styx://localhost:7777/LICENCE");
     private JButton btnStart = new JButton("Start");
     private JButton btnStop = new JButton("Stop");
-    private JLabel lblStatus = new JLabel("Status:");
-    private JLabel lblBytesConsumed = new JLabel("Bytes consumed:");
+    //private JLabel lblStatus = new JLabel("Status:");
+    //private JLabel lblBytesConsumed = new JLabel("Bytes consumed:");
     private JTextArea txtStdout = new JTextArea();
     private JTextArea txtStderr = new JTextArea();
     
@@ -95,7 +99,8 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
             { TableLayout.FILL, 20, 0.25, 10, 0.25}, // Columns
             { 20, 10, 20, 10, 10, TableLayout.FILL}  // Rows
         };
-        this.setLayout(new TableLayout(size));
+        this.layout = new TableLayout(size);
+        this.setLayout(this.layout);
         
         // Lay out the components; syntax is contentPane.add(component, "col, row")
         this.add(lblInstanceID, "2, 0");
@@ -105,9 +110,9 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         //this.add(lblStatus, "0, 4, 3, 4");
         //this.add(lblBytesConsumed, "0, 5");
         JScrollPane scrStdout = new JScrollPane(txtStdout);
-        this.add(scrStdout, "0, 7");
+        this.add(scrStdout, "0, 5");
         JScrollPane scrStderr = new JScrollPane(txtStderr);
-        this.add(scrStderr, "2, 7, 4, 7");
+        this.add(scrStderr, "2, 5, 4, 5");
         
         // Set response to clicking on the "start" button
         btnStart.addActionListener
@@ -150,8 +155,20 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         // the data from a service that's already running)
         lblInstanceID.setText("Instance id: " + client.getInstanceID());
         txtInputURL.setText(client.getInputURL());
-        lblStatus.setText("Status: " + client.getStatus());
-        lblBytesConsumed.setText("Bytes consumed: " + client.getBytesConsumed());
+        
+        // Get the service data elements
+        String[] sdNames = client.getServiceDataNames();
+        for (int i = 0; i < sdNames.length; i++)
+        {
+            // Create a label for this SDE
+            JLabel lbl = new JLabel(sdNames[i]);
+            // Add it to this GUI
+            this.layout.insertRow(4, 20);
+            this.add(lbl, "0, 4");
+        }
+        
+        //lblStatus.setText("Status: " + client.getStatus());
+        //lblBytesConsumed.setText("Bytes consumed: " + client.getBytesConsumed());
         this.repaint();
         // Register this as a change listener for the SGS instance client
         client.addChangeListener(this);
@@ -214,21 +231,11 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
     }
     
     /**
-     * Called when the status of the Styx Grid Service changes
+     * Called when an element of service data changes
      */
-    public synchronized void statusChanged(String newStatus)
+    public void serviceDataChanged(String sdName, String newData)
     {
-        this.lblStatus.setText("Status: " + newStatus);
-        this.lblStatus.repaint();
-    }
-    
-    /**
-     * Called when the number of bytes consumed by the SGS changes
-     */
-    public synchronized void bytesConsumedChanged(String newBytesConsumed)
-    {
-        this.lblBytesConsumed.setText("Bytes consumed: " + newBytesConsumed);
-        this.lblBytesConsumed.repaint();
+        // TODO
     }
     
     /**

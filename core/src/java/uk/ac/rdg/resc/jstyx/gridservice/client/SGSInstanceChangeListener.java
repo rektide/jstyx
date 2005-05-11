@@ -38,6 +38,9 @@ import org.apache.mina.common.ByteBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/11 18:25:00  jonblower
+ * Implementing automatic detection of service data elements
+ *
  * Revision 1.3  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -59,15 +62,11 @@ import org.apache.mina.common.ByteBuffer;
  */
 public interface SGSInstanceChangeListener
 {
-    /**
-     * Called when the status of the Styx Grid Service changes
-     */
-    public void statusChanged(String newStatus);
     
     /**
-     * Called when the number of bytes consumed by the SGS changes
+     * Called when the given service data element changes
      */
-    public void bytesConsumedChanged(String newBytesConsumed);
+    public void serviceDataChanged(String sdName, String newData);
     
     /**
      * Called when new data arrive from the standard output of the SGS instance.
