@@ -53,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/11 15:15:35  jonblower
+ * Added new constructor
+ *
  * Revision 1.4  2005/05/11 10:33:50  jonblower
  * Implemented MonitoredFileOnDisk.java
  *
@@ -105,6 +108,31 @@ public class MonitoredFileOnDisk extends AsyncStyxFile implements Runnable
     /**
      * Creates a new instance of MonitoredFileOnDisk. Call startMonitoring() to
      * start monitoring the underlying file.
+     * @param name The name of the file as it will appear in the Styx namespace
+     * @param file The underlying file to monitor. Note that this file does not
+     * need to exist yet
+     * @param monitorInterval The time in milliseconds between each check to see
+     * if the file has changed
+     * @throws StyxException if the file name is illegal
+     */
+    public MonitoredFileOnDisk(String name, File file, long monitorInterval) throws StyxException
+    {
+        // The "false" means that the underlying java.io.File does not have to
+        // exist: if it does not exist, it will appear as an empty read-only file.
+        // TODO: are the file permissions appropriate?
+        super(new FileOnDisk(name, file, 0444, false));
+        this.file = file;
+        this.monitorInterval = monitorInterval;
+        this.fileExists = file.exists();
+        this.lastModifiedTime = file.lastModified() / 1000;
+        this.length = file.length();
+        // Prepare the thread but don't start monitoring the file yet
+        this.monitor = new Thread(this);
+    }
+    
+    /**
+     * Creates a new instance of MonitoredFileOnDisk. Call startMonitoring() to
+     * start monitoring the underlying file.
      * @param file The underlying file to monitor. Note that this file does not
      * need to exist yet
      * @param monitorInterval The time in milliseconds between each check to see
@@ -113,16 +141,7 @@ public class MonitoredFileOnDisk extends AsyncStyxFile implements Runnable
      */
     public MonitoredFileOnDisk(File file, long monitorInterval) throws StyxException
     {
-        super(new FileOnDisk(file, false)); // The "false" means that the underlying
-            // java.io.File does not have to exist: if it does not exist, it will
-            // appear as an empty read-only file
-        this.file = file;
-        this.monitorInterval = monitorInterval;
-        this.fileExists = file.exists();
-        this.lastModifiedTime = file.lastModified() / 1000;
-        this.length = file.length();
-        // Prepare the thread but don't start monitoring the file yet
-        this.monitor = new Thread(this);
+        this(file.getName(), file, monitorInterval);
     }
     
     /**
