@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/05/11 13:45:19  jonblower
+ * Converted SGS config code to use dom4j and Jaxen for XML parsing
+ *
  * Revision 1.8  2005/05/09 07:13:51  jonblower
  * Changed getFileOnDisk() to getFileOrDirectoryOnDisk()
  *
@@ -272,7 +275,7 @@ public class StyxGridService
         }
         catch(Exception e)
         {
-            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
             return;
         }
     }

@@ -29,9 +29,12 @@
 package uk.ac.rdg.resc.jstyx.gridservice.server;
 
 import java.util.Vector;
+import java.util.Iterator;
 import java.io.File;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+
+import org.dom4j.Node;
+
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * Class containing configuration info for a single Styx Grid Service
@@ -40,6 +43,9 @@ import org.w3c.dom.NodeList;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/11 13:45:19  jonblower
+ * Converted SGS config code to use dom4j and Jaxen for XML parsing
+ *
  * Revision 1.3  2005/04/27 16:11:35  jonblower
  * Added capability to add documentation files to SGS namespace
  *
@@ -60,42 +66,42 @@ class SGSConfig
     private Vector params;      // The parameters for this SGS
 
     /**
-     * @param gridService The Element in the XML config file that is at the
+     * @param gridService The Node in the XML config file that is at the
      * root of this Styx Grid Service
      * @param sgsRootDir The root of the working directory of this SGS
      * @throws IllegalArgumentException if the name of the SGS contains
      * a space.
      */
-    public SGSConfig(Element gridService, String sgsRootDir) throws SGSConfigException
+    public SGSConfig(Node gridService, String sgsRootDir) throws SGSConfigException
     {
-        this.name = gridService.getAttribute("name");
+        this.name = gridService.valueOf("@name");
         // Check that the name is valid
         if (this.name.indexOf(" ") != -1)
         {
             // TODO: check for other whitespace characters
             throw new IllegalArgumentException("The name of an SGS cannot contain a space");
         }
-        this.command = gridService.getAttribute("command");
-        this.description = gridService.getAttribute("description");
-        this.workDir = sgsRootDir + "\\" + name;
+        this.command = gridService.valueOf("@command");
+        this.description = gridService.valueOf("@description");
+        this.workDir = sgsRootDir + StyxUtils.SYSTEM_FILE_SEPARATOR + name;
 
         // Now create the parameters
         this.params = new Vector();
-        NodeList paramList = gridService.getElementsByTagName("param");
-        for (int i = 0; i < paramList.getLength(); i++)
+        Iterator paramListIter = gridService.selectNodes("param").iterator();
+        while(paramListIter.hasNext())
         {
-            Element paramEl = (Element)paramList.item(i);
+            Node paramEl = (Node)paramListIter.next();
             this.params.add(new SGSParam(paramEl));
         }
         
         // Now create the documentation files
         this.docFiles = new Vector();
-        NodeList docList = gridService.getElementsByTagName("doc");
-        for (int i = 0; i < docList.getLength(); i++)
+        Iterator docListIter = gridService.selectNodes("doc").iterator();
+        while(docListIter.hasNext())
         {
-            Element docEl = (Element)docList.item(i);
-            String name = docEl.getAttribute("name");
-            String location = docEl.getAttribute("location");
+            Node docEl = (Node)docListIter.next();
+            String name = docEl.valueOf("@name");
+            String location = docEl.valueOf("@location");
             this.docFiles.add(new DocFile(name, location));
         }
     }
@@ -177,22 +183,22 @@ class SGSParam
      * Creates a parameter object for a SGS.
      * @param paramNode The XML element in the config file representing the parameter
      */
-    SGSParam(Element paramNode) throws SGSConfigException
+    SGSParam(Node paramNode) throws SGSConfigException
     {
-        this.name = paramNode.getAttribute("name").trim();
-        this.type = ParamType.getInstance(paramNode.getAttribute("type").trim());
-        this.required = paramNode.getAttribute(name).trim().equalsIgnoreCase("yes");
+        this.name = paramNode.valueOf("@name").trim();
+        this.type = ParamType.getInstance(paramNode.valueOf("@type").trim());
+        // TODO this.required = paramNode.getAttribute(name).trim().equalsIgnoreCase("yes");
         
         // The following fields are optional; if they don't exist in the config
         // file they will have the value ""        
-        this.defaultValue = paramNode.getAttribute("default");
-        this.minValue = paramNode.getAttribute("minValue").trim();
-        this.maxValue = paramNode.getAttribute("maxValue").trim();
-        String vals = paramNode.getAttribute("values").trim();
+        this.defaultValue = paramNode.valueOf("@default");
+        this.minValue = paramNode.valueOf("@minValue").trim();
+        this.maxValue = paramNode.valueOf("@maxValue").trim();
+        String vals = paramNode.valueOf("@values").trim();
         // We don't trim the switch parameter because the user might want to 
         // force a space between the switch and the parameter value
-        this.strSwitch = paramNode.getAttribute("switch");
-        this.description = paramNode.getAttribute("description").trim();
+        this.strSwitch = paramNode.valueOf("@switch");
+        this.description = paramNode.valueOf("@description").trim();
         
         if (! (this.minValue.equals("") && this.maxValue.equals("")) )
         {

@@ -51,12 +51,21 @@
     name CDATA #IMPLIED
     location CDATA #REQUIRED
   >
+  
+<!-- Element describing service data -->
+<!ELEMENT serviceData (serviceDataElement*)>
+<!ELEMENT serviceDataElement EMPTY>
+<!ATTLIST serviceDataElement
+    name CDATA #REQUIRED
+    minUpdateInterval CDATA "2.0"
+  >
 
-<!--- Element that defines a Styx Grid Service -->
-<!-- The gridservice takes zero or more parameters and zero or more documentation
-     files. The description of the service will automatically appear as a file
-     called "description" in the doc/ directory of the SGS. -->
-<!ELEMENT gridservice (param*, doc*)>
+<!-- Element that defines a Styx Grid Service -->
+<!-- The gridservice takes zero or more parameters, zero or more documentation
+     files and zero or more service data elements. The description of the service
+     will automatically appear as a file called "description" in the doc/
+     directory of the SGS. -->
+<!ELEMENT gridservice (param*, doc*, serviceData?)>
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED
