@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/05/11 15:14:31  jonblower
+ * Implemented more flexible definition of service data elements
+ *
  * Revision 1.9  2005/05/11 13:45:19  jonblower
  * Converted SGS config code to use dom4j and Jaxen for XML parsing
  *
@@ -104,6 +107,7 @@ public class StyxGridService
     private String workDir; // The directory in the local filesystem where all the 
                             // cache files etc associated with this service will be kept
     private Vector params;  // The parameters that each SGS instance uses
+    private Vector sdes;    // The service data elements for each SGS instance
     
     /**
      * Creates a new StyxGridService.
@@ -149,6 +153,7 @@ public class StyxGridService
         this.command = sgsConfig.getCommand();
         this.workDir = sgsConfig.getWorkingDirectory();
         this.params = sgsConfig.getParams();
+        this.sdes = sgsConfig.getServiceData();
     }
     
     public StyxDirectory getRoot()
@@ -194,7 +199,7 @@ public class StyxGridService
         {
             this.instances.add(new Integer(id));
             this.root.addChild(new StyxGridServiceInstance(this, id, this.command,
-                this.workDir, this.params));
+                this.workDir, this.params, this.sdes));
             return id;
         }        
     }

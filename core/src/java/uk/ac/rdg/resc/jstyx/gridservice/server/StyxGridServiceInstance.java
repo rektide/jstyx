@@ -46,6 +46,7 @@ import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
 import uk.ac.rdg.resc.jstyx.server.AsyncStyxFile;
 import uk.ac.rdg.resc.jstyx.server.InMemoryFile;
+import uk.ac.rdg.resc.jstyx.server.MonitoredFileOnDisk;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -58,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/05/11 15:14:31  jonblower
+ * Implemented more flexible definition of service data elements
+ *
  * Revision 1.10  2005/05/09 07:07:48  jonblower
  * Minor change
  *
@@ -104,8 +108,8 @@ class StyxGridServiceInstance extends StyxDirectory
     private int id; // The ID number of this instance
     private File workDir; // The working directory of this instance
     private Process process = null; // The process object returned by runtime.exec()
-    private ServiceDataElement status;
-    private ServiceDataElement progress;
+    private ServiceDataElement status; // The status of the service
+    private StatusCode statusCode;
     private ServiceDataElement bytesConsumed; // The number of bytes consumed by the service
     private long bytesCons;
     private CachingStreamReader stdout = new CachingStreamReader(this, "out");  // The standard output from the program
@@ -115,14 +119,14 @@ class StyxGridServiceInstance extends StyxDirectory
     private String command; // The command to run (i.e. the string that is passed to System.exec)
     private InMemoryFile inputURL; // Non-empty if we're going to read the input from a URL
     private long startTime;
-    private StatusCode statusCode; // The status of the service
     
     /**
      * Creates a new StyxGridService with the given configuration
      * @todo: sort out permissions and owners on all these files
      */
     public StyxGridServiceInstance(StyxGridService sgs, int id,
-        String command, String workDir, Vector params) throws StyxException
+        String command, String workDir, Vector params, Vector serviceDataElements)
+        throws StyxException
     {
         super("" + id);
         this.sgs = sgs;
@@ -155,29 +159,48 @@ class StyxGridServiceInstance extends StyxDirectory
         
         // Add the parameters as SGSParamFiles.
         this.paramDir = new StyxDirectory("params");
-        if (params.size() > 0)
+        for (int i = 0; i < params.size(); i++)
         {
-            for (int i = 0; i < params.size(); i++)
-            {
-                SGSParam param = (SGSParam)params.get(i);
-                this.paramDir.addChild(new SGSParamFile(param));
-            }
+            SGSParam param = (SGSParam)params.get(i);
+            this.paramDir.addChild(new SGSParamFile(param));
         }
         this.addChild(paramDir);
         
         // Add the service data: the files exposing the service data will all
         // have asynchronous behaviour
-        this.status = new StringServiceDataElement("status", true, "created");
-        this.progress = new StringServiceDataElement("progress", false, "0");
-        this.bytesCons = 0;
-        // Replies to clients must be at least 2s apart
-        this.bytesConsumed = new StringServiceDataElement("bytesConsumed", true,
-            "" + this.bytesCons, 2.0f);
         StyxDirectory serviceDataDir = new StyxDirectory("serviceData");
+        for (int i = 0; i < serviceDataElements.size(); i++)
+        {
+            SDEConfig sde = (SDEConfig)serviceDataElements.get(i);
+            // Look for the special SDEs.
+            if (sde.getName().equals("status"))
+            {
+                this.status = new StringServiceDataElement("status", true, "created");
+                serviceDataDir.addChild(this.status.getAsyncStyxFile());
+            }
+            else if (sde.getName().equals("bytesConsumed"))
+            {
+                this.bytesConsumed = new StringServiceDataElement("bytesConsumed",
+                    true, "" + this.bytesCons, 2.0f);
+                serviceDataDir.addChild(this.bytesConsumed.getAsyncStyxFile());
+            }
+            else
+            {
+                // This is a custom SDE
+                if (sde.getFilePath().equalsIgnoreCase(""))
+                {
+                    throw new StyxException("Service data element " +
+                        sde.getName() + " must have a backing file");
+                }
+                serviceDataDir.addChild(new MonitoredFileOnDisk(sde.getName(),
+                    new File(this.workDir, sde.getFilePath()), 
+                    (long)(sde.getMinUpdateInterval() * 1000)));
+            }
+        }
         this.addChild(serviceDataDir);
-        serviceDataDir.addChild(this.status.getAsyncStyxFile());
-        serviceDataDir.addChild(this.progress.getAsyncStyxFile());
-        serviceDataDir.addChild(this.bytesConsumed.getAsyncStyxFile());
+        
+        
+        this.bytesCons = 0;
         
         // Add the streams
         StyxDirectory ioDir = new StyxDirectory("io");
@@ -502,7 +525,10 @@ class StyxGridServiceInstance extends StyxDirectory
         {
             msg = ": " + message;
         }
-        this.status.setValue(code.getText() + msg);
+        if (this.status != null)
+        {
+            this.status.setValue(code.getText() + msg);
+        }
     }
     
     private void setStatus(StatusCode code)
@@ -516,7 +542,10 @@ class StyxGridServiceInstance extends StyxDirectory
     private synchronized void setBytesConsumed(long newValue)
     {
         this.bytesCons = newValue;
-        this.bytesConsumed.setValue("" + newValue);
+        if (this.bytesConsumed != null)
+        {
+            this.bytesConsumed.setValue("" + newValue);
+        }
     }
     
     /**

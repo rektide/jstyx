@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/11 15:14:30  jonblower
+ * Implemented more flexible definition of service data elements
+ *
  * Revision 1.4  2005/05/11 13:45:19  jonblower
  * Converted SGS config code to use dom4j and Jaxen for XML parsing
  *
@@ -64,6 +67,7 @@ class SGSConfig
     private String description; // Short description of this SGS
     private Vector docFiles;    // The documentation files
     private Vector params;      // The parameters for this SGS
+    private Vector serviceData; // The service data elements for this SGS
 
     /**
      * @param gridService The Node in the XML config file that is at the
@@ -92,6 +96,16 @@ class SGSConfig
         {
             Node paramEl = (Node)paramListIter.next();
             this.params.add(new SGSParam(paramEl));
+        }
+        
+        // Create the service data elements
+        this.serviceData = new Vector();
+        Iterator serviceDataIter =
+            gridService.selectNodes("serviceData/serviceDataElement").iterator();
+        while(serviceDataIter.hasNext())
+        {
+            Node sdEl = (Node)serviceDataIter.next();
+            this.serviceData.add(new SDEConfig(sdEl));
         }
         
         // Now create the documentation files
@@ -155,6 +169,14 @@ class SGSConfig
     public Vector getDocFiles()
     {
         return this.docFiles;
+    }
+
+    /** 
+     * @return Vector of service data objects
+     */
+    public Vector getServiceData()
+    {
+        return this.serviceData;
     }
 }
 
@@ -378,5 +400,64 @@ class DocFile
     File getLocation()
     {
         return this.location;
+    }
+}
+
+/**
+ * Simple class containing details of a service data element
+ */
+class SDEConfig
+{
+    private String name; // The name of the SDE
+    private float minUpdateInterval; // The minimum update interval
+    private String file; // The path to the file that backs this SDE (not always present)
+    
+    /**
+     * Creates an SDEConfig object from the given Node in the XML document.
+     * @throws SGSConfigException if there was an error parsing the information
+     */
+    public SDEConfig(Node sdeNode) throws SGSConfigException
+    {
+        this.name = sdeNode.valueOf("@name").trim();
+        try
+        {
+            String updateStr = sdeNode.valueOf("minUpdateInterval");
+            if (updateStr.trim().equals(""))
+            {
+                // Default of 2 seconds.
+                // TODO: how can we get this from the DTD?
+                this.minUpdateInterval = 2.0f;
+            }
+            else
+            {
+                this.minUpdateInterval = Float.parseFloat(updateStr);
+            }
+        }
+        catch(NumberFormatException nfe)
+        {
+            throw new SGSConfigException("Invalid value (" +
+                sdeNode.valueOf("minUpdateInterval") + 
+                ") for minimum update interval");
+        }
+        this.file = sdeNode.valueOf("@file").trim();
+    }
+    
+    public String getName()
+    {
+        return this.name;
+    }
+    
+    public float getMinUpdateInterval()
+    {
+        return this.minUpdateInterval;
+    }
+    
+    /**
+     * @return the path to the file that backs this SDE, relative to the working
+     * directory of the SGS
+     */
+    public String getFilePath()
+    {
+        return this.file;
     }
 }
