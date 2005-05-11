@@ -12,7 +12,7 @@
 
 	<property name="version" value="0.04"/>
 	<property name="src.dir" value="../src"/>
-	<property name="classes.dir" value="../classes"/>
+	<property name="classes.dir" value="../build/classes"/>
 	<property name="dist.dir" value="../dist"/>
 	<property name="javadoc.dir" value="../docs/api"/>
 	<!-- The directory containing other third-party Java libraries (log4j, MINA etc) -->
