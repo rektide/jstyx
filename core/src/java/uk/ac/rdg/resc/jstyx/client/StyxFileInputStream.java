@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/05/12 07:40:52  jonblower
+ * CStyxFile.close() no longer throws a StyxException
+ *
  * Revision 1.6  2005/05/05 07:09:06  jonblower
  * Improved comments
  *
@@ -163,19 +166,12 @@ public class StyxFileInputStream extends InputStream
      */
     public void close() throws IOException
     {
-        try
+        this.file.close();
+        this.offset = 0;
+        this.eof = false;
+        if (this.closeConnectionWhenCloseStream)
         {
-            this.file.close();
-            this.offset = 0;
-            this.eof = false;
-            if (this.closeConnectionWhenCloseStream)
-            {
-                this.file.getConnection().close();
-            }
-        }
-        catch (StyxException se)
-        {
-            throw new IOException(se.getMessage());
+            this.file.getConnection().close();
         }
         this.buf = null;
     }

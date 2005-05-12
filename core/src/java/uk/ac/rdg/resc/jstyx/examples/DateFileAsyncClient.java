@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/12 07:40:54  jonblower
+ * CStyxFile.close() no longer throws a StyxException
+ *
  * Revision 1.2  2005/03/16 17:55:53  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -84,16 +87,8 @@ public class DateFileAsyncClient extends CStyxFileChangeAdapter
         }
         else
         {
-            try
-            {
-                file.close();
-                this.conn.close();
-            }
-            catch(StyxException se)
-            {
-                // TODO: does close() really have to throw an Exception?
-                se.printStackTrace();
-            }
+            file.close();
+            this.conn.close();
         }
     }
     

@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/05/12 07:40:54  jonblower
+ * CStyxFile.close() no longer throws a StyxException
+ *
  * Revision 1.6  2005/05/11 18:25:00  jonblower
  * Implementing automatic detection of service data elements
  *
@@ -125,11 +128,12 @@ public class SGSInstanceClient implements CStyxFileChangeListener
         System.err.println("Refreshed instanceRoot");
         // Discover the service data elements that we can read
         System.err.println("Getting handle to serviceData directory");
-        CStyxFile sdDir = this.instanceRoot.getFile("/serviceData");
         System.err.println("Finding service data elements");
         this.serviceDataFiles = sdDir.getChildren();
         System.err.println("Found " + this.serviceDataFiles.length +
             " elements of service data");*/
+        CStyxFile sdDir = this.instanceRoot.getFile("/serviceData");
+        sdDir.getChildrenAsync();
         
         // Register our interest in changes to these files
         stdout.addChangeListener(this);
@@ -220,62 +224,55 @@ public class SGSInstanceClient implements CStyxFileChangeListener
     public synchronized void dataArrived(CStyxFile file, TreadMessage tReadMsg,
         ByteBuffer data)
     {
-        try
+        if (data.remaining() > 0)
         {
-            if (data.remaining() > 0)
+            file.setOffset(tReadMsg.getOffset().asLong() + data.remaining());
+            // Find out which file this data belongs to
+            if (file == stdout)
             {
-                file.setOffset(tReadMsg.getOffset().asLong() + data.remaining());
-                // Find out which file this data belongs to
-                if (file == stdout)
-                {
-                    stdoutBuf.append(StyxUtils.dataToString(data));
-                    this.fireNewStdoutData(data);
-                }
-                else if (file == stderr)
-                {
-                    stderrBuf.append(StyxUtils.dataToString(data));
-                    this.fireNewStderrData(data);
-                }
-                else
-                {
-                    // This is service data: update the relevant buffer
-                    for (int i = 0; i < this.serviceDataFiles.length; i++)
-                    {
-                        if (file == this.serviceDataFiles[i])
-                        {
-                            this.sdBufs[i].append(StyxUtils.dataToString(data));
-                            break;
-                        }
-                    }
-                }
-                file.readAsync();
+                stdoutBuf.append(StyxUtils.dataToString(data));
+                this.fireNewStdoutData(data);
+            }
+            else if (file == stderr)
+            {
+                stderrBuf.append(StyxUtils.dataToString(data));
+                this.fireNewStderrData(data);
             }
             else
             {
-                // If this is service data, we start reading from the start of the
-                // file again
-                boolean isServiceData = false;
+                // This is service data: update the relevant buffer
                 for (int i = 0; i < this.serviceDataFiles.length; i++)
                 {
                     if (file == this.serviceDataFiles[i])
                     {
-                        isServiceData = true;
-                        this.fireServiceDataChanged(file.getName(), this.sdBufs[i].toString());
-                        this.sdBufs[i].setLength(0);
-                        file.setOffset(0);
-                        file.readAsync();
+                        this.sdBufs[i].append(StyxUtils.dataToString(data));
+                        break;
                     }
                 }
-                if (!isServiceData)
+            }
+            file.readAsync();
+        }
+        else
+        {
+            // If this is service data, we start reading from the start of the
+            // file again
+            boolean isServiceData = false;
+            for (int i = 0; i < this.serviceDataFiles.length; i++)
+            {
+                if (file == this.serviceDataFiles[i])
                 {
-                    // This wasn't service data. We have reached EOF and can stop reading.
-                    file.close();
+                    isServiceData = true;
+                    this.fireServiceDataChanged(file.getName(), this.sdBufs[i].toString());
+                    this.sdBufs[i].setLength(0);
+                    file.setOffset(0);
+                    file.readAsync();
                 }
             }
-        }
-        catch(StyxException se)
-        {
-            se.printStackTrace();
+            if (!isServiceData)
+            {
+                // This wasn't service data. We have reached EOF and can stop reading.
+                file.close();
+            }
         }
     }
     

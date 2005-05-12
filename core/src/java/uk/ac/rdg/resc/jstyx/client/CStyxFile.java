@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/05/12 07:40:52  jonblower
+ * CStyxFile.close() no longer throws a StyxException
+ *
  * Revision 1.13  2005/05/11 18:25:35  jonblower
  * Added temporary debug code
  *
@@ -590,7 +593,7 @@ public class CStyxFile extends MessageCallback
      * of the file is invalid as soon as the Tclunk is sent, whether the Rclunk
      * arrives or not. The Rclunk message is handled in the StyxConnection class.
      */
-    public synchronized void close() throws StyxException
+    public synchronized void close()
     {
         if (this.mode < 0)
         {
@@ -1144,17 +1147,13 @@ public class CStyxFile extends MessageCallback
      */
     public CStyxFile[] getChildren() throws StyxException
     {
-        System.err.println("Called " + this.getName() + ".getChildren()");
         if (!this.isDirectory())
         {
             return null;
         }
-        System.err.println("Confirmed that " + this.getName() + " is a directory");
         Vector dirEntries = new Vector();
         // Read the contents of the directory
-        System.err.println("About to open " + this.getName());
         this.open(StyxUtils.OREAD);
-        System.err.println("Opened " + this.getName());
         boolean done = false;
         do
         {
@@ -1184,6 +1183,51 @@ public class CStyxFile extends MessageCallback
         this.close();
         
         return (CStyxFile[])dirEntries.toArray(new CStyxFile[0]);
+    }
+    
+    /**
+     * Reads this directory to get all its children. When the process is completed
+     * the childrenFound() event is fired on all registered listeners
+     */
+    public void getChildrenAsync()
+    {
+        // TODO: first check that this is a directory
+        this.readAsync(offset, new MessageCallback()
+        {
+            private Vector dirEntries = new Vector();
+            private long offset = 0;
+            public void replyArrived(StyxMessage message)
+            {
+                RreadMessage rReadMsg = (RreadMessage)message;
+                ByteBuffer data = rReadMsg.getData();
+                this.offset += data.remaining();
+                if (data.remaining() > 0)
+                {
+                    // Wrap data as a StyxBuffer
+                    StyxBuffer styxBuf = new StyxBuffer(data);
+                    // Get all the DirEntries from this buffer
+                    while(data.hasRemaining())
+                    {
+                        // TODO: how handle buffer underflows?
+                        DirEntry dirEntry = styxBuf.getDirEntry();
+                        this.dirEntries.add(new CStyxFile(conn, path, dirEntry));
+                    }
+                    data.release();
+                    // Read from this file again
+                    readAsync(this.offset, this);
+                }
+                else
+                {
+                    // We've read all the data from the file
+                    close();
+                    fireChildrenFound((CStyxFile[])this.dirEntries.toArray(new CStyxFile[0]));
+                }
+            }
+            public void error(String message, int tag)
+            {
+                // TODO
+            }
+        });
     }
     
     /**
@@ -1349,6 +1393,18 @@ public class CStyxFile extends MessageCallback
                     (CStyxFileChangeListener)this.listeners.get(i);
                 listener.dataSent(this, tWriteMsg);
             }
+        }
+    }
+    
+    /**
+     * Fires the childrenFound() method on all registered listeners
+     */
+    private void fireChildrenFound(CStyxFile[] children)
+    {
+        System.err.println("Found " + children.length + " children:");
+        for (int i = 0; i < children.length; i++)
+        {
+            System.err.println("   " + children[i].getPath());
         }
     }
 }
