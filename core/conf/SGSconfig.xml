@@ -33,6 +33,8 @@
             <!-- <doc location="C:\j2sdk1.4.2_05\docs\api" name="javadoc"/> -->
             <serviceData>
                 <serviceDataElement name="status" />
+                <serviceDataElement name="bytesConsumed" />
+                <serviceDataElement name="progress" file="progress.txt" />
             </serviceData>
         </gridservice>
         <gridservice name="simple" command="python c:\simple.py" description="doesn't do much really" />

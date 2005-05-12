@@ -58,6 +58,7 @@
 <!ATTLIST serviceDataElement
     name CDATA #REQUIRED
     minUpdateInterval CDATA "2.0"
+    file CDATA #IMPLIED
   >
 
 <!-- Element that defines a Styx Grid Service -->
