@@ -35,7 +35,7 @@ import org.apache.mina.common.ByteBuffer;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
-import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeListener;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeAdapter;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/05/12 08:00:53  jonblower
+ * Added getChildrenAsync() to CStyxFile and childrenFound() to CStyxFileChangeListener
+ *
  * Revision 1.7  2005/05/12 07:40:54  jonblower
  * CStyxFile.close() no longer throws a StyxException
  *
@@ -81,7 +84,7 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * Commit adding of SGS files to CVS
  *
  */
-public class SGSInstanceClient implements CStyxFileChangeListener
+public class SGSInstanceClient extends CStyxFileChangeAdapter
 {
     private CStyxFile instanceRoot; // The file at the root of the instance
     private CStyxFile ctlFile;      // The file that we use to stop, start and
@@ -97,7 +100,7 @@ public class SGSInstanceClient implements CStyxFileChangeListener
     private StringBuffer[] sdBufs; // Contents of each service data element
     
     //private String inputURL = "http://www.nerc-essc.ac.uk/~jdb/bbe.txt";
-    private String inputURL = "styx://localhost:7777/LICENCE";
+    private String inputURL = "http://www.resc.rdg.ac.uk/projects.php";
     
     private StringBuffer stdoutBuf = new StringBuffer();
     private StringBuffer stderrBuf = new StringBuffer();
@@ -116,23 +119,17 @@ public class SGSInstanceClient implements CStyxFileChangeListener
         this.ctlFile = this.instanceRoot.getFile("ctl");
         ctlFile.addChangeListener(this);
         
-        //new Exception().printStackTrace();
-        
         // Open the files that will give us data and service data
         // TODO: should we only open these when the service is started?
         stdout = this.instanceRoot.getFile("/io/out");
         stderr = this.instanceRoot.getFile("/io/err");
         
-        /*System.err.println("Refreshing instanceRoot");
-        instanceRoot.refreshAsync();
-        System.err.println("Refreshed instanceRoot");
-        // Discover the service data elements that we can read
-        System.err.println("Getting handle to serviceData directory");
-        System.err.println("Finding service data elements");
-        this.serviceDataFiles = sdDir.getChildren();
-        System.err.println("Found " + this.serviceDataFiles.length +
-            " elements of service data");*/
+        // Find out the service data offered by the SGS. We do this by reading
+        // the contents of the serviceData directory
         CStyxFile sdDir = this.instanceRoot.getFile("/serviceData");
+        sdDir.addChangeListener(this);
+        // When the contents of the directory have been found, the childrenFound
+        // method of this class will be called.
         sdDir.getChildrenAsync();
         
         // Register our interest in changes to these files
@@ -306,11 +303,17 @@ public class SGSInstanceClient implements CStyxFileChangeListener
     }
     
     /**
-     * Required by the StyxFileChangeListener interface. Does nothing here
+     * Called when we have the list of children for a directory.
      */
-    public void fileOpen(CStyxFile file, int mode)
+    public void childrenFound(CStyxFile file, CStyxFile[] children)
     {
-        return;
+        // TODO: do something more useful here, and take note of which parent
+        // file we are talking about
+        System.err.println(file.getPath() + " has " + children.length + " children:");
+        for (int i = 0; i < children.length; i++)
+        {
+            System.err.println("   " + children[i].getPath());
+        }
     }
     
     /**
@@ -320,14 +323,6 @@ public class SGSInstanceClient implements CStyxFileChangeListener
     public void error(CStyxFile file, String message)
     {
         this.fireError(message);
-    }
-    
-    /**
-     * Required by the StyxFileChangeListener interface. Does nothing here.
-     */
-    public void statChanged(CStyxFile file, DirEntry newDirEntry)
-    {
-        return;
     }
     
     /**

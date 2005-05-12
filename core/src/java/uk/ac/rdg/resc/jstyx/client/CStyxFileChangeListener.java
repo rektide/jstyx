@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/12 08:00:34  jonblower
+ * Added getChildrenAsync() to CStyxFile and childrenFound() to CStyxFileChangeListener
+ *
  * Revision 1.4  2005/05/05 07:08:37  jonblower
  * Improved handling of buffers in change listeners
  *
@@ -109,5 +112,11 @@ public interface CStyxFileChangeListener
      * necessarily mean that the stat has changed.
      */
     public void statChanged(CStyxFile file, DirEntry newDirEntry);
+    
+    /**
+     * Called after a successful read on a directory. (Result of a call to
+     * CStyxFile.getChildrenAsync())
+     */
+    public void childrenFound(CStyxFile file, CStyxFile[] children);
     
 }

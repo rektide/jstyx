@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/05/12 08:00:33  jonblower
+ * Added getChildrenAsync() to CStyxFile and childrenFound() to CStyxFileChangeListener
+ *
  * Revision 1.14  2005/05/12 07:40:52  jonblower
  * CStyxFile.close() no longer throws a StyxException
  *
@@ -1208,7 +1211,6 @@ public class CStyxFile extends MessageCallback
                     // Get all the DirEntries from this buffer
                     while(data.hasRemaining())
                     {
-                        // TODO: how handle buffer underflows?
                         DirEntry dirEntry = styxBuf.getDirEntry();
                         this.dirEntries.add(new CStyxFile(conn, path, dirEntry));
                     }
@@ -1225,7 +1227,8 @@ public class CStyxFile extends MessageCallback
             }
             public void error(String message, int tag)
             {
-                // TODO
+                fireError("Error getting directory contents from " + getPath()
+                    + ": " + message);
             }
         });
     }
@@ -1401,10 +1404,14 @@ public class CStyxFile extends MessageCallback
      */
     private void fireChildrenFound(CStyxFile[] children)
     {
-        System.err.println("Found " + children.length + " children:");
-        for (int i = 0; i < children.length; i++)
+        synchronized(this.listeners)
         {
-            System.err.println("   " + children[i].getPath());
+            for (int i = 0; i < listeners.size(); i++)
+            {
+                CStyxFileChangeListener listener =
+                    (CStyxFileChangeListener)this.listeners.get(i);
+                listener.childrenFound(this, children);
+            }
         }
     }
 }
