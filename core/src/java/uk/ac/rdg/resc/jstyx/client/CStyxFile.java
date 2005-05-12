@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2005/05/12 15:59:59  jonblower
+ * Implemented getChildrenAsync()
+ *
  * Revision 1.16  2005/05/12 14:20:55  jonblower
  * Changed dataSent() method to dataWritten() (more accurate name)
  *
@@ -1149,7 +1152,7 @@ public class CStyxFile extends MessageCallback
     /**
      * Gets all the children of this directory. If this is not a directory,
      * this will return null. (For an empty directory, this will return a zero-
-     * length array)
+     * length array.)  This method blocks until the directory has been read.
      */
     public CStyxFile[] getChildren() throws StyxException
     {
@@ -1193,16 +1196,61 @@ public class CStyxFile extends MessageCallback
     
     /**
      * Reads this directory to get all its children. When the process is completed
-     * the childrenFound() event is fired on all registered listeners
+     * the childrenFound() event is fired on all registered listeners.
+     * @todo Merge this code with getChildren()
      */
     public void getChildrenAsync()
     {
-        // TODO: first check that this is a directory
-        this.readAsync(offset, new MessageCallback()
+        MessageCallback callback = new GetChildrenCallback();
+        // First check that this is a directory
+        if (this.dirEntry == null)
         {
-            private Vector dirEntries = new Vector();
-            private long offset = 0;
-            public void replyArrived(StyxMessage message)
+            // We need to get the stat for this file
+            this.refreshAsync(callback);
+        }
+        else if (this.dirEntry.getQid().getType() == 128)
+        {
+            // this is a directory. Find the children
+            readAsync(this.offset, this);
+        }
+        else
+        {
+            // This is not a directory. raise an error
+            callback.error("not a directory", -1);
+        }
+    }
+    
+    /**
+     * Callback that is used when reading the children of this directory
+     */
+    private class GetChildrenCallback extends MessageCallback
+    {
+        private Vector dirEntries;
+        private long offset;
+        
+        public GetChildrenCallback()
+        {
+            this.dirEntries = new Vector();
+            this.offset = 0;
+        }
+        
+        public void replyArrived(StyxMessage message)
+        {
+            if (message instanceof RstatMessage)
+            {
+                RstatMessage rStatMsg = (RstatMessage)message;
+                dirEntry = rStatMsg.getDirEntry();
+                if (dirEntry.getQid().getType() == 128)
+                {
+                    // this is a directory. Find the children
+                    readAsync(this.offset, this);
+                }
+                else
+                {
+                    this.error("not a directory", -1);
+                }
+            }
+            else if (message instanceof RreadMessage)
             {
                 RreadMessage rReadMsg = (RreadMessage)message;
                 ByteBuffer data = rReadMsg.getData();
@@ -1217,7 +1265,6 @@ public class CStyxFile extends MessageCallback
                         DirEntry dirEntry = styxBuf.getDirEntry();
                         this.dirEntries.add(new CStyxFile(conn, path, dirEntry));
                     }
-                    data.release();
                     // Read from this file again
                     readAsync(this.offset, this);
                 }
@@ -1227,13 +1274,19 @@ public class CStyxFile extends MessageCallback
                     close();
                     fireChildrenFound((CStyxFile[])this.dirEntries.toArray(new CStyxFile[0]));
                 }
+                data.release();
             }
-            public void error(String message, int tag)
+            else
             {
-                fireError("Error getting directory contents from " + getPath()
-                    + ": " + message);
+                this.error("Internal error: got reply that was neither rStat nor rRead", -1);
             }
-        });
+        }
+        
+        public void error(String message, int tag)
+        {
+            fireError("Error getting directory contents from " + getPath()
+                + ": " + message);
+        }
     }
     
     /**
