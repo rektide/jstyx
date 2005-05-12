@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/12 16:00:29  jonblower
+ * Implementing reading of service data elements
+ *
  * Revision 1.5  2005/05/11 18:25:00  jonblower
  * Implementing automatic detection of service data elements
  *
@@ -107,8 +110,6 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         this.add(txtInputURL, "0, 2");
         this.add(btnStart, "2, 2");
         this.add(btnStop, "4, 2");
-        //this.add(lblStatus, "0, 4, 3, 4");
-        //this.add(lblBytesConsumed, "0, 5");
         JScrollPane scrStdout = new JScrollPane(txtStdout);
         this.add(scrStdout, "0, 5");
         JScrollPane scrStderr = new JScrollPane(txtStderr);
@@ -151,28 +152,16 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         {
             this.client.removeChangeListener(this);
         }
+        this.client = client;
+        // Register this as a change listener for the SGS instance client
+        this.client.addChangeListener(this);
+        
         // Get the state data from the SGSInstanceClient (this is useful when displaying
         // the data from a service that's already running)
         lblInstanceID.setText("Instance id: " + client.getInstanceID());
         txtInputURL.setText(client.getInputURL());
         
-        // Get the service data elements
-        String[] sdNames = client.getServiceDataNames();
-        for (int i = 0; i < sdNames.length; i++)
-        {
-            // Create a label for this SDE
-            JLabel lbl = new JLabel(sdNames[i]);
-            // Add it to this GUI
-            this.layout.insertRow(4, 20);
-            this.add(lbl, "0, 4");
-        }
-        
-        //lblStatus.setText("Status: " + client.getStatus());
-        //lblBytesConsumed.setText("Bytes consumed: " + client.getBytesConsumed());
         this.repaint();
-        // Register this as a change listener for the SGS instance client
-        client.addChangeListener(this);
-        this.client = client;
     }
     
     /**

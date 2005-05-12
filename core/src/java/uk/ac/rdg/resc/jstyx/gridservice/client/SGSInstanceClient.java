@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/05/12 16:00:28  jonblower
+ * Implementing reading of service data elements
+ *
  * Revision 1.9  2005/05/12 14:21:03  jonblower
  * Changed dataSent() method to dataWritten() (more accurate name)
  *
@@ -91,6 +94,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private CStyxFile stderr;
     
     // State data
+    private CStyxFile sdDir; // serviceData directory for the instance
     private CStyxFile[] serviceDataFiles;
     private String[] sdNames; // Names of all the service data elements
     private StringBuffer[] sdBufs; // Contents of each service data element
@@ -122,11 +126,11 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         
         // Find out the service data offered by the SGS. We do this by reading
         // the contents of the serviceData directory
-        CStyxFile sdDir = this.instanceRoot.getFile("/serviceData");
-        sdDir.addChangeListener(this);
+        this.sdDir = this.instanceRoot.getFile("/serviceData");
+        this.sdDir.addChangeListener(this);
         // When the contents of the directory have been found, the childrenFound
         // method of this class will be called.
-        sdDir.getChildrenAsync();
+        this.sdDir.getChildrenAsync();
         
         // Register our interest in changes to these files
         stdout.addChangeListener(this);
@@ -303,12 +307,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      */
     public void childrenFound(CStyxFile file, CStyxFile[] children)
     {
-        // TODO: do something more useful here, and take note of which parent
-        // file we are talking about
-        System.err.println(file.getPath() + " has " + children.length + " children:");
-        for (int i = 0; i < children.length; i++)
+        if (file == this.sdDir)
         {
-            System.err.println("   " + children[i].getPath());
+            // We have just found the possible service data elements
         }
     }
     
