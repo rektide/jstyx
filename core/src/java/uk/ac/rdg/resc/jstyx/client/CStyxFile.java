@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2005/05/12 14:20:55  jonblower
+ * Changed dataSent() method to dataWritten() (more accurate name)
+ *
  * Revision 1.15  2005/05/12 08:00:33  jonblower
  * Added getChildrenAsync() to CStyxFile and childrenFound() to CStyxFileChangeListener
  *
@@ -1262,7 +1265,7 @@ public class CStyxFile extends MessageCallback
             }
             else
             {
-                this.fireDataSent(tWriteMsg);
+                this.fireDataWritten(tWriteMsg);
             }
         }
         else
@@ -1383,9 +1386,9 @@ public class CStyxFile extends MessageCallback
     }
     
     /**
-     * Fires the dataSent() method on all registered listeners
+     * Fires the dataWritten() method on all registered listeners
      */
-    private void fireDataSent(TwriteMessage tWriteMsg)
+    private void fireDataWritten(TwriteMessage tWriteMsg)
     {
         // Notify all listeners that the data have been written
         synchronized(this.listeners)
@@ -1394,7 +1397,7 @@ public class CStyxFile extends MessageCallback
             {
                 CStyxFileChangeListener listener =
                     (CStyxFileChangeListener)this.listeners.get(i);
-                listener.dataSent(this, tWriteMsg);
+                listener.dataWritten(this, tWriteMsg);
             }
         }
     }

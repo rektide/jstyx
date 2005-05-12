@@ -49,17 +49,14 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/05/12 14:21:03  jonblower
+ * Changed dataSent() method to dataWritten() (more accurate name)
+ *
  * Revision 1.8  2005/05/12 08:00:53  jonblower
  * Added getChildrenAsync() to CStyxFile and childrenFound() to CStyxFileChangeListener
  *
  * Revision 1.7  2005/05/12 07:40:54  jonblower
  * CStyxFile.close() no longer throws a StyxException
- *
- * Revision 1.6  2005/05/11 18:25:00  jonblower
- * Implementing automatic detection of service data elements
- *
- * Revision 1.5  2005/05/11 15:13:25  jonblower
- * Implementing automatic display of service data elements
  *
  * Revision 1.4  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
@@ -75,7 +72,6 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  *
  * Revision 1.4  2005/03/16 17:59:35  jonblower
  * Changed following changes to core JStyx library (replacement of java.nio.ByteBuffers with MINA's ByteBuffers)
- *
  *
  * Revision 1.2  2005/02/21 18:12:29  jonblower
  * Following changes to core JStyx library
@@ -277,7 +273,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * Required by the CStyxFileChangeListener interface. Called when confirmation
      * arrives that a message has been written to the ctl file
      */
-    public void dataSent(CStyxFile file, TwriteMessage tWriteMsg)
+    public void dataWritten(CStyxFile file, TwriteMessage tWriteMsg)
     {
         if (file == ctlFile)
         {

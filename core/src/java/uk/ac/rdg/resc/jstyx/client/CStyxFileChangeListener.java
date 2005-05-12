@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/12 14:20:55  jonblower
+ * Changed dataSent() method to dataWritten() (more accurate name)
+ *
  * Revision 1.5  2005/05/12 08:00:34  jonblower
  * Added getChildrenAsync() to CStyxFile and childrenFound() to CStyxFileChangeListener
  *
@@ -97,7 +100,7 @@ public interface CStyxFileChangeListener
      * @param file The CStyxFile containing the data
      * @param tWriteMsg The TwriteMessage that caused this event to be fired
      */
-    public void dataSent(CStyxFile file, TwriteMessage tWriteMsg);
+    public void dataWritten(CStyxFile file, TwriteMessage tWriteMsg);
     
     /**
      * Called when an Rerror message arrives
