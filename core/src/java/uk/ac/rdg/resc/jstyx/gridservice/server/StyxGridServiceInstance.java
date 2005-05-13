@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/05/13 16:49:34  jonblower
+ * Coded dynamic detection and display of service data, also included streams in config file
+ *
  * Revision 1.11  2005/05/11 15:14:31  jonblower
  * Implemented more flexible definition of service data elements
  *
@@ -112,9 +115,9 @@ class StyxGridServiceInstance extends StyxDirectory
     private StatusCode statusCode;
     private ServiceDataElement bytesConsumed; // The number of bytes consumed by the service
     private long bytesCons;
-    private CachingStreamReader stdout = new CachingStreamReader(this, "out");  // The standard output from the program
-    private CachingStreamReader stderr = new CachingStreamReader(this, "err");  // The standard error from the program
-    private StreamWriter stdin  = new StreamWriter("in");   // The standard input to the program
+    private CachingStreamReader stdout = new CachingStreamReader(this, "stdout");  // The standard output from the program
+    private CachingStreamReader stderr = new CachingStreamReader(this, "stderr");  // The standard error from the program
+    private StreamWriter stdin  = new StreamWriter("stdin");   // The standard input to the program
     private StyxDirectory paramDir; // Contains the command-line parameters to pass to the executable
     private String command; // The command to run (i.e. the string that is passed to System.exec)
     private InMemoryFile inputURL; // Non-empty if we're going to read the input from a URL
@@ -125,8 +128,8 @@ class StyxGridServiceInstance extends StyxDirectory
      * @todo: sort out permissions and owners on all these files
      */
     public StyxGridServiceInstance(StyxGridService sgs, int id,
-        String command, String workDir, Vector params, Vector serviceDataElements)
-        throws StyxException
+        String command, String workDir, Vector streams, Vector params,
+        Vector serviceDataElements) throws StyxException
     {
         super("" + id);
         this.sgs = sgs;
@@ -156,6 +159,38 @@ class StyxGridServiceInstance extends StyxDirectory
         
         // Add the ctl file
         this.addChild(new ControlFile(this)); // the ctl file
+        
+        // Add the streams
+        // TODO: would the name "streams" be more appropriate?  The presence of
+        // the "inurl" file would be contrary to this though (it's not a stream)
+        StyxDirectory ioDir = new StyxDirectory("io");
+        for (int i = 0; i < streams.size(); i++)
+        {
+            SGSStream stream = (SGSStream)streams.get(i);
+            if (stream.getName().equals("stdin"))
+            {
+                // Add the input stream and the inurl file
+                ioDir.addChild(this.stdin);  // input stream
+                this.inputURL = new InMemoryFile("inurl");
+                ioDir.addChild(this.inputURL);
+            }
+            else if (stream.getName().equals("stdout"))
+            {
+                // Add the standard output file
+                ioDir.addChild(this.stdout);
+            }
+            else if (stream.getName().equals("stderr"))
+            {
+                // Add the standard error file
+                ioDir.addChild(this.stderr);
+            }
+            else
+            {
+                throw new StyxException("Stream \"" + stream.getName() +
+                    "\" is not supported (must be stdin, stdout or stderr");
+            }
+        }
+        this.addChild(ioDir);
         
         // Add the parameters as SGSParamFiles.
         this.paramDir = new StyxDirectory("params");
@@ -192,25 +227,19 @@ class StyxGridServiceInstance extends StyxDirectory
                     throw new StyxException("Service data element " +
                         sde.getName() + " must have a backing file");
                 }
-                serviceDataDir.addChild(new MonitoredFileOnDisk(sde.getName(),
+                System.err.println("Min update interval for " + sde.getName() 
+                    + " is " + sde.getMinUpdateInterval());
+                MonitoredFileOnDisk monFile = new MonitoredFileOnDisk(sde.getName(),
                     new File(this.workDir, sde.getFilePath()), 
-                    (long)(sde.getMinUpdateInterval() * 1000)));
+                    (long)(sde.getMinUpdateInterval() * 1000));
+                monFile.startMonitoring();
+                // TODO: stop monitoring somehow, when service is destroyed?
+                serviceDataDir.addChild(monFile);
             }
         }
         this.addChild(serviceDataDir);
         
-        
         this.bytesCons = 0;
-        
-        // Add the streams
-        StyxDirectory ioDir = new StyxDirectory("io");
-        this.addChild(ioDir);
-        // TODO: only add these streams when the process is started?
-        ioDir.addChild(stdout); // output stream
-        ioDir.addChild(stderr); // error stream
-        ioDir.addChild(stdin);  // input stream
-        inputURL = new InMemoryFile("inurl");
-        ioDir.addChild(inputURL);
         
         // Add the debug directory
         StyxDirectory debugDir = new StyxDirectory("debug");
@@ -273,17 +302,20 @@ class StyxGridServiceInstance extends StyxDirectory
                     // Start the process running in the correct working directory
                     process = runtime.exec(getCommandLine(), null, workDir);
                     setStatus(StatusCode.RUNNING);
-                    new Waiter().start(); // Waits for the process to finish, then sets status
+                    new Waiter().start(); // Thread that waits for the process
+                                          // to finish, then sets status
+                    
+                    // Start reading from stdout and stderr. Note that we do this
+                    // even if the "stdout" and "stderr" streams are not exposed
+                    // through the Styx interface (we must do this to consume the
+                    // stdout and stderr data
+                    stdout.startReading(process.getInputStream());
+                    stderr.startReading(process.getErrorStream());
                 }
                 catch(IOException ioe)
                 {
-                    throw new StyxException("IOException occurred: " + ioe.getMessage());
-                }
-                try
-                {
-                    // Start reading from stdout and stderr
-                    stdout.startReading(process.getInputStream());
-                    stderr.startReading(process.getErrorStream());
+                    throw new StyxException("IOException when calling runtime.exec():"
+                        + ioe.getMessage());
                 }
                 catch(StyxException se)
                 {
@@ -293,29 +325,45 @@ class StyxGridServiceInstance extends StyxDirectory
                     throw new StyxException("Internal error: could not start "
                         + "reading from output and error streams");
                 }
-                String urlStr = inputURL.getContents();
-                if (urlStr.trim().equals(""))
+                if (inputURL != null)
                 {
-                    // We haven't set a URL
-                    stdin.setOutputStream(process.getOutputStream());
-                }
-                else
-                {
-                    try
+                    // If the inputURL file is not null, this means that the executable
+                    // expects to get data via stdin (this has been set in the 
+                    // config file).  In the following code, we decide whether
+                    // we're going to get the data from a URL or whether the user
+                    // is expected to write data into the stdin file in the namespace
+                    String urlStr = inputURL.getContents();
+                    if (urlStr.trim().equals(""))
                     {
-                        URL inURL = new URL(urlStr);
-                        URLConnection urlConn = inURL.openConnection();
-                        InputStream urlis = urlConn.getInputStream();
-                        // Start a thread reading from the url and writing to the 
-                        // process's standard input.
-                        new RedirectStream(urlis, process.getOutputStream()).start();
+                        // We haven't set a URL, so we connect the "stdin" file in the
+                        // Styx namespace to the standard input of the executable.
+                        stdin.setOutputStream(process.getOutputStream());
                     }
-                    catch (Exception e)
+                    else
                     {
-                        // TODO: check that the URL is valid at an earlier stage
-                        process.destroy();
-                        e.printStackTrace();
-                        throw new StyxException("Cannot read from " + urlStr);
+                        // We have set a URL so we shall get an InputStream to read 
+                        // data from this URL, then start a thread to read from the URL
+                        // and redirect the data to the standard input of the executable
+                        // From this point on, we will not be able to write to the
+                        // "stdin" file in the namespace
+                        // TODO: should we remove the "stdin" file from the namespace?
+                        try
+                        {
+                            InputStream urlin = new URL(urlStr).openStream();
+                            // Start a thread reading from the url and writing to the 
+                            // process's standard input.
+                            new RedirectStream(urlin, process.getOutputStream()).start();
+                        }
+                        catch (MalformedURLException e)
+                        {
+                            process.destroy();
+                            throw new StyxException(urlStr + " is not a valid URL");
+                        }
+                        catch (IOException ioe)
+                        {
+                            process.destroy();
+                            throw new StyxException("Cannot read from " + urlStr);
+                        }
                     }
                 }
                 this.replyWrite(client, count, tag);
@@ -349,6 +397,7 @@ class StyxGridServiceInstance extends StyxDirectory
                 // Return this instance ID to the pool of valid IDs
                 // TODO: is this a good thing? If a service is destroyed, and
                 // a new one created with the same ID, could clients get confused?
+                // We'll comment this out for the moment.
                 //sgs.returnInstanceID(id);
                 // TODO: should we remove the working directory too?
                 this.replyWrite(client, count, tag);              

@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnection;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/13 16:49:34  jonblower
+ * Coded dynamic detection and display of service data, also included streams in config file
+ *
  * Revision 1.2  2005/05/11 18:25:00  jonblower
  * Implementing automatic detection of service data elements
  *
@@ -213,17 +216,19 @@ public class SGSGUIClient implements SGSChangeListener
     {
         try
         {
-            SGSInstanceClient client = this.client.getClientForInstance(id);
-            this.instanceClients.put(new Integer(id), client);
+            // Get a client for this SGS instance
+            SGSInstanceClient instanceClient = this.client.getClientForInstance(id);
+            // Add it to the hashtable
+            this.instanceClients.put(new Integer(id), instanceClient);
             if (this.instancePanel == null)
             {
-                this.instancePanel = new SGSInstancePanel(client);
+                this.instancePanel = new SGSInstancePanel(instanceClient);
                 contentPane.add(this.instancePanel, "1, 3, 5, 3");
                 contentPane.validate();
             }
             else
             {
-                this.instancePanel.setClient(client);
+                this.instancePanel.setClient(instanceClient);
             }
             contentPane.repaint();
         }

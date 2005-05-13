@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/05/13 16:49:34  jonblower
+ * Coded dynamic detection and display of service data, also included streams in config file
+ *
  * Revision 1.10  2005/05/12 16:00:28  jonblower
  * Implementing reading of service data elements
  *
@@ -94,10 +97,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private CStyxFile stderr;
     
     // State data
-    private CStyxFile sdDir; // serviceData directory for the instance
+    private CStyxFile sdeDir; // serviceData directory for the instance
     private CStyxFile[] serviceDataFiles;
-    private String[] sdNames; // Names of all the service data elements
-    private StringBuffer[] sdBufs; // Contents of each service data element
+    private String[] sdeNames; // Names of all the service data elements
+    private StringBuffer[] sdeBufs; // Contents of each service data element
     
     //private String inputURL = "http://www.nerc-essc.ac.uk/~jdb/bbe.txt";
     private String inputURL = "http://www.resc.rdg.ac.uk/projects.php";
@@ -117,35 +120,18 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         this.instanceRoot = instanceRoot;
         this.ctlFile = this.instanceRoot.getFile("ctl");
-        ctlFile.addChangeListener(this);
+        this.ctlFile.addChangeListener(this);
         
         // Open the files that will give us data and service data
-        // TODO: should we only open these when the service is started?
-        stdout = this.instanceRoot.getFile("/io/out");
-        stderr = this.instanceRoot.getFile("/io/err");
-        
-        // Find out the service data offered by the SGS. We do this by reading
-        // the contents of the serviceData directory
-        this.sdDir = this.instanceRoot.getFile("/serviceData");
-        this.sdDir.addChangeListener(this);
-        // When the contents of the directory have been found, the childrenFound
-        // method of this class will be called.
-        this.sdDir.getChildrenAsync();
-        
+        this.stdout = this.instanceRoot.getFile("/io/stdout");
+        this.stderr = this.instanceRoot.getFile("/io/stderr");
         // Register our interest in changes to these files
-        stdout.addChangeListener(this);
-        stderr.addChangeListener(this);
+        this.stdout.addChangeListener(this);
+        this.stderr.addChangeListener(this);
         
-        this.serviceDataFiles = new CStyxFile[0];
-        this.sdNames = new String[serviceDataFiles.length];
-        this.sdBufs = new StringBuffer[serviceDataFiles.length];
-        
-        for (int i = 0; i < this.serviceDataFiles.length; i++)
-        {
-            this.serviceDataFiles[i].addChangeListener(this);
-            this.sdNames[i] = this.serviceDataFiles[i].getName();
-            this.sdBufs[i] = new StringBuffer();
-        }
+        // We will read this directory to find the service data offered by the SGS
+        this.sdeDir = this.instanceRoot.getFile("/serviceData");
+        this.sdeDir.addChangeListener(this);
         
         this.changeListeners = new Vector();
     }
@@ -179,6 +165,17 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * Sends a message to get the service data elements for this instance.
+     * When the SDEs have arrived, the gotServiceDataElements() event will be fired.
+     */
+    public void getServiceDataElements()
+    {
+        // When the contents of the directory have been found, the childrenFound
+        // method of this class will be called.
+        this.sdeDir.getChildrenAsync();
+    }
+    
+    /**
      * @return The ID of the SGS instance to which this client is connected
      */
     public String getInstanceID()
@@ -204,14 +201,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         CStyxFile inUrlFile = this.instanceRoot.getFile("io/inurl");
         inUrlFile.setContents(inputURL);
         this.inputURL = inputURL;
-    }
-    
-    /**
-     * Gets the names of all the service data elements exposed by this service
-     */
-    public String[] getServiceDataNames()
-    {
-        return this.sdNames;
     }
     
     /**
@@ -242,7 +231,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 {
                     if (file == this.serviceDataFiles[i])
                     {
-                        this.sdBufs[i].append(StyxUtils.dataToString(data));
+                        this.sdeBufs[i].append(StyxUtils.dataToString(data));
                         break;
                     }
                 }
@@ -259,8 +248,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 if (file == this.serviceDataFiles[i])
                 {
                     isServiceData = true;
-                    this.fireServiceDataChanged(file.getName(), this.sdBufs[i].toString());
-                    this.sdBufs[i].setLength(0);
+                    this.fireServiceDataChanged(file.getName(), this.sdeBufs[i].toString());
+                    this.sdeBufs[i].setLength(0);
                     file.setOffset(0);
                     file.readAsync();
                 }
@@ -307,9 +296,21 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      */
     public void childrenFound(CStyxFile file, CStyxFile[] children)
     {
-        if (file == this.sdDir)
+        if (file == this.sdeDir)
         {
-            // We have just found the possible service data elements
+            // We have just discoverd the service data elements
+            this.serviceDataFiles = children;
+            this.sdeNames = new String[serviceDataFiles.length];
+            this.sdeBufs = new StringBuffer[serviceDataFiles.length];
+
+            for (int i = 0; i < this.serviceDataFiles.length; i++)
+            {
+                this.serviceDataFiles[i].addChangeListener(this);
+                this.sdeNames[i] = this.serviceDataFiles[i].getName();
+                this.sdeBufs[i] = new StringBuffer();
+            }
+            
+            this.fireGotSDEs(this.sdeNames);
         }
     }
     
@@ -443,6 +444,22 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
                 listener.error(message);
+            }
+        }
+    }
+    
+    /**
+     * Fires the gotServiceDataElements() event on all registered change listeners
+     */
+    private void fireGotSDEs(String[] sdeNames)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.gotServiceDataElements(sdeNames);
             }
         }
     }

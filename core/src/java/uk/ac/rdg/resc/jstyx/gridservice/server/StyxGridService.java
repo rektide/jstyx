@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/05/13 16:49:34  jonblower
+ * Coded dynamic detection and display of service data, also included streams in config file
+ *
  * Revision 1.10  2005/05/11 15:14:31  jonblower
  * Implemented more flexible definition of service data elements
  *
@@ -106,6 +109,7 @@ public class StyxGridService
                             // (this is passed to System.exec)
     private String workDir; // The directory in the local filesystem where all the 
                             // cache files etc associated with this service will be kept
+    private Vector streams; // The streams that will be exposed by this SGS
     private Vector params;  // The parameters that each SGS instance uses
     private Vector sdes;    // The service data elements for each SGS instance
     
@@ -128,7 +132,7 @@ public class StyxGridService
         // created or destroyed.
         this.root.addChild(new AsyncStyxFile(this.root, ".contents"));
         
-        StyxDirectory docDir = new StyxDirectory("doc", 0555);
+        StyxDirectory docDir = new StyxDirectory("docs", 0555);
         //docDir.setReadOnly(); TODO Why doesn't this line work?
         this.root.addChild(docDir);
         // Add the "description" file as a read-only InMemoryFile
@@ -140,9 +144,8 @@ public class StyxGridService
         for (int i = 0; i < docFiles.size(); i++)
         {
             DocFile docFile = (DocFile)docFiles.get(i);
-            // Create a FileOnDisk that wraps the documentation file or directory
-            // the .getFileOnDisk() method gets a DirectoryOnDisk if the docFile
-            // is a directory, or a FileOnDisk otherwise
+            // Create a FileOnDisk Or DirectoryOnDisk that wraps the documentation
+            // file or directory.
             StyxFile sf = FileOnDisk.getFileOrDirectoryOnDisk(docFile.getLocation());
             // Set the name of the file or directory
             sf.setName(docFile.getName());
@@ -152,6 +155,7 @@ public class StyxGridService
         
         this.command = sgsConfig.getCommand();
         this.workDir = sgsConfig.getWorkingDirectory();
+        this.streams = sgsConfig.getStreams();
         this.params = sgsConfig.getParams();
         this.sdes = sgsConfig.getServiceData();
     }
@@ -199,7 +203,7 @@ public class StyxGridService
         {
             this.instances.add(new Integer(id));
             this.root.addChild(new StyxGridServiceInstance(this, id, this.command,
-                this.workDir, this.params, this.sdes));
+                this.workDir, this.streams, this.params, this.sdes));
             return id;
         }        
     }

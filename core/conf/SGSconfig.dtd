@@ -7,6 +7,15 @@
 
 -->
 
+<!-- A stream of data that the SGS makes available. Currently only the standard
+     streams (stdin, stdout and stderr) are supported. -->
+<!ELEMENT streams (stream*)>
+<!ELEMENT stream EMPTY>
+<!ATTLIST stream
+   name (stdin | stdout | stderr) #REQUIRED
+   type (input | output) #REQUIRED
+ >
+
 <!-- A parameter for a SGS (passed on the command-line to the executable) 
      name: The name of the parameter (must not contain spaces)
      type: The type of the parameter
@@ -23,6 +32,7 @@
      switch: (Optional) The command-line switch used to prefix the parameter value, e.g. "-p"
      description: (Optional) Short text description of the parameter
 -->
+<!ELEMENT params (param*)>
 <!ELEMENT param EMPTY>
 <!ATTLIST param
     name CDATA #REQUIRED
@@ -46,6 +56,7 @@
      The location can also be a directory, in which case all files under this
      directory will be made visible in the same hierarchy.
      Documentation will be read-only. -->
+<!ELEMENT docs (doc*)>
 <!ELEMENT doc EMPTY>
 <!ATTLIST doc
     name CDATA #IMPLIED
@@ -62,11 +73,11 @@
   >
 
 <!-- Element that defines a Styx Grid Service -->
-<!-- The gridservice takes zero or more parameters, zero or more documentation
-     files and zero or more service data elements. The description of the service
-     will automatically appear as a file called "description" in the doc/
-     directory of the SGS. -->
-<!ELEMENT gridservice (param*, doc*, serviceData?)>
+<!-- The gridservice contains zero or more streams, zero or more parameters, zero
+     or more documentation files and zero or more service data elements. The
+     description of the service will automatically appear as a file called
+     "description" in the docs/ directory of the SGS. -->
+<!ELEMENT gridservice (streams?, params?, serviceData?, docs?)>
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED

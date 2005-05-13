@@ -31,7 +31,9 @@ package uk.ac.rdg.resc.jstyx.gridservice.client;
 import javax.swing.*;
 import java.awt.event.*;
 import java.awt.Component;
+import java.util.Hashtable;
 
+import org.apache.log4j.Logger;
 import org.apache.mina.common.ByteBuffer;
 
 import info.clearthought.layout.TableLayout;
@@ -46,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/05/13 16:49:34  jonblower
+ * Coded dynamic detection and display of service data, also included streams in config file
+ *
  * Revision 1.6  2005/05/12 16:00:29  jonblower
  * Implementing reading of service data elements
  *
@@ -77,17 +82,21 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListener
 {
     
+    private static final Logger log = Logger.getLogger(SGSInstancePanel.class);
+    
     private SGSInstanceClient client = null;
     
     // GUI components
     private TableLayout layout;
     private JLabel lblInstanceID;
     private JTextField txtInputURL = new JTextField();
-    //private JTextField txtInputURL = new JTextField("styx://localhost:7777/LICENCE");
+    
     private JButton btnStart = new JButton("Start");
     private JButton btnStop = new JButton("Stop");
-    //private JLabel lblStatus = new JLabel("Status:");
-    //private JLabel lblBytesConsumed = new JLabel("Bytes consumed:");
+    
+    // Labels for service data elements
+    private Hashtable sdeLabels; // Hashtable<String, JLabel>
+    
     private JTextArea txtStdout = new JTextArea();
     private JTextArea txtStderr = new JTextArea();
     
@@ -95,12 +104,11 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
     public SGSInstancePanel(SGSInstanceClient client)
     {
         lblInstanceID = new JLabel("instance id:" );
-        this.setClient(client);
         
         double size[][] =
         {
-            { TableLayout.FILL, 20, 0.25, 10, 0.25}, // Columns
-            { 20, 10, 20, 10, 10, TableLayout.FILL}  // Rows
+            { TableLayout.FILL, 20, 0.25, 10, 0.25 }, // Columns
+            { 20, 10, 20, 10, 10, TableLayout.FILL }  // Rows
         };
         this.layout = new TableLayout(size);
         this.setLayout(this.layout);
@@ -110,6 +118,7 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         this.add(txtInputURL, "0, 2");
         this.add(btnStart, "2, 2");
         this.add(btnStop, "4, 2");
+        this.sdeLabels = new Hashtable();
         JScrollPane scrStdout = new JScrollPane(txtStdout);
         this.add(scrStdout, "0, 5");
         JScrollPane scrStderr = new JScrollPane(txtStderr);
@@ -140,6 +149,7 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         );
         
         this.setVisible(true);
+        this.setClient(client);
     }
     
     /**
@@ -160,6 +170,10 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         // the data from a service that's already running)
         lblInstanceID.setText("Instance id: " + client.getInstanceID());
         txtInputURL.setText(client.getInputURL());
+        
+        // Send message to get the service data elements. When they arrive, the
+        // gotServiceDataElements() method will be called
+        this.client.getServiceDataElements();
         
         this.repaint();
     }
@@ -220,11 +234,40 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
     }
     
     /**
-     * Called when an element of service data changes
+     * Called when an element of service data changes. Updates the label to the
+     * new value.
      */
-    public void serviceDataChanged(String sdName, String newData)
+    public void serviceDataChanged(String sdeName, String newData)
     {
-        // TODO
+        JLabel sdeLabel = (JLabel)this.sdeLabels.get(sdeName);
+        if (sdeLabel == null)
+        {
+            log.debug("Got data for unrecognised service data element " + sdeName);
+        }
+        else
+        {
+            sdeLabel.setText(sdeName + ": " + newData);
+        }
+    }
+    
+    /**
+     * Called when we have got the possible service data elements
+     * @param sdeNames The names of the SDEs as a String array
+     */
+    public void gotServiceDataElements(String[] sdeNames)
+    {
+        final int rowHeight = 20;
+        for (int i = 0; i < sdeNames.length; i++)
+        {
+            this.layout.insertRow(4, rowHeight);
+            JLabel sdeLabel = new JLabel(sdeNames[i]);
+            // Add this JLabel to the Hashtable, indexing it by 
+            // the name of the service data element
+            this.sdeLabels.put(sdeNames[i], sdeLabel);
+            this.add(sdeLabel, "0, 4, 4, 4");
+        }
+        this.layout.layoutContainer(this);
+        this.repaint();
     }
     
     /**

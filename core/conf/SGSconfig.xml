@@ -13,6 +13,7 @@
 <root>
 
     <!-- Configuration of the server -->
+    <!-- TODO: configure max message size here? -->
     <serverConfig>
         <port>9092</port>
         <!-- TODO: will set SSL parameters in here (server cert location, cipher suites, client authentication, acceptable client certs, etc) -->
@@ -23,19 +24,30 @@
     </serverConfig>
     
     <!-- The Styx Grid Services that will appear under this server -->
-    <!-- TODO: could define service data elements here -->
     <gridservices root="C:\StyxGridServices">
-        <gridservice name="md5sum" command="python c:\md5lines.py" description="Calculates MD5 sum of each line of input">
-            <param name="waittime" type="float" required="no" default="0" minValue="0"
-                description="The time (in seconds) to wait between reading each line of input"/>
-            <!-- <doc location="C:\install.log"/> Will appear as "install.log" in the namespace -->
-            <doc location="C:\md5lines.py" name="source"/>
-            <!-- <doc location="C:\j2sdk1.4.2_05\docs\api" name="javadoc"/> -->
+        <gridservice name="md5sum" command="python c:\md5lines.py"
+            description="Calculates MD5 sum of each line of input">
+            <streams>
+                <!-- Defines the available streams.  Currently only stdin, stdout and
+                     stderr are supported. -->
+                <stream name="stdin" type="input"/>
+                <stream name="stdout" type="output"/>
+                <stream name="stderr" type="output"/>
+            </streams>
+            <params>
+                <param name="waittime" type="float" required="no" default="0" minValue="0"
+                    description="The time (in seconds) to wait between reading each line of input"/>
+            </params>
             <serviceData>
                 <serviceDataElement name="status" />
                 <serviceDataElement name="bytesConsumed" />
-                <serviceDataElement name="progress" file="progress.txt" />
+                <serviceDataElement name="progress" file="progress.txt" minUpdateInterval="1.0"/>
             </serviceData>
+            <docs>
+                <!-- <doc location="C:\install.log"/> Will appear as "install.log" in the namespace -->
+                <doc location="C:\md5lines.py" name="source"/>
+                <!-- <doc location="C:\j2sdk1.4.2_05\docs\api" name="javadoc"/> -->
+            </docs>
         </gridservice>
         <gridservice name="simple" command="python c:\simple.py" description="doesn't do much really" />
         <gridservice name="lbflow" command="c:\cygwin\home\jdb\lbflow-0.1\src\lbflow -i /home/jdb/lbflow-0.1/tests/test.sim"

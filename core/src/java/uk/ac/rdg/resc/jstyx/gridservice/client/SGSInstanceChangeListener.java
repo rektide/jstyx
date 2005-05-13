@@ -38,6 +38,9 @@ import org.apache.mina.common.ByteBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/13 16:49:34  jonblower
+ * Coded dynamic detection and display of service data, also included streams in config file
+ *
  * Revision 1.4  2005/05/11 18:25:00  jonblower
  * Implementing automatic detection of service data elements
  *
@@ -67,6 +70,12 @@ public interface SGSInstanceChangeListener
      * Called when the given service data element changes
      */
     public void serviceDataChanged(String sdName, String newData);
+    
+    /**
+     * Called when we have got the possible service data elements
+     * @param sdeNames The names of the SDEs as a String array
+     */
+    public void gotServiceDataElements(String[] sdeNames);
     
     /**
      * Called when new data arrive from the standard output of the SGS instance.

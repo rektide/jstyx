@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/13 16:49:34  jonblower
+ * Coded dynamic detection and display of service data, also included streams in config file
+ *
  * Revision 1.5  2005/05/11 15:14:30  jonblower
  * Implemented more flexible definition of service data elements
  *
@@ -65,6 +68,8 @@ class SGSConfig
     private String command;     // The command that is run by this SGS
     private String workDir;     // The working directory of this SGS
     private String description; // Short description of this SGS
+    
+    private Vector streams;     // The streams exposed by this service
     private Vector docFiles;    // The documentation files
     private Vector params;      // The parameters for this SGS
     private Vector serviceData; // The service data elements for this SGS
@@ -88,10 +93,20 @@ class SGSConfig
         this.command = gridService.valueOf("@command");
         this.description = gridService.valueOf("@description");
         this.workDir = sgsRootDir + StyxUtils.SYSTEM_FILE_SEPARATOR + name;
+        
+        // Create the streams
+        this.streams = new Vector();
+        Iterator streamListIter = gridService.selectNodes("streams/stream").iterator();
+        while(streamListIter.hasNext())
+        {
+            Node stream = (Node)streamListIter.next();
+            this.streams.add(new SGSStream(stream));
+        }
+        
 
         // Now create the parameters
         this.params = new Vector();
-        Iterator paramListIter = gridService.selectNodes("param").iterator();
+        Iterator paramListIter = gridService.selectNodes("params/param").iterator();
         while(paramListIter.hasNext())
         {
             Node paramEl = (Node)paramListIter.next();
@@ -110,7 +125,7 @@ class SGSConfig
         
         // Now create the documentation files
         this.docFiles = new Vector();
-        Iterator docListIter = gridService.selectNodes("doc").iterator();
+        Iterator docListIter = gridService.selectNodes("docs/doc").iterator();
         while(docListIter.hasNext())
         {
             Node docEl = (Node)docListIter.next();
@@ -153,6 +168,15 @@ class SGSConfig
     {
         return this.workDir;
     }
+    
+    /**
+     * @return Vector of SGSStream objects containing details of all the 
+     * streams exposed by this service
+     */
+    public Vector getStreams()
+    {
+        return this.streams;
+    }
 
     /** 
      * @return Vector of SGSParam objects containing details of all the 
@@ -177,6 +201,54 @@ class SGSConfig
     public Vector getServiceData()
     {
         return this.serviceData;
+    }
+}
+
+/**
+ * Class containing information about a stream that can be accessed through
+ * the SGS.  Currently only the standard streams (stdin, stdout, stderr)
+ * are supported.
+ */
+class SGSStream
+{
+    public static final int INPUT = 0;
+    public static final int OUTPUT = 1;
+    
+    private String name; // Name of the stream ("stdin", "stdout" or "stderr")
+    private int type; // Type of the stream (INPUT or OUTPUT)
+    
+    public SGSStream(Node streamNode) throws SGSConfigException
+    {
+        this.name = streamNode.valueOf("@name").trim();
+        String typeStr = streamNode.valueOf("@type").trim();
+        if (typeStr.equalsIgnoreCase("input"))
+        {
+            this.type = INPUT;
+        }
+        else if (typeStr.equalsIgnoreCase("output"))
+        {
+            this.type = OUTPUT;
+        }
+        else
+        {
+            throw new SGSConfigException("Stream type must be \"input\" or \"output\"");
+        }
+    }
+    
+    /**
+     * @return the name of the stream
+     */
+    public String getName()
+    {
+        return this.name;
+    }
+    
+    /**
+     * @return the type of the stream (INPUT or OUTPUT)
+     */
+    public int getType()
+    {
+        return this.type;
     }
 }
 
