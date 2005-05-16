@@ -28,11 +28,14 @@
         <gridservice name="md5sum" command="python c:\md5lines.py"
             description="Calculates MD5 sum of each line of input">
             <streams>
-                <!-- Defines the available streams.  Currently only stdin, stdout and
-                     stderr are supported. -->
-                <stream name="stdin" type="input"/>
-                <stream name="stdout" type="output"/>
-                <stream name="stderr" type="output"/>
+                <!-- Defines the available streams. -->
+                <in>
+                    <instream name="stdin"/>
+                </in>
+                <out>
+                    <outstream name="stdout"/>
+                    <outstream name="stderr"/>
+                </out>
             </streams>
             <params>
                 <param name="waittime" type="float" required="no" default="0" minValue="0"

@@ -9,11 +9,16 @@
 
 <!-- A stream of data that the SGS makes available. Currently only the standard
      streams (stdin, stdout and stderr) are supported. -->
-<!ELEMENT streams (stream*)>
-<!ELEMENT stream EMPTY>
-<!ATTLIST stream
-   name (stdin | stdout | stderr) #REQUIRED
-   type (input | output) #REQUIRED
+<!ELEMENT in (instream*)>
+<!ELEMENT out (outstream*)>
+<!ELEMENT streams (in?, out?)>
+<!ELEMENT instream EMPTY>
+<!ATTLIST instream
+   name (stdin) #REQUIRED
+ >
+<!ELEMENT outstream EMPTY>
+<!ATTLIST outstream
+   name (stdout | stderr) #REQUIRED
  >
 
 <!-- A parameter for a SGS (passed on the command-line to the executable) 
