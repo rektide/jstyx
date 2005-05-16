@@ -8,20 +8,19 @@
         Here's a useful DTD tutorial: http://www.zvon.org/xxl/DTDTutorial/General/contents.html
 -->
 
-<!DOCTYPE root SYSTEM "SGSconfig.dtd">
+<!DOCTYPE sgs SYSTEM "SGSconfig.dtd">
 
-<root>
+<sgs>
 
     <!-- Configuration of the server -->
     <!-- TODO: configure max message size here? -->
-    <serverConfig>
-        <port>9092</port>
+    <server port="9092">
         <!-- TODO: will set SSL parameters in here (server cert location, cipher suites, client authentication, acceptable client certs, etc) -->
         <ssl activated="no">
             <keystore location="C:\bogus.cert"/>
         </ssl>
         <!-- TODO: will set proxy settings etc here -->
-    </serverConfig>
+    </server>
     
     <!-- The Styx Grid Services that will appear under this server -->
     <gridservices root="C:\StyxGridServices">
@@ -57,4 +56,4 @@
             description="Lattice Boltzmann simulation"/>
     </gridservices>
 
-</root>
+</sgs>

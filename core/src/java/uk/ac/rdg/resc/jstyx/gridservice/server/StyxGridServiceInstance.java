@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/05/16 11:00:53  jonblower
+ * Changed SGS config XML file structure: separated input and output streams and changed some tag names
+ *
  * Revision 1.12  2005/05/13 16:49:34  jonblower
  * Coded dynamic detection and display of service data, also included streams in config file
  *
@@ -164,25 +167,30 @@ class StyxGridServiceInstance extends StyxDirectory
         // TODO: would the name "streams" be more appropriate?  The presence of
         // the "inurl" file would be contrary to this though (it's not a stream)
         StyxDirectory ioDir = new StyxDirectory("io");
+        StyxDirectory inStreams = new StyxDirectory("in");
+        StyxDirectory outStreams = new StyxDirectory("out");
+        ioDir.addChild(inStreams).addChild(outStreams);
         for (int i = 0; i < streams.size(); i++)
         {
             SGSStream stream = (SGSStream)streams.get(i);
+            // Currently we're only dealing with the standard streams. In future
+            // we may allow other i/o streams (e.g. file-based ones)
             if (stream.getName().equals("stdin"))
             {
                 // Add the input stream and the inurl file
-                ioDir.addChild(this.stdin);  // input stream
+                inStreams.addChild(this.stdin);  // input stream
                 this.inputURL = new InMemoryFile("inurl");
-                ioDir.addChild(this.inputURL);
+                inStreams.addChild(this.inputURL);
             }
             else if (stream.getName().equals("stdout"))
             {
                 // Add the standard output file
-                ioDir.addChild(this.stdout);
+                outStreams.addChild(this.stdout);
             }
             else if (stream.getName().equals("stderr"))
             {
                 // Add the standard error file
-                ioDir.addChild(this.stderr);
+                outStreams.addChild(this.stderr);
             }
             else
             {
@@ -606,7 +614,7 @@ class StyxGridServiceInstance extends StyxDirectory
 
         public StreamWriter(String name) throws StyxException
         {
-            super(name);
+            super(name, 0222); // Set permission to write-only
         }
 
         public void setOutputStream(OutputStream os)

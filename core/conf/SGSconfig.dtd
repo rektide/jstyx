@@ -96,7 +96,6 @@
   >
 
 <!--- Items concerning configuration of the server -->
-<!ELEMENT port (#PCDATA)>
 <!ELEMENT keystore EMPTY>
 <!ATTLIST keystore
     location CDATA #REQUIRED
@@ -105,6 +104,10 @@
 <!ATTLIST ssl
     activated (yes | no) #REQUIRED
   >
-<!ELEMENT serverConfig (port, ssl)>
+<!ELEMENT server (ssl)>
+<!-- TODO: any way to force port to be a positive integer? -->
+<!ATTLIST server
+    port CDATA #REQUIRED
+  >
 
-<!ELEMENT root (serverConfig, gridservices)>
+<!ELEMENT sgs (server, gridservices)>

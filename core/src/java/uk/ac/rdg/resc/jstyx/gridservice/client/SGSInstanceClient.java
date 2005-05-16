@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/05/16 11:00:53  jonblower
+ * Changed SGS config XML file structure: separated input and output streams and changed some tag names
+ *
  * Revision 1.11  2005/05/13 16:49:34  jonblower
  * Coded dynamic detection and display of service data, also included streams in config file
  *
@@ -123,8 +126,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.ctlFile.addChangeListener(this);
         
         // Open the files that will give us data and service data
-        this.stdout = this.instanceRoot.getFile("/io/stdout");
-        this.stderr = this.instanceRoot.getFile("/io/stderr");
+        this.stdout = this.instanceRoot.getFile("/io/out/stdout");
+        this.stderr = this.instanceRoot.getFile("/io/out/stderr");
         // Register our interest in changes to these files
         this.stdout.addChangeListener(this);
         this.stderr.addChangeListener(this);
@@ -198,7 +201,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      */
     public void setInputURL(String inputURL) throws StyxException
     {
-        CStyxFile inUrlFile = this.instanceRoot.getFile("io/inurl");
+        CStyxFile inUrlFile = this.instanceRoot.getFile("io/in/inurl");
         inUrlFile.setContents(inputURL);
         this.inputURL = inputURL;
     }
@@ -309,7 +312,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 this.sdeNames[i] = this.serviceDataFiles[i].getName();
                 this.sdeBufs[i] = new StringBuffer();
             }
-            
             this.fireGotSDEs(this.sdeNames);
         }
     }

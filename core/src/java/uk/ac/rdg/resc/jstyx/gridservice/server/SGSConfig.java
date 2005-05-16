@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/05/16 11:00:53  jonblower
+ * Changed SGS config XML file structure: separated input and output streams and changed some tag names
+ *
  * Revision 1.6  2005/05/13 16:49:34  jonblower
  * Coded dynamic detection and display of service data, also included streams in config file
  *
@@ -96,11 +99,19 @@ class SGSConfig
         
         // Create the streams
         this.streams = new Vector();
-        Iterator streamListIter = gridService.selectNodes("streams/stream").iterator();
+        // Do the input streams first
+        Iterator streamListIter = gridService.selectNodes("streams/in/instream").iterator();
         while(streamListIter.hasNext())
         {
             Node stream = (Node)streamListIter.next();
-            this.streams.add(new SGSStream(stream));
+            this.streams.add(new SGSStream(stream, SGSStream.INPUT));
+        }
+        // Now the output streams
+        streamListIter = gridService.selectNodes("streams/out/outstream").iterator();
+        while(streamListIter.hasNext())
+        {
+            Node stream = (Node)streamListIter.next();
+            this.streams.add(new SGSStream(stream, SGSStream.OUTPUT));
         }
         
 
@@ -217,22 +228,16 @@ class SGSStream
     private String name; // Name of the stream ("stdin", "stdout" or "stderr")
     private int type; // Type of the stream (INPUT or OUTPUT)
     
-    public SGSStream(Node streamNode) throws SGSConfigException
+    public SGSStream(Node streamNode, int type)
     {
         this.name = streamNode.valueOf("@name").trim();
         String typeStr = streamNode.valueOf("@type").trim();
-        if (typeStr.equalsIgnoreCase("input"))
+        if (type != INPUT && type != OUTPUT)
         {
-            this.type = INPUT;
+            throw new IllegalArgumentException("Internal error: type must be" +
+                " INPUT or OUTPUT");
         }
-        else if (typeStr.equalsIgnoreCase("output"))
-        {
-            this.type = OUTPUT;
-        }
-        else
-        {
-            throw new SGSConfigException("Stream type must be \"input\" or \"output\"");
-        }
+        this.type = type;
     }
     
     /**

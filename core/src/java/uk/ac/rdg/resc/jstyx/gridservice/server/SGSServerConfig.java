@@ -49,6 +49,9 @@ import org.dom4j.Node;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/05/16 11:00:53  jonblower
+ * Changed SGS config XML file structure: separated input and output streams and changed some tag names
+ *
  * Revision 1.6  2005/05/11 13:45:19  jonblower
  * Converted SGS config code to use dom4j and Jaxen for XML parsing
  *
@@ -96,9 +99,13 @@ public class SGSServerConfig
             // Parse the xml document using dom4j (with validation)
             SAXReader reader = new SAXReader(true);
             this.doc = reader.read(xmlFilename);
-            this.port = this.findPort();
+            // Get the base node of the server configuration
+            Node serverNode = this.doc.selectSingleNode("/sgs/server");
+            // Get the port number
+            this.port = this.findPort(serverNode);
             // Get the SSL parameters
-            this.getSSLConfig();
+            this.getSSLConfig(serverNode);
+            // Get the configuration for all Styx Grid Services
             this.getSGSConfig();
         }
         catch(DocumentException de)
@@ -114,26 +121,25 @@ public class SGSServerConfig
     /**
      * Use XPath to find the port number on which the server will listen
      */
-    private int findPort() throws SGSConfigException
+    private int findPort(Node serverNode) throws SGSConfigException
     {
-        Node portNode = this.doc.selectSingleNode("/root/serverConfig/port");
-        String portStr = portNode.getStringValue();
+        String portStr = serverNode.valueOf("@port");
         try
         {
             return Integer.parseInt(portStr);
         }
         catch(NumberFormatException nfe)
         {
-            throw new SGSConfigException("Invalid port number");
+            throw new SGSConfigException("Invalid port number: " + portStr);
         }
     }
     
     /**
      * Gets the SSL-related parameters
      */
-    private void getSSLConfig() throws SGSConfigException
+    private void getSSLConfig(Node serverNode) throws SGSConfigException
     {
-        Node sslNode = this.doc.selectSingleNode("/root/serverConfig/ssl");
+        Node sslNode = serverNode.selectSingleNode("ssl");
         if (sslNode.valueOf("@activated").equalsIgnoreCase("yes"))
         {
             this.useSSL = true;
@@ -152,7 +158,7 @@ public class SGSServerConfig
      */
     private void getSGSConfig() throws SGSConfigException
     {
-        Node gridServicesNode = this.doc.selectSingleNode("/root/gridservices");
+        Node gridServicesNode = this.doc.selectSingleNode("/sgs/gridservices");
         String sgsRoot = gridServicesNode.valueOf("@root");
         
         List gridServicesList = gridServicesNode.selectNodes("gridservice");
