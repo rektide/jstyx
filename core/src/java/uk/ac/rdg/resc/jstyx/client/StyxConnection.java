@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/05/16 12:57:39  jonblower
+ * Constructors no longer throw StyxException
+ *
  * Revision 1.13  2005/05/09 13:35:48  jonblower
  * Now throws an exception if try to send a message before connecting
  *
@@ -216,7 +219,6 @@ public class StyxConnection implements ProtocolHandler
      * Creates a new instance of StyxConnection, connecting as an anonymous user
      */
     public StyxConnection(String host, int port, int maxMessageSizeRequest)
-        throws StyxException
     {
         this(host, port, "", maxMessageSizeRequest);
     }
@@ -225,7 +227,6 @@ public class StyxConnection implements ProtocolHandler
      * Creates a new instance of StyxConnection, connecting as an anonymous user
      */
     public StyxConnection(String host, int port)
-        throws StyxException
     {
         this(host, port, "");
     }
