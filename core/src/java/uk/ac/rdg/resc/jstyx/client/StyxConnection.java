@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/05/16 13:09:54  jonblower
+ * Added StyxConnection object as first argument in all StyxConnectionListener methods
+ *
  * Revision 1.14  2005/05/16 12:57:39  jonblower
  * Constructors no longer throw StyxException
  *
@@ -805,7 +808,7 @@ public class StyxConnection implements ProtocolHandler
             {
                 StyxConnectionListener listener =
                     (StyxConnectionListener)this.listeners.get(i);
-                listener.connectionReady();
+                listener.connectionReady(this);
             }
         }
         // Now we can send the messages that are awaiting connection
@@ -835,7 +838,7 @@ public class StyxConnection implements ProtocolHandler
             {
                 StyxConnectionListener listener =
                     (StyxConnectionListener)this.listeners.get(i);
-                listener.connectionClosed();
+                listener.connectionClosed(this);
             }
         }
     }
@@ -863,7 +866,7 @@ public class StyxConnection implements ProtocolHandler
             {
                 StyxConnectionListener listener =
                     (StyxConnectionListener)this.listeners.get(i);
-                listener.connectionError(this.errMsg);
+                listener.connectionError(this, this.errMsg);
             }
         }
         // call error() on all waiting callbacks of outstanding messages

@@ -36,6 +36,9 @@ package uk.ac.rdg.resc.jstyx.client;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/16 13:09:54  jonblower
+ * Added StyxConnection object as first argument in all StyxConnectionListener methods
+ *
  * Revision 1.2  2005/02/21 18:09:43  jonblower
  * *** empty log message ***
  *
@@ -50,17 +53,17 @@ public interface StyxConnectionListener
      * Called when the relevant handshaking has been performed and the connection
      * is ready for Styx messages to be sent
      */
-    public void connectionReady();
+    public void connectionReady(StyxConnection conn);
     
     /**
      * Called when the connection has been closed
      */
-    public void connectionClosed();
+    public void connectionClosed(StyxConnection conn);
     
     /**
      * Called when an error has occurred when connecting.
      * @param message String describing the problem
      */
-    public void connectionError(String message);
+    public void connectionError(StyxConnection conn, String message);
     
 }
