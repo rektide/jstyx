@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2005/05/16 16:16:52  jonblower
+ * Implemented getRemoteHost() and getRemotePort()
+ *
  * Revision 1.15  2005/05/16 13:09:54  jonblower
  * Added StyxConnection object as first argument in all StyxConnectionListener methods
  *
@@ -232,6 +235,22 @@ public class StyxConnection implements ProtocolHandler
     public StyxConnection(String host, int port)
     {
         this(host, port, "");
+    }
+    
+    /**
+     * @return the name (or IP address) of the remote host
+     */
+    public String getRemoteHost()
+    {
+        return this.host;
+    }
+    
+    /**
+     * @return the port of the remote host
+     */
+    public int getRemotePort()
+    {
+        return this.port;
     }
     
     /**
