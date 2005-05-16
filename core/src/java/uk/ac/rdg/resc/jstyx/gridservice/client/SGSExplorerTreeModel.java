@@ -36,6 +36,8 @@ import javax.swing.event.TreeModelListener;
 import java.util.Vector;
 
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
+import uk.ac.rdg.resc.jstyx.client.CStyxFile;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeAdapter;
 
 /**
  * Data model for tree view of SGS servers and services in the SGSExplorer.
@@ -46,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnection;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/05/16 16:49:22  jonblower
+ * Updated to use CStyxFileNode as a general node in the model
+ *
  * Revision 1.1  2005/05/16 16:17:47  jonblower
  * Initial import
  *
@@ -69,10 +74,11 @@ class SGSExplorerTreeModel implements TreeModel
     {
         // Generate a String describing this connection briefly
         String str = conn.getRemoteHost() + ":" + conn.getRemotePort();
+        
         // Check that a connection with this name doesn't already exist
         synchronized (this.root)
         {
-            StyxConnectionNode node;
+            CStyxFileNode node;
             String str2 = str;
             int j = 1;
             boolean exists;
@@ -81,7 +87,7 @@ class SGSExplorerTreeModel implements TreeModel
                 exists = false;
                 for (int i = 0; i < this.root.size(); i++)
                 {
-                    node = (StyxConnectionNode)this.root.get(i);
+                    node = (CStyxFileNode)this.root.get(i);
                     if (str2.equals(node.toString()))
                     {
                         exists = true;
@@ -90,13 +96,17 @@ class SGSExplorerTreeModel implements TreeModel
                 }
                 if (exists)
                 {
+                    // If a node with this name already exists, we must create
+                    // a new string to identify this node
                     str2 = str + " [" + j + "]";
                     j++;
                 }
             } while (exists);
-            this.root.add(new StyxConnectionNode(conn, str2));
+            
+            // Add a node representing the root of this connection
+            this.root.add(new CStyxFileNode(conn.getRootDirectory(), str2));
         }
-        this.fireTreeStructureChanged();
+        this.fireTreeStructureChanged(this.root);
     }
     
     public int getChildCount(Object parent)
@@ -144,7 +154,7 @@ class SGSExplorerTreeModel implements TreeModel
     
     public boolean isLeaf(Object node)
     {
-        if (node == this.root || node instanceof StyxConnectionNode)
+        if (node == this.root || node instanceof CStyxFileNode)
         {
             return false;
         }
@@ -162,12 +172,13 @@ class SGSExplorerTreeModel implements TreeModel
     /**
      * The only event raised by this model is TreeStructureChanged with the
      * root as path, i.e. the whole tree has changed.
+     * @param node The node which needs to be refreshed
      */
-    protected void fireTreeStructureChanged()
+    protected void fireTreeStructureChanged(Object node)
     {
         synchronized(this.treeModelListeners)
         {
-            TreeModelEvent e = new TreeModelEvent(this, new Object[]{this.root});
+            TreeModelEvent e = new TreeModelEvent(this, new Object[]{node});
             for (int i = 0; i < treeModelListeners.size(); i++)
             {
                 ((TreeModelListener)treeModelListeners.get(i)).treeStructureChanged(e);
@@ -190,20 +201,59 @@ class SGSExplorerTreeModel implements TreeModel
         this.treeModelListeners.remove(l);
     }
     
-    private class StyxConnectionNode
+    /**
+     * Node in the model that represents a CStyxFile.  This incorporates a cache
+     * of child nodes and allows the file to be represented with a different name
+     * in the GUI.
+     */
+    private class CStyxFileNode extends CStyxFileChangeAdapter
     {
-        private StyxConnection conn;
-        private String name;
+        private CStyxFile file;
+        private String name; // The name as it will appear in the tree
+        private CStyxFile[] children; // The cache of children
 
-        public StyxConnectionNode(StyxConnection conn, String name)
+        public CStyxFileNode(CStyxFile file, String name)
         {
-            this.conn = conn;
+            this.file = file;
             this.name = name;
+            this.file.addChangeListener(this);
+            this.children = null;
         }
-
+        
+        public CStyxFileNode(CStyxFile file)
+        {
+            this(file, file.getName());
+        }
+        
+        /**
+         * @returns the String that will be used to identify this node in the
+         * SGSExplorer
+         */
         public String toString()
         {
             return this.name;
+        }
+        
+        /**
+         * Sends a message to get all the children of this node.  When the reply
+         * arrives, the childrenFound method of this class will be called
+         */
+        public void getChildren()
+        {
+            if (this.children == null)
+            {
+                this.file.getChildrenAsync();
+            }
+        }
+        
+        /**
+         * Called when the children have been found in the root directory
+         * of the server
+         */
+        public void childrenFound(CStyxFile file, CStyxFile[] children)
+        {
+            this.children = children;
+            fireTreeStructureChanged(this);
         }
     }
     
