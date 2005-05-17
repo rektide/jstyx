@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/05/17 15:10:46  jonblower
+ * Changed structure of SGS to put instances in a directory of their own
+ *
  * Revision 1.11  2005/05/13 16:49:34  jonblower
  * Coded dynamic detection and display of service data, also included streams in config file
  *
@@ -105,6 +108,7 @@ public class StyxGridService
     
     private Vector instances; // The ID numbers of the current Grid Service instances
     private StyxDirectory root; // The root of the Grid Service
+    private StyxDirectory instancesDir; // Directory to hold SGS instances
     private String command; // The command to run when a Grid Service instance is started 
                             // (this is passed to System.exec)
     private String workDir; // The directory in the local filesystem where all the 
@@ -123,6 +127,7 @@ public class StyxGridService
         this.instances = new Vector();
         this.root = new StyxDirectory(sgsConfig.getName());
         this.root.addChild(new CloneFile());
+        
         // The ".contents" file is an asynchronous interface to the contents of
         // the root directory of the SGS.  The first time this file is read by
         // a client it will return the contents of the root directory (just like
@@ -131,6 +136,10 @@ public class StyxGridService
         // This allows GUIs to automatically update when new SGS instances are
         // created or destroyed.
         this.root.addChild(new AsyncStyxFile(this.root, ".contents"));
+        
+        // Add read-only directory for the SGS instances
+        this.instancesDir = new StyxDirectory("instances", 0555);
+        this.root.addChild(this.instancesDir);
         
         StyxDirectory docDir = new StyxDirectory("docs", 0555);
         //docDir.setReadOnly(); TODO Why doesn't this line work?
@@ -195,15 +204,16 @@ public class StyxGridService
     }
     
     /**
-     * Creates a new StyxGridServiceInstance and returns its ID number
+     * Creates a new StyxGridServiceInstance, adds it to the "instances"
+     * directory and returns its ID number
      */
     private int newInstance(int id) throws StyxException
     {
         synchronized (this.instances)
         {
             this.instances.add(new Integer(id));
-            this.root.addChild(new StyxGridServiceInstance(this, id, this.command,
-                this.workDir, this.streams, this.params, this.sdes));
+            this.instancesDir.addChild(new StyxGridServiceInstance(this, id,
+                this.command, this.workDir, this.streams, this.params, this.sdes));
             return id;
         }        
     }

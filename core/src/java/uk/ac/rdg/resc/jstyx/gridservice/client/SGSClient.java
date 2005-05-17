@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/17 15:10:40  jonblower
+ * Changed structure of SGS to put instances in a directory of their own
+ *
  * Revision 1.5  2005/05/11 18:24:59  jonblower
  * Implementing automatic detection of service data elements
  *
@@ -120,7 +123,7 @@ public class SGSClient extends CStyxFileChangeAdapter
      */
     public SGSInstanceClient getClientForInstance(String id) throws StyxException
     {
-        return new SGSInstanceClient(this.sgsRoot.getFile(id));
+        return new SGSInstanceClient(this.sgsRoot.getFile("instances/" + id));
     }
     
     /**
