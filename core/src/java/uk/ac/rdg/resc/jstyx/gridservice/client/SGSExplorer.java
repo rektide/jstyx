@@ -39,7 +39,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JTree;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+
 import javax.swing.tree.TreeSelectionModel;
+import javax.swing.tree.TreePath;
 
 import java.awt.BorderLayout;
 
@@ -48,6 +50,9 @@ import java.awt.event.WindowEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 import java.net.URL;
 import java.net.MalformedURLException;
@@ -65,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnectionListener;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/17 18:21:36  jonblower
+ * Added initial pop-up menu support
+ *
  * Revision 1.3  2005/05/17 15:51:43  jonblower
  * Correct operation of display of tree of SGS servers, services and instances
  *
@@ -237,6 +245,7 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
         this.tree.setShowsRootHandles(true);
         // Ensure that only one node at a time can be selected in the tree
         this.tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        this.tree.addMouseListener(ml);
     }
     
     /**
@@ -295,6 +304,42 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
             conn.getRemoteHost() + ":" + conn.getRemotePort() + ": "
             + message, "Connection error", JOptionPane.ERROR_MESSAGE);
     }
+    
+    // Listens for double-clicks and requests for the pop-up menu.
+    // Note that for platform independence we must check for the popup trigger
+    // in both mousePressed and mouseReleased
+    private MouseListener ml = new MouseAdapter()
+    {
+        public void mousePressed(MouseEvent e)
+        {
+            maybeShowPopup(e);
+        }
+        public void mouseReleased(MouseEvent e)
+        {
+            maybeShowPopup(e);
+        }
+        private void maybeShowPopup(MouseEvent e)
+        {
+            if (e.isPopupTrigger())
+            {
+                TreePath selPath = tree.getPathForLocation(e.getX(), e.getY());
+                // If we don't click on something in the tree itself, selPath
+                // will be null
+                if (selPath != null)
+                {
+                    Object lastPathComp = selPath.getLastPathComponent();
+                    if (lastPathComp instanceof CStyxFileNode)
+                    {
+                        // Get the CStyxFileNode that we have clicked on
+                        CStyxFileNode node = (CStyxFileNode)lastPathComp;
+                        System.err.println("Showing popup for " + node);
+                        StyxExplorerPopupMenu.showContext(node, tree, e.getX(),
+                            e.getY());
+                    }
+                }
+            }
+        }
+    };
     
     public static void main(String[] args)
     {
