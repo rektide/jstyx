@@ -45,6 +45,9 @@ import javax.swing.tree.TreePath;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/05/17 18:21:57  jonblower
+ * Improved detection of node type
+ *
  * Revision 1.1  2005/05/17 15:50:43  jonblower
  * Initial import
  *
@@ -71,33 +74,37 @@ public class PropertiesPanel extends JPanel implements TreeSelectionListener
         TreePath leadPath = e.getNewLeadSelectionPath();
         if (leadPath != null)
         {
-            DefaultMutableTreeNode node =
-                (DefaultMutableTreeNode)leadPath.getLastPathComponent();
-            String nodeType;
-            int depthInTree = node.getPath().length - 1;
-            if (depthInTree == 0)
+            Object obj = leadPath.getLastPathComponent();
+            if (!(obj instanceof CStyxFileNode))
+            {
+                return;
+            }
+            CStyxFileNode node = (CStyxFileNode)obj;
+            String nodeStr;
+            int nodeType = node.getType();
+            if (nodeType == 0)
             {
                 // Shouldn't be selectable
-                nodeType = "root";
+                nodeStr = "root";
             }
-            else if (depthInTree == 1)
+            else if (nodeType == 1)
             {
-                nodeType = "server";
+                nodeStr = "server";
             }
-            else if (depthInTree == 2)
+            else if (nodeType == 2)
             {
-                nodeType = "service";
+                nodeStr = "service";
             }
-            else if (depthInTree == 3)
+            else if (nodeType == 3)
             {
-                nodeType = "instance";
+                nodeStr = "instance";
             }
             else
             {
                 // Shoudn't happen
-                nodeType = "unknown";
+                nodeStr = "unknown";
             }
-            this.label.setText(nodeType + ": " + node.toString());
+            this.label.setText(nodeStr + ": " + node.toString());
             this.repaint();
         }
     }
