@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/05/17 14:36:11  jonblower
+ * Fixed bug with getChildrenAsync()
+ *
  * Revision 1.17  2005/05/12 15:59:59  jonblower
  * Implemented getChildrenAsync()
  *
@@ -1211,7 +1214,7 @@ public class CStyxFile extends MessageCallback
         else if (this.dirEntry.getQid().getType() == 128)
         {
             // this is a directory. Find the children
-            readAsync(this.offset, this);
+            readAsync(this.offset, callback);
         }
         else
         {
