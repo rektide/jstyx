@@ -40,12 +40,6 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeListener;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 
-// These imports are only needed for the signatures of the (empty) methods
-// in CStyxFileNode, which implements the CStyxFileChangeListener
-import org.apache.mina.common.ByteBuffer;
-import uk.ac.rdg.resc.jstyx.types.DirEntry;
-import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
-import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 
 /**
  * Data model for tree view of SGS servers and services in the SGSExplorer.
@@ -56,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/17 18:20:50  jonblower
+ * Separated CStyxFileNode from SGSExplorerTreeModel
+ *
  * Revision 1.4  2005/05/17 15:51:43  jonblower
  * Correct operation of display of tree of SGS servers, services and instances
  *
@@ -100,7 +97,7 @@ public class SGSExplorerTreeModel extends DefaultTreeModel implements TreeExpans
                     DefaultMutableTreeNode node =
                         (DefaultMutableTreeNode)this.root.getChildAt(i);
                     CStyxFileNode s = (CStyxFileNode)node.getUserObject();
-                    if (str2.equals(s.name))
+                    if (str2.equals(s.toString()))
                     {
                         exists = true;
                         break; // Stop searching through nodes
@@ -118,7 +115,7 @@ public class SGSExplorerTreeModel extends DefaultTreeModel implements TreeExpans
             // Add a node representing the root of this connection
             int insertLocation = this.root.getChildCount();
             DefaultMutableTreeNode newNode =
-                new CStyxFileNode(conn.getRootDirectory(), str2);
+                new CStyxFileNode(this, conn.getRootDirectory(), str2);
             // The insertNodeInto() method fires the necessary event
             this.insertNodeInto(newNode, (DefaultMutableTreeNode)this.root,
                 insertLocation);
@@ -135,6 +132,8 @@ public class SGSExplorerTreeModel extends DefaultTreeModel implements TreeExpans
         if (source instanceof CStyxFileNode)
         {
             CStyxFileNode node = (CStyxFileNode)source;
+            // Send message to find the children of this node.  When the reply
+            // arrives, the GUI will be updated
             node.findChildren();
         }
     }
@@ -143,100 +142,5 @@ public class SGSExplorerTreeModel extends DefaultTreeModel implements TreeExpans
      * Required by TreeExpansionListener. Does nothing here.
      */
     public void treeCollapsed(TreeExpansionEvent event) {}
-    
-    /**
-     * Node in the model that represents a CStyxFile.  This allows the file to
-     * be represented with a different name in the GUI.
-     */
-    private class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeListener
-    {
-        
-        private String name; // The name as it will appear in the tree
-
-        public CStyxFileNode(CStyxFile file, String name)
-        {
-            file.addChangeListener(this);
-            this.setUserObject(file);
-            this.name = name;
-        }
-        
-        public CStyxFileNode(CStyxFile file)
-        {
-            this(file, file.getName());
-        }
-        
-        /**
-         * @returns the String that will be used to identify this node in the
-         * SGSExplorer
-         */
-        public String toString()
-        {
-            return this.name;
-        }
-        
-        /**
-         * Sends a message to get all the children of this node.  When the reply
-         * arrives, the childrenFound method of this class will be called. If we
-         * already have the children for this node, this will do nothing.
-         */
-        public void findChildren()
-        {
-            if (this.children == null)
-            {
-                CStyxFile file = (CStyxFile)this.getUserObject();
-                if (this.getPath().length == 3)
-                {
-                    // If this is a Service, we find the instances by looking in
-                    // the "instances" directory.  In this way, the other direct
-                    // descendants of the CStyxFile (the clone file, etc) are not
-                    // shown in the hierarchy.
-                    file = file.getFile("instances");
-                    file.addChangeListener(this);
-                }
-                file.getChildrenAsync();
-            }
-        }
-        
-        /**
-         * All nodes can have children except those representing service
-         * instances, which are always at the fourth level (level 3) of the
-         * hierarchy
-         */
-        public boolean getAllowsChildren()
-        {
-            return (this.getPath().length < 4);
-        }
-        
-        /**
-         * Called when the children have been found. Adds them to this node's
-         * Vector of children
-         */
-        public void childrenFound(CStyxFile file, CStyxFile[] files)
-        {
-            int[] indices = new int[files.length];
-            synchronized (this)
-            {
-                for (int i = 0; i < files.length; i++)
-                {
-                    // Get the index at which this child will be added
-                    indices[i] = this.getChildCount();
-                    this.add(new CStyxFileNode(files[i]));
-                }
-                // Let the TreeModel know that the nodes were inserted
-                nodesWereInserted(this, indices);
-            }
-        }
-        
-        public void error(CStyxFile file, String message)
-        {
-            System.err.println("Error with " + file.getName() + ": " + message);
-        }
-        
-        // These methods are required by the CStyxFileChangeListener interface
-        public void fileOpen(CStyxFile file, int mode){}
-        public void dataArrived(CStyxFile file, TreadMessage tReadMsg, ByteBuffer data){}
-        public void dataWritten(CStyxFile file, TwriteMessage tWriteMsg){}
-        public void statChanged(CStyxFile file, DirEntry newDirEntry){}
-    }
     
 }
