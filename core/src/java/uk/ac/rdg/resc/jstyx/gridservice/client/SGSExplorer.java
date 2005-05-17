@@ -37,6 +37,9 @@ import javax.swing.BorderFactory;
 import javax.swing.KeyStroke;
 import javax.swing.JOptionPane;
 import javax.swing.JTree;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.tree.TreeSelectionModel;
 
 import java.awt.BorderLayout;
 
@@ -62,6 +65,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnectionListener;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/17 15:51:43  jonblower
+ * Correct operation of display of tree of SGS servers, services and instances
+ *
  * Revision 1.2  2005/05/17 07:52:23  jonblower
  * Further developments
  *
@@ -75,6 +81,8 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
     private JLabel statusBar;
     private Vector openConnections;
     private JTree tree;
+    private PropertiesPanel propsPanel; // Properties of the selected node in
+                                        // the tree will appear on this panel
     private SGSExplorerTreeModel treeModel;
     
     /** Creates a new instance of SGSExplorer */
@@ -103,7 +111,13 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
         
         this.openConnections = new Vector();
         
-        this.add(this.tree, BorderLayout.CENTER);
+        this.propsPanel = new PropertiesPanel();
+        this.tree.addTreeSelectionListener(this.propsPanel);
+        
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+            new JScrollPane(this.tree), new JScrollPane(this.propsPanel));
+        
+        this.add(split, BorderLayout.CENTER);
         //this.pack();
     }
     
@@ -218,8 +232,11 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
     {
         this.treeModel = new SGSExplorerTreeModel();
         this.tree = new JTree(this.treeModel);
+        this.tree.addTreeExpansionListener(this.treeModel);
         this.tree.setRootVisible(false);
         this.tree.setShowsRootHandles(true);
+        // Ensure that only one node at a time can be selected in the tree
+        this.tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
     }
     
     /**
@@ -263,6 +280,7 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
     /**
      * Required by StyxConnectionListener interface.  Called when the connection
      * has been closed.  Does nothing here.
+     * TODO: use this as signal to remove connection from tree
      */
     public void connectionClosed(StyxConnection conn){}
     
