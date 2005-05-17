@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnectionListener;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/05/17 07:52:23  jonblower
+ * Further developments
+ *
  * Revision 1.1  2005/05/16 16:17:47  jonblower
  * Initial import
  *
@@ -255,8 +258,6 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
         this.openConnections.add(conn);
         // Add this connection to the tree model
         this.treeModel.addNewConnection(conn);
-        System.out.println("Child count = " + this.treeModel.getChildCount(this.treeModel.getRoot()));
-        //this.tree.repaint();
     }
     
     /**
