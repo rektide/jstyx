@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2005/05/18 17:12:01  jonblower
+ * Added getURL() method
+ *
  * Revision 1.18  2005/05/17 14:36:11  jonblower
  * Fixed bug with getChildrenAsync()
  *
@@ -234,6 +237,20 @@ public class CStyxFile extends MessageCallback
     public String getPath()
     {
         return this.path;
+    }
+    
+    /**
+     * @return the full URL to this file (e.g. "styx://localhost:9092/path/to/this")
+     * @todo Include user name in the URL?
+     */
+    public String getURL()
+    {
+        StringBuffer buf = new StringBuffer("styx://");
+        buf.append(this.conn.getRemoteHost());
+        buf.append(":");
+        buf.append(this.conn.getRemotePort());
+        buf.append(this.getPath());
+        return buf.toString();
     }
     
     /**
