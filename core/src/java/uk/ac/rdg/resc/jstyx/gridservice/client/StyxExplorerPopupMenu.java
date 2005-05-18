@@ -45,6 +45,9 @@ import java.awt.Component;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/18 17:13:51  jonblower
+ * Created SGSInstanceGUI
+ *
  * Revision 1.2  2005/05/18 08:03:24  jonblower
  * Implemented creation of new service instances
  *
@@ -57,8 +60,9 @@ class StyxExplorerPopupMenu extends JPopupMenu implements ActionListener
     
     private static final StyxExplorerPopupMenu popupMenu = new StyxExplorerPopupMenu();
     
-    private JMenuItem newInstance;
-    private JMenuItem refresh;
+    private JMenuItem newInstance; // Click this to create a new instance
+    private JMenuItem refresh; // Click this to refresh the given node
+    private JMenuItem showGUI; // Click this to show the GUI for an instance
     private CStyxFileNode activeNode; // The node to which the menu refers
     
     /** Creates a new instance of StyxExplorerPopupMenu */
@@ -66,8 +70,10 @@ class StyxExplorerPopupMenu extends JPopupMenu implements ActionListener
     {
         this.newInstance = new JMenuItem("New instance");
         this.refresh = new JMenuItem("Refresh");
+        this.showGUI = new JMenuItem("Show GUI");
         this.add(this.newInstance);
-        this.add(this.refresh);
+        //this.add(this.refresh); TODO: add this and make it do something!
+        this.add(this.showGUI);
         
         // Add this ActionListener to each component so that actionPerfomed will
         // be called when any JMenuItem is clicked
@@ -92,8 +98,14 @@ class StyxExplorerPopupMenu extends JPopupMenu implements ActionListener
         // The "New instance" menu item is only visible when clicking on a 
         // service node
         this.newInstance.setVisible(nodeType == CStyxFileNode.SERVICE);
+        // The "Show GUI" menu item is only visible when clicking on an
+        // instancenode
+        this.showGUI.setVisible(nodeType == CStyxFileNode.INSTANCE);
     }
     
+    /**
+     * Called when a button on the popup menu is clicked
+     */
     public void actionPerformed(ActionEvent e)
     {
         Object source = e.getSource();
@@ -101,12 +113,19 @@ class StyxExplorerPopupMenu extends JPopupMenu implements ActionListener
         {
             this.activeNode.createNewInstance();
         }
+        else if (source == this.showGUI)
+        {
+            SGSInstanceGUI.getGUI(this.activeNode.getFile()).setVisible(true);
+        }
         else if (source == this.refresh)
         {
             // TODO
         }
     }
     
+    /**
+     * Show the popup menu for the given CStyxFileNode
+     */
     public static void showContext(CStyxFileNode node, Component invoker, int x, int y)
     {
         popupMenu.setupMenu(node);

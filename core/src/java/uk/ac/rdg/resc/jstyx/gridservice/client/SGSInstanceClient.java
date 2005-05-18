@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/05/18 17:13:51  jonblower
+ * Created SGSInstanceGUI
+ *
  * Revision 1.12  2005/05/16 11:00:53  jonblower
  * Changed SGS config XML file structure: separated input and output streams and changed some tag names
  *
@@ -105,6 +108,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private String[] sdeNames; // Names of all the service data elements
     private StringBuffer[] sdeBufs; // Contents of each service data element
     
+    // Input files
+    private CStyxFile inputDir;
     //private String inputURL = "http://www.nerc-essc.ac.uk/~jdb/bbe.txt";
     private String inputURL = "http://www.resc.rdg.ac.uk/projects.php";
     
@@ -117,13 +122,16 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     /**
      * Creates a new SGSInstanceClient for an instance that has its root in the
      * given CStyxFile
-     * @throws StyxException if there was an error creating the client
      */
-    public SGSInstanceClient(CStyxFile instanceRoot) throws StyxException
+    public SGSInstanceClient(CStyxFile instanceRoot)
     {
         this.instanceRoot = instanceRoot;
         this.ctlFile = this.instanceRoot.getFile("ctl");
         this.ctlFile.addChangeListener(this);
+        
+        // Create the directory that we will read to get the input methods
+        this.inputDir = this.instanceRoot.getFile("/io/in");
+        this.inputDir.addChangeListener(this);
         
         // Open the files that will give us data and service data
         this.stdout = this.instanceRoot.getFile("/io/out/stdout");
@@ -144,16 +152,23 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * connection, with the given service name and ID
      */
     public SGSInstanceClient(StyxConnection conn, String serviceName, int instanceID)
-        throws StyxException
     {
         this(new CStyxFile(conn, serviceName + "/" + instanceID));
+    }
+    
+    /**
+     * @return the CStyxFile at the root of this instance
+     */
+    public CStyxFile getInstanceRoot()
+    {
+        return this.instanceRoot;
     }
     
     /**
      * Sends a message to start the service. When the confirmation arrives that
      * the service has been started, the dataSent() event will be fired
      */
-    public void startService() throws StyxException
+    public void startService()
     {
         this.ctlFile.writeAsync("start");
     }
@@ -162,20 +177,45 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * Sends a message to stop the service. When the confirmation arrives that
      * the service has been stopped, the dataSent() event will be fired
      */
-    public void stopService() throws StyxException
+    public void stopService()
     {
         this.ctlFile.writeAsync("stop");
     }
     
     /**
-     * Sends a message to get the service data elements for this instance.
-     * When the SDEs have arrived, the gotServiceDataElements() event will be fired.
+     * Sends a message to get the names of the service data elements for this instance.
+     * When the SDEs have arrived, the gotServiceDataNames() event will be fired.
      */
-    public void getServiceDataElements()
+    public void getServiceDataNames()
     {
         // When the contents of the directory have been found, the childrenFound
         // method of this class will be called.
         this.sdeDir.getChildrenAsync();
+    }
+    
+    /**
+     * Sends a message to get the possible input methods for this instance.
+     * This reads the contents of the "io/in" directory.
+     */
+    public void getInputMethods()
+    {
+        // When the contents of the directory have been found, the childrenFound
+        // method of this class will be called.
+        this.inputDir.getChildrenAsync();
+    }
+    
+    /**
+     * Sends message(s) to read all the service data elements
+     */
+    public void readAllServiceData()
+    {
+        synchronized (this.serviceDataFiles)
+        {
+            for (int i = 0; i < this.serviceDataFiles.length; i++)
+            {
+                this.serviceDataFiles[i].readAsync(0);
+            }
+        }
     }
     
     /**
@@ -312,7 +352,16 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 this.sdeNames[i] = this.serviceDataFiles[i].getName();
                 this.sdeBufs[i] = new StringBuffer();
             }
-            this.fireGotSDEs(this.sdeNames);
+            this.fireGotSDNames(this.sdeNames);
+        }
+        else if (file == this.inputDir)
+        {
+            // We have just discovered the input methods
+            this.fireGotInputMethods(children);
+        }
+        else
+        {
+            System.err.println("Got children of unknown file " + file.getPath());
         }
     }
     
@@ -451,9 +500,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Fires the gotServiceDataElements() event on all registered change listeners
+     * Fires the gotServiceDataNames() event on all registered change listeners
      */
-    private void fireGotSDEs(String[] sdeNames)
+    private void fireGotSDNames(String[] sdeNames)
     {
         synchronized(this.changeListeners)
         {
@@ -461,7 +510,25 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
-                listener.gotServiceDataElements(sdeNames);
+                listener.gotServiceDataNames(sdeNames);
+            }
+        }
+    }
+    
+    /**
+     * Fires the gotInputMethods() event on all registered change listeners
+     * @param inputMethods Array of CStyxFiles representing all the files
+     * in the "io/in" directory of the SGS instance
+     */
+    private void fireGotInputMethods(CStyxFile[] inputMethods)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.gotInputMethods(inputMethods);
             }
         }
     }

@@ -30,6 +30,8 @@ package uk.ac.rdg.resc.jstyx.gridservice.client;
 
 import org.apache.mina.common.ByteBuffer;
 
+import uk.ac.rdg.resc.jstyx.client.CStyxFile;
+
 /**
  * Interface defining methods that will be fired when an SGSClient receives
  * notification of a change in state of an SGS instance or when new data arrive.
@@ -38,6 +40,9 @@ import org.apache.mina.common.ByteBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/18 17:13:51  jonblower
+ * Created SGSInstanceGUI
+ *
  * Revision 1.5  2005/05/13 16:49:34  jonblower
  * Coded dynamic detection and display of service data, also included streams in config file
  *
@@ -72,10 +77,16 @@ public interface SGSInstanceChangeListener
     public void serviceDataChanged(String sdName, String newData);
     
     /**
-     * Called when we have got the possible service data elements
+     * Called when we have got the names of the service data elements
      * @param sdeNames The names of the SDEs as a String array
      */
-    public void gotServiceDataElements(String[] sdeNames);
+    public void gotServiceDataNames(String[] sdeNames);
+    
+    /**
+     * Called when we have got the names of the service data elements
+     * @param inputMethods The names of input files (stdin and the input URL)
+     */
+    public void gotInputMethods(CStyxFile[] inputMethods);
     
     /**
      * Called when new data arrive from the standard output of the SGS instance.

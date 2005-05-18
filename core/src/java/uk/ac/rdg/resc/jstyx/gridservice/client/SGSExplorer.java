@@ -70,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnectionListener;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/18 17:13:51  jonblower
+ * Created SGSInstanceGUI
+ *
  * Revision 1.5  2005/05/18 08:03:24  jonblower
  * Implemented creation of new service instances
  *
@@ -308,9 +311,11 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
             + message, "Connection error", JOptionPane.ERROR_MESSAGE);
     }
     
-    // Listens for double-clicks and requests for the pop-up menu.
-    // Note that for platform independence we must check for the popup trigger
-    // in both mousePressed and mouseReleased
+    /**
+     * Listens for requests for the pop-up menu.
+     * Note that for platform independence we must check for the popup trigger
+     * in both mousePressed and mouseReleased
+     */
     private MouseListener ml = new MouseAdapter()
     {
         public void mousePressed(MouseEvent e)

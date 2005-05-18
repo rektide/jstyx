@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/18 17:13:51  jonblower
+ * Created SGSInstanceGUI
+ *
  * Revision 1.2  2005/05/18 08:03:24  jonblower
  * Implemented creation of new service instances
  *
@@ -87,6 +90,14 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
     public CStyxFileNode(SGSExplorerTreeModel dataModel, CStyxFile file)
     {
         this(dataModel, file, file.getName());
+    }
+    
+    /**
+     * @return the CStyxFile that this node represents
+     */
+    public CStyxFile getFile()
+    {
+        return this.file;
     }
 
     /**

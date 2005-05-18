@@ -40,6 +40,7 @@ import info.clearthought.layout.TableLayout;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
+import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 
 /**
  * Panel containing GUI components to interact with a specific SGS instance
@@ -48,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/05/18 17:13:51  jonblower
+ * Created SGSInstanceGUI
+ *
  * Revision 1.7  2005/05/13 16:49:34  jonblower
  * Coded dynamic detection and display of service data, also included streams in config file
  *
@@ -172,8 +176,8 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         txtInputURL.setText(client.getInputURL());
         
         // Send message to get the service data elements. When they arrive, the
-        // gotServiceDataElements() method will be called
-        this.client.getServiceDataElements();
+        // gotServiceDataNames() method will be called
+        this.client.getServiceDataNames();
         
         this.repaint();
     }
@@ -205,14 +209,7 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
      */
     private void stopClicked()
     {
-        try
-        {
-            client.stopService();
-        }
-        catch(StyxException se)
-        {
-            se.printStackTrace();
-        }
+        client.stopService();
     }
     
     /**
@@ -254,7 +251,7 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
      * Called when we have got the possible service data elements
      * @param sdeNames The names of the SDEs as a String array
      */
-    public void gotServiceDataElements(String[] sdeNames)
+    public void gotServiceDataNames(String[] sdeNames)
     {
         final int rowHeight = 20;
         for (int i = 0; i < sdeNames.length; i++)
@@ -269,6 +266,12 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
         this.layout.layoutContainer(this);
         this.repaint();
     }
+    
+    /**
+     * Called when we have got the names of the service data elements
+     * @param inputMethods The names of input files (stdin and the input URL)
+     */
+    public void gotInputMethods(CStyxFile[] inputMethods) {}
     
     /**
      * Called when the service instance has been started
