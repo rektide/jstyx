@@ -70,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnectionListener;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/18 08:03:24  jonblower
+ * Implemented creation of new service instances
+ *
  * Revision 1.4  2005/05/17 18:21:36  jonblower
  * Added initial pop-up menu support
  *
@@ -332,7 +335,6 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
                     {
                         // Get the CStyxFileNode that we have clicked on
                         CStyxFileNode node = (CStyxFileNode)lastPathComp;
-                        System.err.println("Showing popup for " + node);
                         StyxExplorerPopupMenu.showContext(node, tree, e.getX(),
                             e.getY());
                     }

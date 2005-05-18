@@ -31,6 +31,9 @@ package uk.ac.rdg.resc.jstyx.gridservice.client;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
 
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+
 import java.awt.Component;
 
 /**
@@ -42,17 +45,21 @@ import java.awt.Component;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/05/18 08:03:24  jonblower
+ * Implemented creation of new service instances
+ *
  * Revision 1.1  2005/05/17 18:21:36  jonblower
  * Added initial pop-up menu support
  *
  */
-class StyxExplorerPopupMenu extends JPopupMenu
+class StyxExplorerPopupMenu extends JPopupMenu implements ActionListener
 {
     
     private static final StyxExplorerPopupMenu popupMenu = new StyxExplorerPopupMenu();
     
     private JMenuItem newInstance;
     private JMenuItem refresh;
+    private CStyxFileNode activeNode; // The node to which the menu refers
     
     /** Creates a new instance of StyxExplorerPopupMenu */
     private StyxExplorerPopupMenu()
@@ -61,22 +68,48 @@ class StyxExplorerPopupMenu extends JPopupMenu
         this.refresh = new JMenuItem("Refresh");
         this.add(this.newInstance);
         this.add(this.refresh);
+        
+        // Add this ActionListener to each component so that actionPerfomed will
+        // be called when any JMenuItem is clicked
+        for (int i = 0; i < this.getComponentCount(); i++)
+        {
+            Component comp = this.getComponent(i);
+            if (comp instanceof JMenuItem)
+            {
+                ((JMenuItem)comp).addActionListener(this);
+            }
+        }
     }
     
     /**
      * Sets up the menu (i.e. shows/hides the appropriate menu items) for the
      * given node
      */
-    private void setupMenu(int nodeType)
+    private void setupMenu(CStyxFileNode activeNode)
     {
+        this.activeNode = activeNode;
+        int nodeType = this.activeNode.getType();
         // The "New instance" menu item is only visible when clicking on a 
         // service node
         this.newInstance.setVisible(nodeType == CStyxFileNode.SERVICE);
     }
     
+    public void actionPerformed(ActionEvent e)
+    {
+        Object source = e.getSource();
+        if (source == this.newInstance)
+        {
+            this.activeNode.createNewInstance();
+        }
+        else if (source == this.refresh)
+        {
+            // TODO
+        }
+    }
+    
     public static void showContext(CStyxFileNode node, Component invoker, int x, int y)
     {
-        popupMenu.setupMenu(node.getType());
+        popupMenu.setupMenu(node);
         popupMenu.show(invoker, x, y);
     }
     
