@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/05/19 14:46:51  jonblower
+ * Changed behaviour of StyxDirectory.createChild(): no longer adds file to namespace in this method
+ *
  * Revision 1.9  2005/05/10 19:19:44  jonblower
  * Added call to StyxMessage.dispose() in messageSent() callback
  *
@@ -415,9 +418,11 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         {
             realPerm = operm & (~0666 | (dir.getPermissions() & 0666));
         }
-        // Create the file and add to the directory tree
+        // Create the file
         StyxFile newFile = dir.createChild(tCrtMsg.getFileName(), realPerm, 
             isDir, isAppOnly, isExclusive);
+        // Add the new file to the directory tree
+        dir.addChild(newFile);
         // Associate the new file with the given fid
         sessionState.associate(tCrtMsg.getFid(), newFile);
         // Now open the file with the given mode (note that the mode is

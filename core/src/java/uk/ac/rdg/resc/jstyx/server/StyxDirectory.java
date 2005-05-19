@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/05/19 14:46:51  jonblower
+ * Changed behaviour of StyxDirectory.createChild(): no longer adds file to namespace in this method
+ *
  * Revision 1.9  2005/05/11 10:34:31  jonblower
  * Changed so that addChild() returns this StyxDirectory object to allow chaining
  *
@@ -320,11 +323,12 @@ public class StyxDirectory extends StyxFile
     }
     
     /**
-     * Creates a new file and adds it to this directory. This method will only
-     * be called if this file is a directory. This default implementation throws
-     * an exception; subclasses should override this method to allow files to
-     * be created.  Implementations should create a new file, then call
-     * this.addChild() to add it to this directory.
+     * Creates a new file to be added to this directory. This default
+     * implementation throws an exception; subclasses should override this method
+     * to allow files to be created.
+     * This method should <b>not</b> add the new file to the directory. This will
+     * be done in StyxServerProtocolHandler.replyCreate().
+     * @return The newly-created file
      */
     public StyxFile createChild(String name, int perm, boolean isDir,
         boolean isAppOnly, boolean isExclusive) throws StyxException

@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/19 14:46:51  jonblower
+ * Changed behaviour of StyxDirectory.createChild(): no longer adds file to namespace in this method
+ *
  * Revision 1.3  2005/05/09 07:13:52  jonblower
  * Changed getFileOnDisk() to getFileOrDirectoryOnDisk()
  *
@@ -152,9 +155,8 @@ public class DirectoryOnDisk extends StyxDirectory
     
     /**
      * Creates a new file and adds it to this directory. This method will create
-     * a new file in the underlying filesystem, then call addChild() to add it
-     * to this directory. The isAppOnly and isExclusive parameters are ignored
-     * as they might not be supported in the host filesystem.
+     * a new file in the underlying filesystem, then return it.
+     * A StyxException will be thrown if isAppOnly or isExclusive is true.
      */
     public StyxFile createChild(String name, int perm, boolean isDir,
         boolean isAppOnly, boolean isExclusive)
@@ -187,9 +189,7 @@ public class DirectoryOnDisk extends StyxDirectory
         // successfully.  Now we can create the StyxFile wrapper and add it to
         // this StyxDirectory.
         StyxFile sf = FileOnDisk.getFileOrDirectoryOnDisk(f);
-        // Note that addChild() will throw a FileExistsException if a StyxFile
-        // with this name already exists.
-        this.addChild(sf);
+        sf.setPermissions(perm);
         return sf;
     }
     
