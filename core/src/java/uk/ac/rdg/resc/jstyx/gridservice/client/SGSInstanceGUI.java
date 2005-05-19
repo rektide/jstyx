@@ -58,6 +58,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     private SGSInstanceClient client; // Class that we use to interact with the service
     
     private InputPanel inputPanel; // Panel for providing input data to the SGS
+    private InputFilesPanel inputFilesPanel;  // Panel for allowing input files to be uploaded
     private ControlPanel ctlPanel; // Panel for controlling the service instance
     private ServiceDataPanel sdPanel; // Panel for showing service data
     
@@ -78,7 +79,8 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         double size[][] =
         {
             { BORDER, TableLayout.FILL, BORDER }, // Columns
-            { BORDER, TableLayout.FILL, BORDER, ROW_HEIGHT, BORDER, TableLayout.FILL, BORDER }  // Rows
+            { BORDER, 0.25, BORDER, 0.25, BORDER,
+                  ROW_HEIGHT, BORDER, TableLayout.FILL, BORDER }  // Rows
         };
         panel.setLayout(new TableLayout(size));
         
@@ -86,13 +88,17 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         this.inputPanel = new InputPanel();
         panel.add(this.inputPanel, "1, 1");
         
+        // Add the panel for uploading input files
+        this.inputFilesPanel = new InputFilesPanel();
+        panel.add(this.inputFilesPanel, "1, 3");
+        
         // Add the control panel
         this.ctlPanel = new ControlPanel();
-        panel.add(this.ctlPanel, "1, 3");
+        panel.add(this.ctlPanel, "1, 5");
         
         // Add the service data panel
         this.sdPanel = new ServiceDataPanel();
-        panel.add(this.sdPanel, "1, 5");
+        panel.add(this.sdPanel, "1, 7");
     }
     
     public static SGSInstanceGUI getGUI(CStyxFile instanceRoot)
@@ -235,6 +241,17 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     }
     
     /**
+     * Panel for allowing uploading of input files
+     */
+    private class InputFilesPanel extends JPanel
+    {
+        public InputFilesPanel()
+        {
+            this.setBorder(BorderFactory.createTitledBorder("Input files to upload"));
+        }
+    }
+    
+    /**
      * Panel for displaying control buttons (start, stop)
      */
     private class ControlPanel extends JPanel implements ActionListener
@@ -268,6 +285,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         {
             if (e.getSource() == this.btnStart)
             {
+                // TODO: upload the necessary input files
                 client.startService();
             }
             else if (e.getSource() == this.btnStop)

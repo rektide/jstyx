@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/05/19 18:42:07  jonblower
+ * Implementing specification of input files required by SGS
+ *
  * Revision 1.7  2005/05/16 11:00:53  jonblower
  * Changed SGS config XML file structure: separated input and output streams and changed some tag names
  *
@@ -76,6 +79,10 @@ class SGSConfig
     private Vector docFiles;    // The documentation files
     private Vector params;      // The parameters for this SGS
     private Vector serviceData; // The service data elements for this SGS
+    private Vector inputFiles;  // The input files needed by the executable
+    private boolean allowOtherInputFiles; // If this is true, we shall allow 
+                                          // input files other than those specified
+                                          // to be uploaded to the SGS instance
 
     /**
      * @param gridService The Node in the XML config file that is at the
@@ -100,20 +107,19 @@ class SGSConfig
         // Create the streams
         this.streams = new Vector();
         // Do the input streams first
-        Iterator streamListIter = gridService.selectNodes("streams/in/instream").iterator();
+        Iterator streamListIter = gridService.selectNodes("streams/instream").iterator();
         while(streamListIter.hasNext())
         {
             Node stream = (Node)streamListIter.next();
             this.streams.add(new SGSStream(stream, SGSStream.INPUT));
         }
         // Now the output streams
-        streamListIter = gridService.selectNodes("streams/out/outstream").iterator();
+        streamListIter = gridService.selectNodes("streams/outstream").iterator();
         while(streamListIter.hasNext())
         {
             Node stream = (Node)streamListIter.next();
             this.streams.add(new SGSStream(stream, SGSStream.OUTPUT));
         }
-        
 
         // Now create the parameters
         this.params = new Vector();
@@ -134,7 +140,30 @@ class SGSConfig
             this.serviceData.add(new SDEConfig(sdEl));
         }
         
-        // Now create the documentation files
+        // Create the input files: just a Vector of Files to indicate the path
+        // of the input file relative to the working directory of the service
+        // instance.
+        Node inputFilesNode = gridService.selectSingleNode("inputfiles");
+        this.inputFiles = new Vector();
+        if (inputFilesNode != null)
+        {
+            this.allowOtherInputFiles = inputFilesNode.valueOf("@allowOthers").equals("yes");
+            Iterator inputFilesIter = inputFilesNode.selectNodes("inputfile").iterator();
+            while(inputFilesIter.hasNext())
+            {
+                Node fileEl = (Node)inputFilesIter.next();
+                File inputFilePath = new File(fileEl.valueOf("@path"));
+                if (inputFilePath.isAbsolute())
+                {
+                    // Path must be relative so that the input file can be placed
+                    // in the working directory of the SGS instance
+                    throw new SGSConfigException("Input files locations cannot be absolute paths");
+                }
+                this.inputFiles.add(inputFilePath);
+            }
+        }
+        
+        // Create the documentation files
         this.docFiles = new Vector();
         Iterator docListIter = gridService.selectNodes("docs/doc").iterator();
         while(docListIter.hasNext())
@@ -212,6 +241,24 @@ class SGSConfig
     public Vector getServiceData()
     {
         return this.serviceData;
+    }
+    
+    /**
+     * @return Vector of java.io.Files indicating the path of the input file
+     * relative to the working directory of the service instance.
+     */
+    public Vector getInputFiles()
+    {
+        return this.inputFiles;
+    }
+    
+    /**
+     * @return true if we shall allow input files other than those specified
+     * to be uploaded to the SGS instance
+     */
+    public boolean getAllowOtherInputFiles()
+    {
+        return this.allowOtherInputFiles;
     }
 }
 

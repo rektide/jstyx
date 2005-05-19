@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/05/19 18:42:07  jonblower
+ * Implementing specification of input files required by SGS
+ *
  * Revision 1.12  2005/05/17 15:10:46  jonblower
  * Changed structure of SGS to put instances in a directory of their own
  *
@@ -109,13 +112,7 @@ public class StyxGridService
     private Vector instances; // The ID numbers of the current Grid Service instances
     private StyxDirectory root; // The root of the Grid Service
     private StyxDirectory instancesDir; // Directory to hold SGS instances
-    private String command; // The command to run when a Grid Service instance is started 
-                            // (this is passed to System.exec)
-    private String workDir; // The directory in the local filesystem where all the 
-                            // cache files etc associated with this service will be kept
-    private Vector streams; // The streams that will be exposed by this SGS
-    private Vector params;  // The parameters that each SGS instance uses
-    private Vector sdes;    // The service data elements for each SGS instance
+    private SGSConfig sgsConfig; // The configuration for the SGS and its instances
     
     /**
      * Creates a new StyxGridService.
@@ -135,7 +132,7 @@ public class StyxGridService
         // client the reply will only arrive when the contents have changed. 
         // This allows GUIs to automatically update when new SGS instances are
         // created or destroyed.
-        this.root.addChild(new AsyncStyxFile(this.root, ".contents"));
+        //this.root.addChild(new AsyncStyxFile(this.root, ".contents"));
         
         // Add read-only directory for the SGS instances
         this.instancesDir = new StyxDirectory("instances", 0555);
@@ -161,12 +158,7 @@ public class StyxGridService
             // Add the file to the doc directory
             docDir.addChild(sf);
         }
-        
-        this.command = sgsConfig.getCommand();
-        this.workDir = sgsConfig.getWorkingDirectory();
-        this.streams = sgsConfig.getStreams();
-        this.params = sgsConfig.getParams();
-        this.sdes = sgsConfig.getServiceData();
+        this.sgsConfig = sgsConfig;
     }
     
     public StyxDirectory getRoot()
@@ -213,7 +205,7 @@ public class StyxGridService
         {
             this.instances.add(new Integer(id));
             this.instancesDir.addChild(new StyxGridServiceInstance(this, id,
-                this.command, this.workDir, this.streams, this.params, this.sdes));
+                this.sgsConfig));
             return id;
         }        
     }

@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/05/19 18:42:06  jonblower
+ * Implementing specification of input files required by SGS
+ *
  * Revision 1.13  2005/05/18 17:13:51  jonblower
  * Created SGSInstanceGUI
  *
@@ -109,6 +112,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private StringBuffer[] sdeBufs; // Contents of each service data element
     
     // Input files
+    private CStyxFile inputFilesDir;
+    private CStyxFile[] inputFiles; // The compulsory input files
+    
+    // Input streams (stdin and URL to redirect to stdin)
     private CStyxFile inputDir;
     //private String inputURL = "http://www.nerc-essc.ac.uk/~jdb/bbe.txt";
     private String inputURL = "http://www.resc.rdg.ac.uk/projects.php";
@@ -128,6 +135,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.instanceRoot = instanceRoot;
         this.ctlFile = this.instanceRoot.getFile("ctl");
         this.ctlFile.addChangeListener(this);
+        
+        // Create the directory that contains the input files
+        this.inputFilesDir = this.instanceRoot.getFile("inputFiles");
+        this.inputFilesDir.addChangeListener(this);
         
         // Create the directory that we will read to get the input methods
         this.inputDir = this.instanceRoot.getFile("/io/in");

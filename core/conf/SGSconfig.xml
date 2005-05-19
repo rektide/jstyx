@@ -15,7 +15,8 @@
     <!-- Configuration of the server -->
     <!-- TODO: configure max message size here? -->
     <server port="9092">
-        <!-- TODO: will set SSL parameters in here (server cert location, cipher suites, client authentication, acceptable client certs, etc) -->
+        <!-- TODO: will set SSL parameters in here (server cert location, cipher
+             suites, client authentication, acceptable client certs, etc) -->
         <ssl activated="no">
             <keystore location="C:\bogus.cert"/>
         </ssl>
@@ -24,17 +25,14 @@
     
     <!-- The Styx Grid Services that will appear under this server -->
     <gridservices root="C:\StyxGridServices">
+    
         <gridservice name="md5sum" command="python c:\md5lines.py"
             description="Calculates MD5 sum of each line of input">
             <streams>
                 <!-- Defines the available streams. -->
-                <in>
-                    <instream name="stdin"/>
-                </in>
-                <out>
-                    <outstream name="stdout"/>
-                    <outstream name="stderr"/>
-                </out>
+                <instream name="stdin"/>
+                <outstream name="stdout"/>
+                <outstream name="stderr"/>
             </streams>
             <params>
                 <param name="waittime" type="float" required="no" default="0" minValue="0"
@@ -51,9 +49,23 @@
                 <!-- <doc location="C:\j2sdk1.4.2_05\docs\api" name="javadoc"/> -->
             </docs>
         </gridservice>
+        
         <gridservice name="simple" command="python c:\simple.py" description="doesn't do much really" />
-        <gridservice name="lbflow" command="c:\cygwin\home\jdb\lbflow-0.1\src\lbflow -i /home/jdb/lbflow-0.1/tests/test.sim"
-            description="Lattice Boltzmann simulation"/>
+        
+        <gridservice name="lbflow" command="c:\cygwin\home\Jon\lbflow-0.1\src\lbflow -i input.sim"
+            description="Lattice Boltzmann simulation">
+            <streams>
+                <outstream name="stdout"/>
+                <outstream name="stderr"/>
+            </streams>
+            <serviceData>
+                <serviceDataElement name="status" />
+            </serviceData>
+            <inputfiles allowOthers="yes">
+                <inputfile path="input.sim"/>
+            </inputfiles>
+        </gridservice>
+        
     </gridservices>
 
 </sgs>

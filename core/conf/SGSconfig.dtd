@@ -9,9 +9,7 @@
 
 <!-- A stream of data that the SGS makes available. Currently only the standard
      streams (stdin, stdout and stderr) are supported. -->
-<!ELEMENT in (instream*)>
-<!ELEMENT out (outstream*)>
-<!ELEMENT streams (in?, out?)>
+<!ELEMENT streams (instream*, outstream*)>
 <!ELEMENT instream EMPTY>
 <!ATTLIST instream
    name (stdin) #REQUIRED
@@ -76,13 +74,23 @@
     minUpdateInterval CDATA "2.0"
     file CDATA #IMPLIED
   >
+  
+<!-- Element describing input files required by the executable -->
+<!ELEMENT inputfiles (inputfile*)>
+<!-- defines whether or not files other than the compulsory ones can be uploaded -->
+<!ATTLIST inputfiles
+    allowOthers (yes | no) #REQUIRED
+  >
+<!-- A compulsory file that must be uploaded -->
+<!ELEMENT inputfile EMPTY>
+<!ATTLIST inputfile
+    path CDATA #REQUIRED
+  >
 
 <!-- Element that defines a Styx Grid Service -->
-<!-- The gridservice contains zero or more streams, zero or more parameters, zero
-     or more documentation files and zero or more service data elements. The
-     description of the service will automatically appear as a file called
+<!-- The description of the service will automatically appear as a file called
      "description" in the docs/ directory of the SGS. -->
-<!ELEMENT gridservice (streams?, params?, serviceData?, docs?)>
+<!ELEMENT gridservice (streams?, params?, serviceData?, inputfiles?, docs?)>
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED

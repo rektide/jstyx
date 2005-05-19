@@ -40,12 +40,15 @@ import java.io.File;
 import java.util.Vector;
 
 import org.apache.mina.common.ByteBuffer;
+import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
 import uk.ac.rdg.resc.jstyx.server.AsyncStyxFile;
 import uk.ac.rdg.resc.jstyx.server.InMemoryFile;
+import uk.ac.rdg.resc.jstyx.server.FileOnDisk;
+import uk.ac.rdg.resc.jstyx.server.DirectoryOnDisk;
 import uk.ac.rdg.resc.jstyx.server.MonitoredFileOnDisk;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
@@ -59,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/05/19 18:42:07  jonblower
+ * Implementing specification of input files required by SGS
+ *
  * Revision 1.13  2005/05/16 11:00:53  jonblower
  * Changed SGS config XML file structure: separated input and output streams and changed some tag names
  *
@@ -108,6 +114,7 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
 class StyxGridServiceInstance extends StyxDirectory
 {
     
+    private static final Logger log = Logger.getLogger(StyxGridServiceInstance.class);
     private static final Runtime runtime = Runtime.getRuntime();
     
     private StyxGridService sgs; // The SGS to which this instance belongs
@@ -131,33 +138,25 @@ class StyxGridServiceInstance extends StyxDirectory
      * @todo: sort out permissions and owners on all these files
      */
     public StyxGridServiceInstance(StyxGridService sgs, int id,
-        String command, String workDir, Vector streams, Vector params,
-        Vector serviceDataElements) throws StyxException
+        SGSConfig sgsConfig) throws StyxException
     {
         super("" + id);
         this.sgs = sgs;
         this.id = id;
-        this.command = command;
-        this.workDir = new File(workDir + StyxUtils.SYSTEM_FILE_SEPARATOR + id);
+        this.command = sgsConfig.getCommand();
+        this.workDir = new File(sgsConfig.getWorkingDirectory() +
+            StyxUtils.SYSTEM_FILE_SEPARATOR + id);
         
         if (this.workDir.exists())
         {
-            // Check that this is a directory
-            if (!this.workDir.isDirectory())
-            {
-                throw new StyxException("Can't create working directory: " +
-                    "a file of the same name already exists");
-            }
-            // TODO: Should we empty the working directory?
+            // Delete the directory and all its contents
+            deleteDir(this.workDir);
         }
-        else
+        // (Re)create the working directory
+        if (!this.workDir.mkdirs())
         {
-            // We have to make this directory
-            if (!this.workDir.mkdirs())
-            {
-                throw new StyxException("Unable to create working directory "
-                    + this.workDir);
-            }
+            throw new StyxException("Unable to create working directory "
+                + this.workDir);
         }
         
         // Add the ctl file
@@ -170,6 +169,7 @@ class StyxGridServiceInstance extends StyxDirectory
         StyxDirectory inStreams = new StyxDirectory("in");
         StyxDirectory outStreams = new StyxDirectory("out");
         ioDir.addChild(inStreams).addChild(outStreams);
+        Vector streams = sgsConfig.getStreams();
         for (int i = 0; i < streams.size(); i++)
         {
             SGSStream stream = (SGSStream)streams.get(i);
@@ -202,6 +202,7 @@ class StyxGridServiceInstance extends StyxDirectory
         
         // Add the parameters as SGSParamFiles.
         this.paramDir = new StyxDirectory("params");
+        Vector params = sgsConfig.getParams();
         for (int i = 0; i < params.size(); i++)
         {
             SGSParam param = (SGSParam)params.get(i);
@@ -212,6 +213,7 @@ class StyxGridServiceInstance extends StyxDirectory
         // Add the service data: the files exposing the service data will all
         // have asynchronous behaviour
         StyxDirectory serviceDataDir = new StyxDirectory("serviceData");
+        Vector serviceDataElements = sgsConfig.getServiceData();
         for (int i = 0; i < serviceDataElements.size(); i++)
         {
             SDEConfig sde = (SDEConfig)serviceDataElements.get(i);
@@ -247,7 +249,31 @@ class StyxGridServiceInstance extends StyxDirectory
         }
         this.addChild(serviceDataDir);
         
-        this.bytesCons = 0;
+        // Add the input files
+        // Create a directory based on the working directory of the instance
+        StyxDirectory inputFilesDir = new DirectoryOnDisk(this.workDir);
+        inputFilesDir.setName("inputFiles");
+        if (sgsConfig.getAllowOtherInputFiles())
+        {
+            inputFilesDir.setPermissions(0777);
+        }
+        else
+        {
+            inputFilesDir.setPermissions(0555);
+        }
+        // TODO: set permissions of directory depending on whether we can create
+        // arbitrary input files inside it
+        Vector inputFiles = sgsConfig.getInputFiles();
+        for (int i = 0; i < inputFiles.size(); i++)
+        {
+            File inputFilePath = (File)inputFiles.get(i);
+            // Get the real path of this file, relative to the working directory
+            File realPath = new File(this.workDir, inputFilePath.getPath());
+            // Creates a writeable FileOnDisk that doesn't yet have to exist
+            FileOnDisk inputFile = new FileOnDisk(realPath, false);
+            inputFilesDir.addChild(inputFile);
+        }
+        this.addChild(inputFilesDir);
         
         // Add the debug directory
         StyxDirectory debugDir = new StyxDirectory("debug");
@@ -256,6 +282,7 @@ class StyxGridServiceInstance extends StyxDirectory
         debugDir.addChild(new CommandLineFile());
         this.addChild(debugDir);
         
+        this.bytesCons = 0;
         this.statusCode = StatusCode.CREATED;
     }
     
@@ -322,6 +349,7 @@ class StyxGridServiceInstance extends StyxDirectory
                 }
                 catch(IOException ioe)
                 {
+                    ioe.printStackTrace();
                     throw new StyxException("IOException when calling runtime.exec():"
                         + ioe.getMessage());
                 }
@@ -666,6 +694,28 @@ class StyxGridServiceInstance extends StyxDirectory
                         + "the stream: " + ioe.getMessage());
             }
         }
+    }
+    
+    /**
+     * Deletes a directory and its contents
+     * @return true if the deletion was successful, false otherwise
+     */
+    private static boolean deleteDir(File dir)
+    {
+        log.debug("Deleting contents of " + dir.getPath());
+        if (dir.isDirectory())
+        {
+            String[] children = dir.list();
+            for (int i = 0; i < children.length; i++)
+            {
+                boolean success = deleteDir(new File(dir, children[i]));
+                if (!success)
+                {
+                    return false;
+                }
+            }
+        }
+        return dir.delete();
     }
     
 }
