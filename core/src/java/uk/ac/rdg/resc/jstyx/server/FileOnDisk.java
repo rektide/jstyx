@@ -54,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/05/19 18:42:43  jonblower
+ * Removed debug message
+ *
  * Revision 1.13  2005/05/19 14:47:38  jonblower
  * Realised that new RandomAccessFile("..", "rw") doesn't throw FileNotFoundException
  *
@@ -280,7 +283,6 @@ public class FileOnDisk extends StyxFile
         }
         try
         {
-            System.err.println("Writing to " + this.file.getPath());
             // Open a new FileChannel for writing. Can't use FileOutputStream
             // as this doesn't allow successful writing at a certain file offset:
             // for some reason everything before this offset gets turned into
