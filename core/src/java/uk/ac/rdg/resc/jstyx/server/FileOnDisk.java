@@ -54,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/05/19 14:47:38  jonblower
+ * Realised that new RandomAccessFile("..", "rw") doesn't throw FileNotFoundException
+ *
  * Revision 1.12  2005/05/11 10:33:50  jonblower
  * Implemented MonitoredFileOnDisk.java
  *
@@ -258,16 +261,26 @@ public class FileOnDisk extends StyxFile
     }
     
     /**
-     * Writes data to the underlying java.io.File.  If the File does not exist,
-     * this method will throw a StyxException, regardless of the value of
-     * <code>mustExist</code> (it is meaningless to write to a non-existent file).
+     * Writes data to the underlying java.io.File.  If the File does not exist
+     * and <code>mustExist</code> is true, this throws a StyxException.  If the File
+     * does not exist and <code>mustExist</code> is false.
      */
     public synchronized void write(StyxFileClient client, long offset, 
         int count, ByteBuffer data, String user, boolean truncate, int tag)
         throws StyxException
     {
+        if (this.mustExist && !this.file.exists())
+        {
+            // The file has been removed
+            log.debug("The file " + this.file.getPath() +
+                " has been removed by another process");
+            // Remove the file from the Styx server
+            this.remove();
+            throw new StyxException("The file " + this.name + " was removed.");
+        }
         try
         {
+            System.err.println("Writing to " + this.file.getPath());
             // Open a new FileChannel for writing. Can't use FileOutputStream
             // as this doesn't allow successful writing at a certain file offset:
             // for some reason everything before this offset gets turned into
@@ -296,27 +309,6 @@ public class FileOnDisk extends StyxFile
             chan.close();
             // Reply to the client
             this.replyWrite(client, nWritten, tag);
-        }
-        catch(FileNotFoundException fnfe)
-        {
-            if (mustExist)
-            {
-                // The file has been removed
-                log.debug("The file " + this.file.getPath() +
-                    " has been removed by another process");
-                // Remove the file from the Styx server
-                this.remove();
-                throw new StyxException("The file " + this.name + " was removed.");
-            }
-            else
-            {
-                // Even if the file isn't required to exist, we still throw an
-                // Exception as it is meaningless to write to a non-existent
-                // file.  However, we don't remove this FileOnDisk from the
-                // namespace.
-                throw new StyxException("Cannot write to this file (underlying "
-                    + "file does not exist");
-            }
         }
         catch(IOException ioe)
         {
