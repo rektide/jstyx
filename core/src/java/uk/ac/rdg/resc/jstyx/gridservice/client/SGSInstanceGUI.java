@@ -1,11 +1,29 @@
 /*
- * SGSInstanceGUI.java
+ * Copyright (c) 2005 The University of Reading
+ * All rights reserved.
  *
- * Created on 18 May 2005, 11:08
- *
- * To change this template, choose Tools | Options and locate the template under
- * the Source Creation and Management node. Right-click the template and choose
- * Open. You can then make changes to the template in the Source Editor.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the University of Reading, nor the names of the
+ *    authors or contributors may be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 package uk.ac.rdg.resc.jstyx.gridservice.client;
@@ -22,7 +40,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
 import javax.swing.ButtonGroup;
 import javax.swing.BorderFactory;
-import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.JFileChooser;
 
 import javax.swing.table.TableModel;
@@ -31,6 +49,9 @@ import javax.swing.table.AbstractTableModel;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.Dimension;
+import java.awt.BorderLayout;
+
+import java.util.Vector;
 
 import info.clearthought.layout.TableLayout;
 
@@ -44,7 +65,14 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 
 /**
  * GUI for interacting with an SGS instance
- * @author jdb
+ *
+ * @author Jon Blower
+ * $Revision$
+ * $Date$
+ * $Log$
+ * Revision 1.4  2005/05/20 16:28:50  jonblower
+ * Continuing to implement GUI app
+ *
  */
 public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
 {
@@ -57,10 +85,14 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     
     private SGSInstanceClient client; // Class that we use to interact with the service
     
+    private JPanel masterPanel;
+    private TableLayout panelLayout;
     private InputPanel inputPanel; // Panel for providing input data to the SGS
     private InputFilesPanel inputFilesPanel;  // Panel for allowing input files to be uploaded
     private ControlPanel ctlPanel; // Panel for controlling the service instance
     private ServiceDataPanel sdPanel; // Panel for showing service data
+    
+    private JLabel statusBar;
     
     /** Creates a new instance of SGSInstanceGUI */
     private SGSInstanceGUI(SGSInstanceClient client)
@@ -74,31 +106,39 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         this.client.addChangeListener(this);
         
         // Put the whole GUI in a scroll pane so that all of it can always be visible
-        JPanel panel = new JPanel();
-        this.setContentPane(new JScrollPane(panel));
+        this.masterPanel = new JPanel();
+        this.setLayout(new BorderLayout());
+        this.add(new JScrollPane(this.masterPanel), BorderLayout.CENTER);
         double size[][] =
         {
             { BORDER, TableLayout.FILL, BORDER }, // Columns
-            { BORDER, 0.25, BORDER, 0.25, BORDER,
+            { BORDER, TableLayout.PREFERRED, BORDER, TableLayout.PREFERRED, BORDER,
                   ROW_HEIGHT, BORDER, TableLayout.FILL, BORDER }  // Rows
         };
-        panel.setLayout(new TableLayout(size));
+        this.panelLayout = new TableLayout(size);
+        this.masterPanel.setLayout(this.panelLayout);
         
         // Add the input panel
         this.inputPanel = new InputPanel();
-        panel.add(this.inputPanel, "1, 1");
+        this.masterPanel.add(new JLabel("Input panel goes here"), "1, 1");
         
         // Add the panel for uploading input files
         this.inputFilesPanel = new InputFilesPanel();
-        panel.add(this.inputFilesPanel, "1, 3");
+        this.masterPanel.add(this.inputFilesPanel, "1, 3");
         
         // Add the control panel
         this.ctlPanel = new ControlPanel();
-        panel.add(this.ctlPanel, "1, 5");
+        this.masterPanel.add(this.ctlPanel, "1, 5");
         
         // Add the service data panel
         this.sdPanel = new ServiceDataPanel();
-        panel.add(this.sdPanel, "1, 7");
+        this.masterPanel.add(this.sdPanel, "1, 7");
+        
+        this.statusBar = new JLabel("Status bar");
+        this.add(this.statusBar, BorderLayout.SOUTH);
+        statusBar.setBorder(BorderFactory.createLoweredBevelBorder());
+        
+        this.repaintGUI();
     }
     
     public static SGSInstanceGUI getGUI(CStyxFile instanceRoot)
@@ -163,7 +203,17 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
      */
     public void gotInputFiles(CStyxFile[] inputFiles, boolean allowOtherInputFiles)
     {
-        // TODO
+        // Just pass this on to the input files panel
+        this.inputFilesPanel.gotInputFiles(inputFiles, allowOtherInputFiles);
+    }
+    
+    /**
+     * Forces the window to be laid out and packed
+     */
+    private void repaintGUI()
+    {
+        this.panelLayout.layoutContainer(this);
+        this.pack();
     }
     
     /**
@@ -247,7 +297,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
                 this.btnGroup.add(btn);
                 this.add(btn, "0, " + (2 * i));
                 this.add(new JLabel(inputMethods[i].getName()), "1, " + (2 * i));
-                this.add(new JTextArea(), "3, " + (2 * i));
+                this.add(new JTextField(), "3, " + (2 * i));
             }
             this.layout.layoutContainer(this);
         }
@@ -256,11 +306,119 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     /**
      * Panel for allowing uploading of input files
      */
-    private class InputFilesPanel extends JPanel
+    private class InputFilesPanel extends JPanel implements ActionListener
     {
+        private TableLayout layout;
+        private JButton btnAddInputFile;
+        private Vector fileLocations; // Vector of JTextFields
+        private Vector pickFileButtons; // Vector of JButtons
+        private Vector deleteRowButtons; // Vector of JButtons
+        private int numCompulsoryFiles;
+        
         public InputFilesPanel()
         {
+            double[][] size = 
+            {
+                { TableLayout.PREFERRED, BORDER, 300, BORDER, 80, BORDER, 80 }, // columns
+                { } // rows will be added later
+            };
+            this.layout = new TableLayout(size);
+            this.setLayout(this.layout);
             this.setBorder(BorderFactory.createTitledBorder("Input files to upload"));
+            // Send a message to get all the possible input files
+            client.getInputFiles();
+        }
+        
+        private void updateGUI()
+        {
+            this.layout.layoutContainer(this);
+            repaintGUI();
+        }
+        
+        /**
+         * Called when we have found the input files required by this service
+         */
+        public void gotInputFiles(CStyxFile[] inputFiles, boolean allowOtherInputFiles)
+        {
+            this.numCompulsoryFiles = inputFiles.length;
+            this.fileLocations = new Vector();
+            this.pickFileButtons = new Vector();
+            this.deleteRowButtons = new Vector();
+            
+            if (allowOtherInputFiles)
+            {
+                // create a row for the "more input files" button
+                this.layout.insertRow(0, ROW_HEIGHT);
+                this.layout.insertRow(1, BORDER);
+                this.btnAddInputFile = new JButton("Add another input file");
+                this.btnAddInputFile.addActionListener(this);
+                this.add(btnAddInputFile, "0, 0, 2, 0, l, f");
+            }
+            
+            for (int i = 0; i < inputFiles.length; i++)
+            {
+                this.addInputFileRow(inputFiles[i].getName(), false);
+            }
+            this.updateGUI();
+        }
+        
+        private void addInputFileRow(String name, boolean deleteable)
+        {
+            int rowToAdd = this.layout.getNumRow();
+            this.layout.insertRow(rowToAdd, ROW_HEIGHT);
+            this.layout.insertRow(rowToAdd + 1, BORDER);
+            System.err.println("Added row " + rowToAdd);
+
+            this.add(new JLabel(name), "0, " + rowToAdd);
+
+            JTextField ta = new JTextField();
+            this.fileLocations.add(ta);
+            this.add(ta, "2, " + rowToAdd);
+            JButton btn = new JButton("Pick file");
+
+            this.pickFileButtons.add(btn);
+            btn.addActionListener(this);
+            this.add(btn, "4, " + rowToAdd);
+            
+            /*if (deleteable)
+            {
+                JButton delBtn = new JButton("Remove");
+                this.deleteRowButtons.add(delBtn);
+                delBtn.addActionListener(this);
+                this.add(delBtn, "6, " + rowToAdd);
+            }*/
+        }
+        
+        /**
+         * Called when a button is pressed on the panel
+         */
+        public void actionPerformed(ActionEvent e)
+        {
+            if (e.getSource() == this.btnAddInputFile)
+            {
+                this.addInputFileRow("New file", true);
+                this.updateGUI();
+            }
+            else
+            {
+                // See if we've clicked a "pick file button"
+                int index = this.pickFileButtons.indexOf(e.getSource());
+                if (index != -1)
+                {
+                    JFileChooser chooser = new JFileChooser();
+                    int returnVal = chooser.showOpenDialog(this);
+                    if (returnVal == JFileChooser.APPROVE_OPTION)
+                    {
+                        JTextField ta = (JTextField)this.fileLocations.get(index);
+                        ta.setText(chooser.getSelectedFile().getPath());
+                    }
+                }
+                else
+                {
+                    // We must have clicked a "remove" button
+                    // TODO: make this work
+                }
+            }
         }
     }
     

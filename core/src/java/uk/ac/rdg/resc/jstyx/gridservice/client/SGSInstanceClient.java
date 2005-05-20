@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2005/05/20 16:28:49  jonblower
+ * Continuing to implement GUI app
+ *
  * Revision 1.15  2005/05/20 07:45:27  jonblower
  * Implemented getInputFiles() to find the input files required by the service
  *
@@ -378,8 +381,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             // Look to see if the write bits are set
             // TODO: this might be specific to user/group etc
             this.allowOtherInputFiles = ((mode & 0222) == 0222);
-            System.err.println("Other input files " + (allowOtherInputFiles ? 
-                "allowed" : "not allowed"));
             // Send a message to get the children of this directory: these are
             // the compulsory input files
             this.inputFilesDir.getChildrenAsync();
