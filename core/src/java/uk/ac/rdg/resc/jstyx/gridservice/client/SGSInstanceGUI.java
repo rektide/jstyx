@@ -154,6 +154,19 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     }
     
     /**
+     * Called when we have discovered the input files that the service instance
+     * expects.
+     * @param inputFiles Array of CStyxFiles representing all the compulsory
+     * input files that must be uploaded to the service
+     * @param allowOtherInputFiles If true, we will have the option of uploading
+     * other input files to the service instance
+     */
+    public void gotInputFiles(CStyxFile[] inputFiles, boolean allowOtherInputFiles)
+    {
+        // TODO
+    }
+    
+    /**
      * Called when an error occurs. Shows a dialog box with the message
      */
     public void error(String message)

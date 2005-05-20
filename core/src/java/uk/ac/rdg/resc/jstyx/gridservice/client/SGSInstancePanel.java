@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/05/20 07:45:28  jonblower
+ * Implemented getInputFiles() to find the input files required by the service
+ *
  * Revision 1.8  2005/05/18 17:13:51  jonblower
  * Created SGSInstanceGUI
  *
@@ -272,6 +275,16 @@ public class SGSInstancePanel extends JPanel implements SGSInstanceChangeListene
      * @param inputMethods The names of input files (stdin and the input URL)
      */
     public void gotInputMethods(CStyxFile[] inputMethods) {}
+    
+    /**
+     * Called when we have discovered the input files that the service instance
+     * expects.
+     * @param inputFiles Array of CStyxFiles representing all the compulsory
+     * input files that must be uploaded to the service
+     * @param allowOtherInputFiles If true, we will have the option of uploading
+     * other input files to the service instance
+     */
+    public void gotInputFiles(CStyxFile[] inputFiles, boolean allowOtherInputFiles) {}
     
     /**
      * Called when the service instance has been started

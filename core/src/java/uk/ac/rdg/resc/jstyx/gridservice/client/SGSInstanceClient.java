@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/05/20 07:45:27  jonblower
+ * Implemented getInputFiles() to find the input files required by the service
+ *
  * Revision 1.14  2005/05/19 18:42:06  jonblower
  * Implementing specification of input files required by SGS
  *
@@ -113,6 +116,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     
     // Input files
     private CStyxFile inputFilesDir;
+    private boolean allowOtherInputFiles; // True if we are allowed to upload
+        // input files other than the compulsory ones
     private CStyxFile[] inputFiles; // The compulsory input files
     
     // Input streams (stdin and URL to redirect to stdin)
@@ -213,6 +218,20 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // When the contents of the directory have been found, the childrenFound
         // method of this class will be called.
         this.inputDir.getChildrenAsync();
+    }
+    
+    /**
+     * Sends a message to get the input files that the service instance needs.
+     * When the reply arrives, the gotInputFiles() event will be fired.
+     */
+    public void getInputFiles()
+    {
+        // Get the stat of the inputFiles directory - the permissions of this
+        // file determine whether or not we are allowed to upload input files
+        // other than those specified. When the reply comes, the statChanged()
+        // event will be fired on this class and the contents of the inputFiles
+        // directory will be found
+        this.inputFilesDir.refreshAsync();
     }
     
     /**
@@ -346,6 +365,28 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * Called after the stat of a file (permissions etc) has been changed.
+     * Actually, this is called after an Rstat message arrives; it does not
+     * necessarily mean that the stat has changed.
+     */
+    public void statChanged(CStyxFile file, DirEntry newDirEntry)
+    {
+        if (file == this.inputFilesDir)
+        {
+            // We are in the process of working out the input files
+            long mode = newDirEntry.getMode(); // The permissions and flags of the directory
+            // Look to see if the write bits are set
+            // TODO: this might be specific to user/group etc
+            this.allowOtherInputFiles = ((mode & 0222) == 0222);
+            System.err.println("Other input files " + (allowOtherInputFiles ? 
+                "allowed" : "not allowed"));
+            // Send a message to get the children of this directory: these are
+            // the compulsory input files
+            this.inputFilesDir.getChildrenAsync();
+        }
+    }
+    
+    /**
      * Called when we have the list of children for a directory.
      */
     public void childrenFound(CStyxFile file, CStyxFile[] children)
@@ -369,6 +410,11 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         {
             // We have just discovered the input methods
             this.fireGotInputMethods(children);
+        }
+        else if (file == this.inputFilesDir)
+        {
+            // We have just found the compulsory input files
+            this.fireGotInputFiles(children, this.allowOtherInputFiles);
         }
         else
         {
@@ -540,6 +586,26 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
                 listener.gotInputMethods(inputMethods);
+            }
+        }
+    }
+    
+    /**
+     * Fires the gotInputFiles() event on all registered change listeners
+     * @param inputFiles Array of CStyxFiles representing all the compulsory
+     * input files that must be uploaded to the service
+     * @param allowOtherInputFiles If true, we will have the option of uploading
+     * other input files to the service instance
+     */
+    private void fireGotInputFiles(CStyxFile[] inputFiles, boolean allowOtherInputFiles)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.gotInputFiles(inputFiles, allowOtherInputFiles);
             }
         }
     }
