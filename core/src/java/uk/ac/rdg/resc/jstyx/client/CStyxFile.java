@@ -31,6 +31,7 @@ package uk.ac.rdg.resc.jstyx.client;
 import java.util.Vector;
 import java.util.Iterator;
 import java.util.Date;
+import java.io.File;
 
 import org.apache.log4j.Logger;
 
@@ -55,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.20  2005/05/23 07:36:19  jonblower
+ * Implementing uploadFileAsync
+ *
  * Revision 1.19  2005/05/18 17:12:01  jonblower
  * Added getURL() method
  *
@@ -1305,6 +1309,70 @@ public class CStyxFile extends MessageCallback
         public void error(String message, int tag)
         {
             fireError("Error getting directory contents from " + getPath()
+                + ": " + message);
+        }
+    }
+    
+    /**
+     * Uploads a file to this file or directory.  If this CStyxFile
+     * is a directory then the new file will be created inside this directory.
+     * If this is a file, then it will be overwritten (subject to the value of the
+     * allowOverwrite flag).  When the process is complete, the uploadComplete()
+     * event will be fired on all registered change listeners.  The file on the
+     * remote server will end up with rw-rw-rw- permissions, subject to the
+     * permissions of the host directory.
+     * @param file The File to copy/upload
+     * @param name The name to give the file in the remote namespace
+     * @param allowOverwrite if this is true, any existing file with the same
+     * name will be overwritten.
+     */
+    public void uploadFileAsync(File file, String name, boolean allowOverwrite)
+    {
+        // The upload will proceed in stages.  First we will establish whether
+        // this CStyxFile is a file or directory.  Then we will establish whether
+        // the target file already exists, throwing an error if it does and 
+        // allowOverwrite == false.  Then we will create the target file if
+        // necessary.  Then we will upload the file in chunks.
+        
+        UploadCallback callback = new UploadCallback();
+        // First find out if this CStyxFile is a file or directory
+        if (this.dirEntry == null)
+        {
+            this.refreshAsync(callback);
+        }
+        else
+        {
+            
+        }
+    }
+    
+    /**
+     * Callback that is used when uploading a file to the server. Contains 
+     * state that needs to persist between message exchanges with the server.
+     */
+    private class UploadCallback extends MessageCallback
+    {
+        public void replyArrived(StyxMessage message)
+        {
+            if (message instanceof RstatMessage)
+            {
+                RstatMessage rStatMsg = (RstatMessage)message;
+                dirEntry = rStatMsg.getDirEntry();
+                if (dirEntry.getQid().getType() == 128)
+                {
+                    this.error("is a directory", -1);
+                }
+                else
+                {
+                    // this is a file
+                }
+            }
+            
+        }
+        
+        public void error(String message, int tag)
+        {
+            fireError("Error uploading file to " + getPath()
                 + ": " + message);
         }
     }
