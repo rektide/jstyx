@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2005/05/23 16:48:23  jonblower
+ * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
+ *
  * Revision 1.16  2005/05/20 16:28:49  jonblower
  * Continuing to implement GUI app
  *
@@ -167,15 +170,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Creates a new SGSInstanceClient for an instance that sits on the given
-     * connection, with the given service name and ID
-     */
-    public SGSInstanceClient(StyxConnection conn, String serviceName, int instanceID)
-    {
-        this(new CStyxFile(conn, serviceName + "/" + instanceID));
-    }
-    
-    /**
      * @return the CStyxFile at the root of this instance
      */
     public CStyxFile getInstanceRoot()
@@ -189,7 +183,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      */
     public void startService()
     {
-        this.ctlFile.writeAsync("start");
+        this.ctlFile.writeAsync("start", 0);
     }
     
     /**
@@ -198,7 +192,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      */
     public void stopService()
     {
-        this.ctlFile.writeAsync("stop");
+        this.ctlFile.writeAsync("stop", 0);
     }
     
     /**
@@ -288,7 +282,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         if (data.remaining() > 0)
         {
-            file.setOffset(tReadMsg.getOffset().asLong() + data.remaining());
+            // Calculate the offset of the next read
+            long offset = tReadMsg.getOffset().asLong() + data.remaining();
             // Find out which file this data belongs to
             if (file == stdout)
             {
@@ -312,7 +307,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                     }
                 }
             }
-            file.readAsync();
+            file.readAsync(offset);
         }
         else
         {
@@ -326,8 +321,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                     isServiceData = true;
                     this.fireServiceDataChanged(file.getName(), this.sdeBufs[i].toString());
                     this.sdeBufs[i].setLength(0);
-                    file.setOffset(0);
-                    file.readAsync();
+                    file.readAsync(0);
                 }
             }
             if (!isServiceData)

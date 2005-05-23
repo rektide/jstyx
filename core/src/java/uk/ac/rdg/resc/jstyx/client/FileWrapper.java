@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/23 16:48:17  jonblower
+ * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
+ *
  * Revision 1.2  2005/03/11 13:58:25  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -142,8 +145,7 @@ public class FileWrapper extends File
         }
         else
         {
-            CStyxFile newFile = new CStyxFile(this.file.getConnection(),
-                parentPath);
+            CStyxFile newFile = this.file.getConnection().getFile(parentPath);
             return new FileWrapper(newFile);
         }
     }

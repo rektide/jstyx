@@ -41,8 +41,8 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.2  2005/02/21 18:09:42  jonblower
- * *** empty log message ***
+ * Revision 1.3  2005/05/23 16:48:17  jonblower
+ * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
  *
  * Revision 1.1.1.1  2005/02/16 18:58:18  jonblower
  * Initial import

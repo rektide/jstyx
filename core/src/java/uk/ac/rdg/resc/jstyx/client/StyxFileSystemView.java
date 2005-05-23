@@ -35,6 +35,7 @@ import javax.swing.filechooser.FileSystemView;
 import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
+import uk.ac.rdg.resc.jstyx.StyxException;
 
 /**
  * A FileSystemView for a Styx filesystem that can be used by a JFileChooser
@@ -46,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnection;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/23 16:48:17  jonblower
+ * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
+ *
  * Revision 1.3  2005/03/11 13:58:25  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -193,7 +197,7 @@ public class StyxFileSystemView extends FileSystemView
     public File createFileObject(String path)
     {
         log.debug("Called createFileObject(" + path + ")");
-        CStyxFile file = new CStyxFile(this.conn, path);
+        CStyxFile file = this.conn.getFile(path);
         return new FileWrapper(file);
     }
     

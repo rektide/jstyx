@@ -35,12 +35,16 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
 
 /**
- * Output stream for writing data to a Styx File
+ * Output stream for writing data to a Styx File.  The file will be truncated
+ * at the end of the data that are written through this class.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/23 16:48:17  jonblower
+ * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
+ *
  * Revision 1.3  2005/05/12 07:40:52  jonblower
  * CStyxFile.close() no longer throws a StyxException
  *
@@ -96,10 +100,10 @@ public class StyxFileOutputStream extends OutputStream
      */
     public synchronized void flush() throws IOException
     {
-        // Write the contents of the buffer to the file
+        // Write the contents of the buffer to the file with truncation
         try
         {
-            this.file.write(this.buf, this.offset);
+            this.file.write(this.buf, this.offset, true);
         }
         catch(StyxException se)
         {

@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2005/05/23 16:48:17  jonblower
+ * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
+ *
  * Revision 1.16  2005/05/16 16:16:52  jonblower
  * Implemented getRemoteHost() and getRemotePort()
  *
@@ -170,6 +173,8 @@ public class StyxConnection implements ProtocolHandler
     
     private Vector listeners;     // The StyxConnectionListeners that will be informed of events
     
+    private Hashtable files;      // CStyxFiles that have been created on this connection
+    
     // MINA components
     private ProtocolSession session;
     private IoThreadPoolFilter ioThreadPoolFilter;
@@ -198,13 +203,15 @@ public class StyxConnection implements ProtocolHandler
         this.errMsg = null;
         this.unsentMessages = new Vector();
         this.rootFid = 0;
-        this.rootDirectory = new CStyxFile(this, "/", this.rootFid);
         this.tagsInUse = new Vector();
         this.fidsInUse = new Vector();
         this.msgQueue = new Hashtable();
         this.tClunksPending = new Hashtable();
         this.listeners = new Vector();
         this.maxMessageSizeRequest = maxMessageSizeRequest;
+        this.files = new Hashtable();
+        this.rootDirectory = this.getFile("/");
+        this.rootDirectory.setFid(0);
         // The synchronization ensures that the numSessions static variable
         // can only be altered by one thread at once
         synchronized(numSessions)
@@ -741,6 +748,52 @@ public class StyxConnection implements ProtocolHandler
     }
     
     /**
+     * Gets a CStyxFile with the given path.  If this file is already known on
+     * this connection, it will be returned.  This will not open the file: use
+     * open() on the resulting CStyxFile or this.openFile();
+     * @throws InvalidPathException if the given path is not valid and absolute
+     * (only catch this runtime exception if it is likely that the path could be
+     * invalid, e.g. when the path is being input by a user)
+     */
+    public CStyxFile getFile(String path)
+    {
+        // Get the canonical version of this path
+        String canonicalPath = getCanonicalPath(path);
+        // See if this CStyxFile is known on this connection
+        if (this.files.containsKey(canonicalPath))
+        {
+            return (CStyxFile)this.files.get(canonicalPath);
+        }
+        else
+        {
+            CStyxFile newFile = new CStyxFile(this, canonicalPath);
+            this.addFile(newFile);
+            return newFile;
+        }
+    }
+    
+    /**
+     * Adds a file to this connection's stash, making sure the path is valid, 
+     * canonical and absolute
+     */
+    void addFile(CStyxFile file)
+    {
+        String path = getCanonicalPath(file.getPath());
+        this.files.put(path, file);
+    }
+    
+    /**
+     * Gets the canonical version of the given path.  Removes all duplicate
+     * slashes, collapses all "." and ".." and checks that the path is
+     * valid and absolute, throwing an InvalidPathException if not.  This canonical
+     * path is used as the key for the Hashtable of known CStyxFiles.
+     */
+    private static String getCanonicalPath(String path) throws InvalidPathException
+    {
+        return path; // TODO
+    }
+    
+    /**
      * Opens a file on the server, throwing a StyxException if the file can't 
      * be found or opened in the given mode. Blocks until the file is open.
      * @param path The path of the file relative to the server root.
@@ -751,7 +804,7 @@ public class StyxConnection implements ProtocolHandler
      */
     public CStyxFile openFile(String path, int mode) throws StyxException
     {
-        CStyxFile file = new CStyxFile(this, path);
+        CStyxFile file = this.getFile(path);
         file.open(mode);
         return file;
     }
@@ -767,20 +820,8 @@ public class StyxConnection implements ProtocolHandler
      */
     public String getContents(String path) throws StyxException
     {
-        return new CStyxFile(this, path).getContents();        
+        return this.getFile(path).getContents();        
     }
-    
-    /**
-     * Sets the contents of the given file to the given string. Overwrites anything
-     * else in the file.
-     * @param path The path of the file relative to the server root
-     * @param str The new file contents
-     * @throws StyxException if there was an error opening or writing to the file
-     */
-    /*public void setContents(String path, String str) throws StyxException
-    {
-        new CStyxFile(this, path).setContents(str);
-    }*/
     
     /**
      * Adds a StyxConnectionListener to this connection. The methods of the

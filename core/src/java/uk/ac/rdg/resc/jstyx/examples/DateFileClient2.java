@@ -41,6 +41,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/23 16:48:23  jonblower
+ * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
+ *
  * Revision 1.3  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -64,13 +67,15 @@ public class DateFileClient2
         CStyxFile dateFile = conn.openFile("date", StyxUtils.OREAD);
         
         ByteBuffer buf = null;
+        long pos = 0;
         do
         {
             // Read a chunk of data from the file
-            buf = dateFile.read();
+            buf = dateFile.read(pos);
             // If we have reached EOF, there will be no bytes in the buffer
             if (buf.hasRemaining())
             {
+                pos += buf.remaining();
                 // Convert the data in the buffer to a string and print it
                 String s = StyxUtils.dataToString(buf);
                 System.out.print(s);

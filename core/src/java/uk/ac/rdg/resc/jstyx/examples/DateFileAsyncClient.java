@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/23 16:48:23  jonblower
+ * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
+ *
  * Revision 1.3  2005/05/12 07:40:54  jonblower
  * CStyxFile.close() no longer throws a StyxException
  *
@@ -70,7 +73,7 @@ public class DateFileAsyncClient extends CStyxFileChangeAdapter
         StyxConnection conn = new StyxConnection("localhost", 9876);
         conn.connectAsync();
         // Create a CStyxFile but don't open it yet
-        CStyxFile dateFile = new CStyxFile(conn, "date");
+        CStyxFile dateFile = conn.getFile("date");
         // Add a changelistener to this file
         dateFile.addChangeListener(new DateFileAsyncClient(conn));
         // Start reading from the start of this file

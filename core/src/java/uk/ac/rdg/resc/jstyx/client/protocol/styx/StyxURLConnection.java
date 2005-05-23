@@ -50,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/23 16:48:23  jonblower
+ * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
+ *
  * Revision 1.2  2005/02/24 07:47:06  jonblower
  * Added connect() in response to change to StyxConnection
  *
@@ -77,7 +80,7 @@ public class StyxURLConnection extends URLConnection
             String user = this.url.getUserInfo() == null ? "" : this.url.getUserInfo();
             conn = new StyxConnection(this.url.getHost(), this.url.getPort(), user);
             conn.connect();
-            this.file = new CStyxFile(conn, this.url.getPath());
+            this.file = conn.getFile(this.url.getPath());
             // TODO: check that the file exists here?
         }
         catch (Exception e)
