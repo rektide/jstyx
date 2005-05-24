@@ -31,7 +31,11 @@ package uk.ac.rdg.resc.jstyx.client;
 import java.util.Vector;
 import java.util.Iterator;
 import java.util.Date;
+
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import org.apache.log4j.Logger;
 
@@ -57,6 +61,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.22  2005/05/24 12:55:30  jonblower
+ * Added uploadFile()
+ *
  * Revision 1.21  2005/05/23 16:48:17  jonblower
  * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
  *
@@ -309,10 +316,8 @@ public class CStyxFile
      * location of this file. Does not block; calls the replyArrived() method
      * of the given callback if the walk was successful, or the error() method
      * otherwise.
-     * @throws IllegalStateException if a fid already exists for this file 
-     * (should not happen in practice)
      */
-    private void getFidAsync(MessageCallback callback)
+    protected void getFidAsync(MessageCallback callback)
     {
         GetFidCallback getFidCB = new GetFidCallback(callback);
         getFidCB.getFid();
@@ -380,10 +385,8 @@ public class CStyxFile
     /**
      * Gets a fid for this file that we can open (equivalent to cloning a fid
      * in older versions of Styx). Does not block.
-     * @throws IllegalStateException if we already have a fid that we can open
-     * for this file
      */
-    private void getOpenFidAsync(MessageCallback callback)
+    protected void getOpenFidAsync(MessageCallback callback)
     {
         GetOpenFidCallback openFidCB = new GetOpenFidCallback(callback);
         openFidCB.nextStage();
@@ -1303,8 +1306,8 @@ public class CStyxFile
     }
     
     /**
-     * Uploads a file to this directory.  The file on the
-     * remote server will end up with rw-rw-rw- (0666) permissions, subject to the
+     * Uploads a file to this directory.  If the file does not exist it will be
+     * created with rw-rw-rw- (0666) permissions, subject to the
      * permissions of the host directory.  When the process is finished, the 
      * uploadComplete() event will be fired on all registered change
      * CStyxFileChangeListeners.  If an error occurs, the error() event will be
@@ -1323,7 +1326,6 @@ public class CStyxFile
         // the target file already exists, throwing an error if it does and 
         // allowOverwrite == false.  Then we will create the target file if
         // necessary.  Then we will upload the file in chunks.
-        
         UploadCallback uploadCB = new UploadCallback(file, name, allowOverwrite);
         uploadCB.nextStage();
     }
@@ -1338,14 +1340,27 @@ public class CStyxFile
         private String name;
         private boolean allowOverwrite;
         private TwalkMessage tWalkMsg;
-        private long newFid;
+        private long clonedFid;
+        private long targetFileFid;
+        private CStyxFile targetFile;
+        private boolean checkingTargetExists;
+        private boolean targetExists;
+        private int ioUnit;
+        private byte[] bytes;
+        private long offset;
+        private FileInputStream fin;
         
         public UploadCallback(File file, String name, boolean allowOverwrite)
         {
             this.file = file;
             this.name = name;
             this.allowOverwrite = allowOverwrite;
-            this.newFid = -1;
+            this.clonedFid = -1;
+            this.targetFileFid = -1;
+            this.checkingTargetExists = false;
+            this.bytes = null;
+            this.offset = 0;
+            this.fin = null;
         }
         
         public void nextStage()
@@ -1353,7 +1368,7 @@ public class CStyxFile
             if (dirEntry == null)
             {
                 // We don't know if this is a file or directory. Refresh the
-                // stat.
+                // stat (this will also set a fid if we haven't got one already).
                 refreshAsync(this);
             }
             else if (dirEntry.getQid().getType() != 128)
@@ -1361,14 +1376,92 @@ public class CStyxFile
                 // this is not a directory. Fire an error
                 this.error(path + " is not a directory", -1);
             }
+            else if (this.clonedFid < 0)
+            {
+                // We must clone this directory's fid. We don't expect this
+                // zero-length walk to fail.
+                this.clonedFid = conn.getFreeFid();
+                this.tWalkMsg = new TwalkMessage(fid, this.clonedFid, "");
+                conn.sendAsync(this.tWalkMsg, this);
+            }
+            else if (this.targetFileFid < 0)
+            {
+                // Now we walk the cloned fid to the target file.  This is a
+                // walk of length one and will result in error() being called
+                // if the file does not exist
+                this.targetFileFid = conn.getFreeFid();
+                this.tWalkMsg = new TwalkMessage(this.clonedFid,
+                    this.targetFileFid, name);
+                this.checkingTargetExists = true;
+                conn.sendAsync(this.tWalkMsg, this);
+            }
+            else if (this.bytes == null)
+            {
+                // The file isn't ready for writing.  Need to open or create it.
+                if (this.targetExists)
+                {
+                    // If the target exists, check that we're allowed to overwrite it
+                    if (this.allowOverwrite)
+                    {
+                        // Send message to open it for writing
+                        TopenMessage tOpenMsg = new TopenMessage(this.targetFileFid, 
+                            StyxUtils.OWRITE | StyxUtils.OTRUNC);
+                        conn.sendAsync(tOpenMsg, this);
+                    }
+                    else
+                    {
+                        // Raise an error
+                        this.error(this.name + " already exists", -1);
+                    }
+                }
+                else
+                {
+                    // TODO: we must clone the fid of the host directory again
+                    // to get the fid that we can use to create the file
+                    // We must create the file
+                    TcreateMessage tCreateMsg = new TcreateMessage(this.targetFileFid,
+                        this.name, 0666, false, StyxUtils.OWRITE | StyxUtils.OTRUNC);
+                    conn.sendAsync(tCreateMsg, this);
+                }
+            }
             else
             {
-                // This is a directory and its fid has been set. Try to walk to
-                // the target file (check to see if it exists)
-                this.newFid = conn.getFreeFid();
-                this.tWalkMsg = new TwalkMessage(fid, this.newFid, path + "/"
-                    + this.name);
-                conn.sendAsync(this.tWalkMsg, this);
+                try
+                {
+                    // We're ready to write to the file
+                    // TODO: should we check earlier that the file exists?
+                    if (this.fin == null)
+                    {
+                        this.fin = new FileInputStream(this.file);
+                    }
+                    int numRead = this.fin.read(this.bytes);
+                    if (numRead >= 0)
+                    {
+                        // Send the data to the target file
+                        TwriteMessage tWriteMsg = new TwriteMessage(this.targetFileFid,
+                            new ULong(this.offset), this.bytes, 0, numRead);
+                        conn.sendAsync(tWriteMsg, this);
+                    }
+                    else
+                    {
+                        // We have reached EOF: the upload is complete
+                        TclunkMessage tClunkMsg = new TclunkMessage(this.targetFileFid);
+                        // We don't need to wait for the reply to the tClunk
+                        conn.sendAsync(tClunkMsg, null);
+                        this.fin.close();
+                        // Notify all listeners that upload is complete
+                        fireUploadComplete(this.name);
+                    }
+                }
+                catch(FileNotFoundException fnfe)
+                {
+                    this.error(this.file.getPath() + " does not exist", -1);
+                }
+                catch(IOException ioe)
+                {
+                    this.error("IOException when reading from " + this.file.getPath()
+                        + ": " + ioe.getMessage(), -1);
+                }
             }
         }
         
@@ -1376,26 +1469,93 @@ public class CStyxFile
         {
             if (message instanceof RstatMessage)
             {
-                // We've just refreshed the stat of the file. Proceed to the 
-                // next stage, i.e. check that this is a directory
+                // We've just refreshed the stat of the host directory. Proceed
+                // to the next stage, i.e. check that this is actually a directory
                 this.nextStage();
             }
             else if (message instanceof RwalkMessage)
             {
-                // We've just checked to see if the target file exists.
-                
+                if (this.tWalkMsg.getNumPathElements() == 0)
+                {
+                    // We've just cloned the fid of the host directory. Proceed to
+                    // the next stage, i.e. walk the cloned fid to the target file
+                    this.nextStage();
+                }
+                else
+                {
+                    // We've just successfully walked the cloned fid to the
+                    // target file, so the target file must exist.
+                    this.targetExists = true;
+                    // We clunk the cloned fid (Inferno does this)
+                    TclunkMessage tClunkMsg = new TclunkMessage(this.clonedFid);
+                    // We don't have to deal with the reply to this
+                    conn.sendAsync(tClunkMsg, null);
+                    this.checkingTargetExists = false;
+                    // Proceed to the next stage, i.e. open the file
+                    this.nextStage();
+                }
+            }
+            else if (message instanceof RopenMessage)
+            {
+                // We have just opened the file for writing (the file
+                // pre-existed).  Proceed to the next stage (i.e. writing to 
+                // the file)
+                RopenMessage rOpenMsg = (RopenMessage)message;
+                this.bytes = new byte[(int)rOpenMsg.getIoUnit()];
+                this.nextStage();
+            }
+            else if (message instanceof RcreateMessage)
+            {
+                // We have just created the file. Proceed to the next stage
+                // (i.e. writing to the file)
+                RcreateMessage rCreateMsg = (RcreateMessage)message;
+                this.bytes = new byte[(int)rCreateMsg.getIoUnit()];
+                this.nextStage();
+            }
+            else
+            {
+                // Must be an RwriteMessage
+                RwriteMessage rWriteMsg = (RwriteMessage)message;
+                // TODO: check that this matches the number of bytes sent
+                this.offset += rWriteMsg.getNumBytesWritten();
+                // Proceed to the next stage (i.e. write the next chunk)
+                this.nextStage();
             }
         }
         
         public void error(String message, int tag)
         {
-            fireError("Error uploading file to " + getPath() + "/" + this.name
-                + ": " + message);
+            if (this.checkingTargetExists)
+            {
+                // We were checking to see if the target file exists and it doesn't.
+                // Send a message to create the file
+                this.targetExists = false;
+                this.checkingTargetExists = false;
+                // Proceed to the next stage, i.e. create the file
+                this.nextStage();
+            }
+            else
+            {
+                if (this.fin != null)
+                {
+                    try
+                    {
+                        this.fin.close();
+                    }
+                    catch (IOException ioe)
+                    {
+                        log.debug("IOException when closing inputstream: " 
+                            + ioe.getMessage());
+                    }
+                }
+                fireError("Error uploading file to " + getPath() + "/" + this.name
+                    + ": " + message);
+            }
         }
     }
     
     /**
-     * Adds a StyxFileChangeListener to this file. The methods of the change
+     * Adds a CStyxFileChangeListener to this file. The methods of the change
      * listener will be called when events happen, such as new data arriving
      * or a change in permissions, etc (note that this notification will only
      * happen if the changes are made by calling methods of this CStyxFile
@@ -1524,6 +1684,22 @@ public class CStyxFile
                 CStyxFileChangeListener listener =
                     (CStyxFileChangeListener)this.listeners.get(i);
                 listener.childrenFound(this, this.children);
+            }
+        }
+    }
+    
+    /**
+     * Fires the uploadComplete() method on all registered listeners
+     */
+    private void fireUploadComplete(String name)
+    {
+        synchronized(this.listeners)
+        {
+            for (int i = 0; i < listeners.size(); i++)
+            {
+                CStyxFileChangeListener listener =
+                    (CStyxFileChangeListener)this.listeners.get(i);
+                listener.uploadComplete(this, name);
             }
         }
     }
