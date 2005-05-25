@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/05/25 15:37:55  jonblower
+ * Removed cache of CStyxFiles, dealt differently with root fid
+ *
  * Revision 1.17  2005/05/23 16:48:17  jonblower
  * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
  *
@@ -155,7 +158,6 @@ public class StyxConnection implements ProtocolHandler
                                    // called, and the connection has not been closed
     private boolean connected;     // True if this is connected to the remote
                                    // server (handshaking might not have been done)
-    private boolean attached;      // True if this session is attached for messages to be sent
     private String errMsg;         // Non-null if an error occurred
     private Vector unsentMessages; // Messages that are waiting for the connection to be
                                    // established before they are sent
@@ -172,8 +174,6 @@ public class StyxConnection implements ProtocolHandler
     private int maxMessageSize;   // The actual maximum size of message that can be sent on this connection
     
     private Vector listeners;     // The StyxConnectionListeners that will be informed of events
-    
-    private Hashtable files;      // CStyxFiles that have been created on this connection
     
     // MINA components
     private ProtocolSession session;
@@ -197,21 +197,18 @@ public class StyxConnection implements ProtocolHandler
         this.host = host;
         this.port = port;
         this.user = user;
-        this.attached = false;
         this.connecting = false;
         this.connected = false;
         this.errMsg = null;
         this.unsentMessages = new Vector();
-        this.rootFid = 0;
+        this.rootFid = -1;
         this.tagsInUse = new Vector();
         this.fidsInUse = new Vector();
         this.msgQueue = new Hashtable();
         this.tClunksPending = new Hashtable();
         this.listeners = new Vector();
         this.maxMessageSizeRequest = maxMessageSizeRequest;
-        this.files = new Hashtable();
         this.rootDirectory = this.getFile("/");
-        this.rootDirectory.setFid(0);
         // The synchronization ensures that the numSessions static variable
         // can only be altered by one thread at once
         synchronized(numSessions)
@@ -319,7 +316,7 @@ public class StyxConnection implements ProtocolHandler
     {
         this.connectAsync(); // I'm assuming that this does nothing if already
                              // started
-        while (!this.attached && this.errMsg == null)
+        while (this.rootFid < 0 && this.errMsg == null)
         {
             synchronized(this)
             {
@@ -417,9 +414,17 @@ public class StyxConnection implements ProtocolHandler
         }
         if(!tClunkSent)
         {
-            // There were no more fids left to clunk. Close the connection completely
-            this.attached = false;
-            this.session.close();
+            if (this.rootFid >= 0)
+            {
+                // Clunk the root fid to finally close the connection
+                this.sendAsync(new TclunkMessage(this.getRootFid()), callback);
+                this.rootFid = -1;
+            }
+            else
+            {
+                // No more fids left to clunk
+                this.session.close();
+            }
         }
     }
     
@@ -492,7 +497,7 @@ public class StyxConnection implements ProtocolHandler
         synchronized(this)
         {
             // If the connection is open, send the message, otherwise, enqueue it
-            if (this.attached || message instanceof TversionMessage ||
+            if (this.rootFid >= 0 || message instanceof TversionMessage ||
                 message instanceof TattachMessage)
             {
                 // Send the message
@@ -569,8 +574,7 @@ public class StyxConnection implements ProtocolHandler
     {
         synchronized(this.fidsInUse)
         {
-            // Fid zero is the root fid, so we start at 1
-            for (int i = 1; i < StyxUtils.MAXUINT; i++)
+            for (int i = 0; i < StyxUtils.MAXUINT; i++)
             {
                 // Check to see if this tag is already in use
                 if (!this.fidsInUse.contains(new Long(i)))
@@ -678,7 +682,7 @@ public class StyxConnection implements ProtocolHandler
         {
             RversionMessage rVerMsg = (RversionMessage)message;
             maxMessageSize = (int)rVerMsg.getMaxMessageSize();
-            TattachMessage tAttMsg = new TattachMessage(rootFid, user);
+            TattachMessage tAttMsg = new TattachMessage(getFreeFid(), user);
             sendAsync(tAttMsg, new TattachCallback());
         }
         public void error(String message, int tag)
@@ -691,7 +695,8 @@ public class StyxConnection implements ProtocolHandler
     {
         public void replyArrived(StyxMessage message)
         {
-            attached = true;
+            TattachMessage tAttMsg = (TattachMessage)this.tMessage;
+            rootFid = tAttMsg.getFid();
             fireStyxConnectionReady();
         }
         public void error(String message, int tag)
@@ -711,7 +716,6 @@ public class StyxConnection implements ProtocolHandler
         }
         this.connected = false;
         this.connecting = false;
-        this.attached = false;
         
         // Stop threads
         this.ioThreadPoolFilter.stop();
@@ -748,49 +752,15 @@ public class StyxConnection implements ProtocolHandler
     }
     
     /**
-     * Gets a CStyxFile with the given path.  If this file is already known on
-     * this connection, it will be returned.  This will not open the file: use
-     * open() on the resulting CStyxFile or this.openFile();
+     * Gets a CStyxFile with the given path.  Note that each call to this method
+     * will return a new object, even if the path is identical.
      * @throws InvalidPathException if the given path is not valid and absolute
      * (only catch this runtime exception if it is likely that the path could be
      * invalid, e.g. when the path is being input by a user)
      */
     public CStyxFile getFile(String path)
     {
-        // Get the canonical version of this path
-        String canonicalPath = getCanonicalPath(path);
-        // See if this CStyxFile is known on this connection
-        if (this.files.containsKey(canonicalPath))
-        {
-            return (CStyxFile)this.files.get(canonicalPath);
-        }
-        else
-        {
-            CStyxFile newFile = new CStyxFile(this, canonicalPath);
-            this.addFile(newFile);
-            return newFile;
-        }
-    }
-    
-    /**
-     * Adds a file to this connection's stash, making sure the path is valid, 
-     * canonical and absolute
-     */
-    void addFile(CStyxFile file)
-    {
-        String path = getCanonicalPath(file.getPath());
-        this.files.put(path, file);
-    }
-    
-    /**
-     * Gets the canonical version of the given path.  Removes all duplicate
-     * slashes, collapses all "." and ".." and checks that the path is
-     * valid and absolute, throwing an InvalidPathException if not.  This canonical
-     * path is used as the key for the Hashtable of known CStyxFiles.
-     */
-    private static String getCanonicalPath(String path) throws InvalidPathException
-    {
-        return path; // TODO
+        return new CStyxFile(this, path);
     }
     
     /**
