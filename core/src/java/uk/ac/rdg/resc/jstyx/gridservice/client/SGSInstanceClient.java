@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
 import java.util.Vector;
+import java.io.File;
 
 import org.apache.mina.common.ByteBuffer;
 
@@ -49,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/05/25 16:59:31  jonblower
+ * Added uploadInputFile()
+ *
  * Revision 1.17  2005/05/23 16:48:23  jonblower
  * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
  *
@@ -229,6 +233,18 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // event will be fired on this class and the contents of the inputFiles
         // directory will be found
         this.inputFilesDir.refreshAsync();
+    }
+    
+    /**
+     * Uploads a file to the inputFiles directory of the SGS.
+     */
+    public void uploadInputFile(File file, String name)
+    {
+        // Get a CStyxFile for the target file: this does not have to exist yet.
+        CStyxFile targetFile = this.inputFilesDir.getFile(name);
+        targetFile.addChangeListener(this);
+        // Allow overwriting of the file on the remote server
+        targetFile.uploadFileAsync(file, true);
     }
     
     /**
@@ -424,6 +440,16 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public void error(CStyxFile file, String message)
     {
         this.fireError(message);
+    }
+    
+    /**
+     * Called after a file has been successfully uploaded
+     * @param targetFile The file to which the data have been uploaded
+     */
+    public void uploadComplete(CStyxFile targetFile)
+    {
+        System.err.println("*** data successfully uploaded to " +
+            targetFile.getPath());
     }
     
     /**

@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
 import java.util.Hashtable;
+import java.io.File;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -70,6 +71,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/25 16:59:31  jonblower
+ * Added uploadInputFile()
+ *
  * Revision 1.4  2005/05/20 16:28:50  jonblower
  * Continuing to implement GUI app
  *
@@ -456,8 +460,10 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         {
             if (e.getSource() == this.btnStart)
             {
-                // TODO: upload the necessary input files
-                client.startService();
+                // Upload the necessary input files
+                client.uploadInputFile(new File("C:\\md5lines.py"), "new.txt");
+                client.uploadInputFile(new File("C:\\md5lines.py"), "input.sim");
+                //client.startService();
             }
             else if (e.getSource() == this.btnStop)
             {
