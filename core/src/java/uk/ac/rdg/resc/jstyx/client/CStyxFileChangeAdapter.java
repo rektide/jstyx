@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/25 16:57:07  jonblower
+ * Added fileCreated() event
+ *
  * Revision 1.5  2005/05/12 14:20:55  jonblower
  * Changed dataSent() method to dataWritten() (more accurate name)
  *
@@ -67,6 +70,13 @@ public class CStyxFileChangeAdapter implements CStyxFileChangeListener
      * @param mode The mode with which the file was opened
      */
     public void fileOpen(CStyxFile file, int mode){}
+    
+    /**
+     * Called when the file has been created.
+     * @param file The file that has been created
+     * @param mode The mode with which the file was created
+     */
+    public void fileCreated(CStyxFile file, int mode){}
     
     /**
      * Called when new data have been read from the file (after the Rread message
@@ -120,5 +130,11 @@ public class CStyxFileChangeAdapter implements CStyxFileChangeListener
      * CStyxFile.getChildrenAsync())
      */
     public void childrenFound(CStyxFile file, CStyxFile[] children){}
+    
+    /**
+     * Called after a file has been successfully uploaded
+     * @param targetFile The file to which we have written
+     */
+    public void uploadComplete(CStyxFile targetFile) {}
     
 }
