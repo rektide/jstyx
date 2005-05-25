@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.24  2005/05/25 16:58:01  jonblower
+ * Changed implementation of openOrCreate()
+ *
  * Revision 1.23  2005/05/25 15:36:55  jonblower
  * No longer requires open fid, implemented createAsync() and openOrCreateAsync() methods
  *
@@ -628,12 +631,12 @@ public class CStyxFile
      * Opens or creates this file: if the file exists it will be opened with 
      * the given mode.  If it does not exist it will be created, provided that
      * the parent directory exists.
+     * @todo Check that, if the file exists, it is a file/dir as appropriate
      */
     private void openOrCreateAsync(boolean isDirectory, int mode,
         MessageCallback callback)
     {
-        OpenOrCreateCallback cb = new OpenOrCreateCallback(isDirectory, mode, callback);
-        cb.nextStage();
+        new OpenOrCreateCallback(isDirectory, mode, callback).nextStage();
     }
     
     private class OpenOrCreateCallback extends MessageCallback
@@ -641,7 +644,6 @@ public class CStyxFile
         private boolean isDirectory;
         private int mode;
         private MessageCallback callback;
-        private boolean triedOpen;
         
         public OpenOrCreateCallback(boolean isDirectory, int mode,
             MessageCallback callback)
@@ -649,52 +651,76 @@ public class CStyxFile
             this.isDirectory = isDirectory;
             this.mode = mode;
             this.callback = callback;
-            this.triedOpen = false;
         }
         
         public void nextStage()
         {
-            // Try opening the file first: this will check to see if the file
-            // exists, is already open under a different mode, etc.
-            if (!this.triedOpen)
+            // We must first find out if this is a file or directory (will also
+            // test to see if it exists)
+            if (qid == null)
             {
-                openAsync(this.mode, this);
+                refreshAsync(this);
             }
             else
             {
-                // The open failed. Try creating the file with default permissions
-                int perm = this.isDirectory ? 0777 : 0666;
-                createAsync(this.isDirectory, perm, this.mode, this);
+                // Check to see if it is the right type of file (i.e. file or
+                // directory)
+                if (this.isDirectory == (qid.getType() == 128))
+                {
+                    // Now we can open the file
+                    openAsync(this.mode, this);
+                }
+                else
+                {
+                    String errMsg = path + " already exists as a " +
+                        ((qid.getType() == 128) ? "directory" : "file");
+                    this.error(errMsg, -1);
+                }
             }
         }
         
         public void replyArrived(StyxMessage rMessage)
         {
-            if (rMessage instanceof RopenMessage || rMessage instanceof RcreateMessage)
+            if (rMessage instanceof RwalkMessage)
             {
-                // We've just opened the file. Notify the callback.
+                // We've just successfully got the stat of the file, so we have
+                // the qid and it must exist. Move to the next stage (i.e. checking
+                // the file type)
+                this.nextStage();
+            }
+            if (rMessage instanceof RopenMessage)
+            {
+                // We've just opened the file.
                 if (this.callback != null)
                 {
                     this.callback.replyArrived(rMessage);
                 }
                 else
                 {
-                    // TODO: fire event here?
+                    fireOpen(mode);
                 }
             }
             else
             {
-                // Shouldn't get any other reply types
+                // Must be an RcreateMessage
+                if (this.callback != null)
+                {
+                    this.callback.replyArrived(rMessage);
+                }
+                else
+                {
+                    fireCreated(mode);
+                }
             }
         }
         
         public void error(String message, int tag)
         {
-            if (!this.triedOpen)
+            if (qid == null)
             {
-                // The open failed. Now try to create the file
-                this.triedOpen = true;
-                this.nextStage();
+                // The file does not exist
+                int perm = this.isDirectory ? 0777 : 0666;
+                createAsync(this.isDirectory, perm, this.mode, this);
             }
             else if (this.callback != null)
             {
@@ -1176,7 +1202,7 @@ public class CStyxFile
      * Refreshes the status of the file by sending a TstatMessage. Does not wait
      * for a reply; when the reply arrives, the dirEntry of this file will be 
      * set and the replyArrived() method of the provided callback object
-     * will be called.
+     * will be called with an RwalkMessage as the argument.
      * @todo In the case of a directory, should this refresh the list of children?
      * @todo If there is already a Tstat message in flight, what should we do?
      * Does it matter much?
@@ -1594,6 +1620,22 @@ public class CStyxFile
                 CStyxFileChangeListener listener =
                     (CStyxFileChangeListener)this.listeners.get(i);
                 listener.fileOpen(this, mode);
+            }
+        }
+    }
+    
+    /**
+     * Fires the fileCreated() method on all registered listeners
+     */
+    private void fireCreated(int mode)
+    {
+        synchronized(this.listeners)
+        {
+            for (int i = 0; i < listeners.size(); i++)
+            {
+                CStyxFileChangeListener listener =
+                    (CStyxFileChangeListener)this.listeners.get(i);
+                listener.fileCreated(this, mode);
             }
         }
     }
