@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/25 16:58:41  jonblower
+ * Added fileCreated()
+ *
  * Revision 1.4  2005/05/25 15:39:02  jonblower
  * Bug fixes
  *
@@ -229,6 +232,7 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
 
     // These methods are required by the CStyxFileChangeListener interface
     public void fileOpen(CStyxFile file, int mode){}
+    public void fileCreated(CStyxFile file, int mode){}
     public void dataWritten(CStyxFile file, TwriteMessage tWriteMsg){}
     public void statChanged(CStyxFile file, DirEntry newDirEntry){}
     public void uploadComplete(CStyxFile targetFile){}
