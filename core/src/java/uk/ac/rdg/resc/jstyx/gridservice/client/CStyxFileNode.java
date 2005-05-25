@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/25 15:39:02  jonblower
+ * Bug fixes
+ *
  * Revision 1.3  2005/05/18 17:13:51  jonblower
  * Created SGSInstanceGUI
  *
@@ -228,4 +231,5 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
     public void fileOpen(CStyxFile file, int mode){}
     public void dataWritten(CStyxFile file, TwriteMessage tWriteMsg){}
     public void statChanged(CStyxFile file, DirEntry newDirEntry){}
+    public void uploadComplete(CStyxFile targetFile){}
 }

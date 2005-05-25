@@ -41,6 +41,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/25 15:39:02  jonblower
+ * Bug fixes
+ *
  * Revision 1.3  2005/05/23 16:48:17  jonblower
  * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
  *
@@ -74,39 +77,39 @@ public abstract class MessageCallback
      * expected, the error() method will be called. Otherwise, the replyArrived()
      * method will be called. Subclasses may not override this method.
      */
-    final void gotReply(StyxMessage message)
+    final void gotReply(StyxMessage rMessage)
     {
-        if (message instanceof RerrorMessage)
+        if (rMessage instanceof RerrorMessage)
         {
-            this.error(((RerrorMessage)message).getMessage(), message.getTag());
+            this.error(((RerrorMessage)rMessage).getMessage(), rMessage.getTag());
         }
         else
         {
-            if (message.getType() != this.tMessage.getType() + 1)
+            if (rMessage.getType() != this.tMessage.getType() + 1)
             {
-                this.error("Unexpected type of reply (" + message.getType() +
-                    ") to message of type " + this.tMessage.getType(), message.getTag());
+                this.error("Unexpected type of reply (" + rMessage.getType() +
+                    ") to message of type " + this.tMessage.getType(),
+                    rMessage.getTag());
             }
             else
             {
-                this.replyArrived(message);
+                this.replyArrived(rMessage);
             }
         }
     }
     
     /**
      * Called when the reply arrives.
-     * @param message the StyxMessage that has just arrived
+     * @param rMessage the reply
      */
-    public abstract void replyArrived(StyxMessage message);
+    public abstract void replyArrived(StyxMessage rMessage);
     
     /**
      * Called when an error occurs (this may occur if the server returned an
      * Rerror message, or if the reply was not of the expected type, or for 
      * other reasons).
      * @param message The error string
-     * @param tag The tag of the message that caused the error. If this is -1
-     * then no message was sent but an error was still generated
+     * @param tag The tag of the message pair
      */
     public abstract void error(String message, int tag);
     

@@ -40,6 +40,9 @@ import java.util.Vector;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/25 15:39:02  jonblower
+ * Bug fixes
+ *
  * Revision 1.4  2005/03/15 09:01:48  jonblower
  * Message type now stored as short, not int
  *
@@ -109,6 +112,11 @@ public class RwalkMessage extends StyxMessage
     {
         this.qids.add(qid);
         this.setLength();
+    }
+    
+    public Qid getQid(int index)
+    {
+        return (Qid)this.qids.get(index);
     }
     
     /**

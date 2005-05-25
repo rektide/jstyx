@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/05/25 15:39:02  jonblower
+ * Bug fixes
+ *
  * Revision 1.8  2005/05/10 19:21:18  jonblower
  * Minor change: replaced ternary ?: operator with Math.min
  *
@@ -174,7 +177,10 @@ public class StyxMessageDecoder implements ProtocolDecoder
      */
     public void release()
     {
-        this.headerBuf.release();
+        if (this.headerBuf != null)
+        {
+            this.headerBuf.release();
+        }
         this.headerBuf = null;
     }
     

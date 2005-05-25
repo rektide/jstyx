@@ -37,6 +37,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/25 15:39:02  jonblower
+ * Bug fixes
+ *
  * Revision 1.4  2005/03/15 09:01:48  jonblower
  * Message type now stored as short, not int
  *
@@ -77,44 +80,22 @@ public class TcreateMessage extends StyxMessage
         this.name = "Tcreate";
     }
     
-    public TcreateMessage(long fid, String fileName, String permissions, boolean isDirectory, int mode)
+    public TcreateMessage(long fid, String fileName, int permissions, boolean isDirectory, int mode)
     {
         this(0, (short)114, 0); // The length and tag will be added later
         this.fid = fid;
         this.fileName = fileName; // TODO: check validity of name?
-        this.perm = this.parsePermissions(permissions, isDirectory);
+        this.perm = permissions;
+        if (isDirectory)
+        {
+            this.perm |= StyxUtils.DMDIR; // Set the directory bit
+        }
         this.mode = mode;
         
         // Get the length of the name string
-        int nameLen = StyxUtils.strToUTF8(name).length;
+        int nameLen = StyxUtils.strToUTF8(fileName).length;
         // Set the length of the message
         this.length = StyxUtils.HEADER_LENGTH + 4 + 2 + nameLen + 4 + 1;
-    }
-    
-    /**
-     * Parses a permission string (e.g. "755") into a long number to be
-     * included in the message
-     * @throws IllegalArgumentException if the permissions string is invalid
-     */
-    private long parsePermissions(String permissions, boolean isDirectory)
-    {
-        if (permissions.length() != 3)
-        {
-            throw new IllegalArgumentException("The permissions string must be 3 characters long");
-        }
-        try
-        {
-            long perm = Integer.parseInt(permissions, 8); // parse as an octal number
-            if (isDirectory)
-            {
-                perm |= StyxUtils.DMDIR; // Set the directory bit
-            }
-            return perm;
-        }
-        catch (NumberFormatException nfe)
-        {
-            throw new IllegalArgumentException(permissions + " is not a valid permission string");
-        }
     }
     
     protected final void decodeBody(StyxBuffer buf)
@@ -127,7 +108,7 @@ public class TcreateMessage extends StyxMessage
     
     protected final void encodeBody(StyxBuffer buf)
     {
-        buf.putUInt(this.fid).putString(this.name).putUInt(this.perm).putUByte(this.mode);
+        buf.putUInt(this.fid).putString(this.fileName).putUInt(this.perm).putUByte(this.mode);
     }
     
     public long getFid()
