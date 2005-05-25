@@ -46,6 +46,8 @@ import uk.ac.rdg.resc.jstyx.server.StyxServer;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.messages.TattachMessage;
 import uk.ac.rdg.resc.jstyx.messages.TwalkMessage;
+import uk.ac.rdg.resc.jstyx.messages.TcreateMessage;
+import uk.ac.rdg.resc.jstyx.messages.RcreateMessage;
 
 import info.clearthought.layout.TableLayout;
 
@@ -65,6 +67,9 @@ import info.clearthought.layout.TableLayout;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/05/25 16:37:09  jonblower
+ * Deals with change of filename associated with a fid when creating a file
+ *
  * Revision 1.10  2005/05/05 16:57:38  jonblower
  * Updated MINA library to revision 168337 and changed code accordingly
  *
@@ -111,6 +116,7 @@ public class StyxMon extends StyxInterloper
     private int nextFreeRow;    // The next free row in the table
     private Hashtable rowTags;  // Links tags to their row numbers
     private Hashtable fidNames; // Links fids to the file name
+    private Hashtable createsOutstanding; // Links tags to new file names for Tcreate messages
     
     private static final String NOT_APPLICABLE = "N/A";
     
@@ -144,6 +150,7 @@ public class StyxMon extends StyxInterloper
         
         this.rowTags = new Hashtable();
         this.fidNames = new Hashtable();
+        this.createsOutstanding = new Hashtable();
         
         // Set the table column widths (the Tag column should be much narrower
         // than the rest)
@@ -243,6 +250,13 @@ public class StyxMon extends StyxInterloper
             }
             this.fidNames.put(new Long(tWalkMsg.getNewFid()), fullPath);
         }
+        // If this is a TcreateMessage we make a note of the name of the file
+        // that's being created as this will in future be associated with the fid
+        // if the create is successful
+        else if (message instanceof TcreateMessage)
+        {
+            this.createsOutstanding.put(new Integer(message.getTag()), message);
+        }
         int theRow = this.getRow(message.getTag());
         model.addTMessageData(theRow, getMessageName(message.getName()),
             message.getTag(), path.equals("") ? "/" : path, message.toFriendlyString());
@@ -255,6 +269,24 @@ public class StyxMon extends StyxInterloper
      */
     public synchronized void rMessageSent(StyxMessage message)
     {
+        // If this was a reply to a successful Create, the file that the fid
+        // refers to has changed
+        if (message instanceof RcreateMessage)
+        {
+            // Get the original TcreateMessage
+            TcreateMessage tCreateMsg =
+                (TcreateMessage)this.createsOutstanding.remove(new Integer(message.getTag()));
+            if (tCreateMsg != null)
+            {
+                // Get the filename that is currently associated with this fid
+                String filename = (String)this.fidNames.get(new Long(tCreateMsg.getFid()));
+                if (filename != null)
+                {
+                    filename += "/" + tCreateMsg.getFileName();
+                    this.fidNames.put(tCreateMsg.getFid(), filename);
+                }
+            }
+        }
         // Get the row number for this message
         int theRow = this.getRow(message.getTag());
         model.setValueAt(message.toFriendlyString(), theRow, 4);
