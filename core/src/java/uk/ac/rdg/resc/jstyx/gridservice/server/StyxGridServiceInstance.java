@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/05/26 16:50:57  jonblower
+ * Fixed bug with input files directory
+ *
  * Revision 1.14  2005/05/19 18:42:07  jonblower
  * Implementing specification of input files required by SGS
  *
@@ -250,8 +253,18 @@ class StyxGridServiceInstance extends StyxDirectory
         this.addChild(serviceDataDir);
         
         // Add the input files
-        // Create a directory based on the working directory of the instance
-        StyxDirectory inputFilesDir = new DirectoryOnDisk(this.workDir);
+        // Create a directory which creates its children as FilesOnDisk in the
+        // working directory of the instance
+        StyxDirectory inputFilesDir = new StyxDirectory("inputFiles")
+        {
+             public StyxFile createChild(String name, int perm, boolean isDir,
+                boolean isAppOnly, boolean isExclusive)
+                throws StyxException
+             {
+                 File f = new File(workDir, name);
+                 return DirectoryOnDisk.createFileOrDirectory(f, isDir, perm);
+             }
+        };
         inputFilesDir.setName("inputFiles");
         if (sgsConfig.getAllowOtherInputFiles())
         {
