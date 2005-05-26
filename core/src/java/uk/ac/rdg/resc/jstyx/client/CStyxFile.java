@@ -63,6 +63,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.26  2005/05/26 16:48:48  jonblower
+ * Fixed bug in uploadFileAsync()
+ *
  * Revision 1.25  2005/05/26 07:56:53  jonblower
  * Minor changes
  *
@@ -1545,7 +1548,11 @@ public class CStyxFile
         
         public void replyArrived(StyxMessage message)
         {
-            // Just go to the next stage of the process
+            if (message instanceof RwriteMessage)
+            {
+                RwriteMessage rWriteMsg = (RwriteMessage)message;
+                this.offset += rWriteMsg.getNumBytesWritten();
+            }
             this.nextStage();
         }
         
