@@ -61,6 +61,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/05/26 20:31:11  jonblower
+ * Changed behaviour such that clients can start trying to read from the stream before the service is started
+ *
  * Revision 1.6  2005/05/16 11:00:53  jonblower
  * Changed SGS config XML file structure: separated input and output streams and changed some tag names
  *
@@ -96,6 +99,7 @@ class CachingStreamReader extends StyxFile
     private StyxGridServiceInstance sgsInstance; // The SGS instance that owns this
     private InputStream is; // The input stream from which we will read
     private RandomAccessFile cache; // The cache itself (a file on the local filesystem)
+    private Integer cacheLock = new Integer(0); // We use this for synchronization; it has no other purpose
     private String cacheFilePath; // The full path to the cache file
     private boolean started;  // True if we have started reading from the stream
     private RerrorMessage rGlobErrMsg; // If this is non-null an error has occurred and 
@@ -127,7 +131,6 @@ class CachingStreamReader extends StyxFile
      * Sets the input stream from which the CachingStreamReader gets data
      * and immediately starts reading from this stream
      * @throws IllegalStateException if this object is already reading from a stream
-     * or if there are outstanding requests (the latter would be an internal error
      * @throws StyxException if the cache file could not be created, or if previous
      * cache file(s) could not be deleted
      * and should not happen)
@@ -137,13 +140,6 @@ class CachingStreamReader extends StyxFile
         if (this.running)
         {
             throw new IllegalStateException("This CachingStreamReader is already running");
-        }
-        synchronized(this.requestQueue)
-        {
-            if (this.requestQueue.size() != 0)
-            {
-                throw new IllegalStateException("Internal error: there are still requests outstanding");
-            }
         }
         try
         {
@@ -175,7 +171,7 @@ class CachingStreamReader extends StyxFile
     
     /**
      * Get data from the stream's cache.
-     * @param offset The offset *relative to the start of the whole stream* of
+     * @param offset The offset <b>relative to the start of the whole stream</b> of
      * the first byte of data requested.
      * @param count The maximum amount of data to return
      */
@@ -183,12 +179,8 @@ class CachingStreamReader extends StyxFile
         throws StyxException
     {
         log.debug("Received request: offset = " + offset + ", count = " + count);
-        if (this.is == null)
-        {
-            throw new StyxException("Stream not ready for reading");
-        }
         DataRequest dr = new DataRequest(client, tag, offset, count);
-        synchronized(this.cache)
+        synchronized(this.cacheLock)
         {
             // Try to process the request immediately
             boolean processed = this.processRequest(dr);
@@ -210,7 +202,7 @@ class CachingStreamReader extends StyxFile
     private void processOutstandingRequests()
     {
         // We should already have the lock on the cache, but let's make sure
-        synchronized(this.cache)
+        synchronized(this.cacheLock)
         {
             synchronized(this.requestQueue)
             {
@@ -237,7 +229,7 @@ class CachingStreamReader extends StyxFile
     {
         // We get the cache's lock so no data can be written to the cache
         // before we're done.
-        synchronized(this.cache)
+        synchronized(this.cacheLock)
         {
             try
             {
@@ -345,7 +337,7 @@ class CachingStreamReader extends StyxFile
                 {
                     int n = is.read(arr);
                     log.debug("Read " + n + " bytes from input stream");
-                    synchronized(cache)
+                    synchronized(cacheLock)
                     {
                         if (n < 0)
                         {
@@ -355,12 +347,9 @@ class CachingStreamReader extends StyxFile
                         else
                         {
                             // put the newly-read bytes to the end of the cache
-                            log.debug("Seeking to " + cacheLength);
                             cache.seek(cacheLength);
-                            log.debug("Writing " + n + " bytes to cache file");
                             cache.write(arr, 0, n);
                             cacheLength += n;
-                            log.debug("New cache length = " + cacheLength);
                             // For some reason, the length() of the RandomAccessFile
                             // isn't always correct (particularly when first created)
                             // so we have to set it explicitly.
