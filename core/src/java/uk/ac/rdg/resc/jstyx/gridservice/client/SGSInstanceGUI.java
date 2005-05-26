@@ -71,6 +71,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/05/26 16:52:06  jonblower
+ * Implemented detection and viewing of output streams
+ *
  * Revision 1.5  2005/05/25 16:59:31  jonblower
  * Added uploadInputFile()
  *
@@ -95,6 +98,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     private InputFilesPanel inputFilesPanel;  // Panel for allowing input files to be uploaded
     private ControlPanel ctlPanel; // Panel for controlling the service instance
     private ServiceDataPanel sdPanel; // Panel for showing service data
+    private OutputStreamsPanel osPanel; // Panel for interacting with output streams
     
     private JLabel statusBar;
     
@@ -117,7 +121,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         {
             { BORDER, TableLayout.FILL, BORDER }, // Columns
             { BORDER, TableLayout.PREFERRED, BORDER, TableLayout.PREFERRED, BORDER,
-                  ROW_HEIGHT, BORDER, TableLayout.FILL, BORDER }  // Rows
+                  ROW_HEIGHT, BORDER, TableLayout.FILL, BORDER, TableLayout.PREFERRED, BORDER }  // Rows
         };
         this.panelLayout = new TableLayout(size);
         this.masterPanel.setLayout(this.panelLayout);
@@ -137,6 +141,10 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         // Add the service data panel
         this.sdPanel = new ServiceDataPanel();
         this.masterPanel.add(this.sdPanel, "1, 7");
+        
+        // Add the output streams panel
+        this.osPanel = new OutputStreamsPanel();
+        this.masterPanel.add(this.osPanel, "1, 9");
         
         this.statusBar = new JLabel("Status bar");
         this.add(this.statusBar, BorderLayout.SOUTH);
@@ -212,6 +220,15 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     }
     
     /**
+     * Called when we have got the output streams that can be viewed
+     * @param outputStreams Array of CStyxFiles representing the output streams
+     */
+    public void gotOutputStreams(CStyxFile[] outputStreams)
+    {
+        this.osPanel.gotOutputStreams(outputStreams);
+    }
+    
+    /**
      * Forces the window to be laid out and packed
      */
     private void repaintGUI()
@@ -238,25 +255,19 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     }
     
     /**
+     * Called when the input files have been successfully uploaded.  This is our
+     * cue to start the service going
+     * @todo: add arguments to this
+     */
+    public void inputFilesUploaded()
+    {
+        this.client.startService();
+    }
+    
+    /**
      * Called when the service is stopped before it has finished
      */
     public void serviceAborted() {}
-    
-    /**
-     * Called when new data arrive from the standard output of the SGS instance.
-     * After this method is called, the ByteBuffer will be released. If you 
-     * want to prevent this, call newData.acquire().  When you have finished
-     * with the data in the buffer, call newData.release().
-     */
-    public void newStdoutData(ByteBuffer newData) {}
-    
-    /**
-     * Called when new data arrive from the standard error of the SGS instance.
-     * After this method is called, the ByteBuffer will be released. If you 
-     * want to prevent this, call newData.acquire().  When you have finished
-     * with the data in the buffer, call newData.release().
-     */
-    public void newStderrData(ByteBuffer newData) {}
     
     /**
      * Panel for providing input data to the SGS
@@ -314,7 +325,8 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     {
         private TableLayout layout;
         private JButton btnAddInputFile;
-        private Vector fileLocations; // Vector of JTextFields
+        private Vector destFileNames; // Vector of JTextFields
+        private Vector srcFileLocations; // Vector of JTextFields
         private Vector pickFileButtons; // Vector of JButtons
         private Vector deleteRowButtons; // Vector of JButtons
         private int numCompulsoryFiles;
@@ -345,7 +357,8 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         public void gotInputFiles(CStyxFile[] inputFiles, boolean allowOtherInputFiles)
         {
             this.numCompulsoryFiles = inputFiles.length;
-            this.fileLocations = new Vector();
+            this.destFileNames = new Vector();
+            this.srcFileLocations = new Vector();
             this.pickFileButtons = new Vector();
             this.deleteRowButtons = new Vector();
             
@@ -366,17 +379,22 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             this.updateGUI();
         }
         
-        private void addInputFileRow(String name, boolean deleteable)
+        private synchronized void addInputFileRow(String name, boolean editable)
         {
             int rowToAdd = this.layout.getNumRow();
             this.layout.insertRow(rowToAdd, ROW_HEIGHT);
             this.layout.insertRow(rowToAdd + 1, BORDER);
-            System.err.println("Added row " + rowToAdd);
 
-            this.add(new JLabel(name), "0, " + rowToAdd);
+            JTextField destFile = new JTextField(name);
+            if (!editable)
+            {
+                destFile.setEditable(false);
+            }
+            this.destFileNames.add(destFile);
+            this.add(destFile, "0, " + rowToAdd);
 
             JTextField ta = new JTextField();
-            this.fileLocations.add(ta);
+            this.srcFileLocations.add(ta);
             this.add(ta, "2, " + rowToAdd);
             JButton btn = new JButton("Pick file");
 
@@ -394,13 +412,43 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         }
         
         /**
+         * Gets an array of File objects representing the source files to
+         * be uploaded
+         */
+        public synchronized File[] getSourceFiles()
+        {
+            File[] srcFiles = new File[this.srcFileLocations.size()];
+            for (int i = 0; i < this.srcFileLocations.size(); i++)
+            {
+                JTextField tf = (JTextField)this.srcFileLocations.get(i);
+                srcFiles[i] = new File(tf.getText());
+            }
+            return srcFiles;
+        }
+        
+        /**
+         * Gets an array of Strings representing the names of the target files
+         * on the remote server
+         */
+        public synchronized String[] getTargetFileNames()
+        {
+            String[] destNames = new String[this.destFileNames.size()];
+            for (int i = 0; i < this.destFileNames.size(); i++)
+            {
+                JTextField tf = (JTextField)this.destFileNames.get(i);
+                destNames[i] = tf.getText();
+            }
+            return destNames;
+        }
+        
+        /**
          * Called when a button is pressed on the panel
          */
         public void actionPerformed(ActionEvent e)
         {
             if (e.getSource() == this.btnAddInputFile)
             {
-                this.addInputFileRow("New file", true);
+                this.addInputFileRow("", true);
                 this.updateGUI();
             }
             else
@@ -413,7 +461,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
                     int returnVal = chooser.showOpenDialog(this);
                     if (returnVal == JFileChooser.APPROVE_OPTION)
                     {
-                        JTextField ta = (JTextField)this.fileLocations.get(index);
+                        JTextField ta = (JTextField)this.srcFileLocations.get(index);
                         ta.setText(chooser.getSelectedFile().getPath());
                     }
                 }
@@ -460,10 +508,11 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         {
             if (e.getSource() == this.btnStart)
             {
-                // Upload the necessary input files
-                client.uploadInputFile(new File("C:\\md5lines.py"), "new.txt");
-                client.uploadInputFile(new File("C:\\md5lines.py"), "input.sim");
-                //client.startService();
+                // Upload the necessary input files. When these are uploaded
+                // we will start the service
+                File[] srcFiles = inputFilesPanel.getSourceFiles();
+                String[] targetNames = inputFilesPanel.getTargetFileNames();
+                client.uploadInputFiles(srcFiles, targetNames);
             }
             else if (e.getSource() == this.btnStop)
             {
@@ -581,6 +630,61 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
                 {
                     return "Value";
                 }
+            }
+        }
+    }
+    
+    /**
+     * Panel for displaying data from output streams
+     */
+    private class OutputStreamsPanel extends JPanel implements ActionListener
+    {
+        private TableLayout layout;
+        private Hashtable streams; // Keys are JButtons, values are CStyxFiles
+        
+        public OutputStreamsPanel()
+        {
+            double[][] size =
+            {
+                { TableLayout.PREFERRED, BORDER, TableLayout.PREFERRED, BORDER,
+                     TableLayout.FILL }, // columns
+                {} // We'll add rows later
+            };
+            this.layout = new TableLayout(size);
+            this.setLayout(this.layout);
+            this.setBorder(BorderFactory.createTitledBorder("Available output streams"));
+            this.streams = new Hashtable();
+            // Send a message to get the possible output streams
+            client.getOutputStreams();
+        }
+        
+        /**
+         * Called when we have got the possible output streams
+         */
+        public void gotOutputStreams(CStyxFile[] outputStreams)
+        {
+            for (int i = 0; i < outputStreams.length; i++)
+            {
+                this.layout.insertRow(2 * i, ROW_HEIGHT);
+                this.layout.insertRow((2 * i) + 1, BORDER);
+                this.add(new JLabel(outputStreams[i].getName()), "0, " + 2*i);
+                JButton btnView = new JButton("View stream");
+                btnView.addActionListener(this);
+                this.add(btnView, "2, " + 2*i);
+                this.streams.put(btnView, outputStreams[i]);
+            }
+            this.layout.layoutContainer(this);
+            repaintGUI();
+        }
+        
+        public void actionPerformed(ActionEvent e)
+        {
+            // Find out the CStyxFile to which the button refers
+            Object srcButton = e.getSource();
+            if (this.streams.containsKey(srcButton))
+            {
+                CStyxFile streamFile = (CStyxFile)this.streams.get(srcButton);
+                new StreamViewer(streamFile).start();
             }
         }
     }

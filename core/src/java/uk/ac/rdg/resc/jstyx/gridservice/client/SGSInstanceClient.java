@@ -50,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2005/05/26 16:52:06  jonblower
+ * Implemented detection and viewing of output streams
+ *
  * Revision 1.18  2005/05/25 16:59:31  jonblower
  * Added uploadInputFile()
  *
@@ -114,10 +117,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private CStyxFile ctlFile;      // The file that we use to stop, start and
                                     // destroy the instance
     
-    // Styx files
-    private CStyxFile stdout;
-    private CStyxFile stderr;
-    
     // State data
     private CStyxFile sdeDir; // serviceData directory for the instance
     private CStyxFile[] serviceDataFiles;
@@ -135,8 +134,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     //private String inputURL = "http://www.nerc-essc.ac.uk/~jdb/bbe.txt";
     private String inputURL = "http://www.resc.rdg.ac.uk/projects.php";
     
-    private StringBuffer stdoutBuf = new StringBuffer();
-    private StringBuffer stderrBuf = new StringBuffer();
+    // Output streams
+    private CStyxFile outputStreamsDir;
     
     // SGSInstanceChangeListeners that are listening for changes to this SGS instance
     private Vector changeListeners;
@@ -160,11 +159,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.inputDir.addChangeListener(this);
         
         // Open the files that will give us data and service data
-        this.stdout = this.instanceRoot.getFile("/io/out/stdout");
-        this.stderr = this.instanceRoot.getFile("/io/out/stderr");
-        // Register our interest in changes to these files
-        this.stdout.addChangeListener(this);
-        this.stderr.addChangeListener(this);
+        this.outputStreamsDir = this.instanceRoot.getFile("io/out");
+        this.outputStreamsDir.addChangeListener(this);
         
         // We will read this directory to find the service data offered by the SGS
         this.sdeDir = this.instanceRoot.getFile("/serviceData");
@@ -236,15 +232,80 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Uploads a file to the inputFiles directory of the SGS.
+     * Uploads a set of input files to the inputFiles directory of the SGS.
+     * @param files Array of source files to be uploaded
+     * @param names Array of target names (must be the same length as files[])
+     * @throws IllegalArgumentException if the arrays are not of the same length
      */
-    public void uploadInputFile(File file, String name)
+    public void uploadInputFiles(File[] files, String[] names)
     {
-        // Get a CStyxFile for the target file: this does not have to exist yet.
-        CStyxFile targetFile = this.inputFilesDir.getFile(name);
-        targetFile.addChangeListener(this);
-        // Allow overwriting of the file on the remote server
-        targetFile.uploadFileAsync(file, true);
+        new UploadFilesCallback(files, names).uploadNextFile();
+    }
+    
+    /**
+     * Sends a message to get the output streams that can be viewed
+     */
+    public void getOutputStreams()
+    {
+        this.outputStreamsDir.getChildrenAsync();
+    }
+    
+    private class UploadFilesCallback extends CStyxFileChangeAdapter
+    {
+        private File[] files;
+        private String[] names;
+        private int index;
+        private int numUploaded;
+        
+        public UploadFilesCallback(File[] files, String[] names)
+        {
+            if (files == null)
+            {
+                throw new NullPointerException("files[]");
+            }
+            if (names == null)
+            {
+                throw new NullPointerException("names[]");
+            }
+            if (files.length != names.length)
+            {
+                throw new IllegalArgumentException("files[] and names[] must be" +
+                    " the same length!");
+            }
+            this.files = files;
+            this.names = names;
+            this.index = 0;
+            this.numUploaded = 0;
+        }
+        
+        public void uploadNextFile()
+        {
+            if (index < files.length)
+            {
+                // Get a CStyxFile for the target file: this does not have to exist yet.
+                CStyxFile targetFile = inputFilesDir.getFile(this.names[index]);
+                targetFile.addChangeListener(this);
+                // Allow overwriting of the file on the remote server
+                targetFile.uploadFileAsync(this.files[index], true);
+            }
+            else
+            {
+                // We've uploaded all the files. Fire the event.
+                fireInputFilesUploaded();
+            }
+        }
+        
+        public void uploadComplete(CStyxFile targetFile)
+        {
+            System.err.println("File uploaded to " + targetFile.getPath());
+            index++;
+            this.uploadNextFile();
+        }
+        
+        public void error(CStyxFile file, String message)
+        {
+            System.err.println("Error uploading to " + file.getPath());
+        }
     }
     
     /**
@@ -300,27 +361,13 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         {
             // Calculate the offset of the next read
             long offset = tReadMsg.getOffset().asLong() + data.remaining();
-            // Find out which file this data belongs to
-            if (file == stdout)
+            // This is service data: update the relevant buffer
+            for (int i = 0; i < this.serviceDataFiles.length; i++)
             {
-                stdoutBuf.append(StyxUtils.dataToString(data));
-                this.fireNewStdoutData(data);
-            }
-            else if (file == stderr)
-            {
-                stderrBuf.append(StyxUtils.dataToString(data));
-                this.fireNewStderrData(data);
-            }
-            else
-            {
-                // This is service data: update the relevant buffer
-                for (int i = 0; i < this.serviceDataFiles.length; i++)
+                if (file == this.serviceDataFiles[i])
                 {
-                    if (file == this.serviceDataFiles[i])
-                    {
-                        this.sdeBufs[i].append(StyxUtils.dataToString(data));
-                        break;
-                    }
+                    this.sdeBufs[i].append(StyxUtils.dataToString(data));
+                    break;
                 }
             }
             file.readAsync(offset);
@@ -329,6 +376,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         {
             // If this is service data, we start reading from the start of the
             // file again
+            // TODO: I think service date is all that is read via this class
+            // so some of this is irrelevant
             boolean isServiceData = false;
             for (int i = 0; i < this.serviceDataFiles.length; i++)
             {
@@ -366,9 +415,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 {
                     this.serviceDataFiles[i].readAsync(0);
                 }
-                // Start reading data from the start of the files
-                stdout.readAsync(0);
-                stderr.readAsync(0);
             }
             else if (message.equalsIgnoreCase("stop"))
             {
@@ -427,6 +473,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             // We have just found the compulsory input files
             this.fireGotInputFiles(children, this.allowOtherInputFiles);
         }
+        else if (file == this.outputStreamsDir)
+        {
+            this.fireGotOutputStreams(children);
+        }
         else
         {
             System.err.println("Got children of unknown file " + file.getPath());
@@ -440,16 +490,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public void error(CStyxFile file, String message)
     {
         this.fireError(message);
-    }
-    
-    /**
-     * Called after a file has been successfully uploaded
-     * @param targetFile The file to which the data have been uploaded
-     */
-    public void uploadComplete(CStyxFile targetFile)
-    {
-        System.err.println("*** data successfully uploaded to " +
-            targetFile.getPath());
     }
     
     /**
@@ -478,38 +518,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         synchronized(this.changeListeners)
         {
             boolean contained = this.changeListeners.remove(listener);
-        }
-    }
-    
-    /**
-     * Fires the newStdoutData event on all registered change listeners
-     */
-    private void fireNewStdoutData(ByteBuffer newData)
-    {
-        synchronized(this.changeListeners)
-        {
-            SGSInstanceChangeListener listener;
-            for (int i = 0; i < this.changeListeners.size(); i++)
-            {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
-                listener.newStdoutData(newData);
-            }
-        }
-    }
-    
-    /**
-     * Fires the newStderrData event on all registered change listeners
-     */
-    private void fireNewStderrData(ByteBuffer newData)
-    {
-        synchronized(this.changeListeners)
-        {
-            SGSInstanceChangeListener listener;
-            for (int i = 0; i < this.changeListeners.size(); i++)
-            {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
-                listener.newStderrData(newData);
-            }
         }
     }
     
@@ -627,6 +635,40 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
                 listener.gotInputFiles(inputFiles, allowOtherInputFiles);
+            }
+        }
+    }
+    
+    /**
+     * Fires the gotOutputStreams() event on all registered change listeners
+     * @param inputFiles Array of CStyxFiles representing all the output streams
+     * that can be read
+     */
+    private void fireGotOutputStreams(CStyxFile[] outputStreams)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.gotOutputStreams(outputStreams);
+            }
+        }
+    }
+    
+    /**
+     * Fires the inputFilesUploaded() event on all registered change listeners
+     */
+    private void fireInputFilesUploaded()
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.inputFilesUploaded();
             }
         }
     }

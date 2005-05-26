@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/05/26 16:52:06  jonblower
+ * Implemented detection and viewing of output streams
+ *
  * Revision 1.7  2005/05/20 07:45:27  jonblower
  * Implemented getInputFiles() to find the input files required by the service
  *
@@ -102,20 +105,16 @@ public interface SGSInstanceChangeListener
     public void gotInputFiles(CStyxFile[] inputFiles, boolean allowOtherInputFiles);
     
     /**
-     * Called when new data arrive from the standard output of the SGS instance.
-     * After this method is called, the ByteBuffer will be released. If you 
-     * want to prevent this, call newData.acquire().  When you have finished
-     * with the data in the buffer, call newData.release().
+     * Called when we have got the output streams that can be viewed
+     * @param outputStreams Array of CStyxFiles representing the output streams
      */
-    public void newStdoutData(ByteBuffer newData);
+    public void gotOutputStreams(CStyxFile[] outputStreams);
     
     /**
-     * Called when new data arrive from the standard error of the SGS instance.
-     * After this method is called, the ByteBuffer will be released. If you 
-     * want to prevent this, call newData.acquire().  When you have finished
-     * with the data in the buffer, call newData.release().
+     * Called when the input files have been successfully uploaded
+     * @todo: add arguments to this
      */
-    public void newStderrData(ByteBuffer newData);
+    public void inputFilesUploaded();
     
     /**
      * Called when the service is started
