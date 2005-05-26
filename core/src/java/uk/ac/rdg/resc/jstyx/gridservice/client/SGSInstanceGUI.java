@@ -43,6 +43,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.BorderFactory;
 import javax.swing.JTextField;
 import javax.swing.JFileChooser;
+import javax.swing.JComboBox;
 
 import javax.swing.table.TableModel;
 import javax.swing.table.AbstractTableModel;
@@ -71,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/05/26 21:33:40  jonblower
+ * Added method for viewing streams in a window
+ *
  * Revision 1.6  2005/05/26 16:52:06  jonblower
  * Implemented detection and viewing of output streams
  *
@@ -641,6 +645,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     {
         private TableLayout layout;
         private Hashtable streams; // Keys are JButtons, values are CStyxFiles
+        private Class[] viewers = new Class[]{TextStreamViewer.class, String.class};
         
         public OutputStreamsPanel()
         {
@@ -668,9 +673,10 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
                 this.layout.insertRow(2 * i, ROW_HEIGHT);
                 this.layout.insertRow((2 * i) + 1, BORDER);
                 this.add(new JLabel(outputStreams[i].getName()), "0, " + 2*i);
+                this.add(new JComboBox(this.viewers), "2, " + 2*i);
                 JButton btnView = new JButton("View stream");
                 btnView.addActionListener(this);
-                this.add(btnView, "2, " + 2*i);
+                this.add(btnView, "4, " + 2*i + ", c, f");
                 this.streams.put(btnView, outputStreams[i]);
             }
             this.layout.layoutContainer(this);
@@ -684,7 +690,10 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             if (this.streams.containsKey(srcButton))
             {
                 CStyxFile streamFile = (CStyxFile)this.streams.get(srcButton);
-                new StreamViewer(streamFile).start();
+                // TODO: allow different types of viewer to be created
+                StreamViewer viewer = new TextStreamViewer();
+                viewer.setStream(streamFile);
+                viewer.start();
             }
         }
     }

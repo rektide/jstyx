@@ -28,11 +28,10 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
-import javax.swing.JPanel;
+import javax.swing.JFrame;
 
 import org.apache.mina.common.ByteBuffer;
 
-import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
@@ -41,36 +40,52 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeListener;
 
 /**
  * Class representing a viewer for an output stream from a Styx Grid Service
- * instance.
+ * instance.  Subclasses only need to implement the <code>newDataArrived()</code>
+ * method, which is called when new data are read from the stream.  Subclasses
+ * <i>may</i> override <code>eof</code> (which is called when end-of-stream is
+ * reached) and <code>streamError</code> (which is called if an error occurs).
+ * See <code>TextStreamViewer</code> for an example of a very simple StreamViewer.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/05/26 21:33:40  jonblower
+ * Added method for viewing streams in a window
+ *
  * Revision 1.1  2005/05/26 16:47:43  jonblower
  * Initial import
  *
  */
-public class StreamViewer extends JPanel implements CStyxFileChangeListener
+public abstract class StreamViewer extends JFrame implements CStyxFileChangeListener
 {
-    private CStyxFile stream;
-    private long offset;
-    private boolean started;
+    protected CStyxFile stream;
+    protected long offset;
+    protected boolean started;
     
-    public StreamViewer(CStyxFile stream)
+    public StreamViewer()
     {
-        this.stream = stream;
-        this.stream.addChangeListener(this);
         this.offset = 0;
         this.started = false;
     }
     
     /**
-     * Sends a message to start reading from the stream.  If we have already
-     * started reading from the stream, this does nothing
+     * Sets the CStyxFile that represents the stream
+     */
+    public void setStream(CStyxFile stream)
+    {
+        this.stream = stream;
+        this.stream.addChangeListener(this);
+        this.setTitle(stream.getName());
+    }
+    
+    /**
+     * Sends a message to start reading from the stream and makes the GUI visible.
+     * If we have already started reading from the stream, this does nothing.
      */
     public void start()
     {
+        this.setVisible(true);
         if (!this.started)
         {
             this.started = true;
@@ -123,29 +138,26 @@ public class StreamViewer extends JPanel implements CStyxFileChangeListener
     /**
      * Called when new data arrive from the server
      */
-    public void newDataArrived(ByteBuffer data)
-    {
-        System.err.println(StyxUtils.dataToString(data));
-    }
+    public abstract void newDataArrived(ByteBuffer data);
     
     /**
      * Called when we reach the end of the stream.  The total length of the
      * stream data can now be read by calling <code>getPosition()</code>.  To
      * start reading from the start of the stream, call <code>reset()</code> then
-     * <code>start()</code>.
+     * <code>start()</code>.  This default implementation does nothing: subclasses
+     * should override this if they want to do something when end-of-stream is
+     * reached.
      */
     public void eof()
     {
-        System.err.println("end of stream reached on " + this.stream.getName());
     }
     
     /**
-     * Called when an error occurs
+     * Called when an error occurs. This default implementation does nothign:
+     * Subclasses should override this to handle errors.
      */
     public void streamError(String message)
     {
-        System.err.println("Error with stream " + this.stream.getName() + ": "
-            + message);
     }
     
     public void dataArrived(CStyxFile file, TreadMessage tReadMsg, ByteBuffer data)
