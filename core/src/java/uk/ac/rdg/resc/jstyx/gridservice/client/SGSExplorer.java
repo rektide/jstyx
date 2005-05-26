@@ -70,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnectionListener;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/05/26 16:51:40  jonblower
+ * Minor change to dialog box contents
+ *
  * Revision 1.6  2005/05/18 17:13:51  jonblower
  * Created SGSInstanceGUI
  *
@@ -147,7 +150,7 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
         
         JMenuItem connectItem = new JMenuItem("Connect to server...");
         // TODO: Ctrl-C should be "copy"?
-        connectItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C,
+        connectItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
             ActionEvent.CTRL_MASK));
         connectItem.addActionListener(new ActionListener()
         {
@@ -157,7 +160,7 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
                 // root of the SGS server
                 // TODO: allow entry of username etc (certificate?)
                 String input = JOptionPane.showInputDialog("Enter path to the "
-                    + "server root (e.g. \"myserver:9092/sgs\")");
+                    + "server root (e.g. \"myserver:9092\")");
                 if (input != null)
                 {
                     connectToServer(input);
