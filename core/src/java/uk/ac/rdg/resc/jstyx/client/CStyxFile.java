@@ -55,13 +55,17 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * a CStyxFile in order to avoid confusion with the server-side StyxFile class.)
  * To create a CStyxFile, open a StyxConnection and use the getFile() method.
  * CStyxFiles cannot be created directly.
- * @todo implement a create() method
+ * @todo implement a create() method that automatically creates all necessary
+ * subdirectories
  * @todo implement changing of stat data (length etc) via a Twstat message
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.25  2005/05/26 07:56:53  jonblower
+ * Minor changes
+ *
  * Revision 1.24  2005/05/25 16:58:01  jonblower
  * Changed implementation of openOrCreate()
  *
@@ -630,8 +634,9 @@ public class CStyxFile
     /**
      * Opens or creates this file: if the file exists it will be opened with 
      * the given mode.  If it does not exist it will be created, provided that
-     * the parent directory exists.
-     * @todo Check that, if the file exists, it is a file/dir as appropriate
+     * the parent directory exists.  Files will be created with 0666 permissions
+     * and directories with 0777, subject to the permissions of the parent 
+     * directory.
      */
     private void openOrCreateAsync(boolean isDirectory, int mode,
         MessageCallback callback)
@@ -742,16 +747,14 @@ public class CStyxFile
      */
     public synchronized void close()
     {
-        if (this.fid < 0)
+        if (this.fid >= 0)
         {
-            // The fid isn't set
-            return;
+            // Send the message to close the file (note that this will not wait
+            // for a reply). We don't need to set a callback; when the reply arrives,
+            // the fid will be returned to the connection's pool by the
+            // StyxConnection class.
+            this.conn.sendAsync(new TclunkMessage(this.fid), null);
         }
-        // Send the message to close the file (note that this will not wait
-        // for a reply). We don't need to set a callback; when the reply arrives,
-        // the fid will be returned to the connection's pool by the
-        // StyxConnection class.
-        this.conn.sendAsync(new TclunkMessage(this.fid), null);
         // We reset all the properties of this file immediately; we don't need
         // to wait for the rClunk to arrive. This is because the fid will be
         // invalid even if the clunk fails - see clunk(5) in the Inferno manual.

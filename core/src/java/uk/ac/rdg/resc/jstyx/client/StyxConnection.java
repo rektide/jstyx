@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2005/05/26 07:56:56  jonblower
+ * Minor changes
+ *
  * Revision 1.18  2005/05/25 15:37:55  jonblower
  * Removed cache of CStyxFiles, dealt differently with root fid
  *
@@ -260,45 +263,54 @@ public class StyxConnection implements ProtocolHandler
     /**
      * Connects to the remote server and handshakes. This method returns 
      * immediately; when the connection and handshaking are complete, the
-     * connectionattached() event will be fired on all registered 
+     * connectionReady() event will be fired on all registered 
      * StyxConnectionListeners. If an error occurred when connecting or
      * handshaking, the connectionError() event will be fired on the listeners.
+     * This method will do nothing if we have already connected or are in the
+     * process of connecting.
      * @throws StyxException if the IOProcessor could not be started
      */
     public synchronized void connectAsync() throws StyxException
     {
-        this.connecting = true;
-        
-        this.ioThreadPoolFilter = new IoThreadPoolFilter();
-        this.protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
+        if (!this.connecting)
+        {
+            this.connecting = true;
 
-        this.ioThreadPoolFilter.start();
-        this.protocolThreadPoolFilter.start();
+            this.ioThreadPoolFilter = new IoThreadPoolFilter();
+            this.protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
 
-        IoProtocolConnector connector;
-        try
-        {
-            connector = new IoProtocolConnector( new SocketConnector() );
+            this.ioThreadPoolFilter.start();
+            this.protocolThreadPoolFilter.start();
+
+            IoProtocolConnector connector;
+            try
+            {
+                connector = new IoProtocolConnector( new SocketConnector() );
+            }
+            catch(IOException ioe)
+            {
+                throw new StyxException("IOException occurred when creating IOProtocolConnector: "
+                    + ioe.getMessage());
+            }
+            // TODO: do we need these thread pools for a client connection?
+            connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
+            connector.getFilterChain().addLast("Protocol thread pool filter",  protocolThreadPoolFilter );
+
+            ProtocolProvider protocolProvider = new StyxClientProtocolProvider(this);
+
+            try
+            {
+                this.session = connector.connect( new InetSocketAddress( this.host,
+                    this.port ), CONNECT_TIMEOUT, protocolProvider );
+            }
+            catch( IOException e )
+            {
+                throw new StyxException("Failed to connect: " + e.getMessage());
+            }
         }
-        catch(IOException ioe)
+        else
         {
-            throw new StyxException("IOException occurred when creating IOProtocolConnector: "
-                + ioe.getMessage());
-        }
-        // TODO: do we need these thread pools for a client connection?
-        connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
-        connector.getFilterChain().addLast("Protocol thread pool filter",  protocolThreadPoolFilter );
-        
-        ProtocolProvider protocolProvider = new StyxClientProtocolProvider(this);
-        
-        try
-        {
-            this.session = connector.connect( new InetSocketAddress( this.host,
-                this.port ), CONNECT_TIMEOUT, protocolProvider );
-        }
-        catch( IOException e )
-        {
-            throw new StyxException("Failed to connect: " + e.getMessage());
+            log.info("Already connecting");
         }
     }
     
@@ -414,17 +426,8 @@ public class StyxConnection implements ProtocolHandler
         }
         if(!tClunkSent)
         {
-            if (this.rootFid >= 0)
-            {
-                // Clunk the root fid to finally close the connection
-                this.sendAsync(new TclunkMessage(this.getRootFid()), callback);
-                this.rootFid = -1;
-            }
-            else
-            {
-                // No more fids left to clunk
-                this.session.close();
-            }
+            // No more fids left to clunk
+            this.session.close();
         }
     }
     
@@ -496,7 +499,8 @@ public class StyxConnection implements ProtocolHandler
         
         synchronized(this)
         {
-            // If the connection is open, send the message, otherwise, enqueue it
+            // If the connection is ready (signalled by rootFid being set), or
+            // if this is part of a handshake, send the message, otherwise, enqueue it
             if (this.rootFid >= 0 || message instanceof TversionMessage ||
                 message instanceof TattachMessage)
             {
@@ -574,13 +578,14 @@ public class StyxConnection implements ProtocolHandler
     {
         synchronized(this.fidsInUse)
         {
-            for (int i = 0; i < StyxUtils.MAXUINT; i++)
+            for (long i = 0; i < StyxUtils.MAXUINT; i++)
             {
+                Long lngFid = new Long(i);
                 // Check to see if this tag is already in use
-                if (!this.fidsInUse.contains(new Long(i)))
+                if (!this.fidsInUse.contains(lngFid))
                 {
                     // If not in use, add to the Vector, then return it
-                    this.fidsInUse.add(new Long(i));
+                    this.fidsInUse.add(lngFid);
                     return i;
                 }
             }
@@ -716,6 +721,7 @@ public class StyxConnection implements ProtocolHandler
         }
         this.connected = false;
         this.connecting = false;
+        this.rootFid = -1;
         
         // Stop threads
         this.ioThreadPoolFilter.stop();
