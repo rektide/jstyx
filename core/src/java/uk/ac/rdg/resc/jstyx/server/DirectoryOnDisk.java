@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/26 16:50:29  jonblower
+ * Made static method createFileOrDirectory()
+ *
  * Revision 1.4  2005/05/19 14:46:51  jonblower
  * Changed behaviour of StyxDirectory.createChild(): no longer adds file to namespace in this method
  *
@@ -163,34 +166,7 @@ public class DirectoryOnDisk extends StyxDirectory
         throws StyxException
     {
         File f = new File(this.dir, name);
-        if(isDir)
-        {
-            if (!f.mkdir())
-            {
-                throw new StyxException("Directory " + name + " could not be created");
-            }
-        }
-        else
-        {
-            try
-            {
-                if (!f.createNewFile())
-                {
-                    throw new StyxException("File " + name + " could not be created");
-                }
-            }
-            catch(IOException ioe)
-            {
-                throw new StyxException("An IOException occurred when creating "
-                    + name + ": " + ioe.getMessage());
-            }
-        }
-        // If we've got this far we must have created the file/directory
-        // successfully.  Now we can create the StyxFile wrapper and add it to
-        // this StyxDirectory.
-        StyxFile sf = FileOnDisk.getFileOrDirectoryOnDisk(f);
-        sf.setPermissions(perm);
-        return sf;
+        return createFileOrDirectory(f, isDir, perm);
     }
     
     /**
@@ -199,6 +175,46 @@ public class DirectoryOnDisk extends StyxDirectory
     protected synchronized void delete()
     {
         this.dir.delete();
+    }
+    
+    /**
+     * Creates a file or directory, wraps it as a StyxFile with the given
+     * permissions and returns it
+     * @param f The java.io.File to be created
+     * @param isDir True if the file to be created is a directory
+     * @param perm The permissions to give the StyxFile
+     */
+    public static StyxFile createFileOrDirectory(File f, boolean isDir, int perm)
+        throws StyxException
+    {
+        if(isDir)
+        {
+            if (!f.mkdir())
+            {
+                throw new StyxException("Directory " + f.getPath() + " could not be created");
+            }
+        }
+        else
+        {
+            try
+            {
+                if (!f.createNewFile())
+                {
+                    throw new StyxException("File " + f.getPath() + " could not be created");
+                }
+            }
+            catch(IOException ioe)
+            {
+                throw new StyxException("An IOException occurred when creating "
+                    + f.getPath() + ": " + ioe.getMessage());
+            }
+        }
+        // If we've got this far we must have created the file/directory
+        // successfully.  Now we can create the StyxFile wrapper and add it to
+        // this StyxDirectory.
+        StyxFile sf = FileOnDisk.getFileOrDirectoryOnDisk(f);
+        sf.setPermissions(perm);
+        return sf;
     }
     
 }
