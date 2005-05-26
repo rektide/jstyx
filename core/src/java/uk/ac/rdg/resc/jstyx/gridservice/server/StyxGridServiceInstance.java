@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2005/05/26 21:24:44  jonblower
+ * Added exitCode as a new service data element
+ *
  * Revision 1.15  2005/05/26 16:50:57  jonblower
  * Fixed bug with input files directory
  *
@@ -124,8 +127,9 @@ class StyxGridServiceInstance extends StyxDirectory
     private int id; // The ID number of this instance
     private File workDir; // The working directory of this instance
     private Process process = null; // The process object returned by runtime.exec()
-    private ServiceDataElement status; // The status of the service
     private StatusCode statusCode;
+    private ServiceDataElement status; // The status of the service
+    private ServiceDataElement exitCode; // The exit code from the executable
     private ServiceDataElement bytesConsumed; // The number of bytes consumed by the service
     private long bytesCons;
     private CachingStreamReader stdout = new CachingStreamReader(this, "stdout");  // The standard output from the program
@@ -231,6 +235,11 @@ class StyxGridServiceInstance extends StyxDirectory
                 this.bytesConsumed = new StringServiceDataElement("bytesConsumed",
                     true, "" + this.bytesCons, 2.0f);
                 serviceDataDir.addChild(this.bytesConsumed.getAsyncStyxFile());
+            }
+            else if (sde.getName().equals("exitCode"))
+            {
+                this.exitCode = new StringServiceDataElement("exitCode", true, "");
+                serviceDataDir.addChild(this.exitCode.getAsyncStyxFile());
             }
             else
             {
@@ -499,7 +508,7 @@ class StyxGridServiceInstance extends StyxDirectory
         {
             try
             {
-                int exitCode = process.waitFor();
+                int exitCodeVal = process.waitFor();
                 long duration = System.currentTimeMillis() - startTime;
                 synchronized(statusCode)
                 {
@@ -508,9 +517,10 @@ class StyxGridServiceInstance extends StyxDirectory
                     if (statusCode != StatusCode.ABORTED && statusCode != StatusCode.ERROR)
                     {
                         // don't set the status if we have terminated abnormally
-                        setStatus(StatusCode.FINISHED, "exit code " + exitCode + 
-                            ", time taken = " + (float)duration / 1000 + " seconds.");
+                        setStatus(StatusCode.FINISHED, "took " +
+                            (float)duration / 1000 + " seconds.");
                     }
+                    exitCode.setValue("" + exitCodeVal);
                 }
             }
             catch(InterruptedException ie)
