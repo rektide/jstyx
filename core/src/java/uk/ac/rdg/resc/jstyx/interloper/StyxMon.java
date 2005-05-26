@@ -67,6 +67,9 @@ import info.clearthought.layout.TableLayout;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/05/26 16:49:45  jonblower
+ * Minor bug fix (ensures Java 1.4 compatibility)
+ *
  * Revision 1.11  2005/05/25 16:37:09  jonblower
  * Deals with change of filename associated with a fid when creating a file
  *
@@ -283,7 +286,7 @@ public class StyxMon extends StyxInterloper
                 if (filename != null)
                 {
                     filename += "/" + tCreateMsg.getFileName();
-                    this.fidNames.put(tCreateMsg.getFid(), filename);
+                    this.fidNames.put(new Long(tCreateMsg.getFid()), filename);
                 }
             }
         }
