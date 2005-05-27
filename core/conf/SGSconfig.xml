@@ -52,7 +52,7 @@
         
         <gridservice name="simple" command="python c:\simple.py" description="doesn't do much really" />
         
-        <gridservice name="lbflow" command="c:\cygwin\home\jdb\lbflow-0.1\src\lbflow -i input.sim"
+        <gridservice name="lbflow" command="c:\cygwin\home\Jon\lbflow-0.1\src\lbflow -i input.sim"
             description="Lattice Boltzmann simulation">
             <streams>
                 <outstream name="stdout"/>
@@ -60,6 +60,7 @@
             </streams>
             <serviceData>
                 <serviceDataElement name="status" />
+                <serviceDataElement name="exitCode" />
             </serviceData>
             <inputfiles allowOthers="yes">
                 <inputfile path="input.sim"/>

@@ -30,6 +30,9 @@ package uk.ac.rdg.resc.jstyx.gridservice.client;
 
 import javax.swing.JFrame;
 
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
 import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
@@ -50,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeListener;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/05/27 07:44:07  jonblower
+ * Continuing to implement Stream viewers
+ *
  * Revision 1.2  2005/05/26 21:33:40  jonblower
  * Added method for viewing streams in a window
  *
@@ -67,6 +73,14 @@ public abstract class StreamViewer extends JFrame implements CStyxFileChangeList
     {
         this.offset = 0;
         this.started = false;
+        this.addWindowListener(new WindowAdapter()
+        {
+            // Stop reading from the stream if the window is closed
+            public void windowClosing(WindowEvent we)
+            {
+                stop();
+            }
+        });
     }
     
     /**
@@ -167,7 +181,10 @@ public abstract class StreamViewer extends JFrame implements CStyxFileChangeList
         {
             this.newDataArrived(data);
             this.offset += dataSize;
-            this.stream.readAsync(this.offset);
+            if (this.started)
+            {
+                this.stream.readAsync(this.offset);
+            }
         }
         else
         {

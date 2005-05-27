@@ -54,6 +54,7 @@ import java.awt.Dimension;
 import java.awt.BorderLayout;
 
 import java.util.Vector;
+import java.util.Enumeration;
 
 import info.clearthought.layout.TableLayout;
 
@@ -72,6 +73,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/05/27 07:44:07  jonblower
+ * Continuing to implement Stream viewers
+ *
  * Revision 1.7  2005/05/26 21:33:40  jonblower
  * Added method for viewing streams in a window
  *
@@ -644,8 +648,10 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     private class OutputStreamsPanel extends JPanel implements ActionListener
     {
         private TableLayout layout;
-        private Hashtable streams; // Keys are JButtons, values are CStyxFiles
-        private Class[] viewers = new Class[]{TextStreamViewer.class, String.class};
+        private Vector streams; // CStyxFiles
+        private Vector buttons; // JButtons
+        private Vector combos;  // JComboBoxes
+        private Hashtable viewers; // Keys are Strings, values are Classes
         
         public OutputStreamsPanel()
         {
@@ -658,9 +664,27 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             this.layout = new TableLayout(size);
             this.setLayout(this.layout);
             this.setBorder(BorderFactory.createTitledBorder("Available output streams"));
-            this.streams = new Hashtable();
+            this.streams = new Vector();
+            this.buttons = new Vector();
+            this.combos = new Vector();
+            // Create the hashtable of possible viewing panels
+            this.viewers = new Hashtable();
+            this.viewers.put("Text Viewer", TextStreamViewer.class);
+            this.viewers.put("LB Viewer", TextStreamViewer.class);
             // Send a message to get the possible output streams
             client.getOutputStreams();
+        }
+        
+        private JComboBox makeComboBox()
+        {
+            JComboBox combo = new JComboBox();
+            Enumeration keys = this.viewers.keys();
+            while(keys.hasMoreElements())
+            {
+                combo.addItem(keys.nextElement());
+            }
+            combo.setSelectedIndex(0);
+            return combo;
         }
         
         /**
@@ -672,12 +696,15 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             {
                 this.layout.insertRow(2 * i, ROW_HEIGHT);
                 this.layout.insertRow((2 * i) + 1, BORDER);
+                this.streams.add(outputStreams[i]);
                 this.add(new JLabel(outputStreams[i].getName()), "0, " + 2*i);
-                this.add(new JComboBox(this.viewers), "2, " + 2*i);
+                JComboBox combo = makeComboBox();
+                this.combos.add(combo);
+                this.add(combo, "2, " + 2*i);
                 JButton btnView = new JButton("View stream");
                 btnView.addActionListener(this);
+                this.buttons.add(btnView);
                 this.add(btnView, "4, " + 2*i + ", c, f");
-                this.streams.put(btnView, outputStreams[i]);
             }
             this.layout.layoutContainer(this);
             repaintGUI();
@@ -685,15 +712,28 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         
         public void actionPerformed(ActionEvent e)
         {
-            // Find out the CStyxFile to which the button refers
-            Object srcButton = e.getSource();
-            if (this.streams.containsKey(srcButton))
+            int i = this.buttons.indexOf(e.getSource());
+            if (i != -1)
             {
-                CStyxFile streamFile = (CStyxFile)this.streams.get(srcButton);
-                // TODO: allow different types of viewer to be created
-                StreamViewer viewer = new TextStreamViewer();
-                viewer.setStream(streamFile);
-                viewer.start();
+                CStyxFile streamFile = (CStyxFile)this.streams.get(i);
+                // find out which viewer has been selected
+                JComboBox combo = (JComboBox)this.combos.get(i);
+                Object key = combo.getSelectedItem();
+                Class viewerClass = (Class)this.viewers.get(key);
+                try
+                {
+                    StreamViewer viewer = (StreamViewer)viewerClass.newInstance();
+                    viewer.setStream(streamFile);
+                    viewer.start();
+                }
+                catch (InstantiationException ie)
+                {
+                    ie.printStackTrace(); // TODO do something better here
+                }
+                catch (IllegalAccessException iae)
+                {
+                    iae.printStackTrace();
+                }
             }
         }
     }
