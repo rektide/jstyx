@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.20  2005/05/27 17:03:35  jonblower
+ * Minor bug fix
+ *
  * Revision 1.19  2005/05/26 07:56:56  jonblower
  * Minor changes
  *
@@ -766,6 +769,10 @@ public class StyxConnection implements ProtocolHandler
      */
     public CStyxFile getFile(String path)
     {
+        if (!path.startsWith("/"))
+        {
+            path = "/" + path;
+        }
         return new CStyxFile(this, path);
     }
     
