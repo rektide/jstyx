@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/05/27 21:22:39  jonblower
+ * Further development of caching stream readers
+ *
  * Revision 1.4  2005/05/27 17:05:07  jonblower
  * Changes to incorporate GeneralCachingStreamReader
  *
@@ -88,7 +91,6 @@ public abstract class StreamViewer extends JFrame
     public void setStreamReader(CachedStreamReader reader)
     {
         this.reader = reader;
-        // this.stream.addChangeListener(this);
         this.setTitle(reader.getName());
     }
     
@@ -166,7 +168,7 @@ public abstract class StreamViewer extends JFrame
         }
         else
         {
-            // we have reached eof DO SOMETHING HERE
+            System.err.println("Reached EOF");
         }
     }
     

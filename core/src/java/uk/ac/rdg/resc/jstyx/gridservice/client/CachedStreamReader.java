@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.GeneralCachingStreamReader;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/05/27 21:22:39  jonblower
+ * Further development of caching stream readers
+ *
  * Revision 1.1  2005/05/27 17:02:59  jonblower
  * Initial import
  *
@@ -74,12 +77,14 @@ public class CachedStreamReader extends GeneralCachingStreamReader
     {
         StreamViewer viewer = (StreamViewer)originalRequest.client;
         // TODO: notify viewer
+        viewer.newData(data, count);
     }
     
     public void error(DataRequest originalRequest, Exception e)
     {
         StreamViewer viewer = (StreamViewer)originalRequest.client;
         // TODO: notify viewer
+        e.printStackTrace();
     }
     
     public String getName()

@@ -48,6 +48,9 @@ import org.apache.log4j.Logger;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/05/27 21:22:39  jonblower
+ * Further development of caching stream readers
+ *
  * Revision 1.1  2005/05/27 17:02:59  jonblower
  * Initial import
  *
@@ -81,7 +84,6 @@ public abstract class GeneralCachingStreamReader
     public void setCacheFile(File cacheFile) throws FileNotFoundException
     {
         this.cacheFile = cacheFile;
-        this.cache = new RandomAccessFile(this.cacheFile, "rw");
     }
     
     /**
@@ -89,7 +91,6 @@ public abstract class GeneralCachingStreamReader
      * and immediately starts reading from this stream
      * @throws IllegalStateException if this object is already reading from a stream
      * @throws IOException if the cache file could not be created
-     * and should not happen)
      */
     public void startReading(InputStream is) throws IOException
     {
@@ -105,6 +106,9 @@ public abstract class GeneralCachingStreamReader
             this.cacheFile.delete();
         }
         
+        this.cache = new RandomAccessFile(this.cacheFile, "rw");
+        log.info("Created cache file " + this.cacheFile.getPath());
+        
         this.cacheLength = 0;
         this.globEx = null;
         this.is = is;
@@ -118,7 +122,6 @@ public abstract class GeneralCachingStreamReader
     public void read(DataRequest dr)
     {
         log.debug("Received request: offset = " + dr.offset + ", count = " + dr.count);
-        //DataRequest dr = new DataRequest(client, tag, offset, count);
         synchronized(this.cacheLock)
         {
             // Try to process the request immediately
@@ -145,16 +148,19 @@ public abstract class GeneralCachingStreamReader
         {
             synchronized(this.requestQueue)
             {
-                Iterator it = this.requestQueue.iterator();
-                while(it.hasNext())
+                for (int i = 0; i < this.requestQueue.size(); )
                 {
-                    DataRequest dr = (DataRequest)it.next();
+                    DataRequest dr = (DataRequest)this.requestQueue.get(i);
                     boolean processed = this.processRequest(dr);
                     if (processed)
                     {
                         // If we have processed the request successfully, remove
                         // it from the queue
-                        it.remove();
+                        this.requestQueue.remove(i);
+                    }
+                    else
+                    {
+                        i++;
                     }
                 }
             }
@@ -279,6 +285,7 @@ public abstract class GeneralCachingStreamReader
                         {
                             // We've reached the end of the stream
                             eof = true;
+                            is.close();
                         }
                         else
                         {
