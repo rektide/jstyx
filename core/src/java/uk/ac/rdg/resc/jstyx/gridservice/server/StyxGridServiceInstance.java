@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2005/05/27 17:05:07  jonblower
+ * Changes to incorporate GeneralCachingStreamReader
+ *
  * Revision 1.16  2005/05/26 21:24:44  jonblower
  * Added exitCode as a new service data element
  *
@@ -366,20 +369,16 @@ class StyxGridServiceInstance extends StyxDirectory
                     // even if the "stdout" and "stderr" streams are not exposed
                     // through the Styx interface (we must do this to consume the
                     // stdout and stderr data
+                    stdout.setCacheFile(new File(workDir, "stdout"));
                     stdout.startReading(process.getInputStream());
+                    stderr.setCacheFile(new File(workDir, "stderr"));
                     stderr.startReading(process.getErrorStream());
                 }
                 catch(IOException ioe)
                 {
                     ioe.printStackTrace();
-                    throw new StyxException("IOException when calling runtime.exec():"
-                        + ioe.getMessage());
-                }
-                catch(StyxException se)
-                {
-                    // There was an error reading from the streams. Tidy up.
                     process.destroy();
-                    setStatus(StatusCode.ERROR, se.getMessage());
+                    setStatus(StatusCode.ERROR, ioe.getMessage());
                     throw new StyxException("Internal error: could not start "
                         + "reading from output and error streams");
                 }

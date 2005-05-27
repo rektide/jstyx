@@ -29,23 +29,17 @@
 package uk.ac.rdg.resc.jstyx.gridservice.server;
 
 import java.io.InputStream;
-import java.io.RandomAccessFile;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Vector;
-import java.util.Iterator;
+import java.io.FileNotFoundException;
+import java.io.File;
 
 import org.apache.log4j.Logger;
-
-import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
 import uk.ac.rdg.resc.jstyx.server.StyxServerProtocolHandler;
 import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
 import uk.ac.rdg.resc.jstyx.StyxException;
-import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * When a client gets data from one of the StyxGridService's data streams (e.g.
@@ -61,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/05/27 17:05:07  jonblower
+ * Changes to incorporate GeneralCachingStreamReader
+ *
  * Revision 1.7  2005/05/26 20:31:11  jonblower
  * Changed behaviour such that clients can start trying to read from the stream before the service is started
  *
@@ -97,20 +94,7 @@ class CachingStreamReader extends StyxFile
     private static final Logger log = Logger.getLogger(CachingStreamReader.class);
     
     private StyxGridServiceInstance sgsInstance; // The SGS instance that owns this
-    private InputStream is; // The input stream from which we will read
-    private RandomAccessFile cache; // The cache itself (a file on the local filesystem)
-    private Integer cacheLock = new Integer(0); // We use this for synchronization; it has no other purpose
-    private String cacheFilePath; // The full path to the cache file
-    private boolean started;  // True if we have started reading from the stream
-    private RerrorMessage rGlobErrMsg; // If this is non-null an error has occurred and 
-                                   // any attempt to read the stream will result
-                                   // in this message being returned until it is reset.
-    private Vector requestQueue; // Queue of DataRequests that have not yet been fulfilled
-    private long cacheLength; // The length of the cache (i.e. the size of the cache file)
-                              // Note that we could also get this from cache.length() but
-                              // this should be faster (saves a call to the OS)
-    private boolean eof;      // This will be true when the stream has been completely read.
-    private boolean running;  // This is true if there is an active thread reading from the input stream
+    private GeneralCachingStreamReader reader;
     
     /**
      * Creates a new CachingStreamReader.
@@ -121,52 +105,24 @@ class CachingStreamReader extends StyxFile
     public CachingStreamReader(StyxGridServiceInstance inst, String name) throws StyxException
     {
         super(name, 0444); // This is a read-only file
-        this.sgsInstance = inst;
-        this.is = null;
-        this.requestQueue = new Vector();
-        this.running = false;
+        this.reader = new SFCachingStreamReader();
     }
     
     /**
      * Sets the input stream from which the CachingStreamReader gets data
      * and immediately starts reading from this stream
      * @throws IllegalStateException if this object is already reading from a stream
-     * @throws StyxException if the cache file could not be created, or if previous
-     * cache file(s) could not be deleted
+     * @throws IOException if the cache file could not be created
      * and should not happen)
      */
-    public void startReading(InputStream is) throws StyxException
+    public void startReading(InputStream is) throws IOException
     {
-        if (this.running)
-        {
-            throw new IllegalStateException("This CachingStreamReader is already running");
-        }
-        try
-        {
-            if (this.cache != null)
-            {
-                // Delete any previous cache files
-                this.cache.close();
-                new File(this.cacheFilePath).delete();
-            }
-            this.cacheFilePath = this.sgsInstance.getWorkingDirectory() + 
-                StyxUtils.SYSTEM_FILE_SEPARATOR + name;
-            this.cache = new RandomAccessFile(this.cacheFilePath, "rw");
-        }
-        catch(FileNotFoundException fnfe)
-        {
-            throw new StyxException("Could not create cache file " + this.cacheFilePath);
-        }
-        catch(IOException ioe)
-        {
-            throw new StyxException("Could not delete previous cache file: " +
-                ioe.getMessage());
-        }
-        this.cacheLength = 0;
-        this.rGlobErrMsg = null;
-        this.is = is;
-        // Start reading from the stream immediately
-        new StreamGobbler().start();
+        this.reader.startReading(is);
+    }
+    
+    public void setCacheFile(File file) throws FileNotFoundException
+    {
+        this.reader.setCacheFile(file);
     }
     
     /**
@@ -178,244 +134,37 @@ class CachingStreamReader extends StyxFile
     public void read(StyxFileClient client, long offset, int count, int tag)
         throws StyxException
     {
-        log.debug("Received request: offset = " + offset + ", count = " + count);
-        DataRequest dr = new DataRequest(client, tag, offset, count);
-        synchronized(this.cacheLock)
-        {
-            // Try to process the request immediately
-            boolean processed = this.processRequest(dr);
-            if (!processed)
-            {
-                // if we couldn't fulfil this request, add it to the queue
-                synchronized(this.requestQueue)
-                {
-                    this.requestQueue.add(dr);
-                }
-            }
-        }
+        this.reader.read(new SFDataRequest(client, offset, count, tag));
     }
     
-    /**
-     * Processes all outstanding requests. This is called when more data arrive
-     * or when EOF is reached.
-     */
-    private void processOutstandingRequests()
+    private class SFCachingStreamReader extends GeneralCachingStreamReader
     {
-        // We should already have the lock on the cache, but let's make sure
-        synchronized(this.cacheLock)
-        {
-            synchronized(this.requestQueue)
-            {
-                Iterator it = this.requestQueue.iterator();
-                while(it.hasNext())
-                {
-                    DataRequest dr = (DataRequest)it.next();
-                    boolean processed = this.processRequest(dr);
-                    if (processed)
-                    {
-                        // If we have processed the request successfully, remove
-                        // it from the queue
-                        it.remove();
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
-     * @return true if the request was processed successfully, false otherwise
-     */
-    private boolean processRequest(DataRequest dr)
-    {
-        // We get the cache's lock so no data can be written to the cache
-        // before we're done.
-        synchronized(this.cacheLock)
-        {
-            try
-            {
-                if (log.isDebugEnabled())
-                {
-                    log.debug("Processing request: offset = " + dr.offset +
-                        ", count = " + dr.count + ": cacheLength = " +
-                        this.cacheLength + ", actual length = " + this.cache.length());
-                }
-                if (dr.offset >= this.cacheLength)
-                {
-                    // We're asking for data not (yet) in the cache
-                    if (this.eof)
-                    {
-                        // We've reached the end of the stream.
-                        log.debug("Offset >= cache length and EOF reached."
-                            + " Returning 0 bytes");
-                        this.replyRead(dr.client, new byte[0], dr.tag);
-                        return true;
-                    }
-                    else
-                    {
-                        // The requested data haven't yet arrived in the cache
-                        if (this.rGlobErrMsg != null)
-                        {
-                            // An error has occurred so the data will never
-                            // arrive.
-                            log.debug("Got error message. Returning Rerror");
-                            StyxServerProtocolHandler.reply(dr.client.getSession(),
-                                rGlobErrMsg, dr.tag);
-                            return true;
-                        }
-                        else
-                        {
-                            log.debug("Offset >= cache length but EOF not reached."
-                                + " Holding request.");
-                            return false;
-                        }
-                    }
-                }
-                else
-                {
-                    // At least some of the requested data are in the cache
-                    // Seek to the right position in the cache file
-                    this.cache.seek(dr.offset);
-                    // Try to read the requested amount of data
-                    // TODO: check the number of bytes remaining?
-                    byte[] arr = new byte[dr.count];
-                    log.debug("Reading " + arr.length + " bytes from cache at offset "
-                        + dr.offset);
-                    int n = this.cache.read(arr);
-                    log.debug("Actually read " + n + " bytes");
-                    if (n < 0)
-                    {
-                        // We reached EOF - this shouldn't happen because we've already
-                        // checked the file length
-                        log.error("Internal error: no bytes read from stream");
-                        return false;
-                    }
-                    else
-                    {
-                        // Return the bytes read to the client
-                        log.debug("Returning " + n + " bytes to client");
-                        this.replyRead(dr.client, arr, 0, n, dr.tag);
-                        return true;
-                    }
-                }
-            }
-            catch(IOException ioe)
-            {
-                if (log.isDebugEnabled())
-                {
-                    ioe.printStackTrace();
-                }
-                // We have to reply with an error message here (as opposed to
-                // throwing a StyxException) because we're no longer within
-                // the readFile() method
-                RerrorMessage rErrMsg = new RerrorMessage("error reading from stream: " +
-                    ioe.getMessage());
-                StyxServerProtocolHandler.reply(dr.client.getSession(), rErrMsg, dr.tag);
-                return true; // We have processed the message
-            }
-        }
-    }
-    
-    /**
-     * This thread continuously reads from the stream and puts data in the cache,
-     * notifying waiting clients of the new data.
-     */
-    private class StreamGobbler extends Thread
-    {
-        public void run()
-        {
-            running = true;
-            eof = false;
-            // Create a temporary 8K byte buffer
-            // TODO: is this size appropriate? Might be best to set it to the
-            // maximum payload size on the connection. Or, for services that output
-            // very little data, a much smaller size may be appropriate so that
-            // clients aren't kept waiting for long between updates
-            byte[] arr = new byte[8192];
-            try
-            {
-                while(!eof)
-                {
-                    int n = is.read(arr);
-                    log.debug("Read " + n + " bytes from input stream");
-                    synchronized(cacheLock)
-                    {
-                        if (n < 0)
-                        {
-                            // We've reached the end of the stream
-                            eof = true;
-                        }
-                        else
-                        {
-                            // put the newly-read bytes to the end of the cache
-                            cache.seek(cacheLength);
-                            cache.write(arr, 0, n);
-                            cacheLength += n;
-                            // For some reason, the length() of the RandomAccessFile
-                            // isn't always correct (particularly when first created)
-                            // so we have to set it explicitly.
-                            // TODO: could we just set this to zero when the
-                            // RAF is first created?  Will we notice?
-                            cache.setLength(cacheLength);
-                        }
-                        // Now process any outstanding requests
-                        processOutstandingRequests();
-                    }
-                }
-            }
-            catch(Exception e)
-            {
-                if (log.isDebugEnabled())
-                {
-                    e.printStackTrace();
-                }
-                // Set the global exception object so that any further
-                // attemps to read this stream return an error.
-                rGlobErrMsg = new RerrorMessage("An internal error occurred reading from the stream: "
-                    + e.getClass() + ", " + e.getMessage());
-            }
-            // now we close the cache and open it read-only; this allows us to
-            // examine the contents of the cache without going through the 
-            // Styx interface (useful for debugging)
-            synchronized(cache)
-            {
-                try
-                {
-                    cache.close();
-                    cache = new RandomAccessFile(cacheFilePath, "r");
-                }
-                catch(Exception e)
-                {
-                    if (log.isDebugEnabled())
-                    {
-                        e.printStackTrace();
-                    }
-                    rGlobErrMsg = new RerrorMessage("An internal error occurred "
-                        + "closing and reopening the cache file: " + e.getClass()
-                        + ", " + e.getMessage());
-                }
-            }
-            running = false;
-        }
-    }
-    
-    /**
-     * Class representing a client that is waiting for data
-     * @todo: this is very similar to the ClientInfo class in AsyncStyxFile.
-     * Can we avoid this code repetition?
-     */
-    private class DataRequest
-    {
-        private StyxFileClient client;
-        private int tag;
-        private long offset; // The offset requested by the client
-        private int count; // number of bytes requested by the client
         
-        private DataRequest(StyxFileClient client, int tag, long offset, int count)
+        public void newData(DataRequest originalRequest, byte[] data,
+            int offset, int count)
         {
-            this.client = client;
+            SFDataRequest dr = (SFDataRequest)originalRequest;
+            StyxFileClient c = (StyxFileClient)dr.client;
+            replyRead(c, data, offset, count, dr.tag);
+        }
+        
+        public void error(DataRequest originalRequest, Exception e)
+        {
+            RerrorMessage rErrMsg = new RerrorMessage("error reading from stream: " +
+                e.getMessage());
+            SFDataRequest dr = (SFDataRequest)originalRequest;
+            StyxFileClient c = (StyxFileClient)dr.client;
+            StyxServerProtocolHandler.reply(c.getSession(), rErrMsg, dr.tag);
+        }
+    }
+    
+    private static class SFDataRequest extends GeneralCachingStreamReader.DataRequest
+    {
+        private int tag;
+        public SFDataRequest(StyxFileClient client, long offset, int count, int tag)
+        {
+            super(client, offset, count);
             this.tag = tag;
-            this.offset = offset;
-            this.count = count;
         }
     }
     
@@ -425,19 +174,7 @@ class CachingStreamReader extends StyxFile
      */
     protected synchronized void delete()
     {
-        if (this.cache != null)
-        {
-            try
-            {
-                this.cache.close();
-            }
-            catch(IOException ioe)
-            {
-                ioe.printStackTrace();
-            }
-            new File(this.cacheFilePath).delete();
-        }
-        return;
+        this.reader.delete();
     }
     
 }

@@ -35,11 +35,7 @@ import java.awt.event.WindowEvent;
 
 import org.apache.mina.common.ByteBuffer;
 
-import uk.ac.rdg.resc.jstyx.types.DirEntry;
-import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
-import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
-import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeListener;
 
 /**
  * Class representing a viewer for an output stream from a Styx Grid Service
@@ -53,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeListener;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/05/27 17:05:07  jonblower
+ * Changes to incorporate GeneralCachingStreamReader
+ *
  * Revision 1.3  2005/05/27 07:44:07  jonblower
  * Continuing to implement Stream viewers
  *
@@ -63,9 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeListener;
  * Initial import
  *
  */
-public abstract class StreamViewer extends JFrame implements CStyxFileChangeListener
+public abstract class StreamViewer extends JFrame
 {
-    protected CStyxFile stream;
+    protected CachedStreamReader reader;
     protected long offset;
     protected boolean started;
     
@@ -86,11 +85,11 @@ public abstract class StreamViewer extends JFrame implements CStyxFileChangeList
     /**
      * Sets the CStyxFile that represents the stream
      */
-    public void setStream(CStyxFile stream)
+    public void setStreamReader(CachedStreamReader reader)
     {
-        this.stream = stream;
-        this.stream.addChangeListener(this);
-        this.setTitle(stream.getName());
+        this.reader = reader;
+        // this.stream.addChangeListener(this);
+        this.setTitle(reader.getName());
     }
     
     /**
@@ -103,7 +102,7 @@ public abstract class StreamViewer extends JFrame implements CStyxFileChangeList
         if (!this.started)
         {
             this.started = true;
-            this.stream.readAsync(this.offset);
+            this.reader.read(this, this.offset, 8192);
         }
     }
     
@@ -152,58 +151,28 @@ public abstract class StreamViewer extends JFrame implements CStyxFileChangeList
     /**
      * Called when new data arrive from the server
      */
-    public abstract void newDataArrived(ByteBuffer data);
+    public abstract void newDataArrived(byte[] data, int size);
     
     /**
-     * Called when we reach the end of the stream.  The total length of the
-     * stream data can now be read by calling <code>getPosition()</code>.  To
-     * start reading from the start of the stream, call <code>reset()</code> then
-     * <code>start()</code>.  This default implementation does nothing: subclasses
-     * should override this if they want to do something when end-of-stream is
-     * reached.
+     * Called by CachedStreamReader when a chunk of data is read from stream
      */
-    public void eof()
+    public final void newData(byte[] data, int size)
     {
-    }
-    
-    /**
-     * Called when an error occurs. This default implementation does nothign:
-     * Subclasses should override this to handle errors.
-     */
-    public void streamError(String message)
-    {
-    }
-    
-    public void dataArrived(CStyxFile file, TreadMessage tReadMsg, ByteBuffer data)
-    {
-        int dataSize = data.remaining();
-        if (dataSize > 0)
+        if (size > 0)
         {
-            this.newDataArrived(data);
-            this.offset += dataSize;
-            if (this.started)
-            {
-                this.stream.readAsync(this.offset);
-            }
+            this.offset += size;
+            this.newDataArrived(data, size);
+            this.reader.read(this, this.offset, 8192);
         }
         else
         {
-            this.started = false;
-            this.eof();
+            // we have reached eof DO SOMETHING HERE
         }
     }
     
-    public void error(CStyxFile file, String message)
+    public void readError(Exception e)
     {
-        this.streamError(message);
+        e.printStackTrace();
     }
-    
-    // Empty methods required by the CStyxFileChangeListener interface
-    public void fileOpen(CStyxFile file, int mode){}
-    public void fileCreated(CStyxFile file, int mode){}
-    public void dataWritten(CStyxFile file, TwriteMessage tWriteMsg){}
-    public void statChanged(CStyxFile file, DirEntry newDirEntry){}
-    public void childrenFound(CStyxFile file, CStyxFile[] children){}
-    public void uploadComplete(CStyxFile targetFile) {}
     
 }

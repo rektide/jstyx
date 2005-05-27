@@ -29,7 +29,12 @@
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
 import java.util.Vector;
+import java.util.Hashtable;
+
 import java.io.File;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.io.IOException;
 
 import org.apache.mina.common.ByteBuffer;
 
@@ -50,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.20  2005/05/27 17:05:06  jonblower
+ * Changes to incorporate GeneralCachingStreamReader
+ *
  * Revision 1.19  2005/05/26 16:52:06  jonblower
  * Implemented detection and viewing of output streams
  *
@@ -136,6 +144,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     
     // Output streams
     private CStyxFile outputStreamsDir;
+    private Hashtable activeStreams;
     
     // SGSInstanceChangeListeners that are listening for changes to this SGS instance
     private Vector changeListeners;
@@ -161,6 +170,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // Open the files that will give us data and service data
         this.outputStreamsDir = this.instanceRoot.getFile("io/out");
         this.outputStreamsDir.addChangeListener(this);
+        this.activeStreams = new Hashtable();
         
         // We will read this directory to find the service data offered by the SGS
         this.sdeDir = this.instanceRoot.getFile("/serviceData");
@@ -351,6 +361,34 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * Gets a CachedStreamReader that can be used to read from the given
+     * stream
+     */
+    public CachedStreamReader getStreamReader(CStyxFile stream)
+    {
+        // TODO: check that "stream" really does represent an output stream
+        if (this.activeStreams.containsKey(stream))
+        {
+            return (CachedStreamReader)this.activeStreams.get(stream);
+        }
+        else
+        {
+            try
+            {
+                CachedStreamReader reader = new CachedStreamReader(stream);
+                this.activeStreams.put(stream, reader);
+                return reader;
+            }
+            catch (IOException ioe)
+            {
+                // TODO: do something more useful here
+                ioe.printStackTrace();
+                return null;
+            }
+        }
+    }
+    
+    /**
      * Called when new data has been read from a file (after the Rread message
      * arrives).
      */
@@ -370,13 +408,14 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                     break;
                 }
             }
+            // Read the next chunk of data
             file.readAsync(offset);
         }
         else
         {
             // If this is service data, we start reading from the start of the
             // file again
-            // TODO: I think service date is all that is read via this class
+            // TODO: I think service data is all that is read via this class
             // so some of this is irrelevant
             boolean isServiceData = false;
             for (int i = 0; i < this.serviceDataFiles.length; i++)

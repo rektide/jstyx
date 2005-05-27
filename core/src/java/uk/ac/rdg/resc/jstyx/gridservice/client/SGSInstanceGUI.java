@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.jstyx.gridservice.client;
 
 import java.util.Hashtable;
 import java.io.File;
+import java.io.IOException;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -73,6 +74,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/05/27 17:05:07  jonblower
+ * Changes to incorporate GeneralCachingStreamReader
+ *
  * Revision 1.8  2005/05/27 07:44:07  jonblower
  * Continuing to implement Stream viewers
  *
@@ -716,15 +720,22 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             if (i != -1)
             {
                 CStyxFile streamFile = (CStyxFile)this.streams.get(i);
-                // find out which viewer has been selected
-                JComboBox combo = (JComboBox)this.combos.get(i);
-                Object key = combo.getSelectedItem();
-                Class viewerClass = (Class)this.viewers.get(key);
+                // Get the CachedStreamReader for this file and start it
+                CachedStreamReader reader = client.getStreamReader(streamFile);
                 try
                 {
+                    reader.start();
+                    // find out which viewer has been selected
+                    JComboBox combo = (JComboBox)this.combos.get(i);
+                    Object key = combo.getSelectedItem();
+                    Class viewerClass = (Class)this.viewers.get(key);
                     StreamViewer viewer = (StreamViewer)viewerClass.newInstance();
-                    viewer.setStream(streamFile);
+                    viewer.setStreamReader(reader);
                     viewer.start();
+                }
+                catch (IOException ioe)
+                {
+                    ioe.printStackTrace(); // TODO do something better here
                 }
                 catch (InstantiationException ie)
                 {

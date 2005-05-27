@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/05/27 17:05:07  jonblower
+ * Changes to incorporate GeneralCachingStreamReader
+ *
  * Revision 1.1  2005/05/26 21:33:40  jonblower
  * Added method for viewing streams in a window
  *
@@ -67,9 +70,9 @@ public class TextStreamViewer extends StreamViewer
      * Called when new data arrive from the server. Simply adds the new data to
      * the JTextArea.
      */
-    public void newDataArrived(ByteBuffer data)
+    public void newDataArrived(byte[] data, int size)
     {
-        this.textArea.append(StyxUtils.dataToString(data));
+        this.textArea.append(new String(data, 0, size));
     }
     
 }
