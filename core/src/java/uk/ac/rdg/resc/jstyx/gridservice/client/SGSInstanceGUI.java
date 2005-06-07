@@ -74,6 +74,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/06/07 16:44:45  jonblower
+ * Fixed problem with caching stream reader on client side
+ *
  * Revision 1.9  2005/05/27 17:05:07  jonblower
  * Changes to incorporate GeneralCachingStreamReader
  *
@@ -140,7 +143,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         
         // Add the input panel
         this.inputPanel = new InputPanel();
-        this.masterPanel.add(new JLabel("Input panel goes here"), "1, 1");
+        this.masterPanel.add(this.inputPanel, "1, 1");
         
         // Add the panel for uploading input files
         this.inputFilesPanel = new InputFilesPanel();
@@ -291,42 +294,46 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         
         public InputPanel()
         {
-            double[][] size =
-            {
-                { 20, 0.25, BORDER, TableLayout.FILL, BORDER, 20 }, // Columns
-                { }  // Rows - will be added later when setInputMethods() is called
-            };
-            this.layout = new TableLayout(size);
-            this.setLayout(this.layout);
-            
-            this.btnGroup = new ButtonGroup();
-            this.setBorder(BorderFactory.createTitledBorder("Select input method"));
-            
             // Send message to find the input methods supported by this instance
             // When the reply arrives, the setInputMethods() method of this
-            // class will be called and the GUI will be set up.
+            // class will be called and the GUI will be set up.  If there are
+            // no input methods this panel will not appear
             client.getInputMethods();
         }
         
         public void setInputMethods(CStyxFile[] inputMethods)
         {
-            // This method should only be called once so we don't need to look
-            // for existing rows
-            for (int i = 0; i < inputMethods.length; i++)
+            if (inputMethods.length > 0)
             {
-                // Add a new row for the input method plus a border
-                this.layout.insertRow(2 * i, ROW_HEIGHT);
-                if (i < inputMethods.length - 1)
+                double[][] size =
                 {
-                    this.layout.insertRow((2 * i) + 1, BORDER);
+                    { 20, TableLayout.PREFERRED, BORDER, TableLayout.FILL, BORDER, 20 }, // Columns
+                    { }  // Rows - will be added later when setInputMethods() is called
+                };
+                this.layout = new TableLayout(size);
+                this.setLayout(this.layout);
+
+                this.btnGroup = new ButtonGroup();
+                this.setBorder(BorderFactory.createTitledBorder("Select input method"));
+            
+                // This method should only be called once so we don't need to look
+                // for existing rows
+                for (int i = 0; i < inputMethods.length; i++)
+                {
+                    // Add a new row for the input method plus a border
+                    this.layout.insertRow(2 * i, ROW_HEIGHT);
+                    if (i < inputMethods.length - 1)
+                    {
+                        this.layout.insertRow((2 * i) + 1, BORDER);
+                    }
+                    JRadioButton btn = new JRadioButton();
+                    this.btnGroup.add(btn);
+                    this.add(btn, "0, " + (2 * i));
+                    this.add(new JLabel(inputMethods[i].getName()), "1, " + (2 * i));
+                    this.add(new JTextField(), "3, " + (2 * i));
                 }
-                JRadioButton btn = new JRadioButton();
-                this.btnGroup.add(btn);
-                this.add(btn, "0, " + (2 * i));
-                this.add(new JLabel(inputMethods[i].getName()), "1, " + (2 * i));
-                this.add(new JTextField(), "3, " + (2 * i));
+                this.layout.layoutContainer(this);
             }
-            this.layout.layoutContainer(this);
         }
     }
     

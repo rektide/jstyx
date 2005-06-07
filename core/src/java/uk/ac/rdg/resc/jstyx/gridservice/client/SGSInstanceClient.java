@@ -37,6 +37,7 @@ import java.io.RandomAccessFile;
 import java.io.IOException;
 
 import org.apache.mina.common.ByteBuffer;
+import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
@@ -55,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.21  2005/06/07 16:44:45  jonblower
+ * Fixed problem with caching stream reader on client side
+ *
  * Revision 1.20  2005/05/27 17:05:06  jonblower
  * Changes to incorporate GeneralCachingStreamReader
  *
@@ -121,6 +125,8 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  */
 public class SGSInstanceClient extends CStyxFileChangeAdapter
 {
+    private static final Logger log = Logger.getLogger(SGSInstanceClient.class);
+    
     private CStyxFile instanceRoot; // The file at the root of the instance
     private CStyxFile ctlFile;      // The file that we use to stop, start and
                                     // destroy the instance
@@ -369,6 +375,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // TODO: check that "stream" really does represent an output stream
         if (this.activeStreams.containsKey(stream))
         {
+            
             return (CachedStreamReader)this.activeStreams.get(stream);
         }
         else

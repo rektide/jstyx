@@ -33,8 +33,6 @@ import javax.swing.JScrollPane;
 
 import java.awt.BorderLayout;
 
-import org.apache.mina.common.ByteBuffer;
-
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
@@ -44,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/06/07 16:44:45  jonblower
+ * Fixed problem with caching stream reader on client side
+ *
  * Revision 1.2  2005/05/27 17:05:07  jonblower
  * Changes to incorporate GeneralCachingStreamReader
  *
@@ -73,6 +74,7 @@ public class TextStreamViewer extends StreamViewer
     public void newDataArrived(byte[] data, int size)
     {
         this.textArea.append(new String(data, 0, size));
+        this.textArea.repaint();
     }
     
 }

@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.GeneralCachingStreamReader;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/06/07 16:44:45  jonblower
+ * Fixed problem with caching stream reader on client side
+ *
  * Revision 1.2  2005/05/27 21:22:39  jonblower
  * Further development of caching stream readers
  *
@@ -54,16 +57,25 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.GeneralCachingStreamReader;
 public class CachedStreamReader extends GeneralCachingStreamReader
 {
     private CStyxFile stream;
+    private boolean started;
     
     public CachedStreamReader(CStyxFile stream) throws IOException
     {
         this.stream = stream;
+        this.started = false;
         this.setCacheFile(File.createTempFile(stream.getName(), ".tmp"));
     }
     
+    /**
+     * Starts reading from the stream.  Does nothing if already started.
+     */
     public void start() throws IOException
     {
-        this.startReading(new StyxFileInputStream(this.stream));
+        if (!this.started)
+        {
+            this.started = true;
+            this.startReading(new StyxFileInputStream(this.stream));
+        }
     }
     
     public void read(StreamViewer viewer, long offset, int count)
