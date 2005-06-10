@@ -67,6 +67,8 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 
+import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
+
 /**
  * GUI for interacting with an SGS instance
  *
@@ -74,6 +76,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/06/10 07:54:40  jonblower
+ * Added code to convert event-based StreamViewer to InputStream-based one
+ *
  * Revision 1.10  2005/06/07 16:44:45  jonblower
  * Fixed problem with caching stream reader on client side
  *
@@ -270,6 +275,18 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     }
     
     /**
+     * Called when we have successfully set the input URL of the SGS.
+     */
+    public void inputURLSet()
+    {
+        // Upload the necessary input files. When these are uploaded
+        // we will start the service
+        File[] srcFiles = inputFilesPanel.getSourceFiles();
+        String[] targetNames = inputFilesPanel.getTargetFileNames();
+        client.uploadInputFiles(srcFiles, targetNames);
+    }
+    
+    /**
      * Called when the input files have been successfully uploaded.  This is our
      * cue to start the service going
      * @todo: add arguments to this
@@ -287,10 +304,11 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     /**
      * Panel for providing input data to the SGS
      */
-    private class InputPanel extends JPanel
+    private class InputPanel extends JPanel implements ActionListener
     {
         private TableLayout layout;
-        private ButtonGroup btnGroup;
+        private JTextField inputURL;
+        private JButton btnPickFile;
         
         public InputPanel()
         {
@@ -303,37 +321,56 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         
         public void setInputMethods(CStyxFile[] inputMethods)
         {
+            // We only expect 0 or 1 input methods (either the service expects
+            // data on stdin or it doesn't).
             if (inputMethods.length > 0)
             {
                 double[][] size =
                 {
-                    { 20, TableLayout.PREFERRED, BORDER, TableLayout.FILL, BORDER, 20 }, // Columns
-                    { }  // Rows - will be added later when setInputMethods() is called
+                    { TableLayout.FILL, BORDER, TableLayout.PREFERRED }, // Columns
+                    { ROW_HEIGHT }  // Rows - will be added later when setInputMethods() is called
                 };
                 this.layout = new TableLayout(size);
                 this.setLayout(this.layout);
 
-                this.btnGroup = new ButtonGroup();
-                this.setBorder(BorderFactory.createTitledBorder("Select input method"));
-            
-                // This method should only be called once so we don't need to look
-                // for existing rows
-                for (int i = 0; i < inputMethods.length; i++)
-                {
-                    // Add a new row for the input method plus a border
-                    this.layout.insertRow(2 * i, ROW_HEIGHT);
-                    if (i < inputMethods.length - 1)
-                    {
-                        this.layout.insertRow((2 * i) + 1, BORDER);
-                    }
-                    JRadioButton btn = new JRadioButton();
-                    this.btnGroup.add(btn);
-                    this.add(btn, "0, " + (2 * i));
-                    this.add(new JLabel(inputMethods[i].getName()), "1, " + (2 * i));
-                    this.add(new JTextField(), "3, " + (2 * i));
-                }
-                this.layout.layoutContainer(this);
+                this.setBorder(BorderFactory.createTitledBorder("File to stream to stdin"));
+                
+                this.inputURL = new JTextField();
+                this.add(this.inputURL, "0, 0");
+                
+                this.btnPickFile = new JButton("Pick file");
+                this.btnPickFile.addActionListener(this);
+                this.add(this.btnPickFile, "2, 0");
             }
+        }
+        
+        public void actionPerformed(ActionEvent e)
+        {
+            if (e.getSource() == this.btnPickFile)
+            {
+                JFileChooser chooser = new JFileChooser();
+                int returnVal = chooser.showOpenDialog(this);
+                if (returnVal == JFileChooser.APPROVE_OPTION)
+                {
+                    try
+                    {
+                        this.inputURL.setText(chooser.getSelectedFile().toURL().toString());
+                    }
+                    catch(java.net.MalformedURLException mue)
+                    {
+                        // This shouldn't happen - what should we do here?
+                    }
+                }
+            }
+        }
+        
+        /**
+         * Return the input URL that has been set, or null if we haven't set
+         * a URL
+         */
+        public String getInputURL()
+        {
+            return this.inputURL == null ? null : this.inputURL.getText();
         }
     }
     
@@ -527,11 +564,29 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         {
             if (e.getSource() == this.btnStart)
             {
-                // Upload the necessary input files. When these are uploaded
-                // we will start the service
-                File[] srcFiles = inputFilesPanel.getSourceFiles();
-                String[] targetNames = inputFilesPanel.getTargetFileNames();
-                client.uploadInputFiles(srcFiles, targetNames);
+                // Send the input URL to the SGS, or start reading from the
+                // local file
+                String inputURL = inputPanel.getInputURL();
+                if (inputURL == null)
+                {
+                    // We haven't set an input URL.  Just go straight to uploading
+                    // the input files (normally we do this when confirmation that
+                    // the input URL has been set arrives
+                    inputURLSet();
+                }
+                else if (inputPanel.getInputURL().startsWith("file:/"))
+                {
+                    // TODO: implement reading from local file
+                    JOptionPane.showMessageDialog(null,
+                        "Uploading from local file not yet supported",
+                        "Not supported", JOptionPane.ERROR_MESSAGE);
+                }
+                else
+                {
+                    // Set the input URL for the service.  When we get confirmation
+                    // that this has been set, the input files will be uploaded.
+                    client.setInputURL(inputPanel.getInputURL());
+                }
             }
             else if (e.getSource() == this.btnStop)
             {
@@ -681,7 +736,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             // Create the hashtable of possible viewing panels
             this.viewers = new Hashtable();
             this.viewers.put("Text Viewer", TextStreamViewer.class);
-            this.viewers.put("LB Viewer", TextStreamViewer.class);
+            this.viewers.put("LB Viewer", LBGUI.class);
             // Send a message to get the possible output streams
             client.getOutputStreams();
         }

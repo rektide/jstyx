@@ -33,6 +33,11 @@ import javax.swing.JFrame;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import java.io.InputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
 import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
@@ -49,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/06/10 07:54:49  jonblower
+ * Added code to convert event-based StreamViewer to InputStream-based one
+ *
  * Revision 1.5  2005/05/27 21:22:39  jonblower
  * Further development of caching stream readers
  *
@@ -71,10 +79,13 @@ public abstract class StreamViewer extends JFrame
     protected long offset;
     protected boolean started;
     
+    protected InputStream is;
+    
     public StreamViewer()
     {
         this.offset = 0;
         this.started = false;
+        this.is = null;
         this.addWindowListener(new WindowAdapter()
         {
             // Stop reading from the stream if the window is closed
@@ -164,6 +175,13 @@ public abstract class StreamViewer extends JFrame
         {
             this.offset += size;
             this.newDataArrived(data, size);
+            if (this.is != null)
+            {
+                synchronized (this.is)
+                {
+                    this.is.notifyAll();
+                }
+            }
             this.reader.read(this, this.offset, 8192);
         }
         else
@@ -175,6 +193,82 @@ public abstract class StreamViewer extends JFrame
     public void readError(Exception e)
     {
         e.printStackTrace();
+    }
+    
+    /**
+     * @return An InputStream that can be used to read from this stream.  This
+     * InputStream <b>must</b> be consumed in a separate thread to avoid blocking.
+     */
+    public InputStream getInputStream()
+    {
+        if (this.is == null)
+        {
+            this.is = new StyxStream();
+        }
+        return this.is;
+    }
+    
+    /**
+     * An InputStream for reading from the Styx stream. This InputStream <b>must</b>
+     * be consumed in a separate thread to avoid blocking
+     */
+    private class StyxStream extends InputStream
+    {
+        private long pos = 0;
+        private FileInputStream in;
+        
+        public StyxStream()
+        {
+            try
+            {
+                this.in = new FileInputStream(reader.getCacheFile());
+            }
+            catch(FileNotFoundException fnfe)
+            {
+                fnfe.printStackTrace();
+            }
+        }
+        
+        public synchronized int read() throws IOException
+        {
+            try
+            {
+                int b;
+                do
+                {
+                    // Try reading from the stream
+                    b = this.in.read();
+                    if (b < 0)
+                    {
+                        // Check for EOF in the cache
+                        if (reader.isEOF())
+                        {
+                            System.err.println("EOF in cache file");
+                            return -1;
+                        }
+                        // We're not ready to read from this position yet.
+                        // Wait until we are notified that more data have arrived
+                        System.err.println("Data not available yet");
+                        this.wait();
+                        System.err.println("Data available");
+                    }
+                } while (b < 0);
+                return b;
+            }
+            catch(InterruptedException ie)
+            {
+                ie.printStackTrace();
+                return -1;
+            }
+        }
+        
+        public synchronized void close() throws IOException
+        {
+            if (this.in != null)
+            {
+                this.in.close();
+            }
+        }
     }
     
 }

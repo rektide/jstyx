@@ -48,6 +48,9 @@ import org.apache.log4j.Logger;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/06/10 07:54:49  jonblower
+ * Added code to convert event-based StreamViewer to InputStream-based one
+ *
  * Revision 1.2  2005/05/27 21:22:39  jonblower
  * Further development of caching stream readers
  *
@@ -81,9 +84,33 @@ public abstract class GeneralCachingStreamReader
         this.running = false;
     }
     
+    /**
+     * Gets the File that is being used to cache the contents of the stream
+     */
+    public File getCacheFile()
+    {
+        return this.cacheFile;
+    }
+    
+    /**
+     * Gets the size of the cache in bytes
+     */
+    public long getCacheLength()
+    {
+        return this.cacheLength;
+    }
+    
     public void setCacheFile(File cacheFile) throws FileNotFoundException
     {
         this.cacheFile = cacheFile;
+    }
+    
+    /**
+     * @return true if we have reached end of file
+     */
+    public boolean isEOF()
+    {
+        return this.eof;
     }
     
     /**

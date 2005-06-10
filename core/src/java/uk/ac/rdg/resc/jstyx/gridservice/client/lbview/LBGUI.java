@@ -28,13 +28,9 @@ import java.util.Observer;
 import java.util.Scanner;
 import java.io.*;
 
-import uk.ac.rdg.resc.jstyx.client.StyxConnection;
-import uk.ac.rdg.resc.jstyx.client.CStyxFile;
-import uk.ac.rdg.resc.jstyx.client.StyxFileInputStream;
-import uk.ac.rdg.resc.jstyx.StyxException;
-import uk.ac.rdg.resc.jstyx.StyxUtils;
+import uk.ac.rdg.resc.jstyx.gridservice.client.StreamViewer;
 
-public class LBGUI extends JFrame implements Observer
+public class LBGUI extends StreamViewer implements Observer
 {
     
     private Dimension scrsize;
@@ -341,68 +337,15 @@ public class LBGUI extends JFrame implements Observer
             else if (name.equals(remoteAction.getValue(NAME)))
             {
                 System.out.println("Opening remote server");
-                
-                // TODO: Set the hostname, port and service name via a dialog box
-                String hostname = "localhost";
-                int port = 9092;
-                String serviceName = "lbflow";
-                
-                // NOTE: there are two ways of interacting with a Styx Grid Service.
-                // You can create an instance of uk.ac.rdg.resc.jstyx.gridservice.client.SGSClient
-                // and add Listeners to this object (the event-based approach).
-                // Here we'll use the procedural method as we can get an InputStream
-                // of output more easily.  It's also easier to see what's going on.
-                // However, it does mean that if one of these methods blocks, the
-                // GUI might freeze until it completes
-                
-                try
-                {
-                    // First we connect to the SGS server
-                    // Note that if the connection can't be made, this method will
-                    // block for a while until it times out.  This is one reason
-                    // why it can be better to use the event-based SGSClient.
-                    StyxConnection conn = new StyxConnection(hostname, port);
-                    conn.connect();
-                    // We create a new instance of the Styx Grid Service by
-                    // reading from its clone file.
-                    // First we get a handle to the file: this doesn't open it
-                    // (CStyxFile is roughly equivalent to java.io.File)
-                    CStyxFile cloneFile = conn.getFile(serviceName + "/clone");
-                    // Now we read its contents: this gives the ID of the new
-                    // service instance
-                    String sid = cloneFile.getContents();
-                    CStyxFile instanceRoot = conn.getFile(serviceName + "/instances/" + sid);
-                    
-                    // TODO: set the parameters of the service, e.g. the input file
-                    
-                    // We start the service by writing the word "start" into
-                    // the ctl file
-                    CStyxFile ctlFile = instanceRoot.getFile("ctl");
-                    ctlFile.setContents("start");
-                    
-                    // Now we can start reading from the output stream
-                    CStyxFile out = instanceRoot.getFile("/io/out/stdout");
-                    // The easiest way to do this is to get an InputStream
-                    // object from the CStyxFile
-                    // The "true" parameter forces the StyxConnection to be closed
-                    // when we have finished reading from the InputStream. This
-                    // may not be what we really want in the final version.
-                    InputStream is = new StyxFileInputStream(out, true);
-                    
-                    // TODO: how do we close the StyxConnection?
-                    
-                    // Now we can pass the stream to the parser as before
-                    // TODO: this repeats code! should move this to a new 
-                    // method
-                    input_parser = new Thread(new InputParser(is));
-                    input_parser.start();
-                    closeAction.setEnabled(true);
-                    pack();
-                }
-                catch(StyxException se)
-                {
-                    System.err.println(se);
-                }
+                InputStream is = getInputStream();
+
+                // Now we can pass the stream to the parser as before
+                // TODO: this repeats code! should move this to a new 
+                // method
+                input_parser = new Thread(new InputParser(is));
+                input_parser.start();
+                closeAction.setEnabled(true);
+                pack();
             }
         }
         
@@ -429,5 +372,9 @@ public class LBGUI extends JFrame implements Observer
         closeAction.setEnabled(false);
     }
     
+    /**
+     * Required by StreamViewer. Does nothing here as we will be reading from the stream.
+     */
+    public void newDataArrived(byte[] data, int size) {}
     
 }
