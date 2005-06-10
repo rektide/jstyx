@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.22  2005/06/10 07:53:12  jonblower
+ * Changed SGS namespace: removed "inurl" and subsumed functionality into "stdin"
+ *
  * Revision 1.21  2005/06/07 16:44:45  jonblower
  * Fixed problem with caching stream reader on client side
  *
@@ -145,8 +148,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     
     // Input streams (stdin and URL to redirect to stdin)
     private CStyxFile inputDir;
-    //private String inputURL = "http://www.nerc-essc.ac.uk/~jdb/bbe.txt";
-    private String inputURL = "http://www.resc.rdg.ac.uk/projects.php";
+    private CStyxFile stdin;
     
     // Output streams
     private CStyxFile outputStreamsDir;
@@ -172,6 +174,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // Create the directory that we will read to get the input methods
         this.inputDir = this.instanceRoot.getFile("/io/in");
         this.inputDir.addChangeListener(this);
+        
+        this.stdin = this.instanceRoot.getFile("io/in/stdin");
+        this.stdin.addChangeListener(this);
         
         // Open the files that will give us data and service data
         this.outputStreamsDir = this.instanceRoot.getFile("io/out");
@@ -347,23 +352,13 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * @return the URL from which this SGS instance will read its input data
+     * Sets the URL from which the service will read its input data.  When the
+     * input url has been set, the inputURLSet() event will be fired on all
+     * change listeners.
      */
-    public String getInputURL()
+    public void setInputURL(String inputURL)
     {
-        return this.inputURL;
-    }
-    
-    /**
-     * Sets the URL from which the service will read its input data. Note that
-     * this blocks until the URL is written (this is probably OK because we don't
-     * anticipate any problems with this operation).
-     */
-    public void setInputURL(String inputURL) throws StyxException
-    {
-        CStyxFile inUrlFile = this.instanceRoot.getFile("io/in/inurl");
-        inUrlFile.setContents(inputURL);
-        this.inputURL = inputURL;
+        this.stdin.writeAsync("readfrom " + inputURL, 0);
     }
     
     /**
@@ -449,7 +444,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      */
     public void dataWritten(CStyxFile file, TwriteMessage tWriteMsg)
     {
-        if (file == ctlFile)
+        if (file == this.ctlFile)
         {
             // We need to find out what the original message was
             String message = StyxUtils.dataToString(tWriteMsg.getData());
@@ -466,6 +461,11 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 this.fireServiceAborted();
             }
+        }
+        else if (file == this.stdin)
+        {
+            // We have just written the input URL to the file
+            this.fireInputURLSet();
         }
     }
     
@@ -661,6 +661,22 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
                 listener.gotInputMethods(inputMethods);
+            }
+        }
+    }
+    
+    /**
+     * Fires the inputURLSet() event on all registered change listeners
+     */
+    private void fireInputURLSet()
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.inputURLSet();
             }
         }
     }

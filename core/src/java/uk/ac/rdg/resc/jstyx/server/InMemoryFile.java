@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/06/10 07:53:12  jonblower
+ * Changed SGS namespace: removed "inurl" and subsumed functionality into "stdin"
+ *
  * Revision 1.12  2005/04/28 08:11:15  jonblower
  * Modified permissions handling in documentation directory of SGS
  *
@@ -147,8 +150,7 @@ public class InMemoryFile extends StyxFile
             this.replyRead(client, new byte[0], tag);
             return;
         }
-        int numBytesToReturn = (this.buf.limit() - (int)offset) > count ? 
-            count : this.buf.limit() - (int)offset;
+        int numBytesToReturn = Math.min(this.buf.limit() - (int)offset, count);
         // Must create a copy of the data to return to the client
         byte[] bytes = new byte[numBytesToReturn];
         this.buf.position((int)offset);

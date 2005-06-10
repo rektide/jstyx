@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/06/10 07:53:12  jonblower
+ * Changed SGS namespace: removed "inurl" and subsumed functionality into "stdin"
+ *
  * Revision 1.8  2005/05/26 16:52:06  jonblower
  * Implemented detection and viewing of output streams
  *
@@ -109,6 +112,11 @@ public interface SGSInstanceChangeListener
      * @param outputStreams Array of CStyxFiles representing the output streams
      */
     public void gotOutputStreams(CStyxFile[] outputStreams);
+    
+    /**
+     * Called when we have successfully set the input URL of the SGS
+     */
+    public void inputURLSet();
     
     /**
      * Called when the input files have been successfully uploaded

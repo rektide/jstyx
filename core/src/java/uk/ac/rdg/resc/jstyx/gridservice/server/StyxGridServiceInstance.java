@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/06/10 07:53:12  jonblower
+ * Changed SGS namespace: removed "inurl" and subsumed functionality into "stdin"
+ *
  * Revision 1.17  2005/05/27 17:05:07  jonblower
  * Changes to incorporate GeneralCachingStreamReader
  *
@@ -140,7 +143,7 @@ class StyxGridServiceInstance extends StyxDirectory
     private StreamWriter stdin  = new StreamWriter("stdin");   // The standard input to the program
     private StyxDirectory paramDir; // Contains the command-line parameters to pass to the executable
     private String command; // The command to run (i.e. the string that is passed to System.exec)
-    private InMemoryFile inputURL; // Non-empty if we're going to read the input from a URL
+    private URL inputURL = null; // Non-null if we're going to read the input from a URL
     private long startTime;
     
     /**
@@ -189,8 +192,6 @@ class StyxGridServiceInstance extends StyxDirectory
             {
                 // Add the input stream and the inurl file
                 inStreams.addChild(this.stdin);  // input stream
-                this.inputURL = new InMemoryFile("inurl");
-                inStreams.addChild(this.inputURL);
             }
             else if (stream.getName().equals("stdout"))
             {
@@ -384,13 +385,12 @@ class StyxGridServiceInstance extends StyxDirectory
                 }
                 if (inputURL != null)
                 {
-                    // If the inputURL file is not null, this means that the executable
+                    // If the inputURL is not null, this means that the executable
                     // expects to get data via stdin (this has been set in the 
                     // config file).  In the following code, we decide whether
                     // we're going to get the data from a URL or whether the user
                     // is expected to write data into the stdin file in the namespace
-                    String urlStr = inputURL.getContents();
-                    if (urlStr.trim().equals(""))
+                    if (inputURL == null)
                     {
                         // We haven't set a URL, so we connect the "stdin" file in the
                         // Styx namespace to the standard input of the executable.
@@ -406,20 +406,16 @@ class StyxGridServiceInstance extends StyxDirectory
                         // TODO: should we remove the "stdin" file from the namespace?
                         try
                         {
-                            InputStream urlin = new URL(urlStr).openStream();
+                            InputStream urlin = inputURL.openStream();
                             // Start a thread reading from the url and writing to the 
                             // process's standard input.
                             new RedirectStream(urlin, process.getOutputStream()).start();
                         }
-                        catch (MalformedURLException e)
-                        {
-                            process.destroy();
-                            throw new StyxException(urlStr + " is not a valid URL");
-                        }
                         catch (IOException ioe)
                         {
                             process.destroy();
-                            throw new StyxException("Cannot read from " + urlStr);
+                            setStatus(StatusCode.ERROR);
+                            throw new StyxException("Cannot read from " + inputURL);
                         }
                     }
                 }
@@ -670,8 +666,32 @@ class StyxGridServiceInstance extends StyxDirectory
         public void setOutputStream(OutputStream os)
         {
             this.stream = os;
-        }        
-
+        }
+        
+        /**
+         * Reading from this file returns the URL from which we are reading
+         * (if set) or nothing if we are getting data direct via the Styx
+         * interface
+         */
+        public void read(StyxFileClient client, long offset, int count, int tag)
+            throws StyxException
+        {
+            byte[] bytesToReturn = new byte[0];
+            int pos = 0; // The position of the first byte to return to the client
+            int n = 0; // The number of bytes to return to the client
+            if (inputURL != null)
+            {
+                bytesToReturn = StyxUtils.strToUTF8(inputURL.toString());
+                if (offset < bytesToReturn.length)
+                {
+                    // Calculate the number of bytes to return
+                    pos = (int)offset;
+                    n = Math.min(bytesToReturn.length - (int)offset, count);
+                }
+            }
+            this.replyRead(client, bytesToReturn, pos, n, tag);
+        }
+        
         /**
          * Writes the given number of bytes to the stream. The offset
          * is ignored; it will always writes to the current stream position, so
@@ -683,37 +703,72 @@ class StyxGridServiceInstance extends StyxDirectory
             ByteBuffer data, String user, boolean truncate, int tag)
             throws StyxException
         {
-            if (stream == null)
+            if (statusCode != StatusCode.RUNNING)
             {
-                throw new StyxException("Stream not ready for writing");
-            }
-            try
-            {
-                if (count == 0)
+                // We haven't started the service this so the only legal input
+                // is a "readfrom <URL>" command.  We assume that the entire
+                // command will come in a single message
+                int dataSize = data.remaining();
+                if (offset != 0)
                 {
-                    // make sure waiting clients get the final value of bytesConsumed
-                    bytesConsumed.flush();
-                    stream.close();
+                    throw new StyxException("Must write command to start of file");
                 }
-                int bytesToWrite = data.remaining();
-                if (count < data.remaining())
+                // Split the command into tokens
+                String[] tokens = StyxUtils.dataToString(data).split(" ");
+                if (tokens.length != 2 || !tokens[0].equals("readfrom")
+                    || tokens[0] == null || tokens[1] == null)
                 {
-                    // Would normally be an error if count != data.remaining(),
-                    // but we'll let the calling application pick this up
-                    bytesToWrite = count;
+                    throw new StyxException("Invalid command (must be \"readfrom <URL>\")");
                 }
-                byte[] arr = new byte[bytesToWrite];
-                data.get(arr);
-                stream.write(arr);
-                stream.flush();
-                // Update the number of bytes consumed
-                setBytesConsumed(bytesCons + bytesToWrite);
-                this.replyWrite(client, bytesToWrite, tag);
+                try
+                {
+                    inputURL = new URL(tokens[1]);
+                }
+                catch(MalformedURLException mue)
+                {
+                    inputURL = null;
+                    throw new StyxException("Invalid URL: " + tokens[1]);
+                }
+                this.replyWrite(client, dataSize, tag);
             }
-            catch(IOException ioe)
+            else if (inputURL != null)
             {
-                throw new StyxException("IOException occurred when writing to "
-                        + "the stream: " + ioe.getMessage());
+                // We're not allowed to write to this file if the service is running
+                // and the input URL is set
+                throw new StyxException("Cannot write to the input stream " +
+                    "because the service is reading from " + inputURL);
+            }
+            else
+            {
+                // The service is running
+                try
+                {
+                    if (count == 0)
+                    {
+                        // make sure waiting clients get the final value of bytesConsumed
+                        bytesConsumed.flush();
+                        stream.close();
+                    }
+                    int bytesToWrite = data.remaining();
+                    if (count < data.remaining())
+                    {
+                        // Would normally be an error if count != data.remaining(),
+                        // but we'll let the calling application pick this up
+                        bytesToWrite = count;
+                    }
+                    byte[] arr = new byte[bytesToWrite];
+                    data.get(arr);
+                    stream.write(arr);
+                    stream.flush();
+                    // Update the number of bytes consumed
+                    setBytesConsumed(bytesCons + bytesToWrite);
+                    this.replyWrite(client, bytesToWrite, tag);
+                }
+                catch(IOException ioe)
+                {
+                    throw new StyxException("IOException occurred when writing to "
+                            + "the stream: " + ioe.getMessage());
+                }
             }
         }
     }
