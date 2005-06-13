@@ -54,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/06/13 13:55:42  jonblower
+ * Adapted LB viewer for JStyx framework
+ *
  * Revision 1.6  2005/06/10 07:54:49  jonblower
  * Added code to convert event-based StreamViewer to InputStream-based one
  *
@@ -223,9 +226,9 @@ public abstract class StreamViewer extends JFrame
             {
                 this.in = new FileInputStream(reader.getCacheFile());
             }
-            catch(FileNotFoundException fnfe)
+            catch(Exception e)
             {
-                fnfe.printStackTrace();
+                e.printStackTrace();
             }
         }
         

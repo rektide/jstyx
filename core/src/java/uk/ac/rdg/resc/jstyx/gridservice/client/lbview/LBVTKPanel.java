@@ -28,6 +28,7 @@ import vtk.*;
 public class LBVTKPanel extends vtkPanel implements Observer {
 
   LBData lb_data;
+  LBGUI gui;
 
   boolean show_outline = true;
   boolean show_type = false;
@@ -41,9 +42,10 @@ public class LBVTKPanel extends vtkPanel implements Observer {
   vtkActor actor_surface;
   vtkActor actor_streamlines;
   
-  public LBVTKPanel(Dimension scrsize) {
+  public LBVTKPanel(Dimension scrsize, LBGUI gui) {
     VtkPanelUtil.setSize(this, scrsize.width / 3, scrsize.height / 2);
-    lb_data = new LBData();
+    lb_data = new LBData(this);
+    this.gui = gui;
   }
 
   public void observe(LBData lbd) {
@@ -120,7 +122,7 @@ public class LBVTKPanel extends vtkPanel implements Observer {
     mapcontour.SetInput(contour.GetOutput());
     actor_surface = new vtkActor();
     actor_surface.SetMapper(mapcontour);
-    actor_surface.GetProperty().SetOpacity(JLB.getGUI().getSliderSurfaceValue() / 100);
+    actor_surface.GetProperty().SetOpacity(this.gui.getSliderSurfaceValue() / 100);
   }
   
   public void setSurfaceOpacity(int o) {

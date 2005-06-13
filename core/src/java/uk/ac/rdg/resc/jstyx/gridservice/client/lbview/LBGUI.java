@@ -35,9 +35,6 @@ public class LBGUI extends StreamViewer implements Observer
     
     private Dimension scrsize;
     
-    private JMenuBar jmenubar_main;
-    private JMenu jmenu_view;
-    private JMenu jmenu_simulation;
     private JPanel jpanel_controls;
     private Box box_display_options;
     private JCheckBox jcheckbox_outline;
@@ -48,14 +45,7 @@ public class LBGUI extends StreamViewer implements Observer
     private LBVTKPanel lb_panel;
     private LBMessageArea lb_msg;
     
-    private ViewAction openAction;
-    private JFileChooser jfilechooser_open;
     private Thread input_parser;
-    private File input_file;
-    
-    private ViewAction closeAction;
-    private ViewAction pipeAction;
-    private ViewAction remoteAction;
     
     public LBGUI()
     {
@@ -67,30 +57,6 @@ public class LBGUI extends StreamViewer implements Observer
         Toolkit tk = getToolkit();
         scrsize = tk.getScreenSize();
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        
-        //add menu bar
-        jmenubar_main = new JMenuBar();
-        setJMenuBar(jmenubar_main);
-        
-        JMenu jmenu_view = new JMenu("View");
-        JMenu jmenu_simulation = new JMenu("Simulation");
-        
-        openAction = new ViewAction("Open");
-        closeAction = new ViewAction("Close");
-        pipeAction = new ViewAction("Open pipe");
-        remoteAction = new ViewAction("Open remote");
-        
-        closeAction.setEnabled(false);
-        
-        jmenu_view.add(new JMenuItem(openAction));
-        jmenu_view.add(new JMenuItem(closeAction));
-        jmenu_view.add(new JMenuItem(pipeAction));
-        jmenu_view.add(new JMenuItem(remoteAction));
-        
-        jfilechooser_open = new JFileChooser();
-        
-        jmenubar_main.add(jmenu_view);
-        jmenubar_main.add(jmenu_simulation);
         
         //initialize level 1 components
         jpanel_controls = new JPanel();
@@ -107,6 +73,17 @@ public class LBGUI extends StreamViewer implements Observer
         content.setLayout(box_main);
         content.add(jpanel_controls);
         content.add(jpanel_display);
+    }
+    
+    public void start()
+    {
+        if (!this.started)
+        {
+            input_parser = new Thread(new InputParser(getInputStream(), lb_panel.getLBData()));
+            input_parser.start();
+            pack();
+            super.start();
+        }
     }
     
     public void startPipeParser()
@@ -186,7 +163,7 @@ public class LBGUI extends StreamViewer implements Observer
     
     private void createLBPanel()
     {
-        lb_panel = new LBVTKPanel(scrsize);
+        lb_panel = new LBVTKPanel(scrsize, this);
         jpanel_display.add(lb_panel);
     }
     
@@ -198,14 +175,7 @@ public class LBGUI extends StreamViewer implements Observer
     //must implement update():
     public void update(Observable lb_data, Object o)
     {
-        //I think this needs to be on the event dispatching thread (though I don't know why!)
-        //SwingUtilities.invokeLater(new Runnable() {
-        //  public void run() {
-        //    box_display_options.add(jcheckbox_outline);
-        //  }
-        //});
-        //pack();
-        char what_changed = ('o');
+        char what_changed = ((Character)o).charValue();
         switch(what_changed)
         {
             case 'o': if (!jcheckbox_outline.isEnabled()) jcheckbox_outline.setEnabled(true);
@@ -281,95 +251,6 @@ public class LBGUI extends StreamViewer implements Observer
     public double getSliderSurfaceValue()
     {
         return (double)jslider_surface.getValue();
-    }
-    
-    //Actions
-    
-    class ViewAction extends AbstractAction
-    {
-        ViewAction(String name)
-        {
-            super(name);
-        }
-        
-        public void actionPerformed(ActionEvent e)
-        {
-            String name = (String)getValue(NAME);
-            if (name.equals(openAction.getValue(NAME)))
-            {
-                if (jfilechooser_open.showOpenDialog(LBGUI.this) == jfilechooser_open.APPROVE_OPTION)
-                {
-                    //shut down old parsing thread and viewer first if extant
-                    if (input_file != null)
-                    {
-                        closeViewFile();
-                    }
-                    input_file = jfilechooser_open.getSelectedFile();
-                    input_parser = null;
-                    input_parser = new Thread(new InputParser(input_file));
-                    input_parser.start();
-                    closeAction.setEnabled(true);
-                    pack();
-                }
-            }
-            else if (name.equals(closeAction.getValue(NAME)))
-            {
-                closeViewFile();
-                pack();
-            }
-            else if (name.equals(pipeAction.getValue(NAME)))
-            {
-                try
-                {
-                    Runtime rt = Runtime.getRuntime();
-                    Process proc = rt.exec("c:\\cygwin\\home\\jdb\\lbflow-0.1\\src\\lbflow -i /home/jdb/lbflow-0.1/tests/test.sim");
-                    InputStream is = proc.getInputStream();
-                    input_parser = new Thread(new InputParser(is));
-                    input_parser.start();
-                    closeAction.setEnabled(true);
-                    pack();
-                }
-                catch (IOException ex)
-                {
-                    System.err.println(ex);
-                }
-            }
-            else if (name.equals(remoteAction.getValue(NAME)))
-            {
-                System.out.println("Opening remote server");
-                InputStream is = getInputStream();
-
-                // Now we can pass the stream to the parser as before
-                // TODO: this repeats code! should move this to a new 
-                // method
-                input_parser = new Thread(new InputParser(is));
-                input_parser.start();
-                closeAction.setEnabled(true);
-                pack();
-            }
-        }
-        
-    }
-    
-    private void closeViewFile()
-    {
-        //wait for input_parser to finish (if it is running)
-        try
-        {
-            input_parser.join();
-        }
-        catch (InterruptedException e)
-        {
-            System.out.println(e);
-        }
-        destroyJPanelControls();
-        createJPanelControls();
-        //destroy old lb_panel so that all the old actors are removed and we can start again.
-        jpanel_display.remove(lb_panel);
-        lb_panel = null;
-        createLBPanel();
-        input_file = null;
-        closeAction.setEnabled(false);
     }
     
     /**

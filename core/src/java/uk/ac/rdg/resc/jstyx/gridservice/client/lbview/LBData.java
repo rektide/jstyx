@@ -31,9 +31,10 @@ class LBData extends Observable {
   private vtkDoubleArray vels;
   private vtkDoubleArray scalar_vels;
   private vtkStructuredGrid grid;
+  LBVTKPanel panel;
   
-  public LBData() {
-    
+  public LBData(LBVTKPanel panel) {
+    this.panel = panel;
   }
   
   public void setGrid(int lx, int ly, int lz, double d_x) {
@@ -53,8 +54,8 @@ class LBData extends Observable {
       (i / (dims[0] * dims[1])) * dx - ((dims[2] - 1) * dx / 2));
     }
     grid.SetPoints(points);
-    JLB.getGUI().observe(this);
-    JLB.getGUI().getVTKPanel().observe(this);
+    this.panel.gui.observe(this);
+    this.panel.observe(this);
     setChanged();
     notifyObservers(new Character('o'));//notify that outline is now available
   }

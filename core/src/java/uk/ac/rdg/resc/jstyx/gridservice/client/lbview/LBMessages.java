@@ -23,8 +23,8 @@ import java.util.Observable;
  
 class LBMessages extends Observable {
 
-  public LBMessages() {
-    JLB.getGUI().createMessageArea(this);
+  public LBMessages(LBGUI gui) {
+    gui.createMessageArea(this);
   }
   
   public void addMessage(String msg) {

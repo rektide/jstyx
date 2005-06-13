@@ -60,8 +60,9 @@ class InputParser implements Runnable {
     initParser();
   }
   
-  public InputParser(InputStream is) {
+  public InputParser(InputStream is, LBData lb_data) {
     input = new Scanner(is);
+    this.lb_data = lb_data;
     initParser();
   }
   
@@ -74,10 +75,6 @@ class InputParser implements Runnable {
     matcher_domain = domain.matcher("");
     matcher_simulation = simulation.matcher("");
     matcher_monitor = monitor.matcher("");
-    if (JLB.getGUI() == null) System.out.println("no gui");
-    if (JLB.getGUI().getVTKPanel() == null) System.out.println("no panel");
-    if (JLB.getGUI().getVTKPanel().getLBData() == null) System.out.println("no lbdata");
-    lb_data = JLB.getGUI().getVTKPanel().getLBData();
   }
   
   public void run() {
@@ -118,7 +115,7 @@ class InputParser implements Runnable {
   
   private void parseMessage() {
     if (lb_m == null) {
-      lb_m = new LBMessages();
+      lb_m = new LBMessages(this.lb_data.panel.gui);
     }
     lb_m.addMessage(token.replaceFirst("//", "") + input.nextLine());
   }
