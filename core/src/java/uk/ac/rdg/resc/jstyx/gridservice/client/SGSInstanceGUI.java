@@ -46,7 +46,7 @@ import javax.swing.JTextField;
 import javax.swing.JFileChooser;
 import javax.swing.JComboBox;
 
-import javax.swing.table.TableModel;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.AbstractTableModel;
 
 import java.awt.event.ActionListener;
@@ -61,6 +61,7 @@ import info.clearthought.layout.TableLayout;
 
 import org.apache.mina.common.ByteBuffer;
 
+import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeListener;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
@@ -76,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/06/13 16:46:35  jonblower
+ * Implemented setting of parameter values via the GUI
+ *
  * Revision 1.11  2005/06/10 07:54:40  jonblower
  * Added code to convert event-based StreamViewer to InputStream-based one
  *
@@ -116,6 +120,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     private TableLayout panelLayout;
     private InputPanel inputPanel; // Panel for providing input data to the SGS
     private InputFilesPanel inputFilesPanel;  // Panel for allowing input files to be uploaded
+    private ParamsPanel paramsPanel; // Panel for setting input parameters
     private ControlPanel ctlPanel; // Panel for controlling the service instance
     private ServiceDataPanel sdPanel; // Panel for showing service data
     private OutputStreamsPanel osPanel; // Panel for interacting with output streams
@@ -141,7 +146,8 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         {
             { BORDER, TableLayout.FILL, BORDER }, // Columns
             { BORDER, TableLayout.PREFERRED, BORDER, TableLayout.PREFERRED, BORDER,
-                  ROW_HEIGHT, BORDER, TableLayout.FILL, BORDER, TableLayout.PREFERRED, BORDER }  // Rows
+                  TableLayout.PREFERRED, BORDER, ROW_HEIGHT, BORDER,
+                  TableLayout.FILL, BORDER, TableLayout.PREFERRED, BORDER }  // Rows
         };
         this.panelLayout = new TableLayout(size);
         this.masterPanel.setLayout(this.panelLayout);
@@ -154,17 +160,21 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         this.inputFilesPanel = new InputFilesPanel();
         this.masterPanel.add(this.inputFilesPanel, "1, 3");
         
+        // Add the panel for setting parameters for the SGS
+        this.paramsPanel = new ParamsPanel();
+        this.masterPanel.add(this.paramsPanel, "1, 5");
+        
         // Add the control panel
         this.ctlPanel = new ControlPanel();
-        this.masterPanel.add(this.ctlPanel, "1, 5");
+        this.masterPanel.add(this.ctlPanel, "1, 7");
         
         // Add the service data panel
         this.sdPanel = new ServiceDataPanel();
-        this.masterPanel.add(this.sdPanel, "1, 7");
+        this.masterPanel.add(this.sdPanel, "1, 9");
         
         // Add the output streams panel
         this.osPanel = new OutputStreamsPanel();
-        this.masterPanel.add(this.osPanel, "1, 9");
+        this.masterPanel.add(this.osPanel, "1, 11");
         
         this.statusBar = new JLabel("Status bar");
         this.add(this.statusBar, BorderLayout.SOUTH);
@@ -246,6 +256,15 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     public void gotOutputStreams(CStyxFile[] outputStreams)
     {
         this.osPanel.gotOutputStreams(outputStreams);
+    }
+    
+    /**
+     * Called when we have got the list of parameters expected by the SGS
+     * @param paramFiles CStyxFiles representing the parameters
+     */
+    public void gotParameters(CStyxFile[] paramFiles)
+    {
+        this.paramsPanel.gotParameters(paramFiles);
     }
     
     /**
@@ -531,6 +550,109 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     }
     
     /**
+     * Panel for entering parameters for the SGS
+     */
+    private class ParamsPanel extends JPanel
+    {
+        private JTable table;
+        private ParamsTableModel model;
+        
+        public ParamsPanel()
+        {
+            client.getParameters();
+        }
+        
+        public void gotParameters(CStyxFile[] paramFiles)
+        {
+            // We won't bother displaying the panel if the SGS doesn't expect
+            // any parameters
+            if (paramFiles.length > 0)
+            {
+                this.setBorder(BorderFactory.createTitledBorder("Parameters"));
+                
+                this.model = new ParamsTableModel(paramFiles);
+                this.table = new JTable(this.model);
+                this.add(new JScrollPane(this.table));
+                
+                for (int i = 0; i < paramFiles.length; i++)
+                {
+                    this.table.getModel().setValueAt(paramFiles[i].getName(), i, 0);
+                }
+                
+                double width = this.table.getPreferredScrollableViewportSize().getWidth();
+                double height = this.table.getRowHeight() * paramFiles.length;
+                Dimension d = new Dimension();
+                d.setSize(width, height);
+                this.table.setPreferredScrollableViewportSize(d);
+                
+                this.repaint();
+            }
+        }
+        
+        /**
+         * Table model for the parameters
+         */
+        private class ParamsTableModel extends DefaultTableModel
+        {
+            private CStyxFile[] paramFiles;
+            
+            public ParamsTableModel(CStyxFile[] paramFiles)
+            {
+                this.paramFiles = paramFiles;
+                
+                // Set the column names
+                this.setColumnIdentifiers(new String[]{"Parameter", "Value"});
+                
+                // Add the row data
+                for (int i = 0; i < paramFiles.length; i++)
+                {
+                    this.addRow(new String[]{"", ""});
+                }
+            }
+            
+            /**
+             * We override this method so that we can see if the server allows
+             * changes to the parameter value to be made
+             */
+            public void setValueAt(Object value, int row, int col)
+            {
+                System.err.println("Setting value at " + row + ", " + col +
+                    " to " + value);
+                if (col == 0)
+                {
+                    // Just allow setting of parameter names
+                    super.setValueAt(value, row, col);
+                }
+                else
+                {
+                    // We're setting a parameter value
+                    try
+                    {
+                        // We do this synchronously so that we can more easily
+                        // trap errors and veto changes to the value
+                        this.paramFiles[row].setContents((String)value);
+                        // If we've got this far the write must have been successful
+                        super.setValueAt(value, row, col);
+                    }
+                    catch(StyxException se)
+                    {
+                        System.err.println("Error setting value: " + se.getMessage());
+                    }
+                }
+            }
+            
+            /**
+             * Only the "Value" column is editable
+             */
+            public boolean isCellEditable(int row, int col)
+            {
+                return (col == 1);
+            }
+            
+        }
+    }
+    
+    /**
      * Panel for displaying control buttons (start, stop)
      */
     private class ControlPanel extends JPanel implements ActionListener
@@ -609,10 +731,6 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
          */
         public ServiceDataPanel()
         {
-            this.model = new SDTableModel();
-            this.table = new JTable(this.model);
-            this.add(new JScrollPane(this.table));
-            this.table.setPreferredScrollableViewportSize(new Dimension(500, 100));
             // Send message to find the service data elements
             client.getServiceDataNames();
         }
@@ -623,7 +741,22 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
          */
         public void setServiceDataNames(String[] sdeNames)
         {
-            this.model.setSDENames(sdeNames);
+            if (sdeNames.length > 0)
+            {
+                this.setBorder(BorderFactory.createTitledBorder("Service data"));
+                
+                this.model = new SDTableModel();
+                this.table = new JTable(this.model);
+                this.add(new JScrollPane(this.table));
+                this.model.setSDENames(sdeNames);
+
+                // Set the dimensions of the table
+                double width = this.table.getPreferredScrollableViewportSize().getWidth();
+                double height = this.table.getRowHeight() * sdeNames.length;
+                Dimension d = new Dimension();
+                d.setSize(width, height);
+                this.table.setPreferredScrollableViewportSize(d);
+            }
         }
         
         /**

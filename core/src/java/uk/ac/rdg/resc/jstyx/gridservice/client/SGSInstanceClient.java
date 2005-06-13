@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.23  2005/06/13 16:46:35  jonblower
+ * Implemented setting of parameter values via the GUI
+ *
  * Revision 1.22  2005/06/10 07:53:12  jonblower
  * Changed SGS namespace: removed "inurl" and subsumed functionality into "stdin"
  *
@@ -154,6 +157,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private CStyxFile outputStreamsDir;
     private Hashtable activeStreams;
     
+    // Parameters
+    private CStyxFile paramsDir;
+    
     // SGSInstanceChangeListeners that are listening for changes to this SGS instance
     private Vector changeListeners;
     
@@ -171,17 +177,23 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.inputFilesDir = this.instanceRoot.getFile("inputFiles");
         this.inputFilesDir.addChangeListener(this);
         
-        // Create the directory that we will read to get the input methods
+        // Create the directory that we will read to see if we can write data
+        // to stdin
         this.inputDir = this.instanceRoot.getFile("/io/in");
         this.inputDir.addChangeListener(this);
         
+        // Create the file that we will use to write input data
         this.stdin = this.instanceRoot.getFile("io/in/stdin");
         this.stdin.addChangeListener(this);
         
-        // Open the files that will give us data and service data
+        // Create the directory that we will read to find the output streams
         this.outputStreamsDir = this.instanceRoot.getFile("io/out");
         this.outputStreamsDir.addChangeListener(this);
         this.activeStreams = new Hashtable();
+        
+        // Create the directory that we will read to find the parameters
+        this.paramsDir = this.instanceRoot.getFile("params");
+        this.paramsDir.addChangeListener(this);
         
         // We will read this directory to find the service data offered by the SGS
         this.sdeDir = this.instanceRoot.getFile("/serviceData");
@@ -250,6 +262,15 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // event will be fired on this class and the contents of the inputFiles
         // directory will be found
         this.inputFilesDir.refreshAsync();
+    }
+    
+    /**
+     * Sends a message to get the list of parameters. When the reply comes, the
+     * gotParameters() event will be fired.
+     */
+    public void getParameters()
+    {
+        this.paramsDir.getChildrenAsync();
     }
     
     /**
@@ -523,6 +544,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         {
             this.fireGotOutputStreams(children);
         }
+        else if (file == this.paramsDir)
+        {
+            this.fireGotParameters(children);
+        }
         else
         {
             System.err.println("Got children of unknown file " + file.getPath());
@@ -715,6 +740,23 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
                 listener.gotOutputStreams(outputStreams);
+            }
+        }
+    }
+    
+    /**
+     * Fires the gotParameters() event on all registered change listeners
+     * @param paramFiles Array of CStyxFiles representing the parameters
+     */
+    private void fireGotParameters(CStyxFile[] paramFiles)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.gotParameters(paramFiles);
             }
         }
     }

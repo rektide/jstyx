@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/06/13 16:46:35  jonblower
+ * Implemented setting of parameter values via the GUI
+ *
  * Revision 1.9  2005/06/10 07:53:12  jonblower
  * Changed SGS namespace: removed "inurl" and subsumed functionality into "stdin"
  *
@@ -112,6 +115,12 @@ public interface SGSInstanceChangeListener
      * @param outputStreams Array of CStyxFiles representing the output streams
      */
     public void gotOutputStreams(CStyxFile[] outputStreams);
+    
+    /**
+     * Called when we have got the list of parameters expected by the SGS
+     * @param paramFiles CStyxFiles representing the parameters
+     */
+    public void gotParameters(CStyxFile[] paramFiles);
     
     /**
      * Called when we have successfully set the input URL of the SGS
