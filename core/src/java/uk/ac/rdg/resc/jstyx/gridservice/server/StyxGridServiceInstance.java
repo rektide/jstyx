@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2005/06/14 07:45:16  jonblower
+ * Implemented setting of params and async notification of parameter changes
+ *
  * Revision 1.18  2005/06/10 07:53:12  jonblower
  * Changed SGS namespace: removed "inurl" and subsumed functionality into "stdin"
  *
@@ -217,7 +220,11 @@ class StyxGridServiceInstance extends StyxDirectory
         for (int i = 0; i < params.size(); i++)
         {
             SGSParam param = (SGSParam)params.get(i);
-            this.paramDir.addChild(new SGSParamFile(param));
+            // TODO Restore this line when parameter checking etc is functional
+            //this.paramDir.addChild(new SGSParamFile(param));
+            // Add an AsyncStyxFile to provide asynchronous notification to 
+            // clients of parameter value changes
+            this.paramDir.addChild(new AsyncStyxFile(new InMemoryFile(param.getName())));
         }
         this.addChild(paramDir);
         

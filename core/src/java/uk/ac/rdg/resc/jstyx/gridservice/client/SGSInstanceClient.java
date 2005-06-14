@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.24  2005/06/14 07:45:16  jonblower
+ * Implemented setting of params and async notification of parameter changes
+ *
  * Revision 1.23  2005/06/13 16:46:35  jonblower
  * Implemented setting of parameter values via the GUI
  *
@@ -159,6 +162,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     
     // Parameters
     private CStyxFile paramsDir;
+    private CStyxFile[] paramFiles;
+    private StringBuffer[] paramBufs; // Temporary contents for each parameter value
     
     // SGSInstanceChangeListeners that are listening for changes to this SGS instance
     private Vector changeListeners;
@@ -265,15 +270,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Sends a message to get the list of parameters. When the reply comes, the
-     * gotParameters() event will be fired.
-     */
-    public void getParameters()
-    {
-        this.paramsDir.getChildrenAsync();
-    }
-    
-    /**
      * Uploads a set of input files to the inputFiles directory of the SGS.
      * @param files Array of source files to be uploaded
      * @param names Array of target names (must be the same length as files[])
@@ -365,6 +361,22 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * First sends a message to get the parameters of the SGS.  When this arrives,
+     * sends messages to read the parameter values.  When we have got the list
+     * of available parameters, the gotParameters() event will be fired.  When
+     * the value of a parameter arrives, the gotParameterValue() event will be
+     * fired.  Having called this method, clients will continue to receive updates
+     * to parameter values without making any more requests.
+     */
+    public void readAllParameters()
+    {
+        // Get the children of the params dir.  When the reply arrives, we will
+        // fire the gotParameters() event, then read the values of the 
+        // parameters.
+        this.paramsDir.getChildrenAsync();
+    }
+    
+    /**
      * @return The ID of the SGS instance to which this client is connected
      */
     public String getInstanceID()
@@ -412,6 +424,19 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * Called when a file has been opened.
+     * @param file The file that has been opened
+     * @param mode The mode with which the file was opened
+     */
+    public void fileOpen(CStyxFile file, int mode)
+    {
+        // At the moment, this is only called when we have opened a parameter
+        // file for reading and writing. We immediately start reading from the 
+        // file
+        file.readAsync(0);
+    }
+    
+    /**
      * Called when new data has been read from a file (after the Rread message
      * arrives).
      */
@@ -422,7 +447,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         {
             // Calculate the offset of the next read
             long offset = tReadMsg.getOffset().asLong() + data.remaining();
-            // This is service data: update the relevant buffer
+            // Update the relevant buffer (service data or parameters)
             for (int i = 0; i < this.serviceDataFiles.length; i++)
             {
                 if (file == this.serviceDataFiles[i])
@@ -431,27 +456,45 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                     break;
                 }
             }
+            for (int i = 0; i < this.paramFiles.length; i++)
+            {
+                if (file == this.paramFiles[i])
+                {
+                    this.paramBufs[i].append(StyxUtils.dataToString(data));
+                    break;
+                }
+            }
             // Read the next chunk of data
             file.readAsync(offset);
         }
         else
         {
-            // If this is service data, we start reading from the start of the
-            // file again
-            // TODO: I think service data is all that is read via this class
-            // so some of this is irrelevant
-            boolean isServiceData = false;
+            // If this is service data or a parameter, we start reading from
+            // the start of the file again: that way, clients always get updates
+            boolean readAgain = false;
             for (int i = 0; i < this.serviceDataFiles.length; i++)
             {
                 if (file == this.serviceDataFiles[i])
                 {
-                    isServiceData = true;
+                    readAgain = true;
                     this.fireServiceDataChanged(file.getName(), this.sdeBufs[i].toString());
                     this.sdeBufs[i].setLength(0);
-                    file.readAsync(0);
                 }
             }
-            if (!isServiceData)
+            for (int i = 0; i < this.paramFiles.length; i++)
+            {
+                if (file == this.paramFiles[i])
+                {
+                    readAgain = true;
+                    this.fireGotParameterValue(i, this.paramBufs[i].toString());
+                    this.paramBufs[i].setLength(0);
+                }
+            }
+            if (readAgain)
+            {
+                file.readAsync(0);
+            }
+            else
             {
                 // This wasn't service data. We have reached EOF and can stop reading.
                 file.close();
@@ -546,7 +589,18 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         }
         else if (file == this.paramsDir)
         {
-            this.fireGotParameters(children);
+            this.paramFiles = children;
+            this.paramBufs = new StringBuffer[this.paramFiles.length];
+            this.fireGotParameters(this.paramFiles);
+            // Now read the values of all the parameters
+            for (int i = 0; i < this.paramFiles.length; i++)
+            {
+                this.paramFiles[i].addChangeListener(this);
+                // We have to open the file for reading and writing. When the
+                // open confirmation arrives, we will start reading from the file.
+                this.paramFiles[i].openAsync(StyxUtils.ORDWR | StyxUtils.OTRUNC);
+                this.paramBufs[i] = new StringBuffer();
+            }
         }
         else
         {
@@ -757,6 +811,25 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
                 listener.gotParameters(paramFiles);
+            }
+        }
+    }
+    
+    /**
+     * Fires the gotParameterValue() event on all registered change listeners.
+     * @param index Index of the parameter in the array of parameters previously
+     * returned by the gotParameters() event
+     * @param value The new value of the parameter
+     */
+    private void fireGotParameterValue(int index, String value)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.gotParameterValue(index, value);
             }
         }
     }

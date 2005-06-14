@@ -37,7 +37,7 @@
 -->
 <!ELEMENT params (param*)>
 <!ELEMENT param EMPTY>
-<!ATTLIST param
+<!-- <!ATTLIST param
     name CDATA #REQUIRED
     type (boolean | int | float | string) #REQUIRED
     required (yes | no) #REQUIRED
@@ -47,6 +47,10 @@
     values CDATA #IMPLIED
     switch CDATA #IMPLIED
     description CDATA #IMPLIED
+  > -->
+<!-- Just use a simple parameter definition for the moment -->
+<!ATTLIST param
+    name CDATA #REQUIRED
   >
   
 <!-- A free-text documentation file describing the SGS.  Any number of these

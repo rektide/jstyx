@@ -63,6 +63,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.27  2005/06/14 07:45:16  jonblower
+ * Implemented setting of params and async notification of parameter changes
+ *
  * Revision 1.26  2005/05/26 16:48:48  jonblower
  * Fixed bug in uploadFileAsync()
  *
@@ -1021,7 +1024,7 @@ public class CStyxFile
     }
     
     /**
-     * Writes a string to the file at the given offset. When the write
+     * Writes a string to the file at the given offset, with truncation. When the write
      * confirmation arrives, the dataWritten() method of any registered
      * CStyxFileChangeListeners will be called. The file will be truncated
      * at the end of the string.

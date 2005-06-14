@@ -35,8 +35,7 @@
                 <outstream name="stderr"/>
             </streams>
             <params>
-                <param name="waittime" type="float" required="no" default="0" minValue="0"
-                    description="The time (in seconds) to wait between reading each line of input"/>
+                <param name="waittime" />
             </params>
             <serviceData>
                 <serviceDataElement name="status" />

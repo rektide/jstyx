@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/06/14 07:45:16  jonblower
+ * Implemented setting of params and async notification of parameter changes
+ *
  * Revision 1.8  2005/05/19 18:42:07  jonblower
  * Implementing specification of input files required by SGS
  *
@@ -332,7 +335,8 @@ class SGSParam
     SGSParam(Node paramNode) throws SGSConfigException
     {
         this.name = paramNode.valueOf("@name").trim();
-        this.type = ParamType.getInstance(paramNode.valueOf("@type").trim());
+        // TODO Uncomment this when we have full parameter functionality
+        /*this.type = ParamType.getInstance(paramNode.valueOf("@type").trim());
         // TODO this.required = paramNode.getAttribute(name).trim().equalsIgnoreCase("yes");
         
         // The following fields are optional; if they don't exist in the config
@@ -379,7 +383,7 @@ class SGSParam
         {
             // Check that the default value is valid
             //this.checkValidValue(this.defaultValue);
-        }
+        }*/
         
     }
 

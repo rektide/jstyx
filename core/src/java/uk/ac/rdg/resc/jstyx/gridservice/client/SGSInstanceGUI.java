@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/06/14 07:45:16  jonblower
+ * Implemented setting of params and async notification of parameter changes
+ *
  * Revision 1.12  2005/06/13 16:46:35  jonblower
  * Implemented setting of parameter values via the GUI
  *
@@ -265,6 +268,17 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     public void gotParameters(CStyxFile[] paramFiles)
     {
         this.paramsPanel.gotParameters(paramFiles);
+    }
+    
+    /**
+     * Called when we have a new value for a parameter
+     * @param index Index of the parameter in the array of parameters previously
+     * returned by the gotParameters() event
+     * @param value The new value of the parameter
+     */
+    public void gotParameterValue(int index, String value)
+    {
+        this.paramsPanel.gotParameterValue(index, value);
     }
     
     /**
@@ -559,7 +573,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         
         public ParamsPanel()
         {
-            client.getParameters();
+            client.readAllParameters();
         }
         
         public void gotParameters(CStyxFile[] paramFiles)
@@ -589,6 +603,11 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             }
         }
         
+        public void gotParameterValue(int index, String value)
+        {
+            this.model.setParameterValue(index, value);
+        }
+        
         /**
          * Table model for the parameters
          */
@@ -610,6 +629,11 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
                 }
             }
             
+            public void setParameterValue(int index, String value)
+            {
+                super.setValueAt(value, index, 1);
+            }
+            
             /**
              * We override this method so that we can see if the server allows
              * changes to the parameter value to be made
@@ -625,19 +649,12 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
                 }
                 else
                 {
-                    // We're setting a parameter value
-                    try
-                    {
-                        // We do this synchronously so that we can more easily
-                        // trap errors and veto changes to the value
-                        this.paramFiles[row].setContents((String)value);
-                        // If we've got this far the write must have been successful
-                        super.setValueAt(value, row, col);
-                    }
-                    catch(StyxException se)
-                    {
-                        System.err.println("Error setting value: " + se.getMessage());
-                    }
+                    // We're setting a parameter value. Send a message with the
+                    // new value of the parameter. If the write is successful,
+                    // the gotParameterValue() method will be called automatically
+                    // TODO: should be setContentsAsync() in case the value spans
+                    // multiple messages (very unlikely!)
+                    this.paramFiles[row].writeAsync((String)value, 0);
                 }
             }
             

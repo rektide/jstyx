@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/06/14 07:45:16  jonblower
+ * Implemented setting of params and async notification of parameter changes
+ *
  * Revision 1.10  2005/06/13 16:46:35  jonblower
  * Implemented setting of parameter values via the GUI
  *
@@ -121,6 +124,14 @@ public interface SGSInstanceChangeListener
      * @param paramFiles CStyxFiles representing the parameters
      */
     public void gotParameters(CStyxFile[] paramFiles);
+    
+    /**
+     * Called when we have a new value for a parameter
+     * @param index Index of the parameter in the array of parameters previously
+     * returned by the gotParameters() event
+     * @param value The new value of the parameter
+     */
+    public void gotParameterValue(int index, String value);
     
     /**
      * Called when we have successfully set the input URL of the SGS
