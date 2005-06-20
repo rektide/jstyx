@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.20  2005/06/20 07:17:35  jonblower
+ * Wrapped SGSParamFile as AsyncStyxFile
+ *
  * Revision 1.19  2005/06/14 07:45:16  jonblower
  * Implemented setting of params and async notification of parameter changes
  *
@@ -220,11 +223,9 @@ class StyxGridServiceInstance extends StyxDirectory
         for (int i = 0; i < params.size(); i++)
         {
             SGSParam param = (SGSParam)params.get(i);
-            // TODO Restore this line when parameter checking etc is functional
-            //this.paramDir.addChild(new SGSParamFile(param));
-            // Add an AsyncStyxFile to provide asynchronous notification to 
-            // clients of parameter value changes
-            this.paramDir.addChild(new AsyncStyxFile(new InMemoryFile(param.getName())));
+            // Parameter files exhibit asynchronous behaviour so that many
+            // clients can be notified when a parameter value changes
+            this.paramDir.addChild(new AsyncStyxFile(new SGSParamFile(param)));
         }
         this.addChild(paramDir);
         
@@ -610,7 +611,8 @@ class StyxGridServiceInstance extends StyxDirectory
             for (int i = 0; i < paramFiles.length; i++)
             {
                 // We can be pretty confident that this cast is safe
-                SGSParamFile paramFile = (SGSParamFile)paramFiles[i];
+                AsyncStyxFile asyncFile = (AsyncStyxFile)paramFiles[i];
+                SGSParamFile paramFile = (SGSParamFile)asyncFile.getBaseFile();
                 buf.append(paramFile.getCommandLineFragment());
                 if (i < paramFiles.length - 1)
                 {

@@ -51,6 +51,7 @@
 <!-- Just use a simple parameter definition for the moment -->
 <!ATTLIST param
     name CDATA #REQUIRED
+    switch CDATA #IMPLIED
   >
   
 <!-- A free-text documentation file describing the SGS.  Any number of these

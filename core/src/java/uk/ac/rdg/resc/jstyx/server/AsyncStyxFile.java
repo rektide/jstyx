@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/06/20 07:17:35  jonblower
+ * Wrapped SGSParamFile as AsyncStyxFile
+ *
  * Revision 1.7  2005/05/11 10:33:50  jonblower
  * Implemented MonitoredFileOnDisk.java
  *
@@ -224,6 +227,14 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
             }
         }
         // Now the clientQueue is empty        
+    }
+    
+    /**
+     * Gets the StyxFile that is wrapped by this AsyncStyxFile
+     */
+    public StyxFile getBaseFile()
+    {
+        return this.baseFile;
     }
     
     /**

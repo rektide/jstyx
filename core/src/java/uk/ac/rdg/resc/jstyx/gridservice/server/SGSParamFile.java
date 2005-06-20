@@ -38,17 +38,20 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 /**
  * A StyxFile interface to a parameter that is passed to an SGS instance as 
  * part of the command line of the underlying executable.
+ * @todo Perhaps this should extend AsyncStyxFile?
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/06/20 07:17:34  jonblower
+ * Wrapped SGSParamFile as AsyncStyxFile
+ *
  * Revision 1.6  2005/04/27 16:11:43  jonblower
  * Added capability to add documentation files to SGS namespace
  *
  * Revision 1.5  2005/04/26 07:46:11  jonblower
  * Continuing to improve setting of parameters in Styx Grid Services
- *
  *
  * Revision 1.2  2005/03/26 14:30:17  jonblower
  * Modified to use SGSConfigException
@@ -93,7 +96,8 @@ public class SGSParamFile extends InMemoryFile
         data.limit(data.position() + count);
         String newValue = StyxUtils.dataToString(data);
         // Check that the new value is within range
-        try
+        // TODO: make this work properly
+        /*try
         {
             // TODO: need to check range, possible values etc
             this.param.checkValidValue(newValue);
@@ -101,7 +105,7 @@ public class SGSParamFile extends InMemoryFile
         catch(SGSConfigException sce)
         {
             throw new StyxException(sce.getMessage());
-        }
+        }*/
         // If we've got this far the value must have been OK.
         super.write(client, offset, count, data, user, truncate, tag);
     }
@@ -112,7 +116,14 @@ public class SGSParamFile extends InMemoryFile
      */
     public String getCommandLineFragment()
     {
-        return this.param.getSwitch() + this.getContents();
+        if (this.param.getSwitch() == null)
+        {
+            return this.getContents();
+        }
+        else
+        {
+            return this.param.getSwitch() + this.getContents();
+        }
     }
     
     /**
