@@ -34,6 +34,8 @@ import java.util.Date;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.nio.channels.FileChannel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
@@ -63,6 +65,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.28  2005/06/20 17:20:34  jonblower
+ * Added download() and downloadAsync() to CStyxFile
+ *
  * Revision 1.27  2005/06/14 07:45:16  jonblower
  * Implemented setting of params and async notification of parameter changes
  *
@@ -380,8 +385,11 @@ public class CStyxFile
         {
             // The walk was not successful.  Return the fid to the pool
             // and throw an error.
-            TwalkMessage tWalkMsg = (TwalkMessage)this.tMessage;
-            conn.returnFid(tWalkMsg.getNewFid());
+            if (this.tMessage != null)
+            {
+                TwalkMessage tWalkMsg = (TwalkMessage)this.tMessage;
+                conn.returnFid(tWalkMsg.getNewFid());
+            }
             String errMsg = "Error getting fid for " + path + ": " + message;
             if (this.callback != null)
             {
@@ -1466,6 +1474,165 @@ public class CStyxFile
     }
     
     /**
+     * Downloads the data from this file and writes to a local java.io.File.
+     * If this file already exists it will be overwritten.
+     * This method blocks; it returns when the download is complete and throws
+     * a StyxException if an error occurs.
+     * @param file The java.io.File to which the data will be written.  If this
+     * file already exists it will be overwritten.
+     */
+    public void download(File file) throws StyxException
+    {
+        StyxReplyCallback callback = new StyxReplyCallback();
+        this.downloadAsync(file, callback);
+        // The getReply() method blocks until the download is complete.
+        StyxMessage message = callback.getReply();
+    }
+    
+    /**
+     * Downloads the data from this file and writes to a local java.io.File. 
+     * This method returns immediately; when the download has finished, the
+     * downloadComplete() event will be fired all all registered change listeners.
+     * @param file The java.io.File to which the data will be written.  If this
+     * file already exists it will be overwritten.
+     */
+    public void downloadAsync(File file)
+    {
+        this.downloadAsync(file, null);
+    }
+    
+    /**
+     * Downloads the data from this file and writes to a local java.io.File. 
+     * This method returns immediately; when the download has finished, the
+     * replyArrived() method of the given MessageCallback will be called.
+     * @param file The java.io.File to which the data will be written.  If this
+     * file already exists it will be overwritten.
+     */
+    public void downloadAsync(File file, MessageCallback callback)
+    {
+        new DownloadCallback(file, callback).nextStage();
+    }
+    
+    /**
+     * Callback that is used when downloading a file from the server. Contains 
+     * state that needs to persist between message exchanges with the server.
+     */
+    private class DownloadCallback extends MessageCallback
+    {
+        private MessageCallback callback;
+        private File file;
+        private FileChannel fout;
+        private long offset;
+        
+        public DownloadCallback(File file, MessageCallback callback)
+        {
+            this.callback = callback;
+            this.file = file;
+            this.fout = null;
+            this.offset = 0;
+        }
+        
+        public void nextStage()
+        {
+            if (mode < 0)
+            {
+                // We must open the file
+                openAsync(StyxUtils.OREAD, this);
+            }
+            else
+            {
+                try
+                {
+                    // The file is open. Open the output stream for the local file
+                    if (this.fout == null)
+                    {
+                        this.fout = new FileOutputStream(this.file).getChannel();
+                        // This truncation is not necessary if we have just
+                        // created the file
+                        this.fout.truncate(0);
+                    }
+                    // Now read from the file
+                    readAsync(this.offset, this);
+                }
+                catch (FileNotFoundException fnfe)
+                {
+                    this.error("cannot open " + this.file + " for writing", -1);
+                }
+                catch (IOException ioe)
+                {
+                    this.error("cannot truncate " + this.file + ": " +
+                        ioe.getMessage(), -1);
+                }
+            }
+        }
+        
+        public void replyArrived(StyxMessage message)
+        {
+            if (message instanceof RopenMessage)
+            {
+                // We have just opened the file.
+                this.nextStage();
+            }
+            else if (message instanceof RreadMessage)
+            {
+                RreadMessage rReadMsg = (RreadMessage)message;
+                if (rReadMsg.getCount() != 0)
+                {
+                    try
+                    {
+                        // Write the data to the output file
+                        fout.write(rReadMsg.getData().buf());
+                        this.offset += rReadMsg.getCount();
+                        // Read the next chunk of data
+                        this.nextStage();
+                    }
+                    catch(IOException ioe)
+                    {
+                        this.error("error writing to " + this.file + ": " +
+                            ioe.getMessage(), -1);
+                    }
+                }
+                else
+                {
+                    // We have reached EOF
+                    this.closeFile();
+                    if (this.callback == null)
+                    {
+                        fireDownloadComplete();
+                    }
+                    else
+                    {
+                        callback.replyArrived(message);
+                    }
+                }
+            }
+        }
+        
+        private void closeFile()
+        {
+            if (this.fout != null)
+            {
+                try
+                {
+                    this.fout.close();
+                }
+                catch(IOException ioe)
+                {
+                    log.debug("IOException when closing " + this.file.getPath()
+                        + ": " + ioe.getMessage());
+                }
+            }
+        }
+        
+        public void error(String message, int tag)
+        {
+            this.closeFile();
+            String errMsg = "Error downloading from " + file.getPath() + ": " + message;
+            fireError(errMsg);
+        }
+    }
+    
+    /**
      * Uploads data from a local java.io.File to this file.  If the file does
      * not exist it will be created with rw-rw-rw- (0666) permissions, subject
      * to the  permissions of the host directory.  When the process is finished,
@@ -1480,8 +1647,7 @@ public class CStyxFile
      */
     public void uploadFileAsync(File file, boolean allowOverwrite)
     {
-        UploadCallback uploadCB = new UploadCallback(file, allowOverwrite);
-        uploadCB.nextStage();
+        new UploadCallback(file, allowOverwrite).nextStage();
     }
     
     /**
@@ -1740,6 +1906,22 @@ public class CStyxFile
                 CStyxFileChangeListener listener =
                     (CStyxFileChangeListener)this.listeners.get(i);
                 listener.uploadComplete(this);
+            }
+        }
+    }
+    
+    /**
+     * Fires the downloadComplete() method on all registered listeners
+     */
+    private void fireDownloadComplete()
+    {
+        synchronized(this.listeners)
+        {
+            for (int i = 0; i < listeners.size(); i++)
+            {
+                CStyxFileChangeListener listener =
+                    (CStyxFileChangeListener)this.listeners.get(i);
+                listener.downloadComplete(this);
             }
         }
     }

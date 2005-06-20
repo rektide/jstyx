@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/06/20 17:20:48  jonblower
+ * Added download() and downloadAsync() to CStyxFile
+ *
  * Revision 1.5  2005/05/25 16:58:41  jonblower
  * Added fileCreated()
  *
@@ -236,4 +239,5 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
     public void dataWritten(CStyxFile file, TwriteMessage tWriteMsg){}
     public void statChanged(CStyxFile file, DirEntry newDirEntry){}
     public void uploadComplete(CStyxFile targetFile){}
+    public void downloadComplete(CStyxFile sourceFile){}
 }

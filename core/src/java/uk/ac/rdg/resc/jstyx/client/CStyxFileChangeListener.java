@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/06/20 17:20:43  jonblower
+ * Added download() and downloadAsync() to CStyxFile
+ *
  * Revision 1.7  2005/05/25 16:57:07  jonblower
  * Added fileCreated() event
  *
@@ -137,5 +140,11 @@ public interface CStyxFileChangeListener
      * @param targetFile The file to which we have written
      */
     public void uploadComplete(CStyxFile targetFile);
+    
+    /**
+     * Called after a file has been successfully downloaded
+     * @param sourceFile The file from which the data have been downloaded.
+     */
+    public void downloadComplete(CStyxFile sourceFile);
     
 }
