@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/06/20 17:21:26  jonblower
+ * Bug fix (listFiles() returns null if no permissions to read directory)
+ *
  * Revision 1.5  2005/05/26 16:50:29  jonblower
  * Made static method createFileOrDirectory()
  *
@@ -108,48 +111,53 @@ public class DirectoryOnDisk extends StyxDirectory
         if (updateChildren)
         {
             File[] files = this.dir.listFiles();
-            for (int i = 0; i < files.length; i++)
+            // If we don't have permission to look into this directory the
+            // files variable could be null
+            if (files != null)
             {
-                // Check to see if a file with this name is already known
-                StyxFile sf = this.getChild(files[i].getName());
-                if (sf == null)
+                for (int i = 0; i < files.length; i++)
                 {
-                    try
+                    // Check to see if a file with this name is already known
+                    StyxFile sf = this.getChild(files[i].getName());
+                    if (sf == null)
                     {
-                        sf = FileOnDisk.getFileOrDirectoryOnDisk(files[i]);
-                        // Set the permissions of the file correctly
-                        if (sf instanceof StyxDirectory)
+                        try
                         {
-                            sf.setPermissions(this.getPermissions());
+                            sf = FileOnDisk.getFileOrDirectoryOnDisk(files[i]);
+                            // Set the permissions of the file correctly
+                            if (sf instanceof StyxDirectory)
+                            {
+                                sf.setPermissions(this.getPermissions());
+                            }
+                            else
+                            {
+                                // This is a StyxFile (a FileOnDisk). Set to the
+                                // same permissions as this host directory without
+                                // the "execute" flags
+                                sf.setPermissions(this.getPermissions() & 0666);
+                            }
+                            this.addChild(sf);
                         }
-                        else
+                        catch(StyxException se)
                         {
-                            // This is a StyxFile (a FileOnDisk). Set to the
-                            // same permissions as this host directory without
-                            // the "execute" flags
-                            sf.setPermissions(this.getPermissions() & 0666);
+                            // this exception is thrown if the file already exists.
+                            // We know this isn't the case so we can ignore it
                         }
-                        this.addChild(sf);
-                    }
-                    catch(StyxException se)
-                    {
-                        // this exception is thrown if the file already exists.
-                        // We know this isn't the case so we can ignore it
-                    }
-                }
-                else
-                {
-                    // File with this name already exists. Refresh the file
-                    // metadata but don't descend into subdirectories (could lead
-                    // to deep recursion)
-                    if (sf instanceof StyxDirectory)
-                    {
-                        StyxDirectory sd = (StyxDirectory)sf;
-                        sd.refresh(false);
                     }
                     else
                     {
-                        sf.refresh();
+                        // File with this name already exists. Refresh the file
+                        // metadata but don't descend into subdirectories (could lead
+                        // to deep recursion)
+                        if (sf instanceof StyxDirectory)
+                        {
+                            StyxDirectory sd = (StyxDirectory)sf;
+                            sd.refresh(false);
+                        }
+                        else
+                        {
+                            sf.refresh();
+                        }
                     }
                 }
             }
