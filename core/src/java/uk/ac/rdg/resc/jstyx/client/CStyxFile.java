@@ -65,6 +65,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.29  2005/06/22 17:08:34  jonblower
+ * Changed to allow target file to be null in download()
+ *
  * Revision 1.28  2005/06/20 17:20:34  jonblower
  * Added download() and downloadAsync() to CStyxFile
  *
@@ -1479,7 +1482,8 @@ public class CStyxFile
      * This method blocks; it returns when the download is complete and throws
      * a StyxException if an error occurs.
      * @param file The java.io.File to which the data will be written.  If this
-     * file already exists it will be overwritten.
+     * file already exists it will be overwritten.  If this is null, the data
+     * will be downloaded but not written to a file
      */
     public void download(File file) throws StyxException
     {
@@ -1546,10 +1550,13 @@ public class CStyxFile
                     // The file is open. Open the output stream for the local file
                     if (this.fout == null)
                     {
-                        this.fout = new FileOutputStream(this.file).getChannel();
-                        // This truncation is not necessary if we have just
-                        // created the file
-                        this.fout.truncate(0);
+                        if (this.file != null)
+                        {
+                            this.fout = new FileOutputStream(this.file).getChannel();
+                            // This truncation is not necessary if we have just
+                            // created the file
+                            this.fout.truncate(0);
+                        }
                     }
                     // Now read from the file
                     readAsync(this.offset, this);
@@ -1580,8 +1587,11 @@ public class CStyxFile
                 {
                     try
                     {
-                        // Write the data to the output file
-                        fout.write(rReadMsg.getData().buf());
+                        if (this.fout != null)
+                        {
+                            // Write the data to the output file
+                            fout.write(rReadMsg.getData().buf());
+                        }
                         this.offset += rReadMsg.getCount();
                         // Read the next chunk of data
                         this.nextStage();
