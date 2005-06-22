@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/06/22 17:07:29  jonblower
+ * Added read(byte[]) method
+ *
  * Revision 1.7  2005/05/12 07:40:52  jonblower
  * CStyxFile.close() no longer throws a StyxException
  *
@@ -149,7 +152,72 @@ public class StyxFileInputStream extends InputStream
         }
     }
     
-    /* TODO: implement more efficient reading (several bytes at a time) */
+    public int read(byte b[], int off, int len) throws IOException
+    {
+	if (b == null)
+        {
+	    throw new NullPointerException();
+	}
+        else if ((off < 0) || (off > b.length) || (len < 0) ||
+		   ((off + len) > b.length) || ((off + len) < 0))
+        {
+	    throw new IndexOutOfBoundsException();
+	}
+        else if (len == 0)
+        {
+	    return 0;
+	}
+        
+        if (this.eof)
+        {
+            return -1;
+        }
+        
+        // First check to see if there are any bytes left in the buffer
+        if (this.buf != null && this.buf.hasRemaining())
+        {
+            // Read the data into the provided array
+            int bytesToGet = Math.min(this.buf.remaining(), len);
+            this.buf.get(b, off, bytesToGet);
+            return bytesToGet;
+        }
+        else
+        {
+            // We have read everything that's in the buffer. 
+            // We need to read another block of data.
+            try
+            {
+                // Release the previous read buffer if we have one
+                if (this.buf != null)
+                {
+                    this.buf.release();
+                }
+                // Read a new chunk of data from the file
+                this.buf = this.file.read(this.offset);
+                if (this.buf.remaining() > 0)
+                {
+                    // Update the offset
+                    this.offset += this.buf.remaining();
+                    // Read the data into the provided array
+                    int bytesToGet = Math.min(this.buf.remaining(), len);
+                    this.buf.get(b, off, bytesToGet);
+                    return bytesToGet;
+                }
+                else
+                {
+                    // We have reached the end of the file
+                    this.eof = true;
+                    // We don't need the buffer any more
+                    this.buf.release();
+                    return -1;
+                }
+            }
+            catch(StyxException e)
+            {
+                throw new IOException(e.getMessage());
+            }
+        }
+    }
     
     /**
      * @return the number of bytes that can be read without blocking
