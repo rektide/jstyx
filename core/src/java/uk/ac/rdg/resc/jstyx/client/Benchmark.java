@@ -31,8 +31,12 @@ public class Benchmark
         String filename = "jdk-1_5_0_03-linux-i586.rpm";
         String httpRoot = "http://www.resc.rdg.ac.uk/";
         String styxRoot = "styx://www.resc.rdg.ac.uk:9876/";
-        //downloadFromURL(httpRoot + filename);
+        String infernoRoot = "styx://www.resc.rdg.ac.uk:6666/";
+        downloadFromURL(httpRoot + filename);
         downloadFromStyxURL(styxRoot + filename);
+        downloadFromStyxURL(infernoRoot + filename);
+        downloadFromStyxURL2(styxRoot + filename);
+        downloadFromStyxURL2(infernoRoot + filename);
     }
     
     /**
@@ -62,7 +66,7 @@ public class Benchmark
     {
         System.out.println("Downloading from " + urlStr);
         URL url = new URL(urlStr);
-        StyxConnection conn = new StyxConnection(url.getHost(), url.getPort(), 65536);
+        StyxConnection conn = new StyxConnection(url.getHost(), url.getPort(), 8192);
         conn.connect();
         CStyxFile file = conn.getFile(url.getPath());
         StyxFileInputStream is = new StyxFileInputStream(file);
@@ -76,5 +80,24 @@ public class Benchmark
         long time = System.currentTimeMillis() - start;
         System.out.println("Download took " + time + " milliseconds");
         is.close();
+        conn.close();
+    }
+    
+    /**
+     * Downloads data using the CStyxFile.download() method
+     */
+    private static void downloadFromStyxURL2(String urlStr) throws Exception
+    {
+        System.out.println("Downloading from " + urlStr);
+        URL url = new URL(urlStr);
+        StyxConnection conn = new StyxConnection(url.getHost(), url.getPort(), 65536);
+        conn.connect();
+        CStyxFile file = conn.getFile(url.getPath());
+        long start = System.currentTimeMillis();
+        // Download the file but don't write to a local file
+        file.download(null);
+        long time = System.currentTimeMillis() - start;
+        System.out.println("Download took " + time + " milliseconds using CStyxFile.download()");
+        conn.close();
     }
 }
