@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/06/27 17:19:22  jonblower
+ * Synchronized decode() method to try to eliminate concurrency problems
+ *
  * Revision 1.9  2005/05/25 15:39:02  jonblower
  * Bug fixes
  *
@@ -105,7 +108,7 @@ public class StyxMessageDecoder implements ProtocolDecoder
         this.headerBuf.order(ByteOrder.LITTLE_ENDIAN);
     }
     
-    public void decode(ProtocolSession session, ByteBuffer in,
+    public synchronized void decode(ProtocolSession session, ByteBuffer in,
         ProtocolDecoderOutput out)
         throws ProtocolViolationException
     {
