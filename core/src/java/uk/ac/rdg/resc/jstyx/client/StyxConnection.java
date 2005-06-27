@@ -43,7 +43,6 @@ import org.apache.mina.protocol.ProtocolHandler;
 import org.apache.mina.protocol.ProtocolFilter;
 import org.apache.mina.protocol.ProtocolProvider;
 import org.apache.mina.protocol.ProtocolSession;
-import org.apache.mina.protocol.filter.ProtocolThreadPoolFilter;
 import org.apache.mina.protocol.io.IoProtocolConnector;
 import org.apache.mina.common.IdleStatus;
 
@@ -72,6 +71,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.21  2005/06/27 17:17:15  jonblower
+ * Changed MessageCallback to pass Tmessage as parameter, rather than storing in the instance
+ *
  * Revision 1.20  2005/05/27 17:03:35  jonblower
  * Minor bug fix
  *
@@ -184,15 +186,10 @@ public class StyxConnection implements ProtocolHandler
     // MINA components
     private ProtocolSession session;
     private IoThreadPoolFilter ioThreadPoolFilter;
-    private ProtocolThreadPoolFilter protocolThreadPoolFilter;
     
     private static Integer numSessions = new Integer(0); // The number of sessions that have been opened
                                                          // This is an Integer object so we can use it as a lock
     private static final int CONNECT_TIMEOUT = 30; // seconds
-    
-    // We're creating one eventDispatcher per connection so we can set a pool 
-    // size of 1
-    private static final int DISPATCHER_THREAD_POOL_SIZE = 1;
     
     /**
      * Creates a new instance of StyxConnection. This does not actually make the
@@ -280,10 +277,8 @@ public class StyxConnection implements ProtocolHandler
             this.connecting = true;
 
             this.ioThreadPoolFilter = new IoThreadPoolFilter();
-            this.protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
 
             this.ioThreadPoolFilter.start();
-            this.protocolThreadPoolFilter.start();
 
             IoProtocolConnector connector;
             try
@@ -296,8 +291,7 @@ public class StyxConnection implements ProtocolHandler
                     + ioe.getMessage());
             }
             // TODO: do we need these thread pools for a client connection?
-            connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
-            connector.getFilterChain().addLast("Protocol thread pool filter",  protocolThreadPoolFilter );
+            //connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
 
             ProtocolProvider protocolProvider = new StyxClientProtocolProvider(this);
 
@@ -381,11 +375,11 @@ public class StyxConnection implements ProtocolHandler
             (
                 new MessageCallback()
                 {
-                    public void replyArrived(StyxMessage msg)
+                    public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
                     {
                         clunkNextFid(this);
                     }
-                    public void error(String message, int tag)
+                    public void error(String message, StyxMessage tMessage)
                     {
                         //log.error("Error clunking fid: " + message);
                         clunkNextFid(this);
@@ -444,6 +438,22 @@ public class StyxConnection implements ProtocolHandler
     }
     
     /**
+     * Simple struct to contain a T-message plus its associated callback. Note 
+     * that we cannot store the T-message in the callback itself because a callback
+     * may be associated with several T-messages
+     */
+    private class MessagePlusCallback
+    {
+        private StyxMessage tMessage;
+        private MessageCallback callback;
+        public MessagePlusCallback(StyxMessage tMessage, MessageCallback callback)
+        {
+            this.tMessage = tMessage;
+            this.callback = callback;
+        }
+    }
+    
+    /**
      * Sends a message and returns its tag.  Note that this method will return
      * immediately.  When the reply arrives, the replyArrived() method of the
      * callback object will be called. (The callback can be null.).  If the 
@@ -457,13 +467,13 @@ public class StyxConnection implements ProtocolHandler
      *
      * @return the tag of the outgoing message
      */
-    public int sendAsync(StyxMessage message, MessageCallback callback)
+    public int sendAsync(StyxMessage tMessage, MessageCallback callback)
     {
         if (!this.connecting)
         {
             if (callback != null)
             {
-                callback.error("Must connect before sending a message", -1);
+                callback.error("Must connect before sending a message", tMessage);
             }
             else
             {
@@ -473,7 +483,7 @@ public class StyxConnection implements ProtocolHandler
         // Set the tag for the message: this is also the key for the message
         // in the Hashtable of outstanding messages
         int tag;
-        if (message instanceof TversionMessage)
+        if (tMessage instanceof TversionMessage)
         {            
             // if this is a TversionMessage, we can use NOTAG
             tag = StyxUtils.NOTAG;
@@ -482,21 +492,19 @@ public class StyxConnection implements ProtocolHandler
         {
             tag = this.getFreeTag();
         }
-        message.setTag(tag);
+        tMessage.setTag(tag);
 
-        // Store the outgoing message in the callback
         if (callback != null)
         {
-            callback.setTMessage(message);
             // add to queue of waiting messages
-            this.msgQueue.put(new Integer(tag), callback);
+            this.msgQueue.put(new Integer(tag), new MessagePlusCallback(tMessage, callback));
         }
         
-        if (message instanceof TclunkMessage)
+        if (tMessage instanceof TclunkMessage)
         {
             // Store the fids of outstanding Tclunks so we don't attempt to
             // send another clunk for this fid when we close the connection
-            TclunkMessage tClunkMsg = (TclunkMessage)message;
+            TclunkMessage tClunkMsg = (TclunkMessage)tMessage;
             this.tClunksPending.put(new Integer(tag), new Long(tClunkMsg.getFid()));
         }
         
@@ -504,16 +512,16 @@ public class StyxConnection implements ProtocolHandler
         {
             // If the connection is ready (signalled by rootFid being set), or
             // if this is part of a handshake, send the message, otherwise, enqueue it
-            if (this.rootFid >= 0 || message instanceof TversionMessage ||
-                message instanceof TattachMessage)
+            if (this.rootFid >= 0 || tMessage instanceof TversionMessage ||
+                tMessage instanceof TattachMessage)
             {
                 // Send the message
-                this.session.write(message);
+                this.session.write(tMessage);
             }
             else
             {
                 // We just store the message because the callback has already been stored
-                this.unsentMessages.add(message);
+                this.unsentMessages.add(tMessage);
             }
         }
         
@@ -551,7 +559,7 @@ public class StyxConnection implements ProtocolHandler
         int tag = rMessage.getTag();
         
         // Find the callback object in the list of outstanding messages
-        MessageCallback callback = (MessageCallback)this.msgQueue.remove(new Integer(tag));
+        MessagePlusCallback mpc = (MessagePlusCallback)this.msgQueue.remove(new Integer(tag));
         
         // Return the tag to the pool if it isn't a RversionMessage
         if (!(message instanceof RversionMessage))
@@ -566,9 +574,9 @@ public class StyxConnection implements ProtocolHandler
             this.returnFid(lngFid.longValue());
         }
         
-        if (callback != null)
+        if (mpc != null && mpc.callback != null)
         {
-            callback.gotReply(rMessage);
+            mpc.callback.gotReply(rMessage, mpc.tMessage);
         }
     }
     
@@ -686,14 +694,14 @@ public class StyxConnection implements ProtocolHandler
     
     private class TversionCallback extends MessageCallback
     {
-        public void replyArrived(StyxMessage message)
+        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
         {
-            RversionMessage rVerMsg = (RversionMessage)message;
+            RversionMessage rVerMsg = (RversionMessage)rMessage;
             maxMessageSize = (int)rVerMsg.getMaxMessageSize();
             TattachMessage tAttMsg = new TattachMessage(getFreeFid(), user);
             sendAsync(tAttMsg, new TattachCallback());
         }
-        public void error(String message, int tag)
+        public void error(String message, StyxMessage tMessage)
         {
             fireStyxConnectionError(new Throwable(message));
         }
@@ -701,13 +709,13 @@ public class StyxConnection implements ProtocolHandler
     
     private class TattachCallback extends MessageCallback
     {
-        public void replyArrived(StyxMessage message)
+        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
         {
-            TattachMessage tAttMsg = (TattachMessage)this.tMessage;
+            TattachMessage tAttMsg = (TattachMessage)tMessage;
             rootFid = tAttMsg.getFid();
             fireStyxConnectionReady();
         }
-        public void error(String message, int tag)
+        public void error(String message, StyxMessage tMessage)
         {
             fireStyxConnectionError(new Throwable(message));
         }
@@ -728,7 +736,6 @@ public class StyxConnection implements ProtocolHandler
         
         // Stop threads
         this.ioThreadPoolFilter.stop();
-        this.protocolThreadPoolFilter.stop();
         
         // Free resources associated with StyxMessageDecoder
         StyxMessageDecoder decoder = (StyxMessageDecoder)this.session.getDecoder();
@@ -918,11 +925,11 @@ public class StyxConnection implements ProtocolHandler
             Iterator it = this.unsentMessages.iterator();
             while(it.hasNext())
             {
-                StyxMessage message = (StyxMessage)it.next();
-                int tag = message.getTag();
+                StyxMessage tMessage = (StyxMessage)it.next();
+                int tag = tMessage.getTag();
                 MessageCallback callback =
                     (MessageCallback)this.msgQueue.remove(new Integer(tag));
-                callback.error("Could not send message: " + message, -1);
+                callback.error("Could not send message: " + tMessage, tMessage);
                 it.remove();
             }
         }

@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/06/27 17:17:16  jonblower
+ * Changed MessageCallback to pass Tmessage as parameter, rather than storing in the instance
+ *
  * Revision 1.2  2005/02/21 18:09:43  jonblower
  * *** empty log message ***
  *
@@ -90,9 +93,9 @@ class StyxReplyCallback extends MessageCallback
      * Called when a valid reply (i.e. not an Rerror message) arrives from
      * the server.
      */
-    public synchronized void replyArrived(StyxMessage msg)
+    public synchronized void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
     {
-        reply = msg;
+        reply = rMessage;
         notifyAll();
     }
     
@@ -101,7 +104,7 @@ class StyxReplyCallback extends MessageCallback
      * the server, the reply was of an unexpected type, or something else - 
      * see MessageCallback).
      */
-    public synchronized void error(String message, int tag)
+    public synchronized void error(String message, StyxMessage tMessage)
     {
         errorMsg = message;
         notifyAll();

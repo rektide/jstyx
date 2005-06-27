@@ -41,6 +41,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/06/27 17:17:15  jonblower
+ * Changed MessageCallback to pass Tmessage as parameter, rather than storing in the instance
+ *
  * Revision 1.4  2005/05/25 15:39:02  jonblower
  * Bug fixes
  *
@@ -54,22 +57,6 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
 public abstract class MessageCallback
 {
     
-    protected StyxMessage tMessage; // Allows the outgoing message to be attached to this callback
-    
-    public MessageCallback()
-    {
-        this.tMessage = null;
-    }
-    
-    /**
-     * Sets the TMessage that was sent; this will be called from
-     * StyxConnection.sendAsync().
-     */
-    void setTMessage(StyxMessage message)
-    {
-        this.tMessage = message;
-    }
-    
     /**
      * Called by StyxConnection when a reply arrives to the Tmessage. If the
      * reply is an Rerror message, the error() method of this class will be
@@ -77,23 +64,23 @@ public abstract class MessageCallback
      * expected, the error() method will be called. Otherwise, the replyArrived()
      * method will be called. Subclasses may not override this method.
      */
-    final void gotReply(StyxMessage rMessage)
+    final void gotReply(StyxMessage rMessage, StyxMessage tMessage)
     {
         if (rMessage instanceof RerrorMessage)
         {
-            this.error(((RerrorMessage)rMessage).getMessage(), rMessage.getTag());
+            this.error(((RerrorMessage)rMessage).getMessage(), tMessage);
         }
         else
         {
-            if (rMessage.getType() != this.tMessage.getType() + 1)
+            if (rMessage.getType() != tMessage.getType() + 1)
             {
                 this.error("Unexpected type of reply (" + rMessage.getType() +
-                    ") to message of type " + this.tMessage.getType(),
-                    rMessage.getTag());
+                    ") to message of type " + tMessage.getType(),
+                    tMessage);
             }
             else
             {
-                this.replyArrived(rMessage);
+                this.replyArrived(rMessage, tMessage);
             }
         }
     }
@@ -101,16 +88,17 @@ public abstract class MessageCallback
     /**
      * Called when the reply arrives.
      * @param rMessage the reply
+     * @param tMessage the original T-message
      */
-    public abstract void replyArrived(StyxMessage rMessage);
+    public abstract void replyArrived(StyxMessage rMessage, StyxMessage tMessage);
     
     /**
      * Called when an error occurs (this may occur if the server returned an
      * Rerror message, or if the reply was not of the expected type, or for 
      * other reasons).
      * @param message The error string
-     * @param tag The tag of the message pair
+     * @param tMessage The T-message that caused this error to happen
      */
-    public abstract void error(String message, int tag);
+    public abstract void error(String message, StyxMessage tMessage);
     
 }
