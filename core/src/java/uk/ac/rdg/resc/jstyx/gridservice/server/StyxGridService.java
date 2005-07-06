@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/07/06 17:50:13  jonblower
+ * Change to comments
+ *
  * Revision 1.13  2005/05/19 18:42:07  jonblower
  * Implementing specification of input files required by SGS
  *
@@ -125,19 +128,20 @@ public class StyxGridService
         this.root = new StyxDirectory(sgsConfig.getName());
         this.root.addChild(new CloneFile());
         
-        // The ".contents" file is an asynchronous interface to the contents of
-        // the root directory of the SGS.  The first time this file is read by
-        // a client it will return the contents of the root directory (just like
-        // reading the root directory).  The second time it is read by the same
-        // client the reply will only arrive when the contents have changed. 
-        // This allows GUIs to automatically update when new SGS instances are
-        // created or destroyed.
-        //this.root.addChild(new AsyncStyxFile(this.root, ".contents"));
-        
         // Add read-only directory for the SGS instances
         this.instancesDir = new StyxDirectory("instances", 0555);
         this.root.addChild(this.instancesDir);
         
+        // The ".instances" file is an asynchronous interface to the contents of
+        // the instances directory of the SGS.  The first time this file is read by
+        // a client it will return the files representing the instances of this
+        // SGS.  The second time it is read by the same
+        // client the reply will only arrive when the contents have changed. 
+        // This allows GUIs to automatically update when new SGS instances are
+        // created or destroyed.
+        this.root.addChild(new AsyncStyxFile(this.instancesDir, ".instances"));
+        
+        // Create documentation tree
         StyxDirectory docDir = new StyxDirectory("docs", 0555);
         //docDir.setReadOnly(); TODO Why doesn't this line work?
         this.root.addChild(docDir);
@@ -158,6 +162,7 @@ public class StyxGridService
             // Add the file to the doc directory
             docDir.addChild(sf);
         }
+        
         this.sgsConfig = sgsConfig;
     }
     
