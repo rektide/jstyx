@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2005/07/06 17:42:47  jonblower
+ * Changed getUniqueID() to be based on creation time in addition to file name
+ *
  * Revision 1.15  2005/05/10 08:02:18  jonblower
  * Changes related to implementing MonitoredFileOnDisk
  *
@@ -131,6 +134,8 @@ public class StyxFile
                                      // This can only be modified through the incrementVersion()
                                      // method
     
+    private long creationTime;       // Time of creation (milliseconds since the epoch,
+                                     // used to generate a unique ID for the file)
     private long lastAccessTime;     // last access time (seconds since the epoch)
     protected long lastModifiedTime; // last modification time (seconds since the epoch)
     private String owner;            // owner name
@@ -165,6 +170,7 @@ public class StyxFile
         this.exclusive = isExclusive;
         this.auth = isAuth;
         this.version = 0;
+        this.creationTime = System.currentTimeMillis();
         this.lastAccessTime = StyxUtils.now();
         this.lastModifiedTime = StyxUtils.now();
         this.owner = owner.trim();
@@ -448,12 +454,19 @@ public class StyxFile
     }
     
     /**
-     * Gets the unique numeric ID for the path of this file (simply the hashCode
-     * of the full path of this file)
+     * Gets the unique numeric ID for the path of this file (generated from the
+     * low-order bytes of the creation time and the hashcode of the full path).
+     * If the file is deleted and re-created the unique ID will change (except
+     * for the extremely unlikely case in which the low-order bytes of the creation
+     * time happen to be the same in the new file and the old file).
      */
     private long getUniqueID()
     {
-        return this.getFullPath().hashCode();
+        // Get the low-order bytes of the creation time
+        long timeBytes = this.creationTime & 0xffffffffL;
+        // Create the ID from the low-order bytes of the creation time and use
+        // the hashcode of the path as the high-order bytes of the ID
+        return (this.getFullPath().hashCode() << 32) | timeBytes;
     }
     
     /**
