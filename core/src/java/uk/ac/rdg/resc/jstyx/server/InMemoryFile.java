@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/07/06 17:38:59  jonblower
+ * Minor changes
+ *
  * Revision 1.13  2005/06/10 07:53:12  jonblower
  * Changed SGS namespace: removed "inurl" and subsumed functionality into "stdin"
  *
@@ -177,7 +180,7 @@ public class InMemoryFile extends StyxFile
         int newSize = (int)offset + count;
         if (!truncate)
         {
-            newSize = this.buf.limit() > newSize ? this.buf.limit() : newSize;
+            newSize = Math.max(this.buf.limit(), newSize);
         }
         if (newSize > this.capacity)
         {
@@ -222,7 +225,8 @@ public class InMemoryFile extends StyxFile
     
     /**
      * Grows the underlying ByteBuffer to the given size (actually allocates
-     * a new ByteBuffer and copies all the bytes to the new buffer).
+     * a new ByteBuffer and copies all the bytes to the new buffer).  TODO:
+     * have several ByteBuffers instead to save all the copying.
      * Does nothing if the existing ByteBuffer's capacity is >= the given size.
      */
     private synchronized void growBuffer(int newSize)
@@ -291,7 +295,7 @@ public class InMemoryFile extends StyxFile
     {
         // Create the root directory of the Styx server
         StyxDirectory root = new StyxDirectory("/");
-        // Add a DateFile to the root
+        // Add an InMemoryFile to the root
         root.addChild(new InMemoryFile("inmem"));
         // Start a StyxServer, listening on port 9876
         new StyxServer(9876, root).start();
