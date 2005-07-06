@@ -65,6 +65,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.31  2005/07/06 17:46:19  jonblower
+ * Added setDirEntry()
+ *
  * Revision 1.30  2005/06/27 17:18:03  jonblower
  * Added accelerated downloading methods, and responded to changes with MessageCallback
  *
@@ -318,6 +321,16 @@ public class CStyxFile
             this.refresh();
         }
         return this.dirEntry;
+    }
+    
+    /**
+     * Sets the dirEntry of this file.  This method is not used often.  It is most
+     * useful when creating a CStyxFile from reading a directory: in this case
+     * we have the DirEntry without having to separately stat the file.
+     */
+    public void setDirEntry(DirEntry dirEntry)
+    {
+        this.dirEntry = dirEntry;
     }
     
     /**
@@ -1347,8 +1360,9 @@ public class CStyxFile
     
     /**
      * Gets all the children of this directory. If this is not a directory,
-     * this will return null. (For an empty directory, this will return a zero-
-     * length array.)  This method blocks until the directory has been read.
+     * this will return null (TODO: does it?  Or does it throw an Exception?).
+     * (For an empty directory, this will return a zero- length array.)
+     * This method blocks until the directory has been read.
      */
     public CStyxFile[] getChildren() throws StyxException
     {
@@ -1409,8 +1423,8 @@ public class CStyxFile
             }
             else if (qid.getType() == 128)
             {
-                // this is a directory. First check to see if we already have
-                // it open
+                // this is a directory (or we don't care if this is a directory
+                // or not). First check to see if we already have it open
                 this.wasOpen = (mode >= 0);
                 System.err.println(path + ".wasOpen = " + this.wasOpen);
                 // Now find the children
