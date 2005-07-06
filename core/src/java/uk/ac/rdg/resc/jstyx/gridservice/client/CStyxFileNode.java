@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/07/06 17:53:43  jonblower
+ * Implementing automatic update of SGS instances in SGS Explorer
+ *
  * Revision 1.6  2005/06/20 17:20:48  jonblower
  * Added download() and downloadAsync() to CStyxFile
  *
@@ -74,7 +77,8 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * Separated CStyxFileNode from SGSExplorerTreeModel
  *
  */
-class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeListener
+class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeListener,
+    SGSChangeListener
 {
 
     public static final int ROOT = 0;
@@ -83,10 +87,11 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
     public static final int INSTANCE = 3;
     
     private CStyxFile file; // The CStyxFile at this node
+    private CStyxFile instances; // The CStyxFile representing the instances of this SGS
     private String name; // The name as it will appear in the tree
     private SGSExplorerTreeModel dataModel;
 
-    private CStyxFile cloneFile; // For Service nodes only, the clone file
+    private SGSClient sgsClient; // For Service nodes only, the client class
     
     public CStyxFileNode(SGSExplorerTreeModel dataModel, CStyxFile file, String name)
     {
@@ -140,8 +145,8 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
 
     /**
      * Sends a message to get all the children of this node.  When the reply
-     * arrives, the childrenFound method of this class will be called. If we
-     * already have the children for this node, this will do nothing.
+     * arrives, the childrenFound method of this class will be called.  Does 
+     * nothing if the children have already been found.
      */
     public void findChildren()
     {
@@ -149,17 +154,12 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
         {
             if (this.getType() == SERVICE)
             {
-                // If this is a Service, we find the instances by looking in
-                // the "instances" directory.  In this way, the other direct
-                // descendants of the CStyxFile (the clone file, etc) are not
-                // shown in the hierarchy.
-                CStyxFile instancesDir = this.file.getFile("instances");
-                instancesDir.addChangeListener(this);
-                instancesDir.getChildrenAsync();
+                // If this has already been called, this method will do nothing
+                this.sgsClient.getInstances();
             }
             else
             {
-                file.getChildrenAsync();
+                this.file.getChildrenAsync();
             }
         }
     }
@@ -170,21 +170,34 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
      */
     public void childrenFound(CStyxFile file, CStyxFile[] files)
     {
-        int[] indices = new int[files.length];
+        // Remove all previous children of this file
+        this.removeAllChildren();
         synchronized (this)
         {
             for (int i = 0; i < files.length; i++)
             {
-                // Get the index at which this child will be added
-                indices[i] = this.getChildCount();
                 this.add(new CStyxFileNode(this.dataModel, files[i]));
             }
-            // Let the TreeModel know that the nodes were inserted
-            this.dataModel.nodesWereInserted(this, indices);
         }
+        this.dataModel.nodeStructureChanged(this);
     }
     
     /**
+     * Intercepts calls to add a child to this structure, creating SGSclient 
+     * objects if the new child represents a SGS
+     */
+    private void add(CStyxFileNode newChild)
+    {
+        super.add(newChild);
+        if (newChild.getType() == SERVICE)
+        {
+            // If this is a service, we can get a client for the SGS
+            newChild.sgsClient = new SGSClient(newChild.getFile());
+            newChild.sgsClient.addChangeListener(newChild);
+        }
+    }
+    
+    /** 
      * Sends a message to create a new instance (reads the clone file). This
      * method will only be called if this node represents a Service.
      */
@@ -192,14 +205,7 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
     {
         if (this.getType() == SERVICE)
         {
-            if (this.cloneFile == null)
-            {
-                this.cloneFile = this.file.getFile("clone");
-            }
-            this.cloneFile.addChangeListener(this);
-            // To create the new instance, we read from the beginning of the file
-            // The dataArrived() method will be called when the reply arrives
-            this.cloneFile.readAsync(0);
+            this.sgsClient.createNewInstance();
         }
         else
         {
@@ -208,23 +214,43 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
         }
     }
     
-    public void dataArrived(CStyxFile theFile, TreadMessage tReadMsg, ByteBuffer data)
+    
+    /**
+     * Required by SGSChangeListener interface: called when this is a Service
+     * and we have a new list of instances
+     */
+    public void gotInstances(CStyxFile[] newInstances)
     {
-        if (theFile == this.cloneFile)
+        // TODO: look through for duplicates so we don't delete and recreate
+        // nodes for the same file.  Do this based on the unique ID for the file
+        if (this.children == null)
         {
-            // We have read the clone file, and have therefore created a new instance
-            String instanceID = StyxUtils.dataToString(data);
-            // Create a new node for this instance
-            CStyxFile instanceFile = this.file.getFile("instances/" + instanceID);
-            synchronized (this)
+            // Just add the children of this node
+            this.childrenFound(null, newInstances);
+        }
+        else
+        {
+            // We must work out which of the instance(s) that we have found are
+            // new, and which instance(s) have been destroyed
+            synchronized (this.children)
             {
-                int index = this.getChildCount();
-                this.add(new CStyxFileNode(this.dataModel, instanceFile));
-                // Let the TreeModel know that the nodes was inserted
-                this.dataModel.nodesWereInserted(this, new int[]{index});
+                // TODO: can we make this more efficient because the instances
+                // will be in the same order?
+                System.err.println("Got " + newInstances.length + " instances");
+                for (int i = 0; i < this.children.size(); i++)
+                {
+                    CStyxFile existingChildFile =
+                        ((CStyxFileNode)this.children.get(i)).getFile();
+                    for (int j = 0; j < newInstances.length; j++)
+                    {
+                        // Check to see if new instance is the same as the existing file.
+                        // Beware!  Calling getDirEntry() *might* cause this to
+                        // block, but it shouldn't, since the dirEntry of both
+                        // files should already be set.  Check this!
+                    }
+                    
+                }
             }
-            // Close the clone file
-            theFile.close();
         }
     }
 
@@ -234,6 +260,7 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
     }
 
     // These methods are required by the CStyxFileChangeListener interface
+    public void dataArrived(CStyxFile theFile, TreadMessage tReadMsg, ByteBuffer data) {}
     public void fileOpen(CStyxFile file, int mode){}
     public void fileCreated(CStyxFile file, int mode){}
     public void dataWritten(CStyxFile file, TwriteMessage tWriteMsg){}

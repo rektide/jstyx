@@ -34,7 +34,7 @@ import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
-import uk.ac.rdg.resc.jstyx.client.StyxConnection;
+import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeAdapter;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/07/06 17:53:43  jonblower
+ * Implementing automatic update of SGS instances in SGS Explorer
+ *
  * Revision 1.6  2005/05/17 15:10:40  jonblower
  * Changed structure of SGS to put instances in a directory of their own
  *
@@ -79,39 +82,38 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 public class SGSClient extends CStyxFileChangeAdapter
 {
     
-    private StyxConnection conn; // The connection on which the SGS sits
     private CStyxFile sgsRoot;   // The file at the root of the SGS
     private CStyxFile cloneFile; // The file that we read to create new instances
+    private CStyxFile instancesFile; // The special file (behaves like a directory)
+                                 // that is read to give the instances of the
+                                 // services
+    private Vector instances;    // Vector of CStyxFiles representing the root of
+                                 // each instance
+    private boolean gettingInstances;
     private Vector changeListeners; // The objects that will be notified of changes to this SGS
     
     /**
      * Creates a new instance of SGSClient.
-     * @param host The name (or IP address) of the host on which the SGS sits
-     * @param port The port number that we must connect to on the remote host
-     * @param user The name of the user we are connecting as
-     * @param sgsName The name of the Styx Grid Service
-     * @throws StyxException if a connection couldn't be established, or if
-     * we could not connect to the SGS
+     * @param root The CStyxFile representing the root of the SGS
      */
-    public SGSClient(String host, int port, String user, String sgsName)
-        throws StyxException
+    public SGSClient(CStyxFile root)
     {
-        this.conn = new StyxConnection(host, port, user);
-        this.conn.connectAsync();
-        this.sgsRoot = conn.openFile(sgsName, StyxUtils.OREAD);
+        this.sgsRoot = root;
         this.cloneFile = this.sgsRoot.getFile("clone");
+        this.instancesFile = this.sgsRoot.getFile(".instances");
         this.cloneFile.addChangeListener(this);
+        this.instancesFile.addChangeListener(this);
+        this.gettingInstances = false;
         this.changeListeners = new Vector();
+        this.instances = new Vector();
     }
     
     /**
-     * Requests creation a new instance of the SGS on the server.  When the instance
-     * has been created, the newInstanceCreated event will be fired on all 
-     * registered SGSChangeListeners.
-     * @throws StyxException if there was an error sending the request to create
-     * the new instance
+     * Requests creation of a new instance of the SGS on the server.  When the instance
+     * has been created, the gotInstances() event will be fired on all registered
+     * change listeners, with the new list of instances for this SGS.
      */
-    public void createNewInstance() throws StyxException
+    public void createNewInstance()
     {
         this.cloneFile.readAsync(0);
     }
@@ -127,16 +129,68 @@ public class SGSClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * Sends message to get all the instances of this SGS.  When the instances
+     * arrive, the gotInstances() event will be fired on all registered
+     * change listeners.  This method does not block.
+     */
+    public void getInstances()
+    {
+        // If we have already called this method, do nothing; the event will
+        // still be fired on all change listeners
+        if (!this.gettingInstances)
+        {
+            this.gettingInstances = true;
+            this.instancesFile.readAsync(0);
+        }
+    }
+    
+    /**
      * Required by the CStyxFileChangeListener interface
      */
     public synchronized void dataArrived(CStyxFile file, TreadMessage tReadMsg, 
         ByteBuffer data)
     {
-        if (file == this.cloneFile)
+        if (file == this.instancesFile)
         {
-            // A new instance has been created.
-            String idStr = StyxUtils.dataToString(data);
-            this.fireNewInstanceCreated(idStr);
+            // TODO: This nearly repeats code in CStyxFile.GetChildrenCallback.
+            // Can we refactor this?  Problem is that in this case we don't want
+            // the instances file to be closed after reading the children, or
+            // we won't get the desired async behaviour.
+            
+            // If this is the first read from this file, clear the cache of
+            // children
+            if (tReadMsg.getOffset().asLong() == 0)
+            {
+                this.instances.clear();
+            }
+            
+            // We have got a (possibly partial) list of instances for this SGS
+            long offset = tReadMsg.getOffset().asLong() + data.remaining();
+            if (data.remaining() > 0)
+            {
+                // Wrap data as a StyxBuffer
+                StyxBuffer styxBuf = new StyxBuffer(data);
+                // Get all the DirEntries from this buffer
+                while(data.hasRemaining())
+                {
+                    DirEntry dirEntry = styxBuf.getDirEntry();
+                    CStyxFile instance = this.sgsRoot.getFile("instances/" +
+                        dirEntry.getFileName());
+                    instance.setDirEntry(dirEntry);
+                    this.instances.add(instance);
+                }
+                // Read from this file again
+                this.instancesFile.readAsync(offset);
+            }
+            else
+            {
+                // We've read all the data from the file
+                CStyxFile[] instancesRoots =
+                    (CStyxFile[])this.instances.toArray(new CStyxFile[0]);
+                this.fireGotInstances(instancesRoots);
+                // Start reading again from the start of the file
+                this.instancesFile.readAsync(0);
+            }
         }
     }
     
@@ -171,14 +225,14 @@ public class SGSClient extends CStyxFileChangeAdapter
      * Fires the newInstanceCreated() event in all registered change listeners
      * @param id the ID of the new instance that has been created
      */
-    private void fireNewInstanceCreated(String id)
+    private void fireGotInstances(CStyxFile[] instances)
     {
         synchronized(this.changeListeners)
         {
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
                 SGSChangeListener listener = (SGSChangeListener)this.changeListeners.get(i);
-                listener.newInstanceCreated(id);
+                listener.gotInstances(instances);
             }
         }
     }

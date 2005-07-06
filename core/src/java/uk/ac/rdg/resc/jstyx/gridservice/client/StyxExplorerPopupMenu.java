@@ -45,6 +45,9 @@ import java.awt.Component;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/07/06 17:53:44  jonblower
+ * Implementing automatic update of SGS instances in SGS Explorer
+ *
  * Revision 1.4  2005/05/27 17:05:07  jonblower
  * Changes to incorporate GeneralCachingStreamReader
  *
@@ -77,7 +80,7 @@ class StyxExplorerPopupMenu extends JPopupMenu implements ActionListener
         this.showGUI = new JMenuItem("Show GUI");
         this.destroyInstance = new JMenuItem("Destroy");
         this.add(this.newInstance);
-        //this.add(this.refresh); TODO: add this and make it do something!
+        //this.add(this.refresh);
         this.add(this.showGUI);
         //this.add(this.destroyInstance);
         
@@ -108,6 +111,9 @@ class StyxExplorerPopupMenu extends JPopupMenu implements ActionListener
         // on an instancenode
         this.showGUI.setVisible(nodeType == CStyxFileNode.INSTANCE);
         this.destroyInstance.setVisible(nodeType == CStyxFileNode.INSTANCE);
+        // Don't use Refresh at the moment - UI should keep itself updated
+        //this.refresh.setVisible(nodeType != CStyxFileNode.INSTANCE &&
+        //                        nodeType != CStyxFileNode.SERVICE);
     }
     
     /**
@@ -126,7 +132,9 @@ class StyxExplorerPopupMenu extends JPopupMenu implements ActionListener
         }
         else if (source == this.refresh)
         {
-            // TODO
+            // Get the children of this node - the "true" parameter means that we are 
+            // forcing a refresh, even if we already have children for this node
+            this.activeNode.findChildren(true);
         }
         else if (source == this.destroyInstance)
         {

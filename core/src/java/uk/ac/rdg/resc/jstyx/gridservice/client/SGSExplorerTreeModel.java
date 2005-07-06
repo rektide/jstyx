@@ -50,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/07/06 17:53:44  jonblower
+ * Implementing automatic update of SGS instances in SGS Explorer
+ *
  * Revision 1.5  2005/05/17 18:20:50  jonblower
  * Separated CStyxFileNode from SGSExplorerTreeModel
  *
@@ -94,10 +97,9 @@ public class SGSExplorerTreeModel extends DefaultTreeModel implements TreeExpans
                 exists = false;
                 for (int i = 0; i < this.root.getChildCount(); i++)
                 {
-                    DefaultMutableTreeNode node =
-                        (DefaultMutableTreeNode)this.root.getChildAt(i);
-                    CStyxFileNode s = (CStyxFileNode)node.getUserObject();
-                    if (str2.equals(s.toString()))
+                    CStyxFileNode node =
+                        (CStyxFileNode)this.root.getChildAt(i);
+                    if (str2.equals(node.toString()))
                     {
                         exists = true;
                         break; // Stop searching through nodes

@@ -28,6 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
+import uk.ac.rdg.resc.jstyx.client.CStyxFile;
+
 /**
  * Change listener that defines methods that are called when changes to a 
  * Styx Grid Service occur
@@ -36,6 +38,9 @@ package uk.ac.rdg.resc.jstyx.gridservice.client;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/07/06 17:53:43  jonblower
+ * Implementing automatic update of SGS instances in SGS Explorer
+ *
  * Revision 1.1  2005/03/16 22:16:44  jonblower
  * Added Styx Grid Service classes to core module
  *
@@ -46,8 +51,9 @@ package uk.ac.rdg.resc.jstyx.gridservice.client;
 public interface SGSChangeListener
 {
     /**
-     * Fired when a new instance of the SGS has been created.
-     * @param id The id of the new instance
+     * Fired when we have got the latest list of instances for this SGS.
+     * @param instances Array of CStyxFiles, one for each directory at the 
+     * root of each instance
      */
-    public void newInstanceCreated(String id);
+    public void gotInstances(CStyxFile[] instances);
 }
