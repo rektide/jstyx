@@ -37,8 +37,11 @@ import java.math.BigInteger;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:35  jonblower
- * Initial revision
+ * Revision 1.2  2005/07/08 12:18:50  jonblower
+ * Implemented equals() methods
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:35  jonblower
+ * Initial import
  *
  */
 public class ULong
@@ -110,5 +113,34 @@ public class ULong
     {
         return this.asBigInteger().toString();
     }
+    
+    public boolean equals(Object otherULong)
+    {
+        if (otherULong == null)
+        {
+            return false;
+        }
+        else if (otherULong instanceof ULong)
+        {
+            ULong ul2 = (ULong)otherULong;
+            // compare byte-by-byte
+            for (int i = 0; i < ULONG_LENGTH; i++)
+            {
+                if (this.bytes[i] != ul2.bytes[i])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    
+    /**
+     * TODO: implement hashCode()
+     */
     
 }

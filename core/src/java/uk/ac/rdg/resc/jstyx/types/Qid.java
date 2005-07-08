@@ -37,6 +37,9 @@ import java.math.BigInteger;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/07/08 12:18:50  jonblower
+ * Implemented equals() methods
+ *
  * Revision 1.2  2005/02/24 07:46:05  jonblower
  * Added toFriendlyString() for benefit of StyxMon
  *
@@ -60,9 +63,7 @@ public class Qid
     
     public Qid(int type, long version, long path)
     {
-        this.type = type;
-        this.version = version;
-        this.path = new ULong(path);
+        this(type, version, new ULong(path));
     }
     
     public int getType()
@@ -98,4 +99,29 @@ public class Qid
             ", pathcode: " + this.path;
     }
     
+    /**
+     * @return true if the qids are identical
+     */
+    public boolean equals(Qid otherQid)
+    {
+        if (otherQid == null)
+        {
+            return false;
+        }
+        if (otherQid instanceof Qid)
+        {
+            Qid qid2 = (Qid)otherQid;
+            return (this.type    == qid2.type &&
+                    this.version == qid2.version &&
+                    this.path.equals(qid2.path));
+        }
+        else
+        {
+            return false;
+        }
+    }
+    
+    /**
+     * TODO: implement hashCode
+     */
 }
