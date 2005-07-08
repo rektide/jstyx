@@ -38,6 +38,7 @@ import java.util.Iterator;
 
 import org.apache.mina.io.IoFilter;
 import org.apache.mina.io.filter.IoThreadPoolFilter;
+import org.apache.mina.protocol.filter.ProtocolThreadPoolFilter;
 import org.apache.mina.io.socket.SocketConnector;
 import org.apache.mina.protocol.ProtocolHandler;
 import org.apache.mina.protocol.ProtocolFilter;
@@ -62,15 +63,14 @@ import uk.ac.rdg.resc.jstyx.StyxException;
 
 /**
  * Object representing a client connection to a Styx server.
- * @todo Queue up messages that are requested to be sent before the handshaking is complete
- * @todo Handle state (open, closed) carefully
- * @todo have a waitconnected() method?
- * @todo handle case where connection goes down unexpectedly - need a connect() method
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.23  2005/07/08 16:01:27  jonblower
+ * Reinstated ProtocolThreadPoolFilter
+ *
  * Revision 1.22  2005/07/08 15:22:54  jonblower
  * Upgraded MINA library to 0.7.3-SNAPSHOT
  *
@@ -189,6 +189,7 @@ public class StyxConnection implements ProtocolHandler
     // MINA components
     private ProtocolSession session;
     private IoThreadPoolFilter ioThreadPoolFilter;
+    private ProtocolThreadPoolFilter protocolThreadPoolFilter;
     
     private static Integer numSessions = new Integer(0); // The number of sessions that have been opened
                                                          // This is an Integer object so we can use it as a lock
@@ -280,13 +281,16 @@ public class StyxConnection implements ProtocolHandler
             this.connecting = true;
 
             this.ioThreadPoolFilter = new IoThreadPoolFilter();
+            this.protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
 
             this.ioThreadPoolFilter.start();
+            this.protocolThreadPoolFilter.start();
             
             IoProtocolConnector connector = new IoProtocolConnector( new SocketConnector() );
             
             // TODO: do we need these thread pools for a client connection?
             connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
+            connector.getFilterChain().addLast("Protocol thread pool filter",  protocolThreadPoolFilter );
 
             ProtocolProvider protocolProvider = new StyxClientProtocolProvider(this);
 
@@ -731,6 +735,7 @@ public class StyxConnection implements ProtocolHandler
         
         // Stop threads
         this.ioThreadPoolFilter.stop();
+        this.protocolThreadPoolFilter.stop();
         
         // Free resources associated with StyxMessageDecoder
         StyxMessageDecoder decoder = (StyxMessageDecoder)this.session.getDecoder();
