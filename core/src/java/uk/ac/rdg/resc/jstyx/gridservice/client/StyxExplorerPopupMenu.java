@@ -45,6 +45,9 @@ import java.awt.Component;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/07/08 12:19:58  jonblower
+ * Continuing to implement automatic updates of service instances
+ *
  * Revision 1.5  2005/07/06 17:53:44  jonblower
  * Implementing automatic update of SGS instances in SGS Explorer
  *
@@ -134,7 +137,7 @@ class StyxExplorerPopupMenu extends JPopupMenu implements ActionListener
         {
             // Get the children of this node - the "true" parameter means that we are 
             // forcing a refresh, even if we already have children for this node
-            this.activeNode.findChildren(true);
+            this.activeNode.findChildren();
         }
         else if (source == this.destroyInstance)
         {

@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/07/08 12:19:58  jonblower
+ * Continuing to implement automatic updates of service instances
+ *
  * Revision 1.7  2005/07/06 17:53:43  jonblower
  * Implementing automatic update of SGS instances in SGS Explorer
  *
@@ -246,9 +249,8 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
                         // Check to see if new instance is the same as the existing file.
                         // Beware!  Calling getDirEntry() *might* cause this to
                         // block, but it shouldn't, since the dirEntry of both
-                        // files should already be set.  Check this!
+                        // files should already be set.
                     }
-                    
                 }
             }
         }
