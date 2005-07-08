@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/07/08 15:23:03  jonblower
+ * Upgraded MINA library to 0.7.3-SNAPSHOT
+ *
  * Revision 1.4  2005/05/05 16:57:37  jonblower
  * Updated MINA library to revision 168337 and changed code accordingly
  *
@@ -104,18 +107,8 @@ public class InterloperClient
         this.ioThreadPoolFilter.start();
         this.protocolThreadPoolFilter.start();
 
-        IoProtocolConnector connector;
-        try
-        {
-            connector = new IoProtocolConnector( new SocketConnector() );
-        }
-        catch(IOException ioe)
-        {
-            log.error("IOException occurred when creating IOProtocolConnector: "
-                + ioe.getMessage());
-            return false;
-        }
-        // I don't think the values of the priority constants matter much
+        IoProtocolConnector connector = new IoProtocolConnector( new SocketConnector() );
+        
         connector.getIoConnector().getFilterChain().addLast( "IO Thread pool filter",
             ioThreadPoolFilter );
         connector.getFilterChain().addLast( "Protocol Thread pool filter",

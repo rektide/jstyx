@@ -71,6 +71,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.22  2005/07/08 15:22:54  jonblower
+ * Upgraded MINA library to 0.7.3-SNAPSHOT
+ *
  * Revision 1.21  2005/06/27 17:17:15  jonblower
  * Changed MessageCallback to pass Tmessage as parameter, rather than storing in the instance
  *
@@ -279,19 +282,11 @@ public class StyxConnection implements ProtocolHandler
             this.ioThreadPoolFilter = new IoThreadPoolFilter();
 
             this.ioThreadPoolFilter.start();
-
-            IoProtocolConnector connector;
-            try
-            {
-                connector = new IoProtocolConnector( new SocketConnector() );
-            }
-            catch(IOException ioe)
-            {
-                throw new StyxException("IOException occurred when creating IOProtocolConnector: "
-                    + ioe.getMessage());
-            }
+            
+            IoProtocolConnector connector = new IoProtocolConnector( new SocketConnector() );
+            
             // TODO: do we need these thread pools for a client connection?
-            //connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
+            connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
 
             ProtocolProvider protocolProvider = new StyxClientProtocolProvider(this);
 
