@@ -11,7 +11,7 @@
     </description>
 
 	<property name="version" value="0.04"/>
-	<property name="src.dir" value="../src"/>
+	<property name="src.dir" value="../src/java"/>
 	<property name="classes.dir" value="../build/classes"/>
 	<property name="dist.dir" value="../dist"/>
 	<property name="javadoc.dir" value="../docs/api"/>
