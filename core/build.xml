@@ -10,13 +10,13 @@
         Builds the JStyx source into classes and creates JAR file
     </description>
 
-	<property name="version" value="0.04"/>
-	<property name="src.dir" value="../src/java"/>
-	<property name="classes.dir" value="../build/classes"/>
-	<property name="dist.dir" value="../dist"/>
-	<property name="javadoc.dir" value="../docs/api"/>
+	<property name="version" value="0.10"/>
+	<property name="src.dir" value="./src/java"/>
+	<property name="classes.dir" value="./target/classes"/>
+	<property name="jar.dir" value="./target"/>
+	<property name="javadoc.dir" value="./target/docs/apidocs"/>
 	<!-- The directory containing other third-party Java libraries (log4j, MINA etc) -->
-	<property name="lib.dir" value="../lib"/>
+	<property name="lib.dir" value="./lib"/>
 	
 	<target name="compile" description="compile the source">
 		<mkdir dir="${classes.dir}"/>
@@ -37,15 +37,15 @@
 	</target>
 
 	<target name="jar" depends="compile" description="generate the JStyx jar file">
-		<mkdir dir="${dist.dir}"/>
-		<jar destfile="${dist.dir}/jstyx-${version}.jar" basedir="${classes.dir}"/>
+		<mkdir dir="${jar.dir}"/>
+		<jar destfile="${jar.dir}/jstyx-${version}.jar" basedir="${classes.dir}"/>
 	</target>
 
 	<target name="clean" description="clean up">
 		<delete dir="${classes.dir}"/>
-		<delete dir="${dist.dir}"/>
 		<delete dir="${javadoc.dir}"/>
-	</target>
+		<delete file="${jar.dir}/jstyx-${version}.jar"/>
+    </target>
 
 	<target name="javadoc" description="build javadoc">
 		<mkdir dir="${javadoc.dir}"/>

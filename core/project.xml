@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+/*
+ * Copyright 2001-2004 The Apache Software Foundation.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ -->
+<project>
+    <!-- the version of maven's project object model -->
+    <pomVersion>3</pomVersion>
+    <!-- a unique name for this project -->
+    <id>jstyx</id>
+    <!-- a short but descriptive name for the project -->
+    <name>JStyx</name>
+    <!-- The version of the project under development, e.g.
+       1.1, 1.2, 2.0-SNAPSHOT -->
+    <currentVersion>0.10</currentVersion>
+    <!-- details about the organization that 'owns' the project -->
+    <organization>
+        <name>Reading e-Science Centre</name>
+        <url>http://www.resc.rdg.ac.uk/</url>
+        <logo>http://www.resc.rdg.ac.uk/images/resc_logo.jpg</logo>
+    </organization>
+    <!-- the year the project started -->
+    <inceptionYear>2004</inceptionYear>
+    <package>uk.ac.rdg.resc.jstyx</package>
+    <logo>http://maven.apache.org/images/maven.jpg</logo>
+    <description>Implements Styx protocol and the Styx Grid Service in Java</description>
+    <!-- a short description of what the project does -->
+    <shortDescription>Java implementation of the Styx protocol</shortDescription>
+    <!-- the project home page -->
+    <url>http://jstyx.sf.net/</url>
+    <issueTrackingUrl>http://sourceforge.net/tracker/?group_id=131424</issueTrackingUrl>
+    <siteAddress>jakarta.apache.org</siteAddress>
+    <siteDirectory>/www/maven.apache.org/reference/plugins/examples/</siteDirectory>
+    <licenses>
+        <license>
+            <name>BSD</name>
+            <distribution>manual</distribution>
+        </license>
+    </licenses>
+    <distributionDirectory>/www/maven.apache.org/builds/</distributionDirectory>
+    <!-- the version control repository and http url for online access
+       the connection element has the form:
+       scm:<system>:<system specific connection string> -->
+    <repository>
+        <connection>scm:cvs:pserver:anonymous@cvs.sourceforge.net:/cvsroot/jstyx:core</connection>
+        <developerConnection>scm:cvs:ext:jonblower@cvs.sourceforge.net:/cvsroot/jstyx:core</developerConnection>
+        <url>http://cvs.sourceforge.net/viewcvs.py/jstyx/core</url>
+    </repository>
+    <!-- any mailing lists for the project -->
+    <mailingLists>
+        <mailingList>
+            <name>jstyx-announce@lists.sourceforge.net</name>
+            <subscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-announce</subscribe>
+            <unsubscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-announce</unsubscribe>
+            <archive>http://sourceforge.net/mailarchive/forum.php?forum=jstyx-announce</archive>
+        </mailingList>
+        <mailingList>
+            <name>jstyx-users@lists.sourceforge.net</name>
+            <subscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-users</subscribe>
+            <unsubscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-users</unsubscribe>
+            <archive>http://sourceforge.net/mailarchive/forum.php?forum=jstyx-users</archive>
+        </mailingList>
+    </mailingLists>
+    <!-- who the developers are for the project -->
+    <developers>
+        <developer>
+            <id>jonblower</id>
+            <name>Jon Blower</name>
+            <email>jdb@mail.nerc-essc.ac.uk</email>
+            <organization>Reading e-Science Centre</organization>
+            <organizationUrl>http://www.resc.rdg.ac.uk</organizationUrl>
+            <roles />
+            <timezone>0</timezone>
+            <properties />
+        </developer>
+    </developers>
+    <!-- jar files the project is dependent on -->
+    <dependencies>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.9</version>
+            <type>jar</type>
+            <url>http://logging.apache.org/log4j</url>
+        </dependency>
+        <dependency>
+            <groupId>dom4j</groupId>
+            <artifactId>dom4j</artifactId>
+            <version>1.6.1</version>
+            <type>jar</type>
+            <url>http://www.dom4j.org/</url>
+        </dependency>
+        <dependency>
+            <groupId>jaxen</groupId>
+            <artifactId>jaxen</artifactId>
+            <version>1.1-beta-6</version>
+            <type>jar</type>
+            <url>http://jaxen.org/</url>
+        </dependency>
+        <dependency>
+            <groupId>directory-network</groupId>
+            <artifactId>mina</artifactId>
+            <version>0.7.3</version>
+            <type>jar</type>
+            <url>http://directory.apache.org/subprojects/network/</url>
+        </dependency>
+        <dependency>
+            <groupId>TableLayout</groupId>
+            <artifactId>TableLayout</artifactId>
+            <type>jar</type>
+            <url>http://www.clearthought.info/software/TableLayout/</url>
+        </dependency>
+        <dependency>
+            <groupId>vtk</groupId>
+            <artifactId>vtk</artifactId>
+            <version>4.5.0-20050503</version>
+            <type>jar</type>
+            <url>http://public.kitware.com/VTK/</url>
+        </dependency>
+    </dependencies>
+    <!-- build information for the project -->
+    <build>
+        <nagEmailAddress>jdb@mail.nerc-essc.ac.uk</nagEmailAddress>
+        <sourceDirectory>src/java</sourceDirectory>
+        <unitTest />
+        <resources>
+            <resource>
+                <directory>src/conf</directory>
+                <includes>
+                    <include>*.properties</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+    <reports>
+        <report>maven-license-plugin</report>
+        <report>maven-javadoc-plugin</report>
+        <report>maven-jxr-plugin</report>
+        <report>maven-tasklist-plugin</report>
+    </reports>
+</project>
+
