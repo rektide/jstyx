@@ -13,7 +13,7 @@ CP=../conf
 for i in `find ../lib -name '*.jar'`; do
     CP="$CP$_s$i"
 done
-for i in `find ../dist -name '*.jar'`; do
+for i in `find ../target -name '*.jar'`; do
     CP="$CP$_s$i"
 done
 
