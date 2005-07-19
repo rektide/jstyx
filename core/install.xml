@@ -67,19 +67,41 @@
     <packs>
         <pack name="Base" required="yes">
             <description>The base files</description>
-            <file src="target/jstyx-0.10.jar" targetdir="$INSTALL_PATH"/>
+            <fileset dir="lib" includes="*.jar" targetdir="$INSTALL_PATH/lib"/>
+            <fileset dir="lib" includes="*.txt" targetdir="$INSTALL_PATH/lib"/>
+            <file src="target/jstyx-0.10.jar" targetdir="$INSTALL_PATH/target"/>
             <file src="LICENSE.txt" targetdir="$INSTALL_PATH"/>
-            <!-- <file src="script.bat" targetdir="$INSTALL_PATH"/>
-            <parsable targetfile="$INSTALL_PATH/script.bat"/> <!-- The file will be parsed --> -->
+            <fileset dir="bin" includes="*.bat" targetdir="$INSTALL_PATH/bin" os="windows"/>
+            <fileset dir="bin" includes="*.sh" targetdir="$INSTALL_PATH/bin" os="unix"/>
+            <!-- <parsable targetfile="$INSTALL_PATH/JStyxRun.bat"/> <!-- The file will be parsed --> 
         </pack>
         <pack name="Docs" required="no">
             <description>The documentation</description>
-            <file src="src/docs" targetdir="$INSTALL_PATH"/> <!-- Reccursive adding -->
+            <fileset dir="src/docs" targetdir="$INSTALL_PATH/docs"/> <!-- Reccursive adding -->
         </pack>
         <pack name="Sources" required="no">
-            <description>The sources</description>
-            <file src="src/java" targetdir="$INSTALL_PATH"/>
+            <description>The sources, plus build files</description>
+            <fileset dir="src/java" targetdir="$INSTALL_PATH/src"/>
+            <file src="build.xml" targetdir="$INSTALL_PATH"/>
+            <file src="install.xml" targetdir="$INSTALL_PATH"/>
+            <file src="project.xml" targetdir="$INSTALL_PATH"/>
+            <file src="project.properties" targetdir="$INSTALL_PATH"/>
         </pack>
     </packs>
+    
+    <!-- Shortcuts -->
+    <shortcuts>
+        <skipIfNotSupported/>
+        <programGroup defaultName="MyOrganization\MyApplication" location="applications||startMenu"/>
+        <shortcut name="Start MyApplication" target="$INSTALL_PATH\Path\to\MyApplication\launcher.bat" commandLine=""
+            workingDirectory="$INSTALL_PATH\Path\to\MyApplication" description="This starts MyApplication"
+            iconFile="$INSTALL_PATH\Path\to\MyApplication\Icons\start.ico" iconIndex="0"
+            initialState="noShow||normal||maximized||minimized"
+            programGroup="yes||no" desktop="yes||no" applications="yes||no" startMenu="yes||no" startup="yes||no">
+        <createForPack name="MyApplication Binaries"/>
+        <createForPack name="MyApplication Batchfiles"/>
+    </shortcut>
+    
+</shortcuts>
     
 </installation>
