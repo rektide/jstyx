@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1" standalone="yes" ?>
 
 <!-- 
-    A sample installation file.
-    Use it as a base for your own installers :-)
-    
-    To compile it :
-    - go in the bin directory where you installed IzPack
-    - call "compile ../sample/install.xml -b ../sample"
+    Installation file for JStyx software
 -->
 
 <installation version="1.0">
@@ -36,6 +31,9 @@
     <locale>
         <langpack iso3="eng"/>
     </locale>
+	
+	<!-- For Windows shortcuts -->
+    <native type="izpack" name="ShellLink.dll"/>
     
     <!-- 
         The resources section.
@@ -44,6 +42,8 @@
     <resources>
         <res id="LicencePanel.licence" src="LICENSE.txt"/>
         <res id="InfoPanel.info" src="README.txt"/>
+        <!-- <res id="Unix_shortcutSpec.xml" src="${maven.izpack.build.shortcut.unix.file}"/> -->
+        <res id="shortcutSpec.xml" src="Win_shortcutSpec.xml"/>
     </resources>
     
     <!-- 
@@ -57,6 +57,8 @@
         <panel classname="TargetPanel"/> 
         <panel classname="PacksPanel"/>
         <panel classname="InstallPanel"/>
+		<!-- Only create shortcuts on Windows for the moment -->
+        <panel classname="ShortcutPanel" os="windows"/>
         <panel classname="FinishPanel"/>
     </panels>
     
@@ -66,42 +68,38 @@
     -->
     <packs>
         <pack name="Base" required="yes">
-            <description>The base files</description>
+            <description>The core libraries and their dependencies, plus scripts to launch utilities</description>
             <fileset dir="lib" includes="*.jar" targetdir="$INSTALL_PATH/lib"/>
             <fileset dir="lib" includes="*.txt" targetdir="$INSTALL_PATH/lib"/>
             <file src="target/jstyx-0.10.jar" targetdir="$INSTALL_PATH/target"/>
             <file src="LICENSE.txt" targetdir="$INSTALL_PATH"/>
-            <fileset dir="bin" includes="*.bat" targetdir="$INSTALL_PATH/bin" os="windows"/>
+            <fileset dir="bin" includes="*.bat" excludes="SGSExplorer.bat GridServices.bat" targetdir="$INSTALL_PATH/bin" os="windows"/>
             <fileset dir="bin" includes="*.sh" targetdir="$INSTALL_PATH/bin" os="unix"/>
-            <!-- <parsable targetfile="$INSTALL_PATH/JStyxRun.bat"/> <!-- The file will be parsed --> 
+			<file src="conf/log4j.properties" targetdir="$INSTALL_PATH/conf"/>
         </pack>
         <pack name="Docs" required="no">
             <description>The documentation</description>
-            <fileset dir="src/docs" targetdir="$INSTALL_PATH/docs"/> <!-- Reccursive adding -->
+			<!-- TODO: should we add the docs to src/docs, or move the docs from src/ in the first place? -->
+            <fileset dir="src/docs" targetdir="$INSTALL_PATH/docs"/> <!-- Recursive adding -->
+        </pack>
+		<pack name="SGS client" required="no">
+			<description>Scripts to launch Styx Grid Service client programs (e.g. SGSExplorer)</description>
+            <file src="bin/SGSExplorer.bat" targetdir="$INSTALL_PATH/bin"/>
+        </pack>
+		<pack name="SGS server" required="no">
+			<description>Scripts and sample configuration files for launching Styx Grid Service server</description>
+            <file src="bin/GridServices.bat" targetdir="$INSTALL_PATH/bin"/>
+			<file src="conf/SGSConfig.xml" targetdir="$INSTALL_PATH/conf"/>
+			<file src="conf/SGSConfig.dtd" targetdir="$INSTALL_PATH/conf"/>
         </pack>
         <pack name="Sources" required="no">
-            <description>The sources, plus build files</description>
-            <fileset dir="src/java" targetdir="$INSTALL_PATH/src"/>
+            <description>The sources, plus build files for Ant, Maven and IzPack</description>
+            <fileset dir="src/java" targetdir="$INSTALL_PATH/src/java"/>
             <file src="build.xml" targetdir="$INSTALL_PATH"/>
             <file src="install.xml" targetdir="$INSTALL_PATH"/>
             <file src="project.xml" targetdir="$INSTALL_PATH"/>
             <file src="project.properties" targetdir="$INSTALL_PATH"/>
         </pack>
     </packs>
-    
-    <!-- Shortcuts -->
-    <shortcuts>
-        <skipIfNotSupported/>
-        <programGroup defaultName="MyOrganization\MyApplication" location="applications||startMenu"/>
-        <shortcut name="Start MyApplication" target="$INSTALL_PATH\Path\to\MyApplication\launcher.bat" commandLine=""
-            workingDirectory="$INSTALL_PATH\Path\to\MyApplication" description="This starts MyApplication"
-            iconFile="$INSTALL_PATH\Path\to\MyApplication\Icons\start.ico" iconIndex="0"
-            initialState="noShow||normal||maximized||minimized"
-            programGroup="yes||no" desktop="yes||no" applications="yes||no" startMenu="yes||no" startup="yes||no">
-        <createForPack name="MyApplication Binaries"/>
-        <createForPack name="MyApplication Batchfiles"/>
-    </shortcut>
-    
-</shortcuts>
     
 </installation>

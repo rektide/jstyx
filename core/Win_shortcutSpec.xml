@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Windows shortcuts for JStyx applications -->
+
+<shortcuts>
+    <programGroup defaultName="JStyx" location="applications"/>
+	
+    <shortcut
+      name="SGS Explorer"
+      programGroup="yes"
+      desktop="yes"
+      applications="no"
+      startMenu="no"
+      startup="no"
+      target="$INSTALL_PATH/bin/SGSExplorer.bat"
+      commandLine=""
+      workingDirectory="$INSTALL_PATH/bin"
+      description="Launches the SGSExplorer application"
+      iconIndex="0"
+      iconFile=""
+      initialState="noShow">
+	  <createForPack name="SGS client"/>
+    </shortcut>
+	
+    <shortcut
+      name="SGS server"
+      programGroup="yes"
+      desktop="yes"
+      applications="no"
+      startMenu="no"
+      startup="no"
+      target="$INSTALL_PATH/bin/GridServices.bat"
+      commandLine=""
+      workingDirectory="$INSTALL_PATH/bin"
+      description="Launches the Styx Grid Services server"
+      iconIndex="0"
+      iconFile=""
+      initialState="normal">
+	  <createForPack name="SGS server"/>
+    </shortcut>
+	
+    <!-- todo currently this link is not generated because of ignoring in izpack -->
+    <shortcut
+        name="JStyx website"
+        programGroup="yes"
+        desktop="yes"
+        applications="no"
+        startMenu="no"
+        startup="no"
+        target="http://jstyx.sf.net"
+        workingDirectory="$INSTALL_PATH"
+        description="Open the JStyx website in your browser"
+        initialState="normal">
+    </shortcut>
+	
+    <shortcut
+      name="Uninstall JStyx"
+      programGroup="yes"
+      desktop="no"
+      applications="no"
+      startMenu="no"
+      startup="no"
+      target="javaw"
+      commandLine='-jar "$INSTALL_PATH/Uninstaller/uninstaller.jar"'
+      workingDirectory=""
+      description="Uninstall JStyx"
+      iconIndex="0"
+      iconFile=""
+      initialState="noShow">
+    </shortcut>
+	
+</shortcuts>
