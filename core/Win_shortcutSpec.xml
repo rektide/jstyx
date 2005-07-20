@@ -39,19 +39,18 @@
 	  <createForPack name="SGS server"/>
     </shortcut>
 	
-    <!-- todo currently this link is not generated because of ignoring in izpack -->
-    <shortcut
-        name="JStyx website"
-        programGroup="yes"
-        desktop="yes"
-        applications="no"
-        startMenu="no"
-        startup="no"
-        target="http://jstyx.sf.net"
-        workingDirectory="$INSTALL_PATH"
-        description="Open the JStyx website in your browser"
-        initialState="normal">
-    </shortcut>
+	<shortcut
+     name="JStyx website"
+     programGroup="yes"
+     desktop="no"
+     applications="no"
+     startMenu="no"
+     startup="no"
+	 <!-- TODO: why can't we set this to an HTTP website? -->
+     target="$INSTALL_PATH/conf/SGSConfig.xml"
+     commandLine=""
+     description="Project website">
+   </shortcut>
 	
     <shortcut
       name="Uninstall JStyx"
