@@ -17,6 +17,8 @@
 	<property name="javadoc.dir" value="./target/docs/apidocs"/>
 	<!-- The directory containing other third-party Java libraries (log4j, MINA etc) -->
 	<property name="lib.dir" value="./lib"/>
+	<!-- The directory in which IzPack is installed -->
+	<property name="izpack.dir" value="C:\Program Files\IzPack"/>
 	
 	<target name="compile" description="compile the source">
 		<mkdir dir="${classes.dir}"/>
@@ -50,6 +52,16 @@
 	<target name="javadoc" description="build javadoc">
 		<mkdir dir="${javadoc.dir}"/>
 		<javadoc sourcepath="${src.dir}" packagenames="*" destdir="${javadoc.dir}"/>
+	</target>
+	
+	<taskdef name="izpack" classpath="${izpack.dir}/lib/compiler.jar"
+		classname="com.izforge.izpack.ant.IzPackTask"/>
+	<target name="installer" depends="jar" description="Build an installer">
+		<izpack input="install.xml"
+			output="jstyx-${version}-installer.jar"
+			installerType="standard"
+			basedir="."
+			izPackDir="${izpack.dir}/"/>
 	</target>
 
 </project>
