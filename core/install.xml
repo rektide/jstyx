@@ -76,6 +76,7 @@
             <fileset dir="bin" includes="*.bat" excludes="SGSExplorer.bat GridServices.bat" targetdir="$INSTALL_PATH/bin" os="windows"/>
             <fileset dir="bin" includes="*.sh" targetdir="$INSTALL_PATH/bin" os="unix"/>
 			<file src="conf/log4j.properties" targetdir="$INSTALL_PATH/conf"/>
+			<file src="src/docs/JStyx website.url" targetdir="$INSTALL_PATH/docs" os="windows"/>
         </pack>
         <pack name="Docs" required="no">
             <description>The documentation</description>

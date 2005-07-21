@@ -40,17 +40,20 @@
     </shortcut>
 	
 	<shortcut
-     name="JStyx website"
-     programGroup="yes"
-     desktop="no"
-     applications="no"
-     startMenu="no"
-     startup="no"
-	 <!-- TODO: why can't we set this to an HTTP website? -->
-     target="$INSTALL_PATH/conf/SGSConfig.xml"
-     commandLine=""
-     description="Project website">
-   </shortcut>
+      name="JStyx website"
+      programGroup="yes"
+      desktop="yes"
+      applications="no"
+      startMenu="no"
+      startup="no"
+      target="$INSTALL_PATH/docs/JStyx website.url"
+      commandLine=""
+      description="Project website"
+      workingDirectory=""
+      iconIndex="0"
+      iconFile=""
+      initialState="normal">
+    </shortcut>
 	
     <shortcut
       name="Uninstall JStyx"
