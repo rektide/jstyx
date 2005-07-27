@@ -138,7 +138,7 @@
         <unitTest />
         <resources>
             <resource>
-                <directory>src/conf</directory>
+                <directory>conf</directory>
                 <includes>
                     <include>*.properties</include>
                 </includes>
