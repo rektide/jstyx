@@ -65,6 +65,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.32  2005/07/28 16:37:35  jonblower
+ * Added isSameFile() method
+ *
  * Revision 1.31  2005/07/06 17:46:19  jonblower
  * Added setDirEntry()
  *
@@ -331,6 +334,22 @@ public class CStyxFile
     public void setDirEntry(DirEntry dirEntry)
     {
         this.dirEntry = dirEntry;
+    }
+    
+    /**
+     * Returns true if this CStyxFile represents the same file on the server
+     * as the CStyxFile passed in the argument.  This method may block if the
+     * dirEntry of one or both of the files is not set.  Compares the qids of
+     * the two files (see Qid.equals())
+     * @throws StyxException if the dirEntry of one of the files was not set and
+     * there was an error getting the file's stat.  If you know that the dirEntry
+     * of both files is already set, you can safely ignore this exception.
+     */
+    public boolean isSameFile(CStyxFile otherFile) throws StyxException
+    {
+        Qid thisQid = this.getDirEntry().getQid();
+        Qid otherQid = otherFile.getDirEntry().getQid();
+        return thisQid.equals(otherQid);
     }
     
     /**
