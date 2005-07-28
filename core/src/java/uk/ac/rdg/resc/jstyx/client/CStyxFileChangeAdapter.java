@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/07/28 16:38:58  jonblower
+ * Added material to comments
+ *
  * Revision 1.7  2005/06/20 17:20:43  jonblower
  * Added download() and downloadAsync() to CStyxFile
  *
@@ -130,7 +133,9 @@ public class CStyxFileChangeAdapter implements CStyxFileChangeListener
     
     /**
      * Called after a successful read on a directory. (Result of a call to
-     * CStyxFile.getChildrenAsync())
+     * CStyxFile.getChildrenAsync()).  All the dirEntries of the children will
+     * have been set, so it is safe to call getDirEntry() on any of the children
+     * without worrying about the method blocking.
      */
     public void childrenFound(CStyxFile file, CStyxFile[] children){}
     

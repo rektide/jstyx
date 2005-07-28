@@ -38,6 +38,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/07/28 16:38:58  jonblower
+ * Added material to comments
+ *
  * Revision 1.2  2005/07/06 17:53:43  jonblower
  * Implementing automatic update of SGS instances in SGS Explorer
  *
@@ -53,7 +56,9 @@ public interface SGSChangeListener
     /**
      * Fired when we have got the latest list of instances for this SGS.
      * @param instances Array of CStyxFiles, one for each directory at the 
-     * root of each instance
+     * root of each instance.  The <code>dirEntry</code>s of all the instances
+     * will have been set, so it is safe to call getDirEntry() on any of the
+     * CStyxFiles without worrying about the method blocking.
      */
     public void gotInstances(CStyxFile[] instances);
 }
