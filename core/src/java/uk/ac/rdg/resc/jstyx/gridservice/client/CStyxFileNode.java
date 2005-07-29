@@ -29,6 +29,9 @@
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
 import javax.swing.tree.DefaultMutableTreeNode;
+import java.util.Vector;
+
+import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeListener;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
@@ -56,14 +59,8 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.9  2005/07/29 07:57:45  jonblower
- * Continuing to implement gotInstances()
- *
- * Revision 1.8  2005/07/08 12:19:58  jonblower
- * Continuing to implement automatic updates of service instances
- *
- * Revision 1.7  2005/07/06 17:53:43  jonblower
- * Implementing automatic update of SGS instances in SGS Explorer
+ * Revision 1.10  2005/07/29 11:19:29  jonblower
+ * Implemented automatic update of SGS instances in SGS Explorer (and logging)
  *
  * Revision 1.6  2005/06/20 17:20:48  jonblower
  * Added download() and downloadAsync() to CStyxFile
@@ -88,6 +85,8 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
     SGSChangeListener
 {
 
+    private static final Logger log = Logger.getLogger(CStyxFileNode.class);
+    
     public static final int ROOT = 0;
     public static final int SERVER = 1;
     public static final int SERVICE = 2;
@@ -222,8 +221,7 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
         }
         else
         {
-            // TODO: log a message somewhere
-            System.err.println("Can't create new instance from this type of node");
+            log.error("Can't create new instance from this type of node");
         }
     }
     
@@ -234,8 +232,6 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
      */
     public void gotInstances(CStyxFile[] newInstances)
     {
-        // TODO: look through for duplicates so we don't delete and recreate
-        // nodes for the same file.  Do this based on the unique ID for the file
         if (this.children == null)
         {
             // Just add the children of this node
@@ -247,46 +243,65 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
             // new, and which instance(s) have been destroyed
             synchronized (this.children)
             {
-                // TODO: can we make this more efficient because the instances
-                // will be in the same order?
-                System.err.println("Got " + newInstances.length + " instances");
+                log.debug("Got " + newInstances.length + " instances");
+                // We will construct a new Vector of children.  There will be 
+                // more efficient algorithms based on in-place modification of the
+                // existing Vector of children (TODO), and the fact that the
+                // children arrive in a predictable order
+                Vector newChildren = new Vector();
                 // Search through all of the new instances
-                int firstInstanceToExamine = 0;
                 try
                 {
                     for (int i = 0; i < newInstances.length; i++)
                     {
+                        log.debug("Examining new instance " + newInstances[i].getName());
                         boolean instanceFound = false;
                         // Look to see if this instance already exists
-                        for (int j = firstInstanceToExamine; j < this.children.size(); j++)
+                        for (int j = 0; j < this.children.size(); j++)
                         {
-                            CStyxFile existingInstance =
-                                ((CStyxFileNode)this.children.get(j)).getFile();
+                            log.debug("Instance " + j + " is a "
+                                + this.children.get(j).getClass());
+                            CStyxFileNode existingInstanceNode =
+                                (CStyxFileNode)this.children.get(j);
+                            CStyxFile existingInstanceFile =
+                                existingInstanceNode.getFile();
+                            log.debug("Comparing new instance " +
+                                newInstances[i].getName() + " with existing instance "
+                                + existingInstanceFile.getName());
                             // Check to see if they are the same file.  The 
                             // isSameFile checks the Qids of the file and *might*
                             // block, but it shouldn't since the dirEntrys of the 
                             // two files should already have been set.
-                            if (newInstances[i].isSameFile(existingInstance))
+                            if (newInstances[i].isSameFile(existingInstanceFile))
                             {
-                                // We don't have to look at this existing
-                                // file again
-                                firstInstanceToExamine++;
+                                log.debug("They are the same file");
+                                newChildren.add(existingInstanceNode);
                                 instanceFound = true;
                                 break;
+                            }
+                            else
+                            {
+                                log.debug("They are not the same file");
                             }
                         }
                         if (!instanceFound)
                         {
-                            
+                            log.debug("Adding new instance " + newInstances[i].getName()
+                                + " to the list of children");
+                            CStyxFileNode newNode = new CStyxFileNode(this.dataModel, newInstances[i]);
+                            newNode.setParent(this);
+                            newChildren.add(newNode);
                         }
                     }
+                    this.children = newChildren;
+                    this.dataModel.nodeStructureChanged(this);
                 }
-                catch (StyxException se)
+                catch (Exception e)
                 {
-                    // This shouldn't happen.
+                    // This shouldn't happen (isSameFile() can throw a StyxException
+                    // but should not in this case: see comments above.
                     // TODO: log error properly
-                    System.err.println("Internal error: StyxException" +
-                        " thrown in isSameFile()");
+                    e.printStackTrace();
                 }
             }
         }
@@ -294,7 +309,7 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
 
     public void error(CStyxFile file, String message)
     {
-        System.err.println("Error with " + file.getName() + ": " + message);
+        log.error("Error with " + file.getName() + ": " + message);
     }
 
     // These methods are required by the CStyxFileChangeListener interface
