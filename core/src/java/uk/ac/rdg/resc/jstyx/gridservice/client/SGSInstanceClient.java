@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.25  2005/07/29 16:55:49  jonblower
+ * Implementing reading command line asynchronously
+ *
  * Revision 1.24  2005/06/14 07:45:16  jonblower
  * Implemented setting of params and async notification of parameter changes
  *
@@ -165,6 +168,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private CStyxFile[] paramFiles;
     private StringBuffer[] paramBufs; // Temporary contents for each parameter value
     
+    // Command line file: used to read command line for debugging
+    private CStyxFile cmdLineFile;
+    
     // SGSInstanceChangeListeners that are listening for changes to this SGS instance
     private Vector changeListeners;
     
@@ -200,8 +206,12 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.paramsDir = this.instanceRoot.getFile("params");
         this.paramsDir.addChangeListener(this);
         
+        // We will read this file to get the command line
+        this.cmdLineFile = this.instanceRoot.getFile("debug/commandLine");
+        this.cmdLineFile.addChangeListener(this);
+        
         // We will read this directory to find the service data offered by the SGS
-        this.sdeDir = this.instanceRoot.getFile("/serviceData");
+        this.sdeDir = this.instanceRoot.getFile("serviceData");
         this.sdeDir.addChangeListener(this);
         
         this.changeListeners = new Vector();
@@ -267,6 +277,14 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // event will be fired on this class and the contents of the inputFiles
         // directory will be found
         this.inputFilesDir.refreshAsync();
+    }
+    
+    /**
+     * Sends a message to get the command line that will be executed.
+     */
+    public void getCommandLine()
+    {
+        this.cmdLineFile.readAsync(0);
     }
     
     /**

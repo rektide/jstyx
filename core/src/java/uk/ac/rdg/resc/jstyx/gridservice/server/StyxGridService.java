@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2005 The University of Reading
  * All rights reserved.
  *
@@ -55,6 +55,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/07/29 16:56:07  jonblower
+ * Implementing reading command line asynchronously
+ *
  * Revision 1.14  2005/07/06 17:50:13  jonblower
  * Change to comments
  *

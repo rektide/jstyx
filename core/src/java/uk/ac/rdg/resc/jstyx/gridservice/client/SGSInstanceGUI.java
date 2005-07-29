@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/07/29 16:55:49  jonblower
+ * Implementing reading command line asynchronously
+ *
  * Revision 1.13  2005/06/14 07:45:16  jonblower
  * Implemented setting of params and async notification of parameter changes
  *
@@ -569,6 +572,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     private class ParamsPanel extends JPanel
     {
         private JTable table;
+        private TableLayout layout;
         private ParamsTableModel model;
         
         public ParamsPanel()
@@ -582,11 +586,19 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             // any parameters
             if (paramFiles.length > 0)
             {
+                double[][] size = 
+                {
+                    { TableLayout.PREFERRED }, // columns
+                    { TableLayout.PREFERRED, BORDER, ROW_HEIGHT} // rows
+                };
+                this.layout = new TableLayout(size);
+                this.setLayout(this.layout);
                 this.setBorder(BorderFactory.createTitledBorder("Parameters"));
                 
                 this.model = new ParamsTableModel(paramFiles);
                 this.table = new JTable(this.model);
-                this.add(new JScrollPane(this.table));
+                this.add(new JScrollPane(this.table), "0 0");
+                this.add(new JLabel("Command line: "), "0, 2");
                 
                 for (int i = 0; i < paramFiles.length; i++)
                 {

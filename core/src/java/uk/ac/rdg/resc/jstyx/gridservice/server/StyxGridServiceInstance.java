@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.21  2005/07/29 16:56:07  jonblower
+ * Implementing reading command line asynchronously
+ *
  * Revision 1.20  2005/06/20 07:17:35  jonblower
  * Wrapped SGSParamFile as AsyncStyxFile
  *
@@ -148,6 +151,7 @@ class StyxGridServiceInstance extends StyxDirectory
     private CachingStreamReader stderr = new CachingStreamReader(this, "stderr");  // The standard error from the program
     private StreamWriter stdin  = new StreamWriter("stdin");   // The standard input to the program
     private StyxDirectory paramDir; // Contains the command-line parameters to pass to the executable
+    private StyxFile commandLineFile; // The file containing the command line
     private String command; // The command to run (i.e. the string that is passed to System.exec)
     private URL inputURL = null; // Non-null if we're going to read the input from a URL
     private long startTime;
@@ -225,7 +229,7 @@ class StyxGridServiceInstance extends StyxDirectory
             SGSParam param = (SGSParam)params.get(i);
             // Parameter files exhibit asynchronous behaviour so that many
             // clients can be notified when a parameter value changes
-            this.paramDir.addChild(new AsyncStyxFile(new SGSParamFile(param)));
+            this.paramDir.addChild(new AsyncStyxFile(new SGSParamFile(param, this)));
         }
         this.addChild(paramDir);
         
@@ -312,8 +316,11 @@ class StyxGridServiceInstance extends StyxDirectory
         // Add the debug directory
         StyxDirectory debugDir = new StyxDirectory("debug");
         // Add a file that, when read, reveals that command line that will
-        // be executed through Runtime.exec():
-        debugDir.addChild(new CommandLineFile());
+        // be executed through Runtime.exec(). This is an AsyncStyxFile so
+        // that clients can be notified asynchronously of changes to the 
+        // command line if they wish
+        this.commandLineFile = new CommandLineFile();
+        debugDir.addChild(new AsyncStyxFile(this.commandLineFile));
         this.addChild(debugDir);
         
         this.bytesCons = 0;
@@ -502,6 +509,15 @@ class StyxGridServiceInstance extends StyxDirectory
         // automatically populate the individual parameter files (hard) or
         // simply disable the ability to read from or write to the parameter
         // files (easy).
+    }
+    
+    /**
+     * This is called when something changes to change the command line arguments
+     * (e.g. a parameter value changes
+     */
+    public void commandLineChanged()
+    {
+        this.commandLineFile.contentsChanged();
     }
     
     // Thread that waits for the executable to finish, then sets the status

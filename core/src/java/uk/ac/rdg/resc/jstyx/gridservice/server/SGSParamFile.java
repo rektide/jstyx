@@ -39,11 +39,16 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * A StyxFile interface to a parameter that is passed to an SGS instance as 
  * part of the command line of the underlying executable.
  * @todo Perhaps this should extend AsyncStyxFile?
+ * @todo We should allow parameters to be backed by a file (i.e. steerable
+ * rather than on the command line)
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/07/29 16:56:07  jonblower
+ * Implementing reading command line asynchronously
+ *
  * Revision 1.7  2005/06/20 07:17:34  jonblower
  * Wrapped SGSParamFile as AsyncStyxFile
  *
@@ -64,12 +69,14 @@ public class SGSParamFile extends InMemoryFile
 {
     
     private SGSParam param; // The logical representation of the parameter
+    private StyxGridServiceInstance instance;
     
-    public SGSParamFile(SGSParam param) throws StyxException
+    public SGSParamFile(SGSParam param, StyxGridServiceInstance instance) throws StyxException
     {
         // The file is named after the parameter name
         super(param.getName());
         this.param = param;
+        this.instance = instance;
     }
     
     /**
@@ -95,19 +102,13 @@ public class SGSParamFile extends InMemoryFile
         // Set the limit of the input data buffer correctly
         data.limit(data.position() + count);
         String newValue = StyxUtils.dataToString(data);
-        // Check that the new value is within range
-        // TODO: make this work properly
-        /*try
-        {
-            // TODO: need to check range, possible values etc
-            this.param.checkValidValue(newValue);
-        }
-        catch(SGSConfigException sce)
-        {
-            throw new StyxException(sce.getMessage());
-        }*/
+        
+        // TODO: Check that the new value is valid
+        
         // If we've got this far the value must have been OK.
         super.write(client, offset, count, data, user, truncate, tag);
+        // Notify that the command line has changed
+        this.instance.commandLineChanged();
     }
     
     /**
