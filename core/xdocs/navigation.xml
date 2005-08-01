@@ -11,7 +11,10 @@
 
         <menu name="JStyx">
             <item name="Overview" href="/index.html"/>
-            <item name="Roadmap" href="/roadmap.html"/>
+        </menu>
+        
+        <menu name="Styx Grid Services">
+            <item name="Tutorial" href="/sgs/tutorial.html"/>
         </menu>
 		
         <menu name="JStyx References">
