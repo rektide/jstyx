@@ -54,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/08/01 16:38:05  jonblower
+ * Implemented simple parameter handling
+ *
  * Revision 1.7  2005/06/13 13:55:42  jonblower
  * Adapted LB viewer for JStyx framework
  *
@@ -251,9 +254,7 @@ public abstract class StreamViewer extends JFrame
                         }
                         // We're not ready to read from this position yet.
                         // Wait until we are notified that more data have arrived
-                        System.err.println("Data not available yet");
                         this.wait();
-                        System.err.println("Data available");
                     }
                 } while (b < 0);
                 return b;

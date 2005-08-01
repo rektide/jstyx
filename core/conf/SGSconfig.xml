@@ -35,7 +35,8 @@
                 <outstream name="stderr"/>
             </streams>
             <params>
-                <param name="waittime" />
+                <!-- The command-line parameters that are passed to the executable -->
+                <param name="waittime" switch="-w"/>
             </params>
             <serviceData>
                 <serviceDataElement name="status" />

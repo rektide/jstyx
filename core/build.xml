@@ -10,7 +10,7 @@
         Builds the JStyx source into classes and creates JAR file
     </description>
 
-	<property name="version" value="0.10"/>
+	<property name="version" value="0.1.0-SNAPSHOT"/>
 	<property name="src.dir" value="./src/java"/>
 	<property name="classes.dir" value="./target/classes"/>
 	<property name="jar.dir" value="./target"/>
@@ -47,7 +47,7 @@
 		<delete dir="${classes.dir}"/>
 		<delete dir="${javadoc.dir}"/>
 		<delete file="${jar.dir}/jstyx-${version}.jar"/>
-    </target>
+        </target>
 
 	<target name="javadoc" description="build javadoc">
 		<mkdir dir="${javadoc.dir}"/>

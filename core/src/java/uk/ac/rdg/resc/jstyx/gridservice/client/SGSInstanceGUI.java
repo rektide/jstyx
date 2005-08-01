@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/08/01 16:38:05  jonblower
+ * Implemented simple parameter handling
+ *
  * Revision 1.14  2005/07/29 16:55:49  jonblower
  * Implementing reading command line asynchronously
  *
@@ -282,6 +285,15 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     public void gotParameterValue(int index, String value)
     {
         this.paramsPanel.gotParameterValue(index, value);
+    }
+    
+    /**
+     * Called when we have a new command line string
+     * @param newCmdLine The new command line
+     */
+    public void gotCommandLine(String newCmdLine)
+    {
+        this.paramsPanel.setCommandLine(newCmdLine);
     }
     
     /**
@@ -574,10 +586,13 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         private JTable table;
         private TableLayout layout;
         private ParamsTableModel model;
+        private JLabel cmdLineLabel;
         
         public ParamsPanel()
         {
             client.readAllParameters();
+            client.getCommandLine();
+            this.cmdLineLabel = new JLabel("Command line: ");
         }
         
         public void gotParameters(CStyxFile[] paramFiles)
@@ -594,30 +609,48 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
                 this.layout = new TableLayout(size);
                 this.setLayout(this.layout);
                 this.setBorder(BorderFactory.createTitledBorder("Parameters"));
-                
+
                 this.model = new ParamsTableModel(paramFiles);
                 this.table = new JTable(this.model);
                 this.add(new JScrollPane(this.table), "0 0");
-                this.add(new JLabel("Command line: "), "0, 2");
-                
+                this.add(this.cmdLineLabel, "0, 2");
+
                 for (int i = 0; i < paramFiles.length; i++)
                 {
                     this.table.getModel().setValueAt(paramFiles[i].getName(), i, 0);
                 }
-                
+
                 double width = this.table.getPreferredScrollableViewportSize().getWidth();
                 double height = this.table.getRowHeight() * paramFiles.length;
                 Dimension d = new Dimension();
                 d.setSize(width, height);
                 this.table.setPreferredScrollableViewportSize(d);
-                
-                this.repaint();
             }
+            else
+            {
+                double[][] size = 
+                {
+                    { TableLayout.PREFERRED }, // columns
+                    { ROW_HEIGHT} // rows
+                };
+                this.layout = new TableLayout(size);
+                this.setLayout(this.layout);
+                this.setBorder(BorderFactory.createTitledBorder("Parameters"));
+                this.add(this.cmdLineLabel, "0, 0");
+            }
+
+            this.repaint();
         }
         
         public void gotParameterValue(int index, String value)
         {
             this.model.setParameterValue(index, value);
+        }
+        
+        public void setCommandLine(String newCmdLine)
+        {
+            this.cmdLineLabel.setText("Command line: " + newCmdLine);
+            this.repaint();
         }
         
         /**
@@ -652,8 +685,6 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
              */
             public void setValueAt(Object value, int row, int col)
             {
-                System.err.println("Setting value at " + row + ", " + col +
-                    " to " + value);
                 if (col == 0)
                 {
                     // Just allow setting of parameter names
@@ -677,7 +708,6 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             {
                 return (col == 1);
             }
-            
         }
     }
     

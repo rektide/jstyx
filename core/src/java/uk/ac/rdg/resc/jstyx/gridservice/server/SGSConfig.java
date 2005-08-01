@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/08/01 16:38:05  jonblower
+ * Implemented simple parameter handling
+ *
  * Revision 1.9  2005/06/14 07:45:16  jonblower
  * Implemented setting of params and async notification of parameter changes
  *
@@ -319,8 +322,6 @@ class SGSParam
 {
     private String name; // Name for the parameter
     private ParamType type; // Type of the parameter (boolean, int, float, string)
-    private boolean required; // True if this parameter must contain a value,
-                              // false if it is allowed to be blank
     private String defaultValue; // Optional default value for the parameter
     private String minValue; // Optional minimum value for the parameter (only valid for int and float)
     private String maxValue; // Optional maximum value for the parameter (only valid for int and float)
@@ -335,19 +336,19 @@ class SGSParam
     SGSParam(Node paramNode) throws SGSConfigException
     {
         this.name = paramNode.valueOf("@name").trim();
-        // TODO Uncomment this when we have full parameter functionality
-        /*this.type = ParamType.getInstance(paramNode.valueOf("@type").trim());
-        // TODO this.required = paramNode.getAttribute(name).trim().equalsIgnoreCase("yes");
-        
-        // The following fields are optional; if they don't exist in the config
-        // file they will have the value ""        
-        this.defaultValue = paramNode.valueOf("@default");
-        this.minValue = paramNode.valueOf("@minValue").trim();
-        this.maxValue = paramNode.valueOf("@maxValue").trim();
-        String vals = paramNode.valueOf("@values").trim();
         // We don't trim the switch parameter because the user might want to 
         // force a space between the switch and the parameter value
         this.strSwitch = paramNode.valueOf("@switch");
+        this.defaultValue = paramNode.valueOf("@default");
+        
+        // TODO Uncomment this when we have full parameter functionality
+        /*this.type = ParamType.getInstance(paramNode.valueOf("@type").trim());
+        
+        // The following fields are optional; if they don't exist in the config
+        // file they will have the value ""
+        this.minValue = paramNode.valueOf("@minValue").trim();
+        this.maxValue = paramNode.valueOf("@maxValue").trim();
+        String vals = paramNode.valueOf("@values").trim();
         this.description = paramNode.valueOf("@description").trim();
         
         if (! (this.minValue.equals("") && this.maxValue.equals("")) )
@@ -398,6 +399,11 @@ class SGSParam
     public String getSwitch()
     {
         return this.strSwitch;
+    }
+    
+    public String getDefaultValue()
+    {
+        return this.defaultValue;
     }
     
     public String getDescription()

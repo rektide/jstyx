@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/08/01 16:38:05  jonblower
+ * Implemented simple parameter handling
+ *
  * Revision 1.8  2005/07/29 16:56:07  jonblower
  * Implementing reading command line asynchronously
  *
@@ -70,6 +73,7 @@ public class SGSParamFile extends InMemoryFile
     
     private SGSParam param; // The logical representation of the parameter
     private StyxGridServiceInstance instance;
+    private boolean valueSet; // True if a value has been set for this parameter
     
     public SGSParamFile(SGSParam param, StyxGridServiceInstance instance) throws StyxException
     {
@@ -77,6 +81,11 @@ public class SGSParamFile extends InMemoryFile
         super(param.getName());
         this.param = param;
         this.instance = instance;
+        if (!this.param.getDefaultValue().equals(""))
+        {
+            this.setContents(this.param.getDefaultValue());
+            this.valueSet = true;
+        }
     }
     
     /**
@@ -107,16 +116,23 @@ public class SGSParamFile extends InMemoryFile
         
         // If we've got this far the value must have been OK.
         super.write(client, offset, count, data, user, truncate, tag);
+        // Note that we have set a value
+        this.valueSet = true;
         // Notify that the command line has changed
         this.instance.commandLineChanged();
     }
     
     /**
      * @return the parameter as it will appear on the command line, including
-     * the switch, if present (e.g. "-p 12")
+     * the switch, if present (e.g. "-p 12"). Returns an empty string if no 
+     * value has yet been set
      */
-    public String getCommandLineFragment()
+    public synchronized String getCommandLineFragment()
     {
+        if (!this.valueSet)
+        {
+            return "";
+        }
         if (this.param.getSwitch() == null)
         {
             return this.getContents();

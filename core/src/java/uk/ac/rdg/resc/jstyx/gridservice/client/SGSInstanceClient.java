@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.26  2005/08/01 16:38:05  jonblower
+ * Implemented simple parameter handling
+ *
  * Revision 1.25  2005/07/29 16:55:49  jonblower
  * Implementing reading command line asynchronously
  *
@@ -170,6 +173,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     
     // Command line file: used to read command line for debugging
     private CStyxFile cmdLineFile;
+    private StringBuffer cmdLineBuf; // Temporary contents for command line
     
     // SGSInstanceChangeListeners that are listening for changes to this SGS instance
     private Vector changeListeners;
@@ -207,8 +211,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.paramsDir.addChangeListener(this);
         
         // We will read this file to get the command line
-        this.cmdLineFile = this.instanceRoot.getFile("debug/commandLine");
+        this.cmdLineFile = this.instanceRoot.getFile("debug/commandline");
         this.cmdLineFile.addChangeListener(this);
+        this.cmdLineBuf = new StringBuffer();
         
         // We will read this directory to find the service data offered by the SGS
         this.sdeDir = this.instanceRoot.getFile("serviceData");
@@ -280,7 +285,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Sends a message to get the command line that will be executed.
+     * Sends a message to get the command line that will be executed.  Note that
+     * clients only need to call this once: the gotCommandLine() event on 
+     * all registered change listeners will be called automatically whenever
+     * the command line changes.
      */
     public void getCommandLine()
     {
@@ -421,7 +429,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // TODO: check that "stream" really does represent an output stream
         if (this.activeStreams.containsKey(stream))
         {
-            
             return (CachedStreamReader)this.activeStreams.get(stream);
         }
         else
@@ -465,47 +472,80 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         {
             // Calculate the offset of the next read
             long offset = tReadMsg.getOffset().asLong() + data.remaining();
-            // Update the relevant buffer (service data or parameters)
-            for (int i = 0; i < this.serviceDataFiles.length; i++)
+            boolean fileFound = false;
+            // Update the relevant buffer
+            // First see if this is the command line file
+            if (file == this.cmdLineFile)
             {
-                if (file == this.serviceDataFiles[i])
+                this.cmdLineBuf.append(StyxUtils.dataToString(data));
+                fileFound = true;
+            }
+            // Next see if this was a service data file
+            if (this.serviceDataFiles != null)
+            {
+                for (int i = 0; i < this.serviceDataFiles.length && !fileFound; i++)
                 {
-                    this.sdeBufs[i].append(StyxUtils.dataToString(data));
-                    break;
+                    if (file == this.serviceDataFiles[i])
+                    {
+                        this.sdeBufs[i].append(StyxUtils.dataToString(data));
+                        fileFound = true;
+                    }
                 }
             }
-            for (int i = 0; i < this.paramFiles.length; i++)
+            // Finally see if this was a parameter file
+            if (this.paramFiles != null)
             {
-                if (file == this.paramFiles[i])
+                for (int i = 0; i < this.paramFiles.length && !fileFound; i++)
                 {
-                    this.paramBufs[i].append(StyxUtils.dataToString(data));
-                    break;
+                    if (file == this.paramFiles[i])
+                    {
+                        this.paramBufs[i].append(StyxUtils.dataToString(data));
+                        fileFound = true;
+                    }
                 }
             }
-            // Read the next chunk of data
+            // Read the next chunk of data from the file, whatever it was
             file.readAsync(offset);
         }
         else
         {
-            // If this is service data or a parameter, we start reading from
+            // We have zero bytes from the file (i.e. EOF)
+            // If this is the command line file, a service data file or a
+            // parameter file, we start reading from
             // the start of the file again: that way, clients always get updates
             boolean readAgain = false;
-            for (int i = 0; i < this.serviceDataFiles.length; i++)
+            boolean fileFound = false;
+            if (file == this.cmdLineFile)
             {
-                if (file == this.serviceDataFiles[i])
+                readAgain = true;
+                this.fireGotCommandLine(this.cmdLineBuf.toString());
+                this.cmdLineBuf.setLength(0);
+                fileFound = true;
+            }
+            if (this.serviceDataFiles != null)
+            {
+                for (int i = 0; i < this.serviceDataFiles.length && !fileFound; i++)
                 {
-                    readAgain = true;
-                    this.fireServiceDataChanged(file.getName(), this.sdeBufs[i].toString());
-                    this.sdeBufs[i].setLength(0);
+                    if (file == this.serviceDataFiles[i])
+                    {
+                        readAgain = true;
+                        this.fireServiceDataChanged(file.getName(), this.sdeBufs[i].toString());
+                        this.sdeBufs[i].setLength(0);
+                        fileFound = true;
+                    }
                 }
             }
-            for (int i = 0; i < this.paramFiles.length; i++)
+            if (this.paramFiles != null)
             {
-                if (file == this.paramFiles[i])
+                for (int i = 0; i < this.paramFiles.length && !fileFound; i++)
                 {
-                    readAgain = true;
-                    this.fireGotParameterValue(i, this.paramBufs[i].toString());
-                    this.paramBufs[i].setLength(0);
+                    if (file == this.paramFiles[i])
+                    {
+                        readAgain = true;
+                        this.fireGotParameterValue(i, this.paramBufs[i].toString());
+                        this.paramBufs[i].setLength(0);
+                        fileFound = true;
+                    }
                 }
             }
             if (readAgain)
@@ -514,7 +554,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             }
             else
             {
-                // This wasn't service data. We have reached EOF and can stop reading.
+                // This isn't a file that is continuously monitoried. We have
+                // reached EOF and can stop reading.
                 file.close();
             }
         }
@@ -864,6 +905,22 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
                 listener.inputFilesUploaded();
+            }
+        }
+    }
+    
+    /**
+     * Fires the gotCommandLine() event on all registered change listeners
+     */
+    private void fireGotCommandLine(String newCmdLine)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.gotCommandLine(newCmdLine);
             }
         }
     }

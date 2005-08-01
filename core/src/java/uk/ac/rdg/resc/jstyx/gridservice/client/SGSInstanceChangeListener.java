@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/08/01 16:38:05  jonblower
+ * Implemented simple parameter handling
+ *
  * Revision 1.11  2005/06/14 07:45:16  jonblower
  * Implemented setting of params and async notification of parameter changes
  *
@@ -132,6 +135,12 @@ public interface SGSInstanceChangeListener
      * @param value The new value of the parameter
      */
     public void gotParameterValue(int index, String value);
+    
+    /**
+     * Called when we have a new command line string (for debug purposes)
+     * @param newCmdLine The new command line
+     */
+    public void gotCommandLine(String newCmdLine);
     
     /**
      * Called when we have successfully set the input URL of the SGS

@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.22  2005/08/01 16:38:05  jonblower
+ * Implemented simple parameter handling
+ *
  * Revision 1.21  2005/07/29 16:56:07  jonblower
  * Implementing reading command line asynchronously
  *
@@ -265,8 +268,6 @@ class StyxGridServiceInstance extends StyxDirectory
                     throw new StyxException("Service data element " +
                         sde.getName() + " must have a backing file");
                 }
-                System.err.println("Min update interval for " + sde.getName() 
-                    + " is " + sde.getMinUpdateInterval());
                 MonitoredFileOnDisk monFile = new MonitoredFileOnDisk(sde.getName(),
                     new File(this.workDir, sde.getFilePath()), 
                     (long)(sde.getMinUpdateInterval() * 1000));
@@ -539,12 +540,18 @@ class StyxGridServiceInstance extends StyxDirectory
                         setStatus(StatusCode.FINISHED, "took " +
                             (float)duration / 1000 + " seconds.");
                     }
-                    exitCode.setValue("" + exitCodeVal);
+                    if (exitCode != null)
+                    {
+                        exitCode.setValue("" + exitCodeVal);
+                    }
                 }
             }
-            catch(InterruptedException ie)
+            catch(Exception e)
             {
-                // do nothing
+                if (log.isDebugEnabled())
+                {
+                    e.printStackTrace();
+                }
             }
         }
     }
