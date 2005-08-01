@@ -38,6 +38,9 @@
                 <!-- The command-line parameters that are passed to the executable -->
                 <param name="waittime" switch="-w"/>
             </params>
+            <steering>
+                <steerable name="viscosity" initialvalue="34"/>
+            </steering>
             <serviceData>
                 <serviceDataElement name="status" />
                 <serviceDataElement name="bytesConsumed" />

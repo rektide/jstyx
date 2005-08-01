@@ -31,6 +31,15 @@
     switch CDATA #IMPLIED
     default CDATA #IMPLIED
   >
+
+<!-- A steerable parameter for an SGS (i.e. one whose value can be changed
+     whilst the simulation is running) -->
+<!ELEMENT steering (steerable*)>
+<!ELEMENT steerable EMPTY>
+<!ATTLIST steerable
+    name CDATA #REQUIRED
+    initialvalue CDATA #REQUIRED
+  >
   
 <!-- A free-text documentation file describing the SGS.  Any number of these
      can be given for an SGS. The name gives the name of the file as it will
@@ -73,7 +82,7 @@
 <!-- Element that defines a Styx Grid Service -->
 <!-- The description of the service will automatically appear as a file called
      "description" in the docs/ directory of the SGS. -->
-<!ELEMENT gridservice (streams?, params?, serviceData?, inputfiles?, docs?)>
+<!ELEMENT gridservice (streams?, params?, steering?, serviceData?, inputfiles?, docs?)>
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED

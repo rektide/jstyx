@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.23  2005/08/01 17:01:08  jonblower
+ * Started to implement steering
+ *
  * Revision 1.22  2005/08/01 16:38:05  jonblower
  * Implemented simple parameter handling
  *
@@ -235,6 +238,11 @@ class StyxGridServiceInstance extends StyxDirectory
             this.paramDir.addChild(new AsyncStyxFile(new SGSParamFile(param, this)));
         }
         this.addChild(paramDir);
+        
+        // Add the steerable parameters
+        StyxDirectory steeringDir = new StyxDirectory("steering");
+        // TODO
+        this.addChild(steeringDir);
         
         // Add the service data: the files exposing the service data will all
         // have asynchronous behaviour

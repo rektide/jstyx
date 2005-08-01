@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/08/01 17:01:08  jonblower
+ * Started to implement steering
+ *
  * Revision 1.10  2005/08/01 16:38:05  jonblower
  * Implemented simple parameter handling
  *
@@ -84,6 +87,7 @@ class SGSConfig
     private Vector streams;     // The streams exposed by this service
     private Vector docFiles;    // The documentation files
     private Vector params;      // The parameters for this SGS
+    private Vector steerables;  // The steerable parameters for this SGS
     private Vector serviceData; // The service data elements for this SGS
     private Vector inputFiles;  // The input files needed by the executable
     private boolean allowOtherInputFiles; // If this is true, we shall allow 
@@ -134,6 +138,15 @@ class SGSConfig
         {
             Node paramEl = (Node)paramListIter.next();
             this.params.add(new SGSParam(paramEl));
+        }
+        
+        // Now the steerable parameters
+        this.steerables = new Vector();
+        Iterator steerableListIter = gridService.selectNodes("steering/steerable").iterator();
+        while(steerableListIter.hasNext())
+        {
+            Node steerableEl = (Node)steerableListIter.next();
+            this.steerables.add(new Steerable(steerableEl));
         }
         
         // Create the service data elements
@@ -321,13 +334,8 @@ class SGSStream
 class SGSParam
 {
     private String name; // Name for the parameter
-    private ParamType type; // Type of the parameter (boolean, int, float, string)
     private String defaultValue; // Optional default value for the parameter
-    private String minValue; // Optional minimum value for the parameter (only valid for int and float)
-    private String maxValue; // Optional maximum value for the parameter (only valid for int and float)
-    private String[] values = null; // Array of possible values that the parameter can take
     private String strSwitch; // Optional command-line switch that precedes this parameter
-    private String description; // Optional description for the parameter
 
     /**
      * Creates a parameter object for a SGS.
@@ -340,52 +348,6 @@ class SGSParam
         // force a space between the switch and the parameter value
         this.strSwitch = paramNode.valueOf("@switch");
         this.defaultValue = paramNode.valueOf("@default");
-        
-        // TODO Uncomment this when we have full parameter functionality
-        /*this.type = ParamType.getInstance(paramNode.valueOf("@type").trim());
-        
-        // The following fields are optional; if they don't exist in the config
-        // file they will have the value ""
-        this.minValue = paramNode.valueOf("@minValue").trim();
-        this.maxValue = paramNode.valueOf("@maxValue").trim();
-        String vals = paramNode.valueOf("@values").trim();
-        this.description = paramNode.valueOf("@description").trim();
-        
-        if (! (this.minValue.equals("") && this.maxValue.equals("")) )
-        {
-            if (!vals.equals(""))
-            {
-                throw new SGSConfigException("Cannot specify both a min/max value and a"
-                    + " list of possible values for parameter " + name);
-            }
-            if (this.type == ParamType.BOOLEAN || this.type == ParamType.STRING)
-            {
-                throw new SGSConfigException("Boolean and string parameters"
-                    + " cannot have a minimum or maximum value");
-            }
-        }
-        
-        // Check that the minimum and maximum values are valid
-        //this.checkValidValue(this.minValue);
-        //this.checkValidValue(this.maxValue);
-        
-        // Get the list of possible parameter values
-        if (!vals.equals(""))
-        {
-            this.values = vals.split(",");
-            // Now check that all the values are valid
-            for (int i = 0; i < this.values.length; i++)
-            {
-                //this.checkValidValue(this.values[i]);
-            }
-        }
-        
-        if (!this.defaultValue.equals(""))
-        {
-            // Check that the default value is valid
-            //this.checkValidValue(this.defaultValue);
-        }*/
-        
     }
 
     public String getName()
@@ -405,98 +367,31 @@ class SGSParam
     {
         return this.defaultValue;
     }
-    
-    public String getDescription()
-    {
-        return this.description;
-    }
-    
-    /**
-     * Checks that the proposed new value for the parameter is valid,
-     * throwing a SGSConfigException if it isn't. To be valid, it must be
-     * parseable as a value of its type (boolean, int or float). If the type
-     * of the parameter is String, this method does nothing.
-     * @param value the value to check
-     */
-    public void checkValidValue(String value) throws SGSConfigException
-    {
-        // TODO: allow blank values?
-        if (this.type == ParamType.BOOLEAN)
-        {
-            if (! (value.trim().equalsIgnoreCase("true") || 
-                   value.trim().equalsIgnoreCase("false")) )
-            {
-                // TODO: allow "yes" and "no"?
-                throw new SGSConfigException("Boolean parameter " + this.name
-                    + " must be either \"true\" or \"false\"");
-            }
-        }
-        else if (this.type == ParamType.INT)
-        {
-            try
-            {
-                long val = Long.parseLong(value);
-            }
-            catch(NumberFormatException nfe)
-            {
-                throw new SGSConfigException("Value for " + this.name +
-                    " must be a valid 8-byte signed integer");
-            }
-        }
-        else if (this.type == ParamType.FLOAT)
-        {
-            try
-            {
-                double val = Double.parseDouble(value);
-            }
-            catch(NumberFormatException nfe)
-            {
-                throw new SGSConfigException("Value for " + this.name +
-                    " must be a valid double-precision floating-point number");
-            }
-        }
-    }
 }
 
 /**
- * Type-safe enumeration representing the possible types
+ * Simple class representing a steerable parameter, i.e. a parameter whose value
+ * can be changed whilst the executable is running
  */
-class ParamType
+class Steerable
 {
-    public static final ParamType BOOLEAN = new ParamType();
-    public static final ParamType INT = new ParamType();
-    public static final ParamType FLOAT = new ParamType();
-    public static final ParamType STRING = new ParamType();
+    private String name;
+    private String initialValue;
     
-    public static ParamType getInstance(String type) throws SGSConfigException
+    Steerable(Node steerableNode) throws SGSConfigException
     {
-        if (type.equalsIgnoreCase("boolean"))
-        {
-            return BOOLEAN;
-        }
-        else if (type.equalsIgnoreCase("int"))
-        {
-            return INT;
-        }
-        else if (type.equalsIgnoreCase("float"))
-        {
-            return FLOAT;
-        }
-        else if (type.equalsIgnoreCase("string"))
-        {
-            return STRING;
-        }
-        else
-        {
-            throw new SGSConfigException("Unknown parameter type: " + type);
-        }
+        this.name = steerableNode.valueOf("@name");
+        this.initialValue = steerableNode.valueOf("@initialvalue");
     }
     
-    /**
-     * Constructor is made private to prevent other classes making instances
-     */
-    private ParamType()
+    public String getName()
     {
+        return this.name;
+    }
+    
+    public String initialValue()
+    {
+        return this.initialValue;
     }
 }
 
