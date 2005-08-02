@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- Windows shortcuts for JStyx applications -->
+<!-- Unix shortcuts for JStyx applications -->
 
 <shortcuts>
     <programGroup defaultName="JStyx" location="applications"/>
@@ -10,12 +10,13 @@
       programGroup="yes"
       desktop="yes"
       applications="no"
-      startMenu="no"
+      startMenu="yes"
       startup="no"
-      target="$INSTALL_PATH/bin/SGSExplorer.bat"
+      target="$INSTALL_PATH/bin/SGSExplorer.sh"
       commandLine=""
       workingDirectory="$INSTALL_PATH/bin"
       description="Launches the SGSExplorer application"
+      type="Application"
       iconIndex="0"
       iconFile=""
       initialState="noShow">
@@ -27,12 +28,13 @@
       programGroup="yes"
       desktop="yes"
       applications="no"
-      startMenu="no"
+      startMenu="yes"
       startup="no"
-      target="$INSTALL_PATH/bin/GridServices.bat"
+      target="$INSTALL_PATH/bin/GridServices.sh"
       commandLine=""
       workingDirectory="$INSTALL_PATH/bin"
       description="Launches the Styx Grid Services server"
+      type="Application"
       iconIndex="0"
       iconFile=""
       initialState="normal">
@@ -44,15 +46,17 @@
       programGroup="yes"
       desktop="yes"
       applications="no"
-      startMenu="no"
+      startMenu="yes"
       startup="no"
-      target="$INSTALL_PATH/docs/JStyx website.url"
+      target="konqueror"
+      url="http://jstyx.sf.net"
+      type="Link"
       commandLine=""
       description="Project website"
       workingDirectory=""
       iconIndex="0"
-      iconFile=""
-      initialState="normal">
+      iconFile="help"
+      initialState="noShow">
     </shortcut>
 	
     <shortcut
@@ -62,12 +66,13 @@
       applications="no"
       startMenu="no"
       startup="no"
-      target="javaw"
+      target="java"
       commandLine='-jar "$INSTALL_PATH/Uninstaller/uninstaller.jar"'
       workingDirectory=""
       description="Uninstall JStyx"
+      type="Application"
       iconIndex="0"
-      iconFile=""
+      iconFile="trashcan_full"
       initialState="noShow">
     </shortcut>
 	

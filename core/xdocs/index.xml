@@ -6,18 +6,18 @@
   </properties>
 
   <body>
-    <section name="Introduction">
-      <p>Intro to JStyx and Styx in general.</p>
+    <section name="What is JStyx?">
+      <p>JStyx is a pure-Java implementation of the <a href="http://www.vitanuova.com/inferno/papers/styx.html">Styx</a>
+      protocol for distributed systems. The JStyx libraries also include an implementation of the
+      <a href="sgs/tutorial.html">Styx Grid Services</a> (SGS) system for building stream-oriented services and workflows.
+      </p>
     </section>
-		
-    <section name="Getting Started">
-<source>
-$ svn co https://svn.apache.org/repos/asf/directory/network/trunk mina
-$ cd mina
-$ maven jar     # Build JAR
-$ maven site    # Generate documentation
-$ maven eclipse # Generate Eclipse project file if you want
-</source>
+    
+    <section name="What is Styx?">  
+      <p><a href="http://www.vitanuova.com/inferno/papers/styx.html">Styx</a> is used in
+      the <a href="http://www.vitanuova.com/inferno/">Inferno</a>
+      and <a href="http://www.cs.bell-labs.com/plan9dist/">Plan9</a> operating systems.
+      It is essentially a file-sharing protocol, similar in many respects to NFS.</p>
     </section>
   </body>
 </document>

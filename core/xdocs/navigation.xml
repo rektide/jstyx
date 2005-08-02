@@ -10,16 +10,17 @@
         </links>
 
         <menu name="JStyx">
-            <item name="Overview" href="/index.html"/>
+            <item name="Overview" href="index.html"/>
+            <item name="Downloads" href="downloads.html"/>
         </menu>
         
         <menu name="Styx Grid Services">
-            <item name="Tutorial" href="/sgs/tutorial.html"/>
+            <item name="Tutorial" href="sgs/tutorial.html"/>
         </menu>
 		
         <menu name="JStyx References">
-            <item name="JavaDocs" href="/apidocs/index.html" target="_blank"/>
-            <item name="Source code" href="/xref/index.html" target="_blank"/>
+            <item name="JavaDocs" href="apidocs/index.html" target="_blank"/>
+            <item name="Source code" href="xref/index.html" target="_blank"/>
             <!-- <item name="Source code (SVN)" href="http://svn.apache.org/viewcvs.cgi/directory/network/mina/trunk/?root=Apache-SVN" target="_blank"/> -->
         </menu>
     </body>

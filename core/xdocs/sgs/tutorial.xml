@@ -7,12 +7,17 @@
 
   <body>
     <section name="What are Styx Grid Services?">
-      <p>They're great, that's what.
-      </p>
+      <p>Please see <a href="http://www.resc.rdg.ac.uk/publications/Blower_AHM_2005.pdf">this paper</a>
+      for an explanation of what SGSs are and how they are used.  More details to follow.</p>
     </section>
 		
     <section name="Getting Started">
-    
+      <subsection name="Download the software">
+      </subsection>
+      <subsection name="Install the software">
+      </subsection>
+      <subsection name="My First Styx Grid Service">
+      </subsection>
     </section>
   </body>
 </document>

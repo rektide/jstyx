@@ -42,7 +42,7 @@
     <resources>
         <res id="LicencePanel.licence" src="LICENSE.txt"/>
         <res id="InfoPanel.info" src="README.txt"/>
-        <!-- <res id="Unix_shortcutSpec.xml" src="${maven.izpack.build.shortcut.unix.file}"/> -->
+        <res id="Unix_shortcutSpec.xml" src="Unix_shortcutSpec.xml"/> -->
         <res id="shortcutSpec.xml" src="Win_shortcutSpec.xml"/>
     </resources>
     
@@ -57,8 +57,7 @@
         <panel classname="TargetPanel"/> 
         <panel classname="PacksPanel"/>
         <panel classname="InstallPanel"/>
-		<!-- Only create shortcuts on Windows for the moment -->
-        <panel classname="ShortcutPanel" os="windows"/>
+        <panel classname="ShortcutPanel"/>
         <panel classname="FinishPanel"/>
     </panels>
     
@@ -71,27 +70,27 @@
             <description>The core libraries and their dependencies, plus scripts to launch utilities</description>
             <fileset dir="lib" includes="*.jar" targetdir="$INSTALL_PATH/lib"/>
             <fileset dir="lib" includes="*.txt" targetdir="$INSTALL_PATH/lib"/>
-            <file src="target/jstyx-0.10.jar" targetdir="$INSTALL_PATH/target"/>
+            <file src="target/jstyx-0.1.0-SNAPSHOT.jar" targetdir="$INSTALL_PATH/target"/>
             <file src="LICENSE.txt" targetdir="$INSTALL_PATH"/>
             <fileset dir="bin" includes="*.bat" excludes="SGSExplorer.bat GridServices.bat" targetdir="$INSTALL_PATH/bin" os="windows"/>
             <fileset dir="bin" includes="*.sh" targetdir="$INSTALL_PATH/bin" os="unix"/>
-			<file src="conf/log4j.properties" targetdir="$INSTALL_PATH/conf"/>
-			<file src="src/docs/JStyx website.url" targetdir="$INSTALL_PATH/docs" os="windows"/>
+            <file src="conf/log4j.properties" targetdir="$INSTALL_PATH/conf"/>
+            <file src="src/docs/JStyx website.url" targetdir="$INSTALL_PATH/docs" os="windows"/>
         </pack>
         <pack name="Docs" required="no">
             <description>The documentation</description>
-			<!-- TODO: should we add the docs to src/docs, or move the docs from src/ in the first place? -->
+            <!-- TODO: should we add the docs to src/docs, or move the docs from src/ in the first place? -->
             <fileset dir="src/docs" targetdir="$INSTALL_PATH/docs"/> <!-- Recursive adding -->
         </pack>
-		<pack name="SGS client" required="no">
-			<description>Scripts to launch Styx Grid Service client programs (e.g. SGSExplorer)</description>
+            <pack name="SGS client" required="no">
+            <description>Scripts to launch Styx Grid Service client programs (e.g. SGSExplorer)</description>
             <file src="bin/SGSExplorer.bat" targetdir="$INSTALL_PATH/bin"/>
         </pack>
-		<pack name="SGS server" required="no">
-			<description>Scripts and sample configuration files for launching Styx Grid Service server</description>
+            <pack name="SGS server" required="no">
+            <description>Scripts and sample configuration files for launching Styx Grid Service server</description>
             <file src="bin/GridServices.bat" targetdir="$INSTALL_PATH/bin"/>
-			<file src="conf/SGSConfig.xml" targetdir="$INSTALL_PATH/conf"/>
-			<file src="conf/SGSConfig.dtd" targetdir="$INSTALL_PATH/conf"/>
+            <file src="conf/SGSConfig.xml" targetdir="$INSTALL_PATH/conf"/>
+            <file src="conf/SGSConfig.dtd" targetdir="$INSTALL_PATH/conf"/>
         </pack>
         <pack name="Sources" required="no">
             <description>The sources, plus build files for Ant, Maven and IzPack</description>
