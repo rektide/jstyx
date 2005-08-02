@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/08/02 08:05:18  jonblower
+ * Continuing to implement steering
+ *
  * Revision 1.11  2005/08/01 17:01:08  jonblower
  * Started to implement steering
  *
@@ -245,6 +248,15 @@ class SGSConfig
     {
         return this.params;
     }
+    
+    /**
+     * @return Vector of Steerable objects containing details of the parameters
+     * that can be adjusted as the executable is running
+     */
+    public Vector getSteerables()
+    {
+        return this.steerables;
+    }
 
     /** 
      * @return Vector of documentation file objects
@@ -389,7 +401,7 @@ class Steerable
         return this.name;
     }
     
-    public String initialValue()
+    public String getInitialValue()
     {
         return this.initialValue;
     }

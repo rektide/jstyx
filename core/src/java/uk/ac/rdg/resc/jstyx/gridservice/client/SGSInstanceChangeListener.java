@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/08/02 08:04:52  jonblower
+ * Continuing to implement steering
+ *
  * Revision 1.12  2005/08/01 16:38:05  jonblower
  * Implemented simple parameter handling
  *
@@ -135,6 +138,20 @@ public interface SGSInstanceChangeListener
      * @param value The new value of the parameter
      */
     public void gotParameterValue(int index, String value);
+    
+    /**
+     * Called when we have got the list of steerable parameters
+     * @param steerableFiles CStyxFiles representing the parameters
+     */
+    public void gotSteerableParameters(CStyxFile[] steerableFiles);
+    
+    /**
+     * Called when we have a new value for a steerable parameter
+     * @param index Index of the parameter in the array of parameters previously
+     * returned by the gotParameters() event
+     * @param value The new value of the parameter
+     */
+    public void gotSteerableParameterValue(int index, String value);
     
     /**
      * Called when we have a new command line string (for debug purposes)

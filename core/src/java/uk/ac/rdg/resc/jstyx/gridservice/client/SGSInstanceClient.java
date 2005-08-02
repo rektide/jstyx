@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.27  2005/08/02 08:05:08  jonblower
+ * Continuing to implement steering
+ *
  * Revision 1.26  2005/08/01 16:38:05  jonblower
  * Implemented simple parameter handling
  *
@@ -171,6 +174,11 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private CStyxFile[] paramFiles;
     private StringBuffer[] paramBufs; // Temporary contents for each parameter value
     
+    // Steerable parameters
+    private CStyxFile steeringDir;
+    private CStyxFile[] steeringFiles;
+    private StringBuffer[] steeringBufs; // Temporary contents for each parameter value
+    
     // Command line file: used to read command line for debugging
     private CStyxFile cmdLineFile;
     private StringBuffer cmdLineBuf; // Temporary contents for command line
@@ -209,6 +217,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // Create the directory that we will read to find the parameters
         this.paramsDir = this.instanceRoot.getFile("params");
         this.paramsDir.addChangeListener(this);
+        
+        // Create the directory that we will read to find the steerable parameters
+        this.steeringDir = this.instanceRoot.getFile("steering");
+        this.steeringDir.addChangeListener(this);
         
         // We will read this file to get the command line
         this.cmdLineFile = this.instanceRoot.getFile("debug/commandline");
@@ -391,8 +403,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * sends messages to read the parameter values.  When we have got the list
      * of available parameters, the gotParameters() event will be fired.  When
      * the value of a parameter arrives, the gotParameterValue() event will be
-     * fired.  Having called this method, clients will continue to receive updates
-     * to parameter values without making any more requests.
+     * fired.  Having called this method once, clients will continue to receive
+     * updates to parameter values without making any more requests.
      */
     public void readAllParameters()
     {
@@ -400,6 +412,23 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // fire the gotParameters() event, then read the values of the 
         // parameters.
         this.paramsDir.getChildrenAsync();
+    }
+    
+    /**
+     * First sends a message to get the steerable parameters of the SGS.  When
+     * this arrives, sends messages to read the steerable parameter values.
+     * When we have got the list of available parameters, the gotSteerables()
+     * event will be fired.  When the value of a steerable parameter arrives, the
+     * gotSteerableValue() event will be fired.  Having called this method once,
+     * clients will continue to receive updates to steerable parameter values
+     * without making any more requests.
+     */
+    public void readAllSteeringParams()
+    {
+        // Get the children of the params dir.  When the reply arrives, we will
+        // fire the gotParameters() event, then read the values of the 
+        // parameters.
+        this.steeringDir.getChildrenAsync();
     }
     
     /**
@@ -456,8 +485,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public void fileOpen(CStyxFile file, int mode)
     {
         // At the moment, this is only called when we have opened a parameter
-        // file for reading and writing. We immediately start reading from the 
-        // file
+        // file (steerable or otherwise) for reading and writing. We immediately
+        // start reading from the file
         file.readAsync(0);
     }
     
@@ -492,7 +521,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                     }
                 }
             }
-            // Finally see if this was a parameter file
+            // Next see if this was a parameter file
             if (this.paramFiles != null)
             {
                 for (int i = 0; i < this.paramFiles.length && !fileFound; i++)
@@ -500,6 +529,18 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                     if (file == this.paramFiles[i])
                     {
                         this.paramBufs[i].append(StyxUtils.dataToString(data));
+                        fileFound = true;
+                    }
+                }
+            }
+            // Finally see if this was a steerable parameter file
+            if (this.steeringFiles != null)
+            {
+                for (int i = 0; i < this.steeringFiles.length && !fileFound; i++)
+                {
+                    if (file == this.steeringFiles[i])
+                    {
+                        this.steeringBufs[i].append(StyxUtils.dataToString(data));
                         fileFound = true;
                     }
                 }
@@ -544,6 +585,19 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                         readAgain = true;
                         this.fireGotParameterValue(i, this.paramBufs[i].toString());
                         this.paramBufs[i].setLength(0);
+                        fileFound = true;
+                    }
+                }
+            }
+            if (this.steeringFiles != null)
+            {
+                for (int i = 0; i < this.steeringFiles.length && !fileFound; i++)
+                {
+                    if (file == this.steeringFiles[i])
+                    {
+                        readAgain = true;
+                        this.fireGotSteerableParameterValue(i, this.steeringBufs[i].toString());
+                        this.steeringBufs[i].setLength(0);
                         fileFound = true;
                     }
                 }
@@ -659,6 +713,22 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 // open confirmation arrives, we will start reading from the file.
                 this.paramFiles[i].openAsync(StyxUtils.ORDWR | StyxUtils.OTRUNC);
                 this.paramBufs[i] = new StringBuffer();
+            }
+        }
+        else if (file == this.steeringDir)
+        {
+            // We have just got the list of steerable parameters
+            this.steeringFiles = children;
+            this.steeringBufs = new StringBuffer[this.steeringFiles.length];
+            this.fireGotSteerableParameters(this.steeringFiles);
+            // Now read the values of all the steerable parameters
+            for (int i = 0; i < this.steeringFiles.length; i++)
+            {
+                this.steeringFiles[i].addChangeListener(this);
+                // We have to open the file for reading and writing. When the
+                // open confirmation arrives, we will start reading from the file.
+                this.steeringFiles[i].openAsync(StyxUtils.ORDWR | StyxUtils.OTRUNC);
+                this.steeringBufs[i] = new StringBuffer();
             }
         }
         else
@@ -889,6 +959,42 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
                 listener.gotParameterValue(index, value);
+            }
+        }
+    }
+    
+    /**
+     * Fires the gotSteerableParameters() event on all registered change listeners
+     * @param steeringFiles Array of CStyxFiles representing the steerable parameters
+     */
+    private void fireGotSteerableParameters(CStyxFile[] steeringFiles)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.gotSteerableParameters(steeringFiles);
+            }
+        }
+    }
+    
+    /**
+     * Fires the gotSteerableParameterValue() event on all registered change listeners.
+     * @param index Index of the parameter in the array of parameters previously
+     * returned by the gotParameters() event
+     * @param value The new value of the parameter
+     */
+    private void fireGotSteerableParameterValue(int index, String value)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.gotSteerableParameterValue(index, value);
             }
         }
     }

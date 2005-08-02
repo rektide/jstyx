@@ -36,6 +36,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.io.File;
+import java.io.RandomAccessFile;
+import java.io.FileNotFoundException;
 
 import java.util.Vector;
 
@@ -62,6 +64,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.24  2005/08/02 08:05:18  jonblower
+ * Continuing to implement steering
+ *
  * Revision 1.23  2005/08/01 17:01:08  jonblower
  * Started to implement steering
  *
@@ -241,7 +246,32 @@ class StyxGridServiceInstance extends StyxDirectory
         
         // Add the steerable parameters
         StyxDirectory steeringDir = new StyxDirectory("steering");
-        // TODO
+        Vector steerables = sgsConfig.getSteerables();
+        for (int i = 0; i < steerables.size(); i++)
+        {
+            Steerable steerable = (Steerable)steerables.get(i);
+            // Create a file object for this steerable object
+            File file = new File(this.workDir, steerable.getName());
+            // Create the file object and enter the initial value
+            try
+            {
+                RandomAccessFile raf = new RandomAccessFile(file, "rw");
+                raf.seek(0);
+                raf.writeChars(steerable.getInitialValue());
+                raf.setLength(raf.getFilePointer());
+                raf.close();
+            }
+            catch (IOException ioe)
+            {
+                if (log.isDebugEnabled())
+                {
+                    ioe.printStackTrace();
+                }
+                throw new StyxException("IOException creating steering file " +
+                    file.getName() + ": " + ioe.getMessage());
+            }
+            steeringDir.addChild(new AsyncStyxFile(new FileOnDisk(file)));
+        }
         this.addChild(steeringDir);
         
         // Add the service data: the files exposing the service data will all
