@@ -38,6 +38,7 @@
 <!ELEMENT steerable EMPTY>
 <!ATTLIST steerable
     name CDATA #REQUIRED
+    file CDATA #IMPLIED
     initialvalue CDATA #REQUIRED
   >
   

@@ -64,6 +64,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.25  2005/08/02 16:45:20  jonblower
+ * *** empty log message ***
+ *
  * Revision 1.24  2005/08/02 08:05:18  jonblower
  * Continuing to implement steering
  *
@@ -251,13 +254,15 @@ class StyxGridServiceInstance extends StyxDirectory
         {
             Steerable steerable = (Steerable)steerables.get(i);
             // Create a file object for this steerable object
-            File file = new File(this.workDir, steerable.getName());
-            // Create the file object and enter the initial value
+            File file = new File(this.workDir, steerable.getFilePath());
             try
             {
+                // Create the backing file and enter the initial value
                 RandomAccessFile raf = new RandomAccessFile(file, "rw");
                 raf.seek(0);
-                raf.writeChars(steerable.getInitialValue());
+                // Write the initial value to the file as an array of bytes
+                raf.write(StyxUtils.strToUTF8(steerable.getInitialValue()));
+                // Truncate the file after the data we've just written
                 raf.setLength(raf.getFilePointer());
                 raf.close();
             }
@@ -270,7 +275,7 @@ class StyxGridServiceInstance extends StyxDirectory
                 throw new StyxException("IOException creating steering file " +
                     file.getName() + ": " + ioe.getMessage());
             }
-            steeringDir.addChild(new AsyncStyxFile(new FileOnDisk(file)));
+            steeringDir.addChild(new AsyncStyxFile(new FileOnDisk(steerable.getName(), file)));
         }
         this.addChild(steeringDir);
         

@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/08/02 16:45:20  jonblower
+ * *** empty log message ***
+ *
  * Revision 1.12  2005/08/02 08:05:18  jonblower
  * Continuing to implement steering
  *
@@ -389,11 +392,17 @@ class Steerable
 {
     private String name;
     private String initialValue;
+    private String filePath;
     
     Steerable(Node steerableNode) throws SGSConfigException
     {
-        this.name = steerableNode.valueOf("@name");
+        this.name = steerableNode.valueOf("@name").trim();
         this.initialValue = steerableNode.valueOf("@initialvalue");
+        this.filePath = steerableNode.valueOf("@file").trim();
+        if (this.filePath.equals(""))
+        {
+            this.filePath = this.name;
+        }
     }
     
     public String getName()
@@ -404,6 +413,16 @@ class Steerable
     public String getInitialValue()
     {
         return this.initialValue;
+    }
+    
+    /**
+     * @return the path of the backing file for the steerable parameter, relative
+     * to the working directory of the SGS instance. If no filename is explicitly
+     * given in the config file, the filename will be the same as this.getName().
+     */
+    public String getFilePath()
+    {
+        return this.filePath;
     }
 }
 

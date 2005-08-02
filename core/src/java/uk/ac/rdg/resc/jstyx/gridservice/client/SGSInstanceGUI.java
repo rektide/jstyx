@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2005/08/02 16:45:20  jonblower
+ * *** empty log message ***
+ *
  * Revision 1.15  2005/08/01 16:38:05  jonblower
  * Implemented simple parameter handling
  *
@@ -130,6 +133,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     private InputPanel inputPanel; // Panel for providing input data to the SGS
     private InputFilesPanel inputFilesPanel;  // Panel for allowing input files to be uploaded
     private ParamsPanel paramsPanel; // Panel for setting input parameters
+    private SteeringPanel steeringPanel; // Panel for doing computational steering
     private ControlPanel ctlPanel; // Panel for controlling the service instance
     private ServiceDataPanel sdPanel; // Panel for showing service data
     private OutputStreamsPanel osPanel; // Panel for interacting with output streams
@@ -155,8 +159,9 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         {
             { BORDER, TableLayout.FILL, BORDER }, // Columns
             { BORDER, TableLayout.PREFERRED, BORDER, TableLayout.PREFERRED, BORDER,
-                  TableLayout.PREFERRED, BORDER, ROW_HEIGHT, BORDER,
-                  TableLayout.FILL, BORDER, TableLayout.PREFERRED, BORDER }  // Rows
+                  TableLayout.PREFERRED, BORDER, TableLayout.PREFERRED, BORDER,
+                  ROW_HEIGHT, BORDER, TableLayout.FILL, BORDER,
+                  TableLayout.PREFERRED, BORDER}  // Rows
         };
         this.panelLayout = new TableLayout(size);
         this.masterPanel.setLayout(this.panelLayout);
@@ -173,17 +178,21 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         this.paramsPanel = new ParamsPanel();
         this.masterPanel.add(this.paramsPanel, "1, 5");
         
+        // Add the panel for steering the SGS
+        this.steeringPanel = new SteeringPanel();
+        this.masterPanel.add(this.steeringPanel, "1, 7");
+        
         // Add the control panel
         this.ctlPanel = new ControlPanel();
-        this.masterPanel.add(this.ctlPanel, "1, 7");
+        this.masterPanel.add(this.ctlPanel, "1, 9");
         
         // Add the service data panel
         this.sdPanel = new ServiceDataPanel();
-        this.masterPanel.add(this.sdPanel, "1, 9");
+        this.masterPanel.add(this.sdPanel, "1, 11");
         
         // Add the output streams panel
         this.osPanel = new OutputStreamsPanel();
-        this.masterPanel.add(this.osPanel, "1, 11");
+        this.masterPanel.add(this.osPanel, "1, 13");
         
         this.statusBar = new JLabel("Status bar");
         this.add(this.statusBar, BorderLayout.SOUTH);
@@ -294,6 +303,26 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     public void gotCommandLine(String newCmdLine)
     {
         this.paramsPanel.setCommandLine(newCmdLine);
+    }
+    
+    /**
+     * Called when we have got the list of steerable parameters
+     * @param steerableFiles CStyxFiles representing the parameters
+     */
+    public void gotSteerableParameters(CStyxFile[] steerableFiles)
+    {
+        this.steeringPanel.gotSteerableParameters(steerableFiles);
+    }
+    
+    /**
+     * Called when we have a new value for a steerable parameter
+     * @param index Index of the parameter in the array of parameters previously
+     * returned by the gotParameters() event
+     * @param value The new value of the parameter
+     */
+    public void gotSteerableParameterValue(int index, String value)
+    {
+        this.steeringPanel.gotSteeringParameterValue(index, value);
     }
     
     /**
@@ -599,6 +628,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         {
             // We won't bother displaying the panel if the SGS doesn't expect
             // any parameters
+            System.err.println("Got " + paramFiles.length + " parameters");
             if (paramFiles.length > 0)
             {
                 double[][] size = 
@@ -612,7 +642,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
 
                 this.model = new ParamsTableModel(paramFiles);
                 this.table = new JTable(this.model);
-                this.add(new JScrollPane(this.table), "0 0");
+                this.add(new JScrollPane(this.table), "0, 0");
                 this.add(this.cmdLineLabel, "0, 2");
 
                 for (int i = 0; i < paramFiles.length; i++)
@@ -625,6 +655,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
                 Dimension d = new Dimension();
                 d.setSize(width, height);
                 this.table.setPreferredScrollableViewportSize(d);
+                this.repaint();
             }
             else
             {
@@ -638,8 +669,8 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
                 this.setBorder(BorderFactory.createTitledBorder("Parameters"));
                 this.add(this.cmdLineLabel, "0, 0");
             }
-
-            this.repaint();
+            this.layout.layoutContainer(this);
+            repaintGUI();
         }
         
         public void gotParameterValue(int index, String value)
@@ -652,62 +683,120 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             this.cmdLineLabel.setText("Command line: " + newCmdLine);
             this.repaint();
         }
+    }
         
-        /**
-         * Table model for the parameters
-         */
-        private class ParamsTableModel extends DefaultTableModel
+    /**
+     * Table model for the parameters
+     */
+    private class ParamsTableModel extends DefaultTableModel
+    {
+        private CStyxFile[] paramFiles;
+
+        public ParamsTableModel(CStyxFile[] paramFiles)
         {
-            private CStyxFile[] paramFiles;
-            
-            public ParamsTableModel(CStyxFile[] paramFiles)
+            this.paramFiles = paramFiles;
+
+            // Set the column names
+            this.setColumnIdentifiers(new String[]{"Parameter", "Value"});
+
+            // Add the row data
+            for (int i = 0; i < paramFiles.length; i++)
             {
-                this.paramFiles = paramFiles;
-                
-                // Set the column names
-                this.setColumnIdentifiers(new String[]{"Parameter", "Value"});
-                
-                // Add the row data
-                for (int i = 0; i < paramFiles.length; i++)
+                this.addRow(new String[]{"", ""});
+            }
+        }
+
+        public void setParameterValue(int index, String value)
+        {
+            super.setValueAt(value, index, 1);
+        }
+
+        /**
+         * We override this method so that we can see if the server allows
+         * changes to the parameter value to be made
+         */
+        public void setValueAt(Object value, int row, int col)
+        {
+            if (col == 0)
+            {
+                // Just allow setting of parameter names
+                super.setValueAt(value, row, col);
+            }
+            else
+            {
+                // We're setting a parameter value. Send a message with the
+                // new value of the parameter. If the write is successful,
+                // the gotParameterValue() method will be called automatically
+                // TODO: should be setContentsAsync() in case the value spans
+                // multiple messages (very unlikely!)
+                this.paramFiles[row].writeAsync((String)value, 0);
+            }
+        }
+
+        /**
+         * Only the "Value" column is editable
+         */
+        public boolean isCellEditable(int row, int col)
+        {
+            // TODO: make non-editable once service has started (and if the
+            // parameters aren't steerable)
+            return (col == 1);
+        }
+    }
+    
+    /**
+     * Panel for entering steering parameters for the SGS
+     */
+    private class SteeringPanel extends JPanel
+    {
+        private JTable table;
+        private TableLayout layout;
+        private ParamsTableModel model;
+        
+        public SteeringPanel()
+        {
+            client.readAllSteeringParams();
+        }
+        
+        public void gotSteerableParameters(CStyxFile[] steeringFiles)
+        {
+            System.err.println("Got " + steeringFiles.length + " steerable parameters");
+            // We won't bother displaying the panel if the SGS doesn't expect
+            // any parameters
+            if (steeringFiles.length > 0)
+            {
+                double[][] size = 
                 {
-                    this.addRow(new String[]{"", ""});
-                }
-            }
-            
-            public void setParameterValue(int index, String value)
-            {
-                super.setValueAt(value, index, 1);
-            }
-            
-            /**
-             * We override this method so that we can see if the server allows
-             * changes to the parameter value to be made
-             */
-            public void setValueAt(Object value, int row, int col)
-            {
-                if (col == 0)
+                    { TableLayout.PREFERRED }, // columns
+                    { TableLayout.PREFERRED } // rows
+                };
+                this.layout = new TableLayout(size);
+                this.setLayout(this.layout);
+                this.setBorder(BorderFactory.createTitledBorder("Steering"));
+
+                this.model = new ParamsTableModel(steeringFiles);
+                this.table = new JTable(this.model);
+                this.add(new JScrollPane(this.table), "0, 0");
+
+                for (int i = 0; i < steeringFiles.length; i++)
                 {
-                    // Just allow setting of parameter names
-                    super.setValueAt(value, row, col);
+                    this.table.getModel().setValueAt(steeringFiles[i].getName(), i, 0);
                 }
-                else
-                {
-                    // We're setting a parameter value. Send a message with the
-                    // new value of the parameter. If the write is successful,
-                    // the gotParameterValue() method will be called automatically
-                    // TODO: should be setContentsAsync() in case the value spans
-                    // multiple messages (very unlikely!)
-                    this.paramFiles[row].writeAsync((String)value, 0);
-                }
+
+                double width = this.table.getPreferredScrollableViewportSize().getWidth();
+                double height = this.table.getRowHeight() * steeringFiles.length;
+                Dimension d = new Dimension();
+                d.setSize(width, height);
+                this.table.setPreferredScrollableViewportSize(d);
+                this.repaint();
             }
-            
-            /**
-             * Only the "Value" column is editable
-             */
-            public boolean isCellEditable(int row, int col)
-            {
-                return (col == 1);
-            }
+            this.layout.layoutContainer(this);
+            repaintGUI();
+        }
+        
+        public void gotSteeringParameterValue(int index, String value)
+        {
+            this.model.setParameterValue(index, value);
         }
     }
     
