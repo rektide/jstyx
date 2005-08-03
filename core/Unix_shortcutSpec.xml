@@ -8,7 +8,7 @@
     <shortcut
       name="SGS Explorer"
       programGroup="yes"
-      desktop="yes"
+      desktop="no"
       applications="no"
       startMenu="yes"
       startup="no"
@@ -26,7 +26,7 @@
     <shortcut
       name="SGS server"
       programGroup="yes"
-      desktop="yes"
+      desktop="no"
       applications="no"
       startMenu="yes"
       startup="no"
@@ -44,7 +44,7 @@
     <shortcut
       name="JStyx website"
       programGroup="yes"
-      desktop="yes"
+      desktop="no"
       applications="no"
       startMenu="yes"
       startup="no"

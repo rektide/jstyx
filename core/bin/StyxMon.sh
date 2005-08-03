@@ -1,3 +1,3 @@
 #!/bin/sh
 
-JStyxRun uk.ac.rdg.resc.jstyx.interloper.StyxMon $*
+./JStyxRun.sh uk.ac.rdg.resc.jstyx.interloper.StyxMon $*

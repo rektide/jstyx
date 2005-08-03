@@ -1,3 +1,3 @@
 #!/bin/sh
 
-JStyxRun uk.ac.rdg.resc.jstyx.examples.TestServer $*
+./JStyxRun.sh uk.ac.rdg.resc.jstyx.examples.TestServer $*

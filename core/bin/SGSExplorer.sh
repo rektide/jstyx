@@ -1,3 +1,3 @@
 #!/bin/sh
 
-JStyxRun uk.ac.rdg.resc.jstyx.gridservice.client.SGSExplorer
+./JStyxRun.sh uk.ac.rdg.resc.jstyx.gridservice.client.SGSExplorer

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-JStyxRun uk.ac.rdg.resc.jstyx.client.browser.StyxBrowser $*
+./JStyxRun.sh uk.ac.rdg.resc.jstyx.client.browser.StyxBrowser $*
