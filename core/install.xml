@@ -109,7 +109,7 @@
         <pack name="Sources" required="no">
             <description>The sources, plus build files for Ant, Maven and IzPack</description>
             <fileset dir="src/java" targetdir="$INSTALL_PATH/src/java"/>
-            <file src="build.xml" targetdir="$INSTALL_PATH"/>
+            <singlefile src="ant_build.xml" target="$INSTALL_PATH/build.xml"/>
             <file src="install.xml" targetdir="$INSTALL_PATH"/>
             <file src="project.xml" targetdir="$INSTALL_PATH"/>
             <file src="project.properties" targetdir="$INSTALL_PATH"/>
