@@ -6,13 +6,17 @@
 
 <installation version="1.0">
 
+    <variables>
+        <variable name="app-version" value="0.1.0-SNAPSHOT"/>
+    </variables>
+
     <!-- 
         The info section.
         The meaning of the tags should be natural ...
     -->
     <info>
         <appname>JStyx</appname>
-        <appversion>0.10</appversion>
+        <appversion>0.1.0-SNAPSHOT</appversion>
         <authors>
             <author name="Jon Blower" email="jdb@mail.nerc-essc.ac.uk"/>
         </authors>
@@ -57,7 +61,8 @@
         <panel classname="TargetPanel"/> 
         <panel classname="PacksPanel"/>
         <panel classname="InstallPanel"/>
-        <panel classname="ShortcutPanel"/>
+        <!-- TODO: I can't get the shortcuts to create correctly under Linux -->
+        <panel classname="ShortcutPanel" os="windows"/>
         <panel classname="FinishPanel"/>
     </panels>
     
@@ -98,7 +103,7 @@
             <file src="bin/GridServices.bat" targetdir="$INSTALL_PATH/bin" os="windows"/>
 			<file src="bin/GridServices.sh" targetdir="$INSTALL_PATH/bin" os="unix"/>
 			<executable targetfile="$INSTALL_PATH/bin/GridServices.sh" stage="never" os="unix" keep="true"/>
-            <file src="conf/SGSconfig.xml" targetdir="$INSTALL_PATH/conf"/>
+            <singlefile src="conf/SGSconfig_example.xml" target="$INSTALL_PATH/conf/SGSconfig.xml" override="asktrue"/>
             <file src="conf/SGSconfig.dtd" targetdir="$INSTALL_PATH/conf"/>
         </pack>
         <pack name="Sources" required="no">
@@ -109,7 +114,8 @@
             <file src="project.xml" targetdir="$INSTALL_PATH"/>
             <file src="project.properties" targetdir="$INSTALL_PATH"/>
 			<file src="Win_shortcutSpec.xml" targetdir="$INSTALL_PATH"/>
-			<file src="Unix_shortcutSpec.xml" targetdir="$INSTALL_PATH"/>
+            <!-- TODO: can't get Unix shortcuts to work properly yet -->
+			<!-- <file src="Unix_shortcutSpec.xml" targetdir="$INSTALL_PATH"/> -->
         </pack>
     </packs>
     

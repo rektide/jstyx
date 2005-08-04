@@ -42,7 +42,7 @@
     <organization>
         <name>Reading e-Science Centre</name>
         <url>http://www.resc.rdg.ac.uk/</url>
-        <logo>http://www.resc.rdg.ac.uk/images/resc_logo.jpg</logo>
+        <logo>images/resc_logo.jpg</logo>
     </organization>
     <!-- the year the project started -->
     <inceptionYear>2004</inceptionYear>
@@ -159,8 +159,8 @@
     </build>
     <reports>
         <report>maven-license-plugin</report>
-        <!--<report>maven-javadoc-plugin</report>
-        <report>maven-jxr-plugin</report>-->
+        <report>maven-javadoc-plugin</report>
+        <report>maven-jxr-plugin</report>
         <report>maven-tasklist-plugin</report>
     </reports>
 </project>

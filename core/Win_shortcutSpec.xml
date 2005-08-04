@@ -38,11 +38,28 @@
       initialState="normal">
       <createForPack name="SGS server"/>
     </shortcut>
+    
+    <shortcut
+      name="SGS server config"
+      programGroup="yes"
+      desktop="yes"
+      applications="no"
+      startMenu="no"
+      startup="no"
+      target="$INSTALL_PATH/conf/SGSconfig.xml"
+      commandLine=""
+      workingDirectory="$INSTALL_PATH/conf"
+      description="Opens the SGS server configuration file"
+      iconIndex="0"
+      iconFile=""
+      initialState="normal">
+      <createForPack name="SGS server"/>
+    </shortcut>
 	
     <shortcut
       name="JStyx website"
       programGroup="yes"
-      desktop="yes"
+      desktop="no"
       applications="no"
       startMenu="no"
       startup="no"
