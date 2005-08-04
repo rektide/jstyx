@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.Date;
 
 import java.io.File;
+import java.io.InputStream;
 import java.io.FileInputStream;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
@@ -65,6 +66,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.33  2005/08/04 16:48:57  jonblower
+ * Added and edited upload() methods in CStyxFile
+ *
  * Revision 1.32  2005/07/28 16:37:35  jonblower
  * Added isSameFile() method
  *
@@ -620,6 +624,11 @@ public class CStyxFile
             else
             {
                 // We're ready to create the file
+                // The create call does not need OTRUNC to be set 
+                if ((this.mode & StyxUtils.OTRUNC) == StyxUtils.OTRUNC)
+                {
+                    this.mode -= StyxUtils.OTRUNC;
+                }
                 TcreateMessage tCreateMsg = new TcreateMessage(this.parentFid,
                     name, this.permissions, this.isDirectory, this.mode);
                 conn.sendAsync(tCreateMsg, this);
@@ -1810,21 +1819,88 @@ public class CStyxFile
     }
     
     /**
-     * Uploads data from a local java.io.File to this file.  If the file does
+     * Uploads data from an InputStream to this file.  If this file does
      * not exist it will be created with rw-rw-rw- (0666) permissions, subject
-     * to the  permissions of the host directory.  When the process is finished,
-     * the uploadComplete() event will be fired on all registered
-     * CStyxFileChangeListeners.  If an error occurs, the error() event will be
-     * fired (this will happen if this is not a directory or if the target file
-     * exists and allowOverwrite==false.
-     * @param file The File to copy/upload
-     * @param allowOverwrite if this is true, any existing file with the same
-     * name will be overwritten.
+     * to the permissions of the host directory.  Blocks until the file has been
+     * uploaded, or throws a StyxException if an error occurred.
+     * @param in The InputStream from which to read data to be written to this file
+     * @todo Add a flag to prevent overwriting a file if it already exists?
      * @todo Allow a callback to be provided for progress monitoring?
      */
-    public void uploadFileAsync(File file, boolean allowOverwrite)
+    public void upload(InputStream in) throws StyxException
     {
-        new UploadCallback(file, allowOverwrite).nextStage();
+        StyxReplyCallback callback = new StyxReplyCallback();
+        this.uploadAsync(in, callback);
+        // The getReply() method blocks until the download is complete.
+        StyxMessage message = callback.getReply();
+    }
+    
+    /**
+     * Uploads data from an InputStream to this file.  If this file does
+     * not exist it will be created with rw-rw-rw- (0666) permissions, subject
+     * to the permissions of the host directory.  When the process is finished,
+     * the uploadComplete() event will be fired on all registered
+     * CStyxFileChangeListeners.  If an error occurs, the error() event will be
+     * fired on registered change listeners.
+     * @param in The InputStream from which to read data to be written to this file
+     * @todo Add a flag to prevent overwriting a file if it already exists?
+     * @todo Allow a callback to be provided for progress monitoring?
+     */
+    public void uploadAsync(InputStream in)
+    {
+        this.uploadAsync(in, null);
+    }
+    
+    /**
+     * Uploads data from an InputStream to this file.  If this file does
+     * not exist it will be created with rw-rw-rw- (0666) permissions, subject
+     * to the permissions of the host directory.  When the process is finished,
+     * the replyArrived() method of the provided callback object will be called.
+     * If an error occurs, the error() method of the provided callback object
+     * will be called.
+     * @param in The InputStream from which to read data to be written to this file
+     * @param callback The MessageCallback that will be notified when the
+     * upload process is complete.
+     * @todo Add a flag to prevent overwriting a file if it already exists?
+     * @todo Allow a callback to be provided for progress monitoring?
+     */
+    public void uploadAsync(InputStream in, MessageCallback callback)
+    {
+        new UploadCallback(in, callback).nextStage(null, null);
+    }
+    
+    /**
+     * Uploads data from a local java.io.File to this file.  If this (Styx) file does
+     * not exist it will be created with rw-rw-rw- (0666) permissions, subject
+     * to the permissions of the host directory.  When the process is finished,
+     * the uploadComplete() event will be fired on all registered
+     * CStyxFileChangeListeners.  If an error occurs, the error() event will be
+     * fired on registered change listeners.
+     * @param file The File to copy/upload
+     * @todo Add a flag to prevent overwriting a file if it already exists?
+     * @todo Allow a callback to be provided for progress monitoring?
+     */
+    public void uploadAsync(File file)
+    {
+        this.uploadAsync(file, null);
+    }
+    
+    /**
+     * Uploads data from a local java.io.File to this file.  If this (Styx) file does
+     * not exist it will be created with rw-rw-rw- (0666) permissions, subject
+     * to the permissions of the host directory.  When the process is finished,
+     * the replyArrived() method of the provided callback object will be called.
+     * If an error occurs, the error() method of the provided callback object
+     * will be called.
+     * @param file The File to copy/upload
+     * @param callback The MessageCallback that will be notified when the
+     * upload process is complete.
+     * @todo Add a flag to prevent overwriting a file if it already exists?
+     * @todo Allow a callback to be provided for progress monitoring?
+     */
+    public void uploadAsync(File file, MessageCallback callback)
+    {
+        new UploadCallback(file, callback).nextStage(null, null);
     }
     
     /**
@@ -1833,21 +1909,38 @@ public class CStyxFile
      */
     private class UploadCallback extends MessageCallback
     {
-        private File file;
-        private boolean allowOverwrite;
-        private FileInputStream fin;
+        private InputStream in;
         private byte[] bytes;
         private long offset;
+        private MessageCallback callback;
         
-        public UploadCallback(File file, boolean allowOverwrite)
+        public UploadCallback(File file, MessageCallback callback)
         {
-            this.file = file;
-            this.allowOverwrite = allowOverwrite;
-            this.bytes = null;
-            this.offset = 0;
+            this.init(null, callback);
+            try
+            {
+                this.in = new FileInputStream(file);
+            }
+            catch(FileNotFoundException fnfe)
+            {
+                this.error("file does not exist", null);
+            }
         }
         
-        public void nextStage()
+        public UploadCallback(InputStream in, MessageCallback callback)
+        {
+            this.init(in, callback);
+        }
+        
+        private void init(InputStream in, MessageCallback callback)
+        {
+            this.in = in;
+            this.bytes = null;
+            this.offset = 0;
+            this.callback = callback;
+        }
+        
+        public void nextStage(StyxMessage rMessage, StyxMessage tMessage)
         {
             if (mode < 0)
             {
@@ -1860,13 +1953,12 @@ public class CStyxFile
                 // Now we can write to the file
                 try
                 {
-                    if (this.fin == null)
+                    if (this.bytes == null)
                     {
-                        fin = new FileInputStream(this.file);
                         this.bytes = new byte[ioUnit];
                     }
                     // Read from the source file
-                    int n = fin.read(this.bytes);
+                    int n = in.read(this.bytes);
                     if (n >= 0)
                     {
                         // Write to the server
@@ -1877,13 +1969,16 @@ public class CStyxFile
                         // We've reached EOF. Close the file and notify that
                         // upload is complete.
                         close();
-                        fin.close();
-                        fireUploadComplete();
+                        in.close();
+                        if (this.callback == null)
+                        {
+                            fireUploadComplete();
+                        }
+                        else
+                        {
+                            this.callback.replyArrived(rMessage, tMessage);
+                        }
                     }
-                }
-                catch(FileNotFoundException fnfe)
-                {
-                    this.error("file does not exist", null);
                 }
                 catch(IOException ioe)
                 {
@@ -1899,25 +1994,32 @@ public class CStyxFile
                 RwriteMessage rWriteMsg = (RwriteMessage)rMessage;
                 this.offset += rWriteMsg.getNumBytesWritten();
             }
-            this.nextStage();
+            this.nextStage(rMessage, tMessage);
         }
         
         public void error(String message, StyxMessage tMessage)
         {
-            if (this.fin != null)
+            if (this.in != null)
             {
                 try
                 {
-                    this.fin.close();
+                    this.in.close();
                 }
                 catch(IOException ioe)
                 {
-                    log.debug("IOException when closing " + this.file.getPath()
-                        + ": " + ioe.getMessage());
+                    log.debug("IOException when closing input stream: "
+                        + ioe.getMessage());
                 }
             }
-            String errMsg = "Error uploading " + file.getPath() + ": " + message;
-            fireError(errMsg);
+            String errMsg = "Error uploading: " + message;
+            if (this.callback == null)
+            {
+                fireError(errMsg);
+            }
+            else
+            {
+                this.callback.error(errMsg, tMessage);
+            }
         }
     }
     
@@ -2162,5 +2264,15 @@ public class CStyxFile
             }
         }
         return canonicalPath.toString();
+    }
+    
+    public static void main(String[] args) throws Exception
+    {
+        StyxConnection conn = new StyxConnection("localhost", 6666);
+        conn.connect();
+        CStyxFile file = conn.getFile("/tmp/test.txt");
+        file.upload(new java.io.FileInputStream(new java.io.File("C:\\test.log")));
+        System.out.println("upload complete");
+        conn.close();
     }
 }

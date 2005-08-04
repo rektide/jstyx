@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.28  2005/08/04 16:49:17  jonblower
+ * Added and edited upload() methods in CStyxFile
+ *
  * Revision 1.27  2005/08/02 08:05:08  jonblower
  * Continuing to implement steering
  *
@@ -361,8 +364,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 // Get a CStyxFile for the target file: this does not have to exist yet.
                 CStyxFile targetFile = inputFilesDir.getFile(this.names[index]);
                 targetFile.addChangeListener(this);
-                // Allow overwriting of the file on the remote server
-                targetFile.uploadFileAsync(this.files[index], true);
+                targetFile.uploadAsync(this.files[index]);
             }
             else
             {

@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2005/08/04 16:49:18  jonblower
+ * Added and edited upload() methods in CStyxFile
+ *
  * Revision 1.16  2005/08/02 16:45:20  jonblower
  * *** empty log message ***
  *
@@ -628,7 +631,6 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         {
             // We won't bother displaying the panel if the SGS doesn't expect
             // any parameters
-            System.err.println("Got " + paramFiles.length + " parameters");
             if (paramFiles.length > 0)
             {
                 double[][] size = 
@@ -760,7 +762,6 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         
         public void gotSteerableParameters(CStyxFile[] steeringFiles)
         {
-            System.err.println("Got " + steeringFiles.length + " steerable parameters");
             // We won't bother displaying the panel if the SGS doesn't expect
             // any parameters
             if (steeringFiles.length > 0)
@@ -790,8 +791,6 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
                 this.table.setPreferredScrollableViewportSize(d);
                 this.repaint();
             }
-            this.layout.layoutContainer(this);
-            repaintGUI();
         }
         
         public void gotSteeringParameterValue(int index, String value)
