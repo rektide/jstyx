@@ -34,11 +34,6 @@ import java.util.Date;
 
 import java.io.File;
 import java.io.InputStream;
-import java.io.FileInputStream;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileChannel;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 
 import org.apache.log4j.Logger;
 
@@ -52,6 +47,7 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
 import uk.ac.rdg.resc.jstyx.types.Qid;
 
 import uk.ac.rdg.resc.jstyx.messages.*;
+import uk.ac.rdg.resc.jstyx.client.callbacks.*;
 
 /**
  * A Styx file (or directory) from the point of view of the client. (It is called
@@ -66,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.34  2005/08/05 13:46:40  jonblower
+ * Factored out all callback objects from CStyxFile into separate classes
+ *
  * Revision 1.33  2005/08/04 16:48:57  jonblower
  * Added and edited upload() methods in CStyxFile
  *
@@ -89,9 +88,6 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  *
  * Revision 1.26  2005/05/26 16:48:48  jonblower
  * Fixed bug in uploadFileAsync()
- *
- * Revision 1.25  2005/05/26 07:56:53  jonblower
- * Minor changes
  *
  * Revision 1.24  2005/05/25 16:58:01  jonblower
  * Changed implementation of openOrCreate()
@@ -125,9 +121,6 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  *
  * Revision 1.14  2005/05/12 07:40:52  jonblower
  * CStyxFile.close() no longer throws a StyxException
- *
- * Revision 1.13  2005/05/11 18:25:35  jonblower
- * Added temporary debug code
  *
  * Revision 1.12  2005/05/05 07:08:37  jonblower
  * Improved handling of buffers in change listeners
@@ -167,9 +160,6 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  *
  * Revision 1.3  2005/02/18 09:11:35  jonblower
  * Remove 'synchronized' from some methods, added some comments
- *
- * Revision 1.2  2005/02/17 18:03:35  jonblower
- * Minor changes to comments
  *
  * Revision 1.1.1.1  2005/02/16 18:58:17  jonblower
  * Initial import
@@ -318,15 +308,14 @@ public class CStyxFile
     }
     
     /**
-     * @return the DirEntry object containing this file's attributes. This method
-     * will block if it is necessary to send a message to get the stat of this file.
+     * @return the DirEntry object containing this file's attributes. If the
+     * DirEntry has not yet been set, this will return null.  In this case, 
+     * call refresh() on this file.  Alternatively, if all you want is the Qid, 
+     * it is possible that the Qid will be set, even if the DirEntry has not:
+     * try getQid().
      */
-    public DirEntry getDirEntry() throws StyxException
+    public DirEntry getDirEntry()
     {
-        if (this.dirEntry == null)
-        {
-            this.refresh();
-        }
         return this.dirEntry;
     }
     
@@ -338,6 +327,76 @@ public class CStyxFile
     public void setDirEntry(DirEntry dirEntry)
     {
         this.dirEntry = dirEntry;
+        // TODO: nasty duplication of Qid information in DirEntry object and Qid
+        this.qid = this.dirEntry.getQid();
+    }
+    
+    /**
+     * @return true if a fid has been set for this file
+     */
+    public boolean hasFid()
+    {
+        return (this.fid >= 0);
+    }
+    
+    /**
+     * @return the fid of this file
+     */
+    public long getFid()
+    {
+        return this.fid;
+    }
+    
+    /**
+     * Set the mode of this file: this should not normally be called, except
+     * by the OpenCallback, when the file has been open
+     */
+    public void setMode(int newMode)
+    {
+        this.mode = newMode;
+    }
+    
+    /**
+     * @return the mode under which this file is open, or -1 if this file is 
+     * not open.
+     */
+    public int getMode()
+    {
+        return this.mode;
+    }
+    
+    /**
+     * Sets the fid of the file.  This should not normally be called except
+     * by GetFidCallback
+     */
+    public void setFid(long newFid)
+    {
+        this.fid = newFid;
+    }
+    
+    /**
+     * Sets the qid of the file.  This should not normally be called except
+     * by the callbacks in the uk.ac.rdg.resc.jstyx.client.callbacks package
+     */
+    public void setQid(Qid newQid)
+    {
+        this.qid = newQid;
+    }
+    
+    /**
+     * @return the Qid of this file, or null if the qid has not yet been set
+     */
+    public Qid getQid()
+    {
+        return this.qid;
+    }
+    
+    /**
+     * @return true if this file is open (i.e. its mode has been set)
+     */
+    public boolean isOpen()
+    {
+        return (this.mode >= 0);
     }
     
     /**
@@ -351,9 +410,25 @@ public class CStyxFile
      */
     public boolean isSameFile(CStyxFile otherFile) throws StyxException
     {
-        Qid thisQid = this.getDirEntry().getQid();
-        Qid otherQid = otherFile.getDirEntry().getQid();
-        return thisQid.equals(otherQid);
+        if (this.getQid() == null)
+        {
+            this.refresh();
+        }
+        if (otherFile.getQid() == null)
+        {
+            otherFile.refresh();
+        }
+        return this.getQid().equals(otherFile.getQid());
+    }
+    
+    /**
+     * Sets the maximum number of bytes that can be read from or written to
+     * this file in a single operation.  This method should not normally be
+     * called directly, except by the OpenCallback.
+     */
+    public void setIoUnit(int newIoUnit)
+    {
+        this.ioUnit = newIoUnit;
     }
     
     /**
@@ -361,87 +436,37 @@ public class CStyxFile
      * this file in a single operation. Will only return valid data once the file
      * has been opened (or created).
      */
-    public int getIOUnit()
+    public int getIoUnit()
     {
         return this.ioUnit;
     }
+    
     /**
-     * Gets a fid for this file; gets a new fid from the pool and walks it to the
+     * Sets the children of this file.  This is not normally called directly,
+     * except by the GetChildrenCallback.
+     */
+    public void setChildren(CStyxFile[] children)
+    {
+        this.children = children;
+    }
+    
+    /**
+     * @return the Logger used by this class
+     */
+    public static Logger getLogger()
+    {
+        return log;
+    }
+    
+    /**
+     * Gets a new fid from the pool and walks it to the
      * location of this file. Does not block; calls the replyArrived() method
      * of the given callback if the walk was successful, or the error() method
      * otherwise.
      */
-    protected void getFidAsync(MessageCallback callback)
+    public void walkFidAsync(MessageCallback callback)
     {
-        new GetFidCallback(callback).getFid();
-    }
-    
-    private class GetFidCallback extends MessageCallback
-    {
-        private MessageCallback callback;
-        
-        public GetFidCallback(MessageCallback callback)
-        {
-            this.callback = callback;
-        }
-        
-        public void getFid()
-        {
-            // Need to get a fid for this file
-            TwalkMessage tWalkMsg = new TwalkMessage(conn.getRootFid(),
-                conn.getFreeFid(), path);
-            conn.sendAsync(tWalkMsg, this);
-        }
-        
-        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
-        {
-            // Message can only be an RwalkMessage
-            RwalkMessage rWalkMsg = (RwalkMessage)rMessage;
-            TwalkMessage tWalkMsg = (TwalkMessage)tMessage;
-            // Check that the walk was successful
-            if (tWalkMsg.getNumPathElements() == rWalkMsg.getNumSuccessfulWalks())
-            {
-                fid = tWalkMsg.getNewFid();
-                if (rWalkMsg.getNumSuccessfulWalks() > 0)
-                {
-                    // We can't get the qid from the Rwalk if this was a zero-
-                    // length walk
-                    qid = rWalkMsg.getQid(rWalkMsg.getNumSuccessfulWalks() - 1);
-                }
-                if (this.callback != null)
-                {
-                    this.callback.replyArrived(rWalkMsg, tMessage);
-                }
-            }
-            else
-            {
-                // The walk failed at some point
-                String errMsg = "'" + 
-                    tWalkMsg.getPathElements()[rWalkMsg.getNumSuccessfulWalks()]
-                    + "' does not exist.";
-                this.error(errMsg, tWalkMsg);
-            }
-        }
-        
-        public void error(String message, StyxMessage tMessage)
-        {
-            // The walk was not successful.  Return the fid to the pool
-            // and throw an error.
-            if (tMessage != null)
-            {
-                TwalkMessage tWalkMsg = (TwalkMessage)tMessage;
-                conn.returnFid(tWalkMsg.getNewFid());
-            }
-            String errMsg = "Error getting fid for " + path + ": " + message;
-            if (this.callback != null)
-            {
-                this.callback.error(errMsg, tMessage);
-            }
-            else
-            {
-                fireError(errMsg);
-            }
-        }
+        new GetFidCallback(this, callback).walkFid();
     }
     
     /**
@@ -488,208 +513,19 @@ public class CStyxFile
      * file for writing with truncation use StyxUtils.OWRITE | StyxUtils.OTRUNC.
      * @param callback The MessageCallback object that will handle the Ropen message
      */
-    private void openAsync(int mode, MessageCallback callback)
+    public void openAsync(int mode, MessageCallback callback)
     {
-        new OpenCallback(mode, callback).nextStage();
-    }
-    
-    private class OpenCallback extends MessageCallback
-    {
-        private int theMode;
-        private MessageCallback callback;
-        
-        public OpenCallback(int mode, MessageCallback callback)
-        {
-            this.theMode = mode;
-            this.callback = callback;
-        }
-        
-        public void nextStage()
-        {
-            if (fid < 0)
-            {
-                getFidAsync(this);
-            }
-            else if (mode < 0)
-            {
-                // We have a fid that we can open. Open the file
-                TopenMessage tOpenMsg = new TopenMessage(fid, this.theMode);
-                conn.sendAsync(tOpenMsg, this);
-            }
-            else
-            {
-                // The file is already open. Check that the mode is correct
-                if (mode == this.theMode)
-                {
-                    if (this.callback != null)
-                    {
-                        // Notify callback with dummy Ropen message
-                        // TODO will this null cause problems further down the line?
-                        this.callback.replyArrived(new RopenMessage(null, -1), null);                        
-                    }
-                    else
-                    {
-                        fireOpen(mode);
-                    }
-                }
-                else
-                {
-                    this.error("File already open under a different mode", null);
-                }
-            }
-        }
-            
-        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
-        {
-            if (rMessage instanceof RwalkMessage)
-            {
-                // This is the reponse from getFidAsync()
-                // We've just got the open fid for the file. Go to the next stage
-                // (i.e. actually open the file)
-                this.nextStage();
-            }
-            else
-            {
-                // Must be an RopenMessage
-                RopenMessage rOpenMsg = (RopenMessage)rMessage;
-                mode = this.theMode;
-                ioUnit = (int)rOpenMsg.getIoUnit();
-                if (this.callback != null)
-                {
-                    this.callback.replyArrived(rMessage, tMessage);
-                }
-                else
-                {
-                    fireOpen(mode);
-                }
-            }
-        }
-        
-        public void error(String message, StyxMessage tMessage)
-        {
-            String errMsg = "Error opening " + path + ": " + message;
-            if (this.callback != null)
-            {
-                this.callback.error(errMsg, tMessage);
-            }
-            else
-            {
-                fireError(errMsg);
-            }
-        }
+        new OpenCallback(this, mode, callback).nextStage();
     }
     
     /**
      * Creates this file on the remote server, provided that its parent directory
      * exists.  Sends an error message to the callback if the file already exists.
      */
-    private void createAsync(boolean isDirectory, int permissions, int mode,
+    public void createAsync(boolean isDirectory, int permissions, int mode,
         MessageCallback callback)
     {
-        new CreateCallback(isDirectory, permissions, mode, callback).nextStage();
-    }
-    
-    private class CreateCallback extends MessageCallback
-    {
-        private boolean isDirectory;
-        private int permissions;
-        private int mode;
-        private MessageCallback callback;
-        private long parentFid;
-        
-        public CreateCallback(boolean isDirectory, int permissions, int mode,
-            MessageCallback callback)
-        {
-            this.isDirectory = isDirectory;
-            this.permissions = permissions;
-            this.mode = mode;
-            this.callback = callback;
-            this.parentFid = -1;
-        }
-        
-        public void nextStage()
-        {
-            if (fid >= 0)
-            {
-                // We already have a fid for this file
-                this.error("File already exists", null);
-            }
-            else if (this.parentFid < 0)
-            {
-                // We need to get a fid for the parent directory
-                TwalkMessage tWalkMsg = new TwalkMessage(conn.getRootFid(), 
-                    conn.getFreeFid(), getParentPath());
-                conn.sendAsync(tWalkMsg, this);
-            }
-            else
-            {
-                // We're ready to create the file
-                // The create call does not need OTRUNC to be set 
-                if ((this.mode & StyxUtils.OTRUNC) == StyxUtils.OTRUNC)
-                {
-                    this.mode -= StyxUtils.OTRUNC;
-                }
-                TcreateMessage tCreateMsg = new TcreateMessage(this.parentFid,
-                    name, this.permissions, this.isDirectory, this.mode);
-                conn.sendAsync(tCreateMsg, this);
-            }
-        }
-        
-        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
-        {
-            if (rMessage instanceof RwalkMessage)
-            {
-                // Walk to the parent directory was at least partially successful
-                RwalkMessage rWalkMsg = (RwalkMessage)rMessage;
-                TwalkMessage tWalkMsg = (TwalkMessage)tMessage;
-                if (rWalkMsg.getNumSuccessfulWalks() == tWalkMsg.getNumPathElements())
-                {
-                    // We've got the fid of the parent directory
-                    this.parentFid = tWalkMsg.getNewFid();
-                    this.nextStage();
-                }
-                else
-                {
-                    String errMsg = "'" + 
-                    tWalkMsg.getPathElements()[rWalkMsg.getNumSuccessfulWalks()]
-                        + "' does not exist.";
-                    this.error(errMsg, tWalkMsg);
-                }
-            }
-            else
-            {
-                // This must be an RcreateMessage
-                RcreateMessage rCreateMsg = (RcreateMessage)rMessage;
-                TcreateMessage tCreateMsg = (TcreateMessage)tMessage;
-                fid = tCreateMsg.getFid();
-                mode = tCreateMsg.getMode();
-                if (this.callback != null)
-                {
-                    callback.replyArrived(rMessage, tMessage);
-                }
-                else
-                {
-                    // TODO: fire a fileCreated event
-                }
-            }
-        }
-        
-        public void error(String message, StyxMessage tMessage)
-        {
-            if (tMessage instanceof TwalkMessage)
-            {
-                // return the fid to the pool
-                conn.returnFid(((TwalkMessage)tMessage).getNewFid());
-            }
-            if (this.callback != null)
-            {
-                this.callback.error(message, tMessage);
-            }
-            else
-            {
-                fireError(message);
-            }
-        }
+        new CreateCallback(this, isDirectory, permissions, mode, callback).nextStage();
     }
     
     /**
@@ -699,104 +535,10 @@ public class CStyxFile
      * and directories with 0777, subject to the permissions of the parent 
      * directory.
      */
-    private void openOrCreateAsync(boolean isDirectory, int mode,
+    public void openOrCreateAsync(boolean isDirectory, int mode,
         MessageCallback callback)
     {
-        new OpenOrCreateCallback(isDirectory, mode, callback).nextStage();
-    }
-    
-    private class OpenOrCreateCallback extends MessageCallback
-    {
-        private boolean isDirectory;
-        private int mode;
-        private MessageCallback callback;
-        
-        public OpenOrCreateCallback(boolean isDirectory, int mode,
-            MessageCallback callback)
-        {
-            this.isDirectory = isDirectory;
-            this.mode = mode;
-            this.callback = callback;
-        }
-        
-        public void nextStage()
-        {
-            // We must first find out if this is a file or directory (will also
-            // test to see if it exists)
-            if (qid == null)
-            {
-                refreshAsync(this);
-            }
-            else
-            {
-                // Check to see if it is the right type of file (i.e. file or
-                // directory)
-                if (this.isDirectory == (qid.getType() == 128))
-                {
-                    // Now we can open the file
-                    openAsync(this.mode, this);
-                }
-                else
-                {
-                    String errMsg = path + " already exists as a " +
-                        ((qid.getType() == 128) ? "directory" : "file");
-                    this.error(errMsg, null);
-                }
-            }
-        }
-        
-        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
-        {
-            if (rMessage instanceof RwalkMessage)
-            {
-                // We've just successfully got the stat of the file, so we have
-                // the qid and it must exist. Move to the next stage (i.e. checking
-                // the file type)
-                this.nextStage();
-            }
-            if (rMessage instanceof RopenMessage)
-            {
-                // We've just opened the file.
-                if (this.callback != null)
-                {
-                    this.callback.replyArrived(rMessage, tMessage);
-                }
-                else
-                {
-                    fireOpen(mode);
-                }
-            }
-            else
-            {
-                // Must be an RcreateMessage
-                if (this.callback != null)
-                {
-                    this.callback.replyArrived(rMessage, tMessage);
-                }
-                else
-                {
-                    fireCreated(mode);
-                }
-            }
-        }
-        
-        public void error(String message, StyxMessage tMessage)
-        {
-            if (qid == null)
-            {
-                // The file does not exist
-                int perm = this.isDirectory ? 0777 : 0666;
-                createAsync(this.isDirectory, perm, this.mode, this);
-            }
-            else if (this.callback != null)
-            {
-                this.callback.error(message, tMessage);
-            }
-            else
-            {
-                fireError(message);
-            }
-        }
+        new OpenOrCreateCallback(this, isDirectory, mode, callback).nextStage();
     }
     
     /**
@@ -804,7 +546,8 @@ public class CStyxFile
      * will do nothing. This sends the Tclunk message but does not wait for a
      * reply (this doesn't matter because the rules of Styx say that the fid
      * of the file is invalid as soon as the Tclunk is sent, whether the Rclunk
-     * arrives or not. The Rclunk message is handled in the StyxConnection class.
+     * arrives or not).  I.e. this method will not block.  The Rclunk message
+     * is handled in the StyxConnection class.
      */
     public synchronized void close()
     {
@@ -864,7 +607,7 @@ public class CStyxFile
      * will be called when the data arrive, and the error() method of the
      * callback will be called if an error occurs.
      */
-    private void readAsync(long offset, MessageCallback callback)
+    public void readAsync(long offset, MessageCallback callback)
     {
         this.readAsync(offset, -1, callback);
     }
@@ -877,87 +620,9 @@ public class CStyxFile
      * will be called when the data arrive, and the error() method of the
      * callback will be called if an error occurs.
      */
-    private void readAsync(long offset, int bytesRequired, MessageCallback callback)
+    public void readAsync(long offset, int bytesRequired, MessageCallback callback)
     {
-        ReadCallback readCB = new ReadCallback(offset, bytesRequired, callback);
-        readCB.nextStage();
-    }
-    
-    private class ReadCallback extends MessageCallback
-    {
-        private long offset;
-        private int bytesRequired;
-        private MessageCallback callback;
-        
-        public ReadCallback(long offset, int bytesRequired, MessageCallback callback)
-        {
-            this.offset = offset;
-            this.bytesRequired = bytesRequired;
-            this.callback = callback;
-        }
-        
-        public void nextStage()
-        {
-            if (mode < 0)
-            {
-                // We need to open the file
-                openAsync(StyxUtils.OREAD, this);
-            }
-            else
-            {
-                // The file is open. Check the mode
-                int rwx = mode & 3; // mask off last two bits to get OREAD, OWRITE, 
-                                    // ORDWR or OEXEC (i.e. ignore OTRUNC/ORCLOSE)
-                if (rwx == StyxUtils.OREAD || rwx == StyxUtils.ORDWR)
-                {
-                    // Try to read the given number of bytes from the file
-                    TreadMessage tReadMsg = new TreadMessage(fid,
-                        new ULong(this.offset), this.bytesRequired < 0 ?
-                            ioUnit : this.bytesRequired);
-                    conn.sendAsync(tReadMsg, this);
-                }
-                else
-                {
-                    this.error("File " + path + " is not open for reading", null);
-                }
-            }
-        }
-            
-        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
-        {
-            if (rMessage instanceof RopenMessage)
-            {
-                // This is the reponse from openAsync()
-                // We've just got the open fid for the file. Go to the next stage
-                // (i.e. read from the file)
-                this.nextStage();
-            }
-            else
-            {
-                // Must be an RreadMessage
-                if (this.callback != null)
-                {
-                    this.callback.replyArrived(rMessage, tMessage);
-                }
-                else
-                {
-                    fireDataArrived((TreadMessage)tMessage, (RreadMessage)rMessage);
-                }
-            }
-        }
-        
-        public void error(String message, StyxMessage tMessage)
-        {
-            String errMsg = "Error reading from " + path + ": " + message;
-            if (this.callback != null)
-            {
-                this.callback.error(message, tMessage);
-            }
-            else
-            {
-                fireError(errMsg);
-            }
-        }
+        new ReadCallback(this, offset, bytesRequired, callback).nextStage();
     }
     
     /**
@@ -1134,123 +799,10 @@ public class CStyxFile
      * @param callback The replyArrived() method of this callback object will be
      * called when the write confirmation arrives
      */
-    private void writeAsync(byte[] bytes, int pos, int count, long offset,
+    public void writeAsync(byte[] bytes, int pos, int count, long offset,
         boolean truncate, MessageCallback callback)
     {
-        WriteCallback writeCB = new WriteCallback(bytes, pos, count, offset, 
-            truncate, callback);
-        writeCB.nextStage();
-    }
-    
-    private class WriteCallback extends MessageCallback
-    {
-        private byte[] bytes;
-        private int pos;
-        private int count;
-        private long offset;
-        private boolean truncate;
-        private MessageCallback callback;
-        
-        public WriteCallback(byte[] bytes, int pos, int count, long offset,
-            boolean truncate, MessageCallback callback)
-        {
-            this.bytes = bytes;
-            this.pos = pos;
-            this.count = count;
-            this.offset = offset;
-            this.truncate = truncate;
-            this.callback = callback;
-        }
-        
-        public void nextStage()
-        {
-            if (mode < 0)
-            {
-                // We must open the file
-                int theMode = StyxUtils.OWRITE;
-                if (this.truncate)
-                {
-                    theMode |= StyxUtils.OTRUNC;
-                }
-                openAsync(theMode, this);
-            }
-            else
-            {
-                // The file is already open.  Check the mode
-                int rwx = mode & 3; // mask off last two bits to get OREAD, OWRITE, 
-                                    // ORDWR or OEXEC (i.e. ignore OTRUNC/ORCLOSE)
-                if (rwx != StyxUtils.OWRITE && rwx != StyxUtils.ORDWR)
-                {
-                    this.error("File " + path + " is not open for writing", null);
-                }
-                else
-                {
-                    // Check the truncation flag
-                    boolean truncFlagPresent = ((mode & StyxUtils.OTRUNC) == StyxUtils.OTRUNC);
-                    if (truncFlagPresent == this.truncate)
-                    {
-                        // Truncation flag is set correctly
-                        TwriteMessage tWriteMsg = new TwriteMessage(fid,
-                            new ULong(this.offset), this.bytes, this.pos, this.count);
-                        conn.sendAsync(tWriteMsg, this);
-                    }
-                    else if (truncFlagPresent)
-                    {
-                        // Truncation flag is present when it shouldn't be
-                        this.error("File " + path + " is open with truncation", null);
-                    }
-                    else
-                    {
-                        // Truncation flag should be present but isn't
-                        this.error("File " + path + " is not open with truncation", null);
-                    }
-                }
-            }
-        }
-        
-        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
-        {
-            if (rMessage instanceof RopenMessage)
-            {
-                // This is the reply from openAsync, so the file is now open.
-                // Proceed to the next stage (i.e. write to the file)
-                this.nextStage();
-            }
-            else
-            {
-                // This must be an Rwrite message, i.e. we have just successfully
-                // written to the file.
-                // Check the number of bytes written
-                RwriteMessage rWriteMsg = (RwriteMessage)rMessage;
-                TwriteMessage tWriteMsg = (TwriteMessage)tMessage;
-                if (tWriteMsg.getCount() != rWriteMsg.getNumBytesWritten())
-                {
-                    // Should not happen
-                    this.error("all bytes not written", tMessage);
-                }
-                else if (this.callback != null)
-                {
-                    this.callback.replyArrived(rMessage, tMessage);
-                }
-                else
-                {
-                    fireDataWritten((TwriteMessage)tMessage);
-                }
-            }
-        }
-        
-        public void error(String message, StyxMessage tMessage)
-        {
-            String errMsg = "Error writing to " + path + ": " + message;
-            if (this.callback != null)
-            {
-                this.callback.error(errMsg, tMessage);
-            }
-            else
-            {
-                fireError(errMsg);
-            }
-        }
+        new WriteCallback(this, bytes, pos, count, offset, truncate, callback).nextStage();
     }
     
     /**
@@ -1287,73 +839,9 @@ public class CStyxFile
      * @todo If there is already a Tstat message in flight, what should we do?
      * Does it matter much?
      */
-    private void refreshAsync(MessageCallback callback)
+    public void refreshAsync(MessageCallback callback)
     {
-        RefreshCallback refreshCB = new RefreshCallback(callback);
-        refreshCB.nextStage();
-    }
-    
-    private class RefreshCallback extends MessageCallback
-    {
-        private MessageCallback callback;
-        
-        public RefreshCallback(MessageCallback callback)
-        {
-            this.callback = callback;
-        }
-        
-        public void nextStage()
-        {
-            if (fid < 0)
-            {
-                // We need to get a fid for this file
-                getFidAsync(this);
-            }
-            else
-            {
-                // We have a fid, so get the stat of the file
-                TstatMessage tStatMsg = new TstatMessage(fid);
-                conn.sendAsync(tStatMsg, this);
-            }
-        }
-        
-        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
-        {
-            if (rMessage instanceof RwalkMessage)
-            {
-                // This is the reply from getFidAsync().  Now proceed to the
-                // next stage (get the stat of the file)
-                this.nextStage();
-            }
-            else
-            {
-                // This must be an RstatMessage
-                RstatMessage rStatMsg = (RstatMessage)rMessage;
-                dirEntry = rStatMsg.getDirEntry();
-                qid = dirEntry.getQid();
-                if (this.callback != null)
-                {
-                    this.callback.replyArrived(rMessage, tMessage);
-                }
-                else
-                {
-                    fireStatChanged(rStatMsg);
-                }
-            }
-        }
-        
-        public void error(String message, StyxMessage tMessage)
-        {
-            String errMsg = "Error getting stat of " + path + ": " + message;
-            if (this.callback != null)
-            {
-                this.callback.error(errMsg, tMessage);
-            }
-            else
-            {
-                fireError(errMsg);
-            }
-        }
+        new RefreshCallback(this, callback).nextStage();
     }
     
     /**
@@ -1421,119 +909,7 @@ public class CStyxFile
      */
     private void getChildrenAsync(MessageCallback callback)
     {
-        new GetChildrenCallback(callback).nextStage();
-    }
-    
-    /**
-     * Callback that is used when reading the children of this directory
-     */
-    private class GetChildrenCallback extends MessageCallback
-    {
-        private Vector dirEntries;
-        private long offset;
-        private boolean wasOpen;
-        private MessageCallback callback;
-        
-        public GetChildrenCallback(MessageCallback callback)
-        {
-            this.dirEntries = new Vector();
-            this.offset = 0;
-            this.callback = callback;
-        }
-        
-        public void nextStage()
-        {
-            // First check that this is a directory
-            if (dirEntry == null)
-            {
-                // We need to get the stat for this file
-                refreshAsync(this);
-            }
-            else if (qid.getType() == 128)
-            {
-                // this is a directory (or we don't care if this is a directory
-                // or not). First check to see if we already have it open
-                this.wasOpen = (mode >= 0);
-                System.err.println(path + ".wasOpen = " + this.wasOpen);
-                // Now find the children
-                readAsync(this.offset, this);
-            }
-            else
-            {
-                // This is not a directory. raise an error
-                this.error("not a directory", null);
-            }
-        }
-        
-        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
-        {
-            if (rMessage instanceof RstatMessage)
-            {
-                // We've just got the stat of the file. Proceed to the next
-                // stage (i.e. start reading data)
-                this.nextStage();
-            }
-            else
-            {
-                // this must be an RreadMessage
-                RreadMessage rReadMsg = (RreadMessage)rMessage;
-                ByteBuffer data = rReadMsg.getData();
-                this.offset += data.remaining();
-                if (data.remaining() > 0)
-                {
-                    // Wrap data as a StyxBuffer
-                    StyxBuffer styxBuf = new StyxBuffer(data);
-                    // Get all the DirEntries from this buffer
-                    while(data.hasRemaining())
-                    {
-                        DirEntry dirEntry = styxBuf.getDirEntry();
-                        CStyxFile newFile = conn.getFile(path + "/" + dirEntry.getFileName());
-                        newFile.dirEntry = dirEntry;
-                        this.dirEntries.add(newFile);
-                    }
-                    // Read from this file again
-                    this.nextStage();
-                }
-                else
-                {
-                    // We've read all the data from the file
-                    if (!this.wasOpen)
-                    {
-                        // If this file wasn't open before we started reading
-                        // the children, close it
-                        System.err.println(path + ".wasOpen = " + this.wasOpen +
-                            " closing file");
-                        close();
-                    }
-                    children = (CStyxFile[])this.dirEntries.toArray(new CStyxFile[0]);
-                    if (this.callback != null)
-                    {
-                        this.callback.replyArrived(rMessage, tMessage);
-                    }
-                    else
-                    {
-                        fireChildrenFound();
-                    }
-                }
-                // TODO: is this necessary? Shouldn't the buffer be released 
-                // anyway? If so, why doesn't this cause an error?
-                data.release();
-            }
-        }
-        
-        public void error(String message, StyxMessage tMessage)
-        {
-            String errMsg = "Error getting directory contents from " + getPath()
-                + ": " + message;
-            if (this.callback != null)
-            {
-                this.callback.error(errMsg, tMessage);
-            }
-            else
-            {
-                fireError(errMsg);
-            }
-        }
+        new GetChildrenCallback(this, callback).nextStage();
     }
     
     /**
@@ -1633,189 +1009,7 @@ public class CStyxFile
         {
             throw new IllegalArgumentException("numRequests must be between 1 and 100 inclusive");
         }
-        new DownloadCallback(file, numRequests, callback).nextStage();
-    }
-    
-    /**
-     * Callback that is used when downloading a file from the server. Contains 
-     * state that needs to persist between message exchanges with the server.
-     */
-    private class DownloadCallback extends MessageCallback
-    {
-        private MessageCallback callback;
-        private File file;
-        private int numRequests;
-        private FileChannel fout;
-        private long offset;
-        private boolean eof;
-        private int numOutstandingMessages;
-        private long bytesDownloaded;
-        
-        public DownloadCallback(File file, int numRequests, MessageCallback callback)
-        {
-            this.callback = callback;
-            this.file = file;
-            this.numRequests = numRequests;
-            this.fout = null;
-            this.offset = 0;
-            this.eof = false;
-            this.numOutstandingMessages = 0;
-            this.bytesDownloaded = 0;
-        }
-        
-        public void nextStage()
-        {
-            if (mode < 0)
-            {
-                // We must open the file
-                openAsync(StyxUtils.OREAD, this);
-            }
-            else
-            {
-                try
-                {
-                    // The file is open. Open the output stream for the local file
-                    if (this.fout == null)
-                    {
-                        if (this.file != null)
-                        {
-                            this.fout = new RandomAccessFile(this.file, "rw").getChannel();
-                            // This truncation is not necessary if we have just
-                            // created the file
-                            this.fout.truncate(0);
-                        }
-                    }
-                    // Now send a bunch of Tread messages to start the ball rolling
-                    for (int i = 0; i < this.numRequests; i++)
-                    {
-                        this.readNextChunk();
-                    }
-                }
-                catch (FileNotFoundException fnfe)
-                {
-                    this.error("cannot open " + this.file + " for writing", null);
-                }
-                catch (IOException ioe)
-                {
-                    this.error("cannot truncate " + this.file + ": " +
-                        ioe.getMessage(), null);
-                }
-            }
-        }
-        
-        private synchronized void readNextChunk()
-        {
-            if (!this.eof)
-            {
-                // Read the maximum number of bytes allowed in a single message
-                // (i.e. ioUnit)
-                readAsync(this.offset, this);
-                this.offset += ioUnit;
-                this.numOutstandingMessages++;
-            }
-        }
-        
-        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
-        {
-            if (rMessage instanceof RopenMessage)
-            {
-                // We have just opened the file.
-                this.nextStage();
-            }
-            else if (rMessage instanceof RreadMessage)
-            {
-                this.numOutstandingMessages--;
-                RreadMessage rReadMsg = (RreadMessage)rMessage;
-                TreadMessage tReadMsg = (TreadMessage)tMessage;
-                if (rReadMsg.getCount() != 0)
-                {
-                    this.bytesDownloaded += rReadMsg.getCount();
-                    try
-                    {
-                        if (rReadMsg.getCount() == tReadMsg.getCount())
-                        {
-                            // We have got all the bytes we asked for so read the
-                            // next chunk
-                            this.readNextChunk();
-                        }
-                        else
-                        {
-                            // We didn't get all the bytes we asked for so we'll
-                            // have to make another request for the remaining
-                            // bytes.  Hopefully this won't happen very often
-                            long pos = tReadMsg.getOffset().asLong() + rReadMsg.getCount();
-                            int bytesRequired = tReadMsg.getCount() - rReadMsg.getCount();
-                            synchronized (this)
-                            {
-                                readAsync(pos, bytesRequired, this);
-                                this.numOutstandingMessages++;
-                            }
-                        }
-                        if (this.fout != null)
-                        {
-                            // Write the data to the output file at the right file position
-                            fout.write(rReadMsg.getData().buf(), tReadMsg.getOffset().asLong());
-                        }
-                    }
-                    catch(IOException ioe)
-                    {
-                        this.error("error writing to " + this.file + ": " +
-                            ioe.getMessage(), null);
-                    }
-                }
-                else
-                {
-                    //System.err.println("Got Rread message with zero bytes");
-                    // We have reached EOF
-                    this.eof = true;
-                }
-                if (this.eof && this.numOutstandingMessages == 0)
-                {
-                    //System.err.println("Bytes downloaded: " + this.bytesDownloaded);
-                    // There are no more outstanding messages
-                    this.closeFile();
-                    if (this.callback == null)
-                    {
-                        fireDownloadComplete();
-                    }
-                    else
-                    {
-                        callback.replyArrived(rMessage, tMessage);
-                    }
-                }
-            }
-        }
-        
-        private void closeFile()
-        {
-            if (this.fout != null)
-            {
-                try
-                {
-                    this.fout.close();
-                }
-                catch(IOException ioe)
-                {
-                    log.debug("IOException when closing " + this.file.getPath()
-                        + ": " + ioe.getMessage());
-                }
-            }
-        }
-        
-        public void error(String message, StyxMessage tMessage)
-        {
-            // TODO: must stop error() being called multiple times
-            this.closeFile();
-            String errMsg = "Error downloading from " + getPath() + ": " + message;
-            if (this.callback == null)
-            {
-                fireError(errMsg);
-            }
-            else
-            {
-                this.callback.error(errMsg, tMessage);
-            }
-        }
+        new DownloadCallback(this, file, numRequests, callback).nextStage();
     }
     
     /**
@@ -1866,7 +1060,7 @@ public class CStyxFile
      */
     public void uploadAsync(InputStream in, MessageCallback callback)
     {
-        new UploadCallback(in, callback).nextStage(null, null);
+        new UploadCallback(this, in, callback).nextStage(null, null);
     }
     
     /**
@@ -1900,127 +1094,7 @@ public class CStyxFile
      */
     public void uploadAsync(File file, MessageCallback callback)
     {
-        new UploadCallback(file, callback).nextStage(null, null);
-    }
-    
-    /**
-     * Callback that is used when uploading a file to the server. Contains 
-     * state that needs to persist between message exchanges with the server.
-     */
-    private class UploadCallback extends MessageCallback
-    {
-        private InputStream in;
-        private byte[] bytes;
-        private long offset;
-        private MessageCallback callback;
-        
-        public UploadCallback(File file, MessageCallback callback)
-        {
-            this.init(null, callback);
-            try
-            {
-                this.in = new FileInputStream(file);
-            }
-            catch(FileNotFoundException fnfe)
-            {
-                this.error("file does not exist", null);
-            }
-        }
-        
-        public UploadCallback(InputStream in, MessageCallback callback)
-        {
-            this.init(in, callback);
-        }
-        
-        private void init(InputStream in, MessageCallback callback)
-        {
-            this.in = in;
-            this.bytes = null;
-            this.offset = 0;
-            this.callback = callback;
-        }
-        
-        public void nextStage(StyxMessage rMessage, StyxMessage tMessage)
-        {
-            if (mode < 0)
-            {
-                // If we haven't opened this file, open or create it
-                // The "false" means create a file, not a directory
-                openOrCreateAsync(false, StyxUtils.OWRITE | StyxUtils.OTRUNC, this);
-            }
-            else
-            {
-                // Now we can write to the file
-                try
-                {
-                    if (this.bytes == null)
-                    {
-                        this.bytes = new byte[ioUnit];
-                    }
-                    // Read from the source file
-                    int n = in.read(this.bytes);
-                    if (n >= 0)
-                    {
-                        // Write to the server
-                        writeAsync(this.bytes, 0, n, this.offset, true, this);
-                    }
-                    else
-                    {
-                        // We've reached EOF. Close the file and notify that
-                        // upload is complete.
-                        close();
-                        in.close();
-                        if (this.callback == null)
-                        {
-                            fireUploadComplete();
-                        }
-                        else
-                        {
-                            this.callback.replyArrived(rMessage, tMessage);
-                        }
-                    }
-                }
-                catch(IOException ioe)
-                {
-                    this.error("IOException occurred: " + ioe.getMessage(), null);
-                }
-            }
-        }
-        
-        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
-        {
-            if (rMessage instanceof RwriteMessage)
-            {
-                RwriteMessage rWriteMsg = (RwriteMessage)rMessage;
-                this.offset += rWriteMsg.getNumBytesWritten();
-            }
-            this.nextStage(rMessage, tMessage);
-        }
-        
-        public void error(String message, StyxMessage tMessage)
-        {
-            if (this.in != null)
-            {
-                try
-                {
-                    this.in.close();
-                }
-                catch(IOException ioe)
-                {
-                    log.debug("IOException when closing input stream: "
-                        + ioe.getMessage());
-                }
-            }
-            String errMsg = "Error uploading: " + message;
-            if (this.callback == null)
-            {
-                fireError(errMsg);
-            }
-            else
-            {
-                this.callback.error(errMsg, tMessage);
-            }
-        }
+        new UploadCallback(this, file, callback).nextStage(null, null);
     }
     
     /**
@@ -2053,7 +1127,7 @@ public class CStyxFile
     /**
      * Fires the error() method on all registered listeners
      */
-    private void fireError(String message)
+    public void fireError(String message)
     {
         synchronized(this.listeners)
         {
@@ -2069,7 +1143,7 @@ public class CStyxFile
     /**
      * Fires the fileOpen() method on all registered listeners
      */
-    private void fireOpen(int mode)
+    public void fireOpen()
     {
         synchronized(this.listeners)
         {
@@ -2085,7 +1159,7 @@ public class CStyxFile
     /**
      * Fires the fileCreated() method on all registered listeners
      */
-    private void fireCreated(int mode)
+    public void fireCreated()
     {
         synchronized(this.listeners)
         {
@@ -2093,7 +1167,7 @@ public class CStyxFile
             {
                 CStyxFileChangeListener listener =
                     (CStyxFileChangeListener)this.listeners.get(i);
-                listener.fileCreated(this, mode);
+                listener.fileCreated(this, this.mode);
             }
         }
     }
@@ -2101,7 +1175,7 @@ public class CStyxFile
     /**
      * Fires the dataArrived() method on all registered listeners
      */
-    private void fireDataArrived(TreadMessage tReadMsg, RreadMessage rReadMsg)
+    public void fireDataArrived(TreadMessage tReadMsg, RreadMessage rReadMsg)
     {
         synchronized(this.listeners)
         {
@@ -2125,9 +1199,9 @@ public class CStyxFile
     /**
      * Fires the statChanged() method on all registered listeners
      */
-    private void fireStatChanged(RstatMessage rStatMsg)
+    public void fireStatChanged(RstatMessage rStatMsg)
     {
-        dirEntry = rStatMsg.getDirEntry();
+        this.setDirEntry(rStatMsg.getDirEntry());
         // Notify all the listeners that the stat may have changed
         synchronized(this.listeners)
         {
@@ -2143,7 +1217,7 @@ public class CStyxFile
     /**
      * Fires the dataWritten() method on all registered listeners
      */
-    private void fireDataWritten(TwriteMessage tWriteMsg)
+    public void fireDataWritten(TwriteMessage tWriteMsg)
     {
         // Notify all listeners that the data have been written
         synchronized(this.listeners)
@@ -2160,7 +1234,7 @@ public class CStyxFile
     /**
      * Fires the childrenFound() method on all registered listeners
      */
-    private void fireChildrenFound()
+    public void fireChildrenFound()
     {
         synchronized(this.listeners)
         {
@@ -2176,7 +1250,7 @@ public class CStyxFile
     /**
      * Fires the uploadComplete() method on all registered listeners
      */
-    private void fireUploadComplete()
+    public void fireUploadComplete()
     {
         synchronized(this.listeners)
         {
@@ -2192,7 +1266,7 @@ public class CStyxFile
     /**
      * Fires the downloadComplete() method on all registered listeners
      */
-    private void fireDownloadComplete()
+    public void fireDownloadComplete()
     {
         synchronized(this.listeners)
         {
@@ -2268,9 +1342,9 @@ public class CStyxFile
     
     public static void main(String[] args) throws Exception
     {
-        StyxConnection conn = new StyxConnection("localhost", 6666);
+        StyxConnection conn = new StyxConnection("localhost", 9876);
         conn.connect();
-        CStyxFile file = conn.getFile("/tmp/test.txt");
+        CStyxFile file = conn.getFile("/tmp/test2.txt");
         file.upload(new java.io.FileInputStream(new java.io.File("C:\\test.log")));
         System.out.println("upload complete");
         conn.close();
