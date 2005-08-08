@@ -68,6 +68,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.24  2005/08/08 09:35:19  jonblower
+ * Commented out thread pool filters
+ *
  * Revision 1.23  2005/07/08 16:01:27  jonblower
  * Reinstated ProtocolThreadPoolFilter
  *
@@ -283,14 +286,16 @@ public class StyxConnection implements ProtocolHandler
             this.ioThreadPoolFilter = new IoThreadPoolFilter();
             this.protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
 
-            this.ioThreadPoolFilter.start();
-            this.protocolThreadPoolFilter.start();
+            // TODO: if we start these thread pool filters, they don't seem to
+            // get stopped again and (one of) the threads are left running.
+            //this.ioThreadPoolFilter.start();
+            //this.protocolThreadPoolFilter.start();
             
             IoProtocolConnector connector = new IoProtocolConnector( new SocketConnector() );
             
             // TODO: do we need these thread pools for a client connection?
-            connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
-            connector.getFilterChain().addLast("Protocol thread pool filter",  protocolThreadPoolFilter );
+            //connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
+            //connector.getFilterChain().addLast("Protocol thread pool filter",  protocolThreadPoolFilter );
 
             ProtocolProvider protocolProvider = new StyxClientProtocolProvider(this);
 
@@ -360,7 +365,6 @@ public class StyxConnection implements ProtocolHandler
      */
     public void close()
     {
-        
         //log.debug("Closing StyxConnection");
         if (this.connected)
         {
