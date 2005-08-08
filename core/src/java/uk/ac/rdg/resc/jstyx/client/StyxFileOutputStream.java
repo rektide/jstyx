@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/08/08 09:36:19  jonblower
+ * Minor changes
+ *
  * Revision 1.4  2005/05/23 16:48:17  jonblower
  * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
  *
@@ -72,7 +75,7 @@ public class StyxFileOutputStream extends OutputStream
     {
         this.file = file;
         this.file.open(StyxUtils.OWRITE);
-        this.buf = new byte[(int)this.file.getIOUnit()];
+        this.buf = new byte[(int)this.file.getIoUnit()];
         this.pos = 0;
         this.offset = 0;
     }

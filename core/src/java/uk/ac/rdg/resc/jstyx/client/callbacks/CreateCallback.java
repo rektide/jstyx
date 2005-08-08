@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.messages.RcreateMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/08/08 09:36:19  jonblower
+ * Minor changes
+ *
  * Revision 1.1  2005/08/05 13:46:40  jonblower
  * Factored out all callback objects from CStyxFile into separate classes
  *
@@ -123,6 +126,7 @@ public class CreateCallback extends MessageCallback
             TcreateMessage tCreateMsg = (TcreateMessage)tMessage;
             this.file.setFid(tCreateMsg.getFid());
             this.file.setMode(tCreateMsg.getMode());
+            this.file.setIoUnit((int)rCreateMsg.getIoUnit());
             if (this.callback != null)
             {
                 callback.replyArrived(rMessage, tMessage);

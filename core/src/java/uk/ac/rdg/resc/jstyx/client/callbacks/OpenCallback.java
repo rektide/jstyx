@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.messages.RwalkMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/08/08 09:36:19  jonblower
+ * Minor changes
+ *
  * Revision 1.1  2005/08/05 13:46:40  jonblower
  * Factored out all callback objects from CStyxFile into separate classes
  *
@@ -74,7 +77,7 @@ public class OpenCallback extends MessageCallback
         {
             // We have a fid that we can open. Open the file
             TopenMessage tOpenMsg = new TopenMessage(this.file.getFid(), this.theMode);
-            conn.sendAsync(tOpenMsg, this);
+            this.conn.sendAsync(tOpenMsg, this);
         }
         else
         {

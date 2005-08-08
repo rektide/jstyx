@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.35  2005/08/08 09:36:19  jonblower
+ * Minor changes
+ *
  * Revision 1.34  2005/08/05 13:46:40  jonblower
  * Factored out all callback objects from CStyxFile into separate classes
  *
@@ -1342,9 +1345,9 @@ public class CStyxFile
     
     public static void main(String[] args) throws Exception
     {
-        StyxConnection conn = new StyxConnection("localhost", 9876);
+        StyxConnection conn = new StyxConnection("localhost", 6666);
         conn.connect();
-        CStyxFile file = conn.getFile("/tmp/test2.txt");
+        CStyxFile file = conn.getFile("/tmp/test7.txt");
         file.upload(new java.io.FileInputStream(new java.io.File("C:\\test.log")));
         System.out.println("upload complete");
         conn.close();
