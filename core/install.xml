@@ -80,11 +80,11 @@
             <fileset dir="bin" includes="*.bat" excludes="SGSExplorer.bat GridServices.bat" targetdir="$INSTALL_PATH/bin" os="windows"/>
             <fileset dir="bin" includes="*.sh" excludes="SGSExplorer.sh GridServices.sh" targetdir="$INSTALL_PATH/bin" os="unix"/>
             <!-- Mark the shell scripts as executable on Unix -->
-			<executable targetfile="$INSTALL_PATH/bin/JStyxRun.sh" stage="never" os="unix" keep="true"/>
-			<executable targetfile="$INSTALL_PATH/bin/StyxBrowser.sh" stage="never" os="unix" keep="true"/>
-			<executable targetfile="$INSTALL_PATH/bin/StyxMon.sh" stage="never" os="unix" keep="true"/>
-			<executable targetfile="$INSTALL_PATH/bin/TestServer.sh" stage="never" os="unix" keep="true"/>
-			<file src="conf/log4j.properties" targetdir="$INSTALL_PATH/conf"/>
+            <executable targetfile="$INSTALL_PATH/bin/JStyxRun.sh" stage="never" os="unix" keep="true"/>
+            <executable targetfile="$INSTALL_PATH/bin/StyxBrowser.sh" stage="never" os="unix" keep="true"/>
+            <executable targetfile="$INSTALL_PATH/bin/StyxMon.sh" stage="never" os="unix" keep="true"/>
+            <executable targetfile="$INSTALL_PATH/bin/TestServer.sh" stage="never" os="unix" keep="true"/>
+            <file src="conf/log4j.properties" targetdir="$INSTALL_PATH/conf"/>
             <file src="src/docs/JStyx website.url" targetdir="$INSTALL_PATH/docs" os="windows"/>
         </pack>
         <pack name="Docs" required="no">
@@ -96,26 +96,26 @@
             <description>Scripts to launch Styx Grid Service client programs (e.g. SGSExplorer)</description>
             <file src="bin/SGSExplorer.bat" targetdir="$INSTALL_PATH/bin" os="windows"/>
             <file src="bin/SGSExplorer.sh" targetdir="$INSTALL_PATH/bin" os="unix"/>
-			<executable targetfile="$INSTALL_PATH/bin/SGSExplorer.sh" stage="never" os="unix" keep="true"/>
+            <executable targetfile="$INSTALL_PATH/bin/SGSExplorer.sh" stage="never" os="unix" keep="true"/>
         </pack>
             <pack name="SGS server" required="no">
             <description>Scripts and sample configuration files for launching Styx Grid Service server</description>
             <file src="bin/GridServices.bat" targetdir="$INSTALL_PATH/bin" os="windows"/>
-			<file src="bin/GridServices.sh" targetdir="$INSTALL_PATH/bin" os="unix"/>
-			<executable targetfile="$INSTALL_PATH/bin/GridServices.sh" stage="never" os="unix" keep="true"/>
+            <file src="bin/GridServices.sh" targetdir="$INSTALL_PATH/bin" os="unix"/>
+            <executable targetfile="$INSTALL_PATH/bin/GridServices.sh" stage="never" os="unix" keep="true"/>
             <singlefile src="conf/SGSconfig_example.xml" target="$INSTALL_PATH/conf/SGSconfig.xml" override="asktrue"/>
             <file src="conf/SGSconfig.dtd" targetdir="$INSTALL_PATH/conf"/>
         </pack>
         <pack name="Sources" required="no">
             <description>The sources, plus build files for Ant, Maven and IzPack</description>
             <fileset dir="src/java" targetdir="$INSTALL_PATH/src/java"/>
-            <singlefile src="ant_build.xml" target="$INSTALL_PATH/build.xml"/>
+            <file src="build.xml"   targetdir="$INSTALL_PATH"/>
             <file src="install.xml" targetdir="$INSTALL_PATH"/>
             <file src="project.xml" targetdir="$INSTALL_PATH"/>
             <file src="project.properties" targetdir="$INSTALL_PATH"/>
-			<file src="Win_shortcutSpec.xml" targetdir="$INSTALL_PATH"/>
+            <file src="Win_shortcutSpec.xml" targetdir="$INSTALL_PATH"/>
             <!-- TODO: can't get Unix shortcuts to work properly yet -->
-			<!-- <file src="Unix_shortcutSpec.xml" targetdir="$INSTALL_PATH"/> -->
+            <!-- <file src="Unix_shortcutSpec.xml" targetdir="$INSTALL_PATH"/> -->
         </pack>
     </packs>
     

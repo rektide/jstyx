@@ -19,18 +19,24 @@
 	<property name="lib.dir" value="./lib"/>
 	<!-- The directory in which IzPack is installed -->
 	<property name="izpack.dir" value="C:\Program Files\IzPack"/>
+        <!-- The jar file that will be built -->
+	<property name="jar.file" value="${jar.dir}/jstyx-${version}.jar"/>
+        
+        <target name="pre-compile" description="prepare for compilation">
+            <mkdir dir="${classes.dir}"/>
+        </target>
 	
-	<target name="compile" description="compile the source">
+	<target name="compile" depends="pre-compile" description="compile the source">
 		<mkdir dir="${classes.dir}"/>
 		<!-- Compile the java code from ${src.dir} into ${classes.dir}
 		     Using source="1.4" to retain compatibility with other apps such as Triana -->
 		<javac srcdir="${src.dir}" destdir="${classes.dir}" debug="on" source="1.4">
 			<!-- Set the classpath -->
 			<classpath>
-				<pathelement path="${java.class.path}"/>
-				<fileset dir="${lib.dir}">
-					<include name="**/*.jar"/>
-				</fileset>
+                            <pathelement path="${java.class.path}"/>
+                            <fileset dir="${lib.dir}">
+                                    <include name="**/*.jar"/>
+                            </fileset>
 			</classpath>
 			<!-- Show deprecation/unchecked operation warnings -->
 			<compilerarg value="-Xlint:deprecation"/>
@@ -40,13 +46,13 @@
 
 	<target name="jar" depends="compile" description="generate the JStyx jar file">
 		<mkdir dir="${jar.dir}"/>
-		<jar destfile="${jar.dir}/jstyx-${version}.jar" basedir="${classes.dir}"/>
+		<jar destfile="${jar.file}" basedir="${classes.dir}"/>
 	</target>
 
 	<target name="clean" description="clean up">
 		<delete dir="${classes.dir}"/>
 		<delete dir="${javadoc.dir}"/>
-		<delete file="${jar.dir}/jstyx-${version}.jar"/>
+		<delete file="${jar.file}"/>
         </target>
 
 	<target name="javadoc" description="build javadoc">
