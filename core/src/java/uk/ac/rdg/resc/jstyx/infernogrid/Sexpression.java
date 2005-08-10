@@ -39,6 +39,9 @@ import java.util.Vector;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/08/10 18:34:28  jonblower
+ * Implemented working S-expression parser
+ *
  * Revision 1.1  2005/08/08 07:43:03  jonblower
  * Initial import
  *
@@ -54,6 +57,63 @@ public class Sexpression
     public Sexpression()
     {
         this.contents = new Vector();
+    }
+    
+    /**
+     * Adds a token (an atom or another Sexpression) to this Sexpression
+     */
+    public void add(Object token)
+    {
+        this.contents.add(token);
+        //System.out.println("Added a " + token.getClass());
+    }
+    
+    /**
+     * @return the number of tokens (atoms and Sexpressions) contained in this
+     * Sexpression
+     */
+    public int getSize()
+    {
+        return this.contents.size();
+    }
+    
+    /**
+     * @return the token (atom or Sexpression) at the given index within this
+     * Sexpression.  If the type of the returned object is String, the token is
+     * an atom (string literal).  If the type is a Sexpression (the only other
+     * option), the token is a nested Sexpression
+     * @throws ArrayIndexOutOfBoundsException if the given index is out of 
+     * range
+     */
+    public Object getToken(int i)
+    {
+        if (i >= this.contents.size() || i < 0)
+        {
+	    throw new ArrayIndexOutOfBoundsException(i);
+        }
+        return this.contents.get(i);
+    }
+    
+    /**
+     * Recursive method to display the contents of this Sexpression
+     */
+    public String toString()
+    {
+        StringBuffer strBuf = new StringBuffer();
+        for (int i = 0; i < this.contents.size(); i++)
+        {
+            Object token = this.contents.get(i);
+            if (token instanceof String)
+            {
+                strBuf.append(" \"" + token + "\" ");
+            }
+            else
+            {
+                strBuf.append("(" + token + ")");
+            }
+        }
+        strBuf.append(" [" + this.getSize() + " tokens]");
+        return strBuf.toString();
     }
     
 }
