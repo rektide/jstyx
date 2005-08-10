@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/08/10 18:35:28  jonblower
+ * Added simple test main() function
+ *
  * Revision 1.8  2005/06/20 07:17:35  jonblower
  * Wrapped SGSParamFile as AsyncStyxFile
  *
@@ -323,6 +326,17 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
             this.versionLastRead = versionLastRead;
             this.timeLastReply = timeLastReply;
         }
+    }
+    
+    /**
+     * Simple test function
+     */
+    public static void main(String[] args) throws Exception
+    {
+        AsyncStyxFile asf = new AsyncStyxFile(new InMemoryFile("test"));
+        StyxDirectory root = new StyxDirectory("/");
+        root.addChild(asf);
+        new StyxServer(2911, root).start();
     }
     
 }
