@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir=".." name="JStyx-IDE">
+  <import file="../build.xml"/>
+  
+    <target name="compile-selected-files-in-java">
+        <fail unless="files">Must set property 'files'</fail>
+        <mkdir dir="${classes.dir}"/>
+        <javac destdir="${classes.dir}" includes="${files}" source="1.4" srcdir="src/java">
+            <!-- Set the classpath -->
+            <classpath>
+                <pathelement path="${java.class.path}"/>
+                <fileset dir="${lib.dir}">
+                        <include name="**/*.jar"/>
+                </fileset>
+            </classpath>
+            <!-- Show deprecation/unchecked operation warnings -->
+            <compilerarg value="-Xlint:deprecation"/>
+            <!-- <compilerarg value="-Xlint:unchecked"/> -->
+         </javac>
+    </target>
+    
+    <target name="run-selected-file" depends="compile" description="Run Single File">
+      <fail unless="runclass">Must set property 'runclass'</fail>
+      <java classname="${runclass}">
+            <!-- Set the classpath -->
+            <classpath>
+                <pathelement path="${java.class.path}"/>
+                <fileset dir="${lib.dir}">
+                        <include name="**/*.jar"/>
+                </fileset>
+                <pathelement location="${classes.dir}"/>
+            </classpath>
+      </java>
+   </target>
+   
+</project>
