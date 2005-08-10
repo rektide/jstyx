@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.36  2005/08/10 18:31:55  jonblower
+ * Bug fixes, plus added synchronous openOrCreate() method
+ *
  * Revision 1.35  2005/08/08 09:36:19  jonblower
  * Minor changes
  *
@@ -545,6 +548,21 @@ public class CStyxFile
     }
     
     /**
+     * Opens or creates this file: if the file exists it will be opened with 
+     * the given mode.  If it does not exist it will be created, provided that
+     * the parent directory exists.  Files will be created with 0666 permissions
+     * and directories with 0777, subject to the permissions of the parent 
+     * directory.  Blocks until the opening or creation is complete
+     */
+    public void openOrCreate(boolean isDirectory, int mode) throws StyxException
+    {
+        StyxReplyCallback callback = new StyxReplyCallback();
+        this.openOrCreateAsync(isDirectory, mode, callback);
+        // Blocks until the process is complete
+        callback.getReply();
+    }
+    
+    /**
      * Closes the file (i.e. clunks the fid). If the fid isn't set, this
      * will do nothing. This sends the Tclunk message but does not wait for a
      * reply (this doesn't matter because the rules of Styx say that the fid
@@ -636,10 +654,10 @@ public class CStyxFile
      */
     public String getContents() throws StyxException
     {
-        boolean wasOpen = true;
-        if (this.mode < 1)
+        boolean wasOpen = false;
+        if (this.isOpen())
         {
-            wasOpen = false;
+            wasOpen = true;
         }
         StringBuffer strBuf = new StringBuffer();
         ByteBuffer buf;
@@ -848,7 +866,8 @@ public class CStyxFile
     }
     
     /**
-     * Gets a file on the same connection as this CStyxFile, without opening it.
+     * Gets a file on the same connection as this CStyxFile, without opening 
+     * or creating it.
      * @param path The path of the file to be opened, <i>relative to this file</i>.
      * @throws InvalidPathException if the path is not valid
      */
@@ -1019,7 +1038,8 @@ public class CStyxFile
      * Uploads data from an InputStream to this file.  If this file does
      * not exist it will be created with rw-rw-rw- (0666) permissions, subject
      * to the permissions of the host directory.  Blocks until the file has been
-     * uploaded, or throws a StyxException if an error occurred.
+     * uploaded, or throws a StyxException if an error occurred.  After the 
+     * upload is complete, the InputStream will <b>not</b> be closed.
      * @param in The InputStream from which to read data to be written to this file
      * @todo Add a flag to prevent overwriting a file if it already exists?
      * @todo Allow a callback to be provided for progress monitoring?
@@ -1038,7 +1058,8 @@ public class CStyxFile
      * to the permissions of the host directory.  When the process is finished,
      * the uploadComplete() event will be fired on all registered
      * CStyxFileChangeListeners.  If an error occurs, the error() event will be
-     * fired on registered change listeners.
+     * fired on registered change listeners. After the 
+     * upload is complete, the InputStream will <b>not</b> be closed.
      * @param in The InputStream from which to read data to be written to this file
      * @todo Add a flag to prevent overwriting a file if it already exists?
      * @todo Allow a callback to be provided for progress monitoring?
@@ -1345,11 +1366,15 @@ public class CStyxFile
     
     public static void main(String[] args) throws Exception
     {
-        StyxConnection conn = new StyxConnection("localhost", 6666);
+        StyxConnection conn = new StyxConnection("localhost", 9876);
         conn.connect();
-        CStyxFile file = conn.getFile("/tmp/test7.txt");
-        file.upload(new java.io.FileInputStream(new java.io.File("C:\\test.log")));
-        System.out.println("upload complete");
+        CStyxFile file = conn.getFile("test");
+        file.open(StyxUtils.OREAD);
+        for (int i = 0; i < 2; i++)
+        {
+            System.out.println(file.getContents());
+        }
+        file.close();
         conn.close();
     }
 }
