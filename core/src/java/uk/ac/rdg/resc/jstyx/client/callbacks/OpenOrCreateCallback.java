@@ -34,7 +34,9 @@ import uk.ac.rdg.resc.jstyx.client.MessageCallback;
 
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.messages.RwalkMessage;
+import uk.ac.rdg.resc.jstyx.messages.RstatMessage;
 import uk.ac.rdg.resc.jstyx.messages.RopenMessage;
+import uk.ac.rdg.resc.jstyx.messages.RcreateMessage;
 
 /**
  * Callback used by CStyxFile.openOrCreateAsync()
@@ -43,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.messages.RopenMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/08/10 18:33:48  jonblower
+ * Bug fixes
+ *
  * Revision 1.1  2005/08/05 13:46:40  jonblower
  * Factored out all callback objects from CStyxFile into separate classes
  *
@@ -70,25 +75,35 @@ public class OpenOrCreateCallback extends MessageCallback
     {
         // We must first find out if this is a file or directory (will also
         // test to see if it exists)
-        if (this.file.getQid() == null)
+        if (this.file.hasFid())
         {
-            this.file.refreshAsync(this);
-        }
-        else
-        {
-            // Check to see if it is the right type of file (i.e. file or
-            // directory)
-            if (this.isDirectory == (this.file.getQid().getType() == 128))
+            // See if we have a Qid, so that we can work out whether this is 
+            // a file or directory
+            if (this.file.getQid() == null)
             {
-                // Now we can open the file
-                this.file.openAsync(this.mode, this);
+                this.file.refreshAsync(this);
             }
             else
             {
-                String errMsg = this.file.getPath() + " already exists as a " +
-                    ((this.file.getQid().getType() == 128) ? "directory" : "file");
-                this.error(errMsg, null);
+                // Check to see if it is the right type of file (i.e. file or
+                // directory)
+                if (this.isDirectory == (this.file.getQid().getType() == 128))
+                {
+                    // Now we can open the file
+                    this.file.openAsync(this.mode, this);
+                }
+                else
+                {
+                    String errMsg = this.file.getPath() + " already exists as a " +
+                        ((this.file.getQid().getType() == 128) ? "directory" : "file");
+                    this.error(errMsg, null);
+                }
             }
+        }
+        else
+        {
+            // We don't have a fid for the file yet
+            this.file.walkFidAsync(this);
         }
     }
 
@@ -96,12 +111,19 @@ public class OpenOrCreateCallback extends MessageCallback
     {
         if (rMessage instanceof RwalkMessage)
         {
+            // We've just successfully walked to the file so we have a fid
+            // and it must exist.  Move to the next stage (checking for existence
+            // of a qid)
+            this.nextStage();
+        }
+        else if (rMessage instanceof RstatMessage)
+        {
             // We've just successfully got the stat of the file, so we have
-            // the qid and it must exist. Move to the next stage (i.e. checking
+            // the qid. Move to the next stage (i.e. checking
             // the file type)
             this.nextStage();
         }
-        if (rMessage instanceof RopenMessage)
+        else if (rMessage instanceof RopenMessage)
         {
             // We've just opened the file.
             if (this.callback != null)
@@ -113,7 +135,7 @@ public class OpenOrCreateCallback extends MessageCallback
                 this.file.fireOpen();
             }
         }
-        else
+        else if (rMessage instanceof RcreateMessage)
         {
             // Must be an RcreateMessage
             if (this.callback != null)
@@ -129,7 +151,7 @@ public class OpenOrCreateCallback extends MessageCallback
 
     public void error(String message, StyxMessage tMessage)
     {
-        if (this.file.getQid() == null)
+        if (!this.file.hasFid())
         {
             // The file does not exist
             int perm = this.isDirectory ? 0777 : 0666;

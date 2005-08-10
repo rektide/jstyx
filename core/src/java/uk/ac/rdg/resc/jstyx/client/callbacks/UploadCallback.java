@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/08/10 18:33:48  jonblower
+ * Bug fixes
+ *
  * Revision 1.1  2005/08/05 13:46:40  jonblower
  * Factored out all callback objects from CStyxFile into separate classes
  *
@@ -117,7 +120,6 @@ public class UploadCallback extends MessageCallback
                     // We've reached EOF. Close the file and notify that
                     // upload is complete.
                     this.file.close();
-                    in.close();
                     if (this.callback == null)
                     {
                         this.file.fireUploadComplete();

@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/08/10 18:33:45  jonblower
+ * Bug fixes
+ *
  * Revision 1.5  2005/08/08 09:36:19  jonblower
  * Minor changes
  *
@@ -68,20 +71,20 @@ public class StyxFileOutputStream extends OutputStream
     
     /**
      * Creates a new StyxFileOutputStream to write data to the given CStyxFile.
-     * This also opens the file for writing, throwing a StyxException if the file
-     * could not be opened.
+     * If the file already exists it will be overwritten.
+     * @todo: Add flag to prevent overwriting in certain cases?
      */
     public StyxFileOutputStream(CStyxFile file) throws StyxException
     {
         this.file = file;
-        this.file.open(StyxUtils.OWRITE);
+        this.file.openOrCreate(false, StyxUtils.OWRITE | StyxUtils.OTRUNC);
         this.buf = new byte[(int)this.file.getIoUnit()];
         this.pos = 0;
         this.offset = 0;
     }
     
     /**
-     * Writes the specified byte to the Styx file.  Must call flush() to 
+     * Writes the specified byte to the Styx file.  Must call flush() to
      * guarantee that the byte is actually written, as it may be held in a 
      * buffer.
      */
@@ -103,10 +106,10 @@ public class StyxFileOutputStream extends OutputStream
      */
     public synchronized void flush() throws IOException
     {
-        // Write the contents of the buffer to the file with truncation
+        // Write the contents of the buffer to the file
         try
         {
-            this.file.write(this.buf, this.offset, true);
+            this.file.write(this.buf, 0, pos, this.offset, true);
         }
         catch(StyxException se)
         {
@@ -117,10 +120,12 @@ public class StyxFileOutputStream extends OutputStream
     }
     
     /**
-     * Closes the file stream (i.e. clunks the fid of the underlying file)
+     * Closes the file stream (i.e. clunks the fid of the underlying file) and
+     * flushes any remaining data to the file.
      */
     public synchronized void close() throws IOException
     {
+        this.flush();
         this.file.close();
     }
 }
