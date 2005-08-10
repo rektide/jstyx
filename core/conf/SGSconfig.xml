@@ -59,13 +59,15 @@
             description="Lattice Boltzmann simulation">
             <streams>
                 <outstream name="stdout"/>
-                <outstream name="stderr"/>
             </streams>
+            <steering>
+                <steerable name="Pressure_gradient_x" file="Pgrad_x.str" initialvalue="0"/>
+            </steering>
             <serviceData>
                 <serviceDataElement name="status" />
                 <serviceDataElement name="exitCode" />
             </serviceData>
-            <inputfiles allowOthers="yes">
+            <inputfiles allowOthers="no">
                 <inputfile path="input.sim"/>
             </inputfiles>
         </gridservice>
