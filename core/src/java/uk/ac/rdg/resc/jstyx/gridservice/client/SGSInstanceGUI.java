@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/08/12 08:08:39  jonblower
+ * Developments to support web interface
+ *
  * Revision 1.17  2005/08/04 16:49:18  jonblower
  * Added and edited upload() methods in CStyxFile
  *
@@ -231,12 +234,9 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
      * Called when we have got the names of the service data elements
      * @param sdeNames The names of the SDEs as a String array
      */
-    public void gotServiceDataNames(String[] sdeNames)
+    public void gotServiceDataElements(CStyxFile[] sdeFiles)
     {
-        this.sdPanel.setServiceDataNames(sdeNames);
-        // Now start reading all the SDEs. When a SDE changes, the 
-        // serviceDataChanged() method will be called
-        this.client.readAllServiceData();
+        this.sdPanel.setServiceDataNames(sdeFiles);
     }
     
     /**
@@ -373,7 +373,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
      */
     public void inputFilesUploaded()
     {
-        this.client.startService();
+        this.client.startServiceAsync();
     }
     
     /**
@@ -622,8 +622,8 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         
         public ParamsPanel()
         {
-            client.readAllParameters();
-            client.getCommandLine();
+            client.readAllParametersAsync();
+            client.getCommandLineAsync();
             this.cmdLineLabel = new JLabel("Command line: ");
         }
         
@@ -859,7 +859,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             }
             else if (e.getSource() == this.btnStop)
             {
-                client.stopService();
+                client.stopServiceAsync();
             }
         }
     }
@@ -886,20 +886,20 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
          * This is called when we have found the children of the service data
          * directory
          */
-        public void setServiceDataNames(String[] sdeNames)
+        public void setServiceDataNames(CStyxFile[] sdeFiles)
         {
-            if (sdeNames.length > 0)
+            if (sdeFiles.length > 0)
             {
                 this.setBorder(BorderFactory.createTitledBorder("Service data"));
                 
                 this.model = new SDTableModel();
                 this.table = new JTable(this.model);
                 this.add(new JScrollPane(this.table));
-                this.model.setSDENames(sdeNames);
+                this.model.setSDENames(sdeFiles);
 
                 // Set the dimensions of the table
                 double width = this.table.getPreferredScrollableViewportSize().getWidth();
-                double height = this.table.getRowHeight() * sdeNames.length;
+                double height = this.table.getRowHeight() * sdeFiles.length;
                 Dimension d = new Dimension();
                 d.setSize(width, height);
                 this.table.setPreferredScrollableViewportSize(d);
@@ -922,9 +922,13 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             private String[] sdeNames;
             private String[] sdeValues;
             
-            public void setSDENames(String[] sdeNames)
+            public void setSDENames(CStyxFile[] sdeFiles)
             {
-                this.sdeNames = sdeNames;
+                this.sdeNames = new String[sdeFiles.length];
+                for (int i = 0; i < sdeFiles.length; i++)
+                {
+                    this.sdeNames[i] = sdeFiles[i].getName();
+                }
                 this.sdeValues = new String[this.sdeNames.length];
                 this.fireTableDataChanged();
             }

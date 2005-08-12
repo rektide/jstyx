@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/08/12 08:08:39  jonblower
+ * Developments to support web interface
+ *
  * Revision 1.10  2005/07/29 11:19:29  jonblower
  * Implemented automatic update of SGS instances in SGS Explorer (and logging)
  *
@@ -217,7 +220,7 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
         {
             // When the new instance has been created, the gotInstances() method
             // will be called
-            this.sgsClient.createNewInstance();
+            this.sgsClient.createNewInstanceAsync();
         }
         else
         {

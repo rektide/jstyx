@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/08/12 08:08:39  jonblower
+ * Developments to support web interface
+ *
  * Revision 1.7  2005/07/06 17:53:43  jonblower
  * Implementing automatic update of SGS instances in SGS Explorer
  *
@@ -87,6 +90,7 @@ public class SGSClient extends CStyxFileChangeAdapter
     private CStyxFile instancesFile; // The special file (behaves like a directory)
                                  // that is read to give the instances of the
                                  // services
+    public String description;   // The short description of this SGS
     private Vector instances;    // Vector of CStyxFiles representing the root of
                                  // each instance
     private boolean gettingInstances;
@@ -109,21 +113,54 @@ public class SGSClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * @return the name of this SGS (i.e. the name of the root CStyxFile)
+     */
+    public String getName()
+    {
+        return this.sgsRoot.getName();
+    }
+    
+    /**
+     * Gets the short description of this Styx Grid Service.  If the description
+     * has not previously been set, this method will sent a message to get the
+     * new description and this method will block until the reply arrives.
+     * @throws StyxException if an error occurs when getting the description from
+     * the server.  Will never be thrown if the description has already been set.
+     */
+    public String getDescription() throws StyxException
+    {
+        if (this.description == null)
+        {
+            CStyxFile descFile = this.sgsRoot.getFile("docs/description");
+            this.description = descFile.getContents();
+        }
+        return this.description;
+    }
+    
+    /**
      * Requests creation of a new instance of the SGS on the server.  When the instance
      * has been created, the gotInstances() event will be fired on all registered
      * change listeners, with the new list of instances for this SGS.
      */
-    public void createNewInstance()
+    public void createNewInstanceAsync()
     {
         this.cloneFile.readAsync(0);
     }
     
     /**
+     * Requests creation of a new instance of the SGS on the server.
+     * @return The ID of the new instance
+     */
+    public String createNewInstance() throws StyxException
+    {
+        return this.cloneFile.getContents();
+    }
+    
+    /**
      * Gets an SGSInstanceClient for the given instance id. This does not create
      * a new instance.
-     * @throws StyxException if the client could not be created
      */
-    public SGSInstanceClient getClientForInstance(String id) throws StyxException
+    public SGSInstanceClient getClientForInstance(String id)
     {
         return new SGSInstanceClient(this.sgsRoot.getFile("instances/" + id));
     }
