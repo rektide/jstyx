@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<faqs title="Frequently Asked Questions">
+
+  <part id="general">
+    <title>General</title>
+   
+    <faq id="whats-jstyx">
+      <question>What is JStyx?</question>
+      <answer>
+        <p>JStyx is a pure-Java implementation of the <a href="http://www.vitanuova.com/inferno/papers/styx.html">Styx</a>
+        protocol for distributed systems. Styx is used by the <a href="http://www.vitanuova.com/inferno/">Inferno</a>
+        and <a href="http://www.cs.bell-labs.com/plan9dist/">Plan9</a> operating systems.
+        Styx is essentially a file-sharing protocol; it is similar in many respects to NFS but
+        in Styx systems, files do not always represent bytes on the hard disk. They may represent
+        a chunk of RAM, a physical device such as the screen, the interface to a device such as a
+        digital camera or the interface to a program.</p>
+        <p>Both the Inferno and Plan9 operating system virtualize all resources as files and
+        both use Styx as the protocol for accessing all these files, irrespective of the
+        underlying resource they represent and their location (local or remote).  Applications
+        in Inferno and Plan9 do not know the difference between local and remote files: the
+        underlying operating system routes all Styx messages to the correct location.
+        Therefore the creation of distributed systems with Inferno and Plan9 is very
+        easy. The idea behind JStyx is to allow similarly easy development of distributed
+        applications in other operating systems.</p>
+      </answer>
+    </faq>
+
+    <faq id="whats-it-for">
+      <question>What can I use JStyx for?</question>
+      <answer>
+        <p>There are several potential uses of JStyx in the field of distributed
+        systems:
+        <ul>
+          <li>Java interface to Inferno/Plan9 systems (e.g. web interface to Inferno Grid)</li>
+          <li>Standalone clients and servers (e.g. messaging systems). See JStyx tutorial.</li>
+          <li>Styx Grid Services.  See SGS tutorial.</li>
+        </ul>
+        </p>
+      </answer>
+    </faq>
+    
+    <faq id="why-jstyx">
+      <question>Why should I use JStyx for my distributed system?</question>
+      <answer>
+        <p>Lots of reasons:
+        <ul>
+          <li>Lightweight - Styx messages are very short and add little bloat to the payload</li>
+          <li>Firewall-friendly</li>
+          <li>Data streaming</li>
+          <li>Built on robust framework (MINA)</li>
+          <li>Platform independence</li>
+          <li>Secure (in future!)</li>
+          <li>Comparison with Web Services...</li>
+        </ul>
+        </p>
+      </answer>
+    </faq>
+    
+    <faq id="help">
+      <question>Where can I go for help?</question>
+      <answer>
+        <p>The first place to go for information is the <a href="http://jstyx.sf.net">JStyx website</a>,
+        which is where you are probably reading this FAQ ;-).  You can join the 
+        <a href="mail-lists.html">mailing lists</a>: the jstyx-users
+        mailing list is the one to use for posting questions about all aspects of the use of JStyx.
+        Please check the <a href="http://sourceforge.net/mailarchive/forum.php?forum=jstyx-users">archives</a>
+        (and read through this FAQ!) before posting a new question.</p>
+      </answer>
+    </faq>
+  </part>
+  
+  <part id="install">
+    <title>Download and installation</title>
+   
+    <faq id="how-install">
+      <question>How do I install JStyx?</question>
+      <answer>
+        <p>See the instructions <a href="downloads.html">here</a>.</p>
+      </answer>
+    </faq>
+    
+    <faq id="licence">
+      <question>What is the licence?</question>
+      <answer>
+        <p>The JStyx software is released under a BSD-style Open Source licence: see
+        <a href="license.html">here</a> for the full licence text.  Essentially
+        you are allowed to do anything with the software, provided that you include
+        the licence text with any redistribution.</p>
+      </answer>
+    </faq>
+  </part>
+  
+  <part id="specific-points">
+    <title>Specific points</title>
+    
+    <faq id="data-streaming">
+      <question>I've heard of people using JStyx in workflows to allow data
+      to be streamed directly...</question>
+      <answer>
+        <p>Goes here</p>
+      </answer>
+    </faq>
+  </part>
+  
+</faqs>

@@ -19,5 +19,9 @@
       and <a href="http://www.cs.bell-labs.com/plan9dist/">Plan9</a> operating systems.
       It is essentially a file-sharing protocol, similar in many respects to NFS.</p>
     </section>
+    
+    <section name="More information">
+      <p>The <a href="faq.html">FAQs</a> are a good place to start for more information.</p>
+    </section>
   </body>
 </document>
