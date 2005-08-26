@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author     : Jon Blower
+    Last modified $Date$ by $Author$
+    Description:
+        Example configuration file for setting up Styx Grid Services
+        Here's a useful DTD tutorial: http://www.zvon.org/xxl/DTDTutorial/General/contents.html
+-->
+
+<!DOCTYPE sgs SYSTEM "SGSconfig.dtd">
+
+<sgs>
+
+    <!-- Configuration of the server -->
+    <!-- TODO: configure max message size here? -->
+    <server port="9092">
+        <!-- TODO: will set SSL parameters in here (server cert location, cipher
+             suites, client authentication, acceptable client certs, etc) -->
+        <ssl activated="no">
+            <keystore location="C:\bogus.cert"/>
+        </ssl>
+        <!-- TODO: will set proxy settings etc here -->
+    </server>
+    
+    <gridservices root="C:\StyxGridServices">
+        
+        <gridservice name="dirlisting" command="dir c:\"
+            description="Lists contents of C: drive">
+            <streams>
+                <outstream name="stdout"/>
+                <outstream name="stderr"/>
+            </streams>
+            <serviceData>
+                <serviceDataElement name="status" />
+                <serviceDataElement name="exitCode" />
+            </serviceData>
+        </gridservice>
+        
+    </gridservices>
+
+</sgs>

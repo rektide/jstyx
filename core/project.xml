@@ -42,20 +42,20 @@
     <organization>
         <name>Reading e-Science Centre</name>
         <url>http://www.resc.rdg.ac.uk/</url>
-        <logo>images/resc_logo.jpg</logo>
+        <logo>http://www.resc.rdg.ac.uk/images/resc_logo.jpg</logo>
     </organization>
     <!-- the year the project started -->
     <inceptionYear>2004</inceptionYear>
     <package>uk.ac.rdg.resc.jstyx</package>
-    <logo>http://maven.apache.org/images/maven.jpg</logo>
+    <logo>/images/JStyx_logo.png</logo>
     <description>Implements Styx protocol and the Styx Grid Service in Java</description>
     <!-- a short description of what the project does -->
     <shortDescription>Java implementation of the Styx protocol</shortDescription>
     <!-- the project home page -->
     <url>http://jstyx.sf.net/</url>
     <issueTrackingUrl>http://sourceforge.net/tracker/?group_id=131424</issueTrackingUrl>
-    <siteAddress>jakarta.apache.org</siteAddress>
-    <siteDirectory>/www/maven.apache.org/reference/plugins/examples/</siteDirectory>
+    <siteAddress>shell.sf.net</siteAddress>
+    <siteDirectory>/home/groups/j/js/jstyx/htdocs/</siteDirectory>
     <licenses>
         <license>
             <name>BSD</name>
@@ -159,8 +159,8 @@
     </build>
     <reports>
         <report>maven-license-plugin</report>
-        <report>maven-javadoc-plugin</report>
-        <report>maven-jxr-plugin</report>
+        <!--<report>maven-javadoc-plugin</report>
+        <report>maven-jxr-plugin</report>-->
         <report>maven-tasklist-plugin</report>
         <report>maven-faq-plugin</report>
     </reports>

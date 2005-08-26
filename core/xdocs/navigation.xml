@@ -7,18 +7,24 @@
         <links>
             <item name="ReSC" href="http://www.resc.rdg.ac.uk/"/>
             <item name="Inferno" href="http://www.vitanuova.com/inferno"/>
+            <item name="PDF" href="jstyx.pdf" img="images/pdf.gif"/>
         </links>
 
         <menu name="JStyx">
             <item name="Overview" href="index.html"/>
             <item name="Downloads" href="downloads.html"/>
             <item name="FAQs" href="faq.html"/>
+            <item name="Tutorial" href="tutorial.html" collapse="true">
+                <item name="1. First Styx system" href="tutorial_1.html" collapse="true"/>
+                <item name="2. Blocking files" href="tutorial_2.html" collapse="true"/>
+                <item name="3. Streams" href="tutorial_3.html" collapse="true"/>
+            </item>
         </menu>
         
         <menu name="Styx Grid Services">
             <item name="Tutorial" href="sgs/tutorial.html" collapse="true">
                 <item name="Tutorial 1" href="sgs/tutorial_1.html" collapse="true"/>
-                <item name="Tutorial 2" href="sgs/tutorial_1.html" collapse="true"/>
+                <item name="Tutorial 2" href="sgs/tutorial_2.html" collapse="true"/>
             </item>
         </menu>
 		
@@ -27,6 +33,9 @@
             <item name="Source code" href="xref/index.html" target="_blank"/>
             <!-- <item name="Source code (SVN)" href="http://svn.apache.org/viewcvs.cgi/directory/network/mina/trunk/?root=Apache-SVN" target="_blank"/> -->
         </menu>
+        
+        <search/>
+        
     </body>
     
 </project>
