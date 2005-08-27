@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>JStyx Tutorial 2: Next Steps</title>
+  </properties>
+
+  <body>
+		
+    <section name="Next steps">
+    <p>
+    In the <a href="FirstStyxSystem.html">first section</a> of this tutorial,
+    we created a very simple Styx system which exposed a single file, an 
+    <a href="xref/uk/ac/rdg/resc/jstyx/server/InMemoryFile.html">InMemoryFile</a>
+    that simply represented a section of RAM.  In this tutorial we will create
+    a more complex namespace that includes many different resources that are 
+    exposed as Styx files.
+    </p>
+    </section>
+    
+    <section name="More file types">
+      <subsection name="Files on disk">
+      <p>
+      As you might expect, it is easy to represent a file on the local filesystem
+      as a Styx file.  We do this using the <a href="xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
+      class that is provided with the JStyx library.  As with all files that can be
+      exposed in a Styx namespace, the <a href="xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
+      class inherits from the <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
+      class.  Creating a <a href="xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
+      is very easy: the <a href="xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">source code</a>
+      contains all the possible constructors, but the easiest way is simply to 
+      use the full path of the file, for example:
+      <source>
+      FileOnDisk localFile = new FileOnDisk("C:\\myfolder\\myfile");
+      </source>
+      </p>
+      <p>
+      Directories on disk...
+      </p>
+      </subsection>
+      
+      <subsection name="Custom files">
+        <p>
+        Any resource can be represented as a file (or files) on a Styx system.
+        Essentially, all you need to do is decide what behaviour the file will
+        exhibit when you read from or write to it.  (In more advanced systems, 
+        special behaviours can be assigned to other file operations such as
+        "open".)  Let's create a file that, when read, will return the IP address
+        and port number of the client that is making the connection.  This file will therefore
+        return data that is different for each client that is connected.  We'll call
+        this class "WhoAmI".
+        </p>
+        <p>
+        As always, we need to subclass the <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
+        class.
+        </p>
+      </subsection>      
+    </section>
+    
+  </body>
+</document>

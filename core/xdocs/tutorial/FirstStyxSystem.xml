@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>JStyx Tutorial 1: First Styx system</title>
+  </properties>
+
+  <body>
+		
+    <section name="Your first Styx system">
+      <p>
+      In this tutorial you will create a basic Styx server and client. This will
+      introduce you to the main classes of the JStyx software and how they are used.
+      </p>
+      <subsection name="A very simple Styx server">
+        <p>
+        We will create a Styx server that serves up a single file.  The contents
+        of the file are held in memory on the server.  The namespace of this 
+        system is extremely simple:
+        <source>
+           /      <em>(The root of the namespace)</em>
+           |
+         readme   <em>(The only file exposed by the server)</em>
+        </source>
+        </p>
+        <p>
+        The full source is contained in the <a href="xref/uk/ac/rdg/resc/jstyx/tutorial/SimpleServer.html">SimpleServer</a>
+        class, but these are the important lines (see full source for comments):
+        </p>
+        <source>
+        StyxDirectory root = new StyxDirectory("/");
+        InMemoryFile file = new InMemoryFile("readme");
+        file.setContents("hello");
+        root.addChild(file);
+        new StyxServer(9876, root).start();
+        </source>
+        <p>
+        In these five lines, we create a root directory for the namespace, then
+        create and add a file with the name "readme" that contains the string
+        "hello".  Note that the file is an <a href="xref/uk/ac/rdg/resc/jstyx/server/InMemoryFile.html">InMemoryFile</a>,
+        which is an instance of the general superclass for all files on a Styx server,
+        <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>. 
+        Finally, we create and start a Styx server, passing it the root of the
+        namespace.
+        </p>
+        <p>
+        You can run the server by changing to the <code>bin</code> directory of your
+        JStyx installation and running:
+        </p>
+        <source>
+        JStyxRun uk.ac.rdg.resc.jstyx.tutorial.SimpleServer
+        </source>
+        <p>
+        (The JStyxRun script sets up the classpath, then runs the main method of the
+        provided class.)  You will probably see some logging messages printed to 
+        the console.
+        </p>
+      </subsection>
+      <subsection name="A very simple Styx client">
+        <p>It is just as simple to write a client program that can read the contents
+        of the file exposed on the server.  The full source is in the 
+        <a href="xref/uk/ac/rdg/resc/jstyx/tutorial/SimpleClient.html">SimpleClient</a>
+        class, but these are the most important lines:
+        </p>
+        <source>
+        StyxConnection conn = new StyxConnection("localhost", 9876);
+        conn.connect();
+        CStyxFile readmeFile = conn.getFile("readme");
+        System.out.println(readmeFile.getContents());
+        conn.close();
+        </source>
+        <p>
+        We create a <a href="xref/uk/ac/rdg/resc/jstyx/client/StyxConnection.html">StyxConnection</a>
+        to the server and call the <code>connect()</code> method to make the connection
+        and perform the relevant handshaking.  (Note that you might need to edit
+        the hostname and port to suit your system.)  We then get a handle to the "readme"
+        file: this handle is an instance of the <a href="xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>
+        class.  (The "C" means "Client", to avoid confusion with the server-side
+        <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a> class.)
+        We read the contents of the file as a String, then print them out.
+        Finally, we close the connection.
+        </p>
+        <p>
+        You can run the client by changing to the <code>bin</code> directory of your
+        JStyx installation and running:
+        </p>
+        <source>
+        JStyxRun uk.ac.rdg.resc.jstyx.tutorial.SimpleClient
+        </source>
+        <p>
+        You should see the string "hello" printed out, perhaps in amongst some
+        logging messages.
+        </p>
+      </subsection>
+    </section>
+    
+    <section name="Summary">
+      <p>
+      In this section of the tutorial, we have created a simple Styx server and
+      client and have passed some data between them.  From the server point of view,
+      the key classes are <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>,
+      which is the superclass for all virtual files on a Styx server, and the
+      <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxServer.html">StyxServer</a>
+      class itself.  In client-side code, the most important classes are the
+      <a href="xref/uk/ac/rdg/resc/jstyx/client/StyxConnection.html">StyxConnection</a>
+      class, which represents the connection to the server, and the 
+      <a href="xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>
+      class, which we use to interact with files on the server.
+      </p>
+      <p>
+      In the <a href="NextSteps.html">next section</a> of the tutorial we will
+      look at some different types of <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>.
+      </p>
+    </section>
+  </body>
+</document>

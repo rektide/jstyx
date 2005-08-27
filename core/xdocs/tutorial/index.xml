@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>JStyx Tutorial Introduction</title>
+  </properties>
+
+  <body>
+  
+    <section name="Tutorial Introduction">
+      <p>
+      This tutorial will guide you through the process of creating distributed
+      applications using the JStyx library.  We will start with very simple systems
+      and build up to more complex ones, showing how even quite sophisticated
+      applications can be created with little effort.
+      </p>
+      <subsection name="Basic concepts">
+        <p>
+        As you may be aware, in Styx systems <em>all</em> resources are represented
+        as one or more virtual files.  These resources may be literal files on disk,
+        chunks of RAM, databases, physical devices or interfaces to programs.
+        A Styx server may serve up any number of files
+        in a hierarchical fashion, very much like a filesystem on a hard disk.  In Styx,
+        this hierarchy of virtual files is called a <em>namespace</em>.
+        </p>
+        <p>
+        In essence, the creation of a Styx server is very simple. You assemble
+        a hierachy of files and directories, then run a server program that listens
+        for connections on a given port.  Clients can then make connections to this
+        server and perform standard file operations on the files in the namespace that
+        the server is exposing.  Most of these file operations will be very familiar:
+        opening and reading files and directories, creating new files, writing and
+        appending to existing files and so forth.  All these operations are handled
+        using high-level API calls in the JStyx library and you will never need to
+        know the nuts and bolts of the Styx protocol.  (If you do want to know
+        more about the Styx specification, see <a href="http://www.vitanuova.com/inferno/man/5/INDEX.html">
+        http://www.vitanuova.com/inferno/man/5/INDEX.html</a>).
+        </p>
+      </subsection>
+      <subsection name="Tutorial contents">
+      <p>
+      You can follow this tutorial online or, if you
+      prefer to work from a printed copy, you can download a <a href="../jstyx.pdf">PDF version</a>
+      of this entire website.  The tutorial sections are:
+      <ul>
+        <li><a href="FirstStyxSystem.html">Your first Styx system</a></li>
+        <li><a href="NextSteps.html">Next steps: exploring more types of StyxFile</a></li>
+      </ul>
+      (more sections will follow soon!)
+      </p>
+      </subsection>
+    </section>
+  </body>
+</document>
