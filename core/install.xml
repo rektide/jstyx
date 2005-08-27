@@ -91,6 +91,8 @@
             <description>The documentation</description>
             <!-- TODO: should we add the docs to src/docs, or move the docs from src/ in the first place? -->
             <fileset dir="src/docs" targetdir="$INSTALL_PATH/docs"/> <!-- Recursive adding -->
+            <!-- Add the PDF file that contains the entire contents of the website -->
+            <file src="target/docs/jstyx.pdf" targetdir="$INSTALL_PATH/docs"/>
         </pack>
             <pack name="SGS client" required="no">
             <description>Scripts to launch Styx Grid Service client programs (e.g. SGSExplorer)</description>

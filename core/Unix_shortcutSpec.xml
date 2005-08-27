@@ -40,6 +40,23 @@
       initialState="normal">
       <createForPack name="SGS server"/>
     </shortcut>
+    
+    <shortcut
+      name="JStyx documentation"
+      programGroup="yes"
+      desktop="no"
+      applications="no"
+      startMenu="yes"
+      startup="no"
+      target="$INSTALL_PATH/docs/jstyx.pdf"
+      type="Application"
+      commandLine=""
+      description="PDF of project website"
+      workingDirectory=""
+      iconIndex="0"
+      iconFile="help"
+      initialState="noShow">
+    </shortcut>
 	
     <shortcut
       name="JStyx website"
