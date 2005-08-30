@@ -70,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.client.StyxConnectionListener;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/08/30 16:27:20  jonblower
+ * Made sure graphical operations operate on the contentPane, not directly on the JFrame
+ *
  * Revision 1.7  2005/05/26 16:51:40  jonblower
  * Minor change to dialog box contents
  *
@@ -111,7 +114,7 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
     
     private void init()
     {
-        this.setLayout(new BorderLayout());
+        this.getContentPane().setLayout(new BorderLayout());
         this.setSize(200, 500);
         this.createMenus();
         this.createStatusBar();
@@ -134,7 +137,7 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
         JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
             new JScrollPane(this.tree), new JScrollPane(this.propsPanel));
         
-        this.add(split, BorderLayout.CENTER);
+        this.getContentPane().add(split, BorderLayout.CENTER);
         //this.pack();
     }
     
@@ -149,7 +152,6 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
         serviceMenu.setMnemonic(KeyEvent.VK_S);
         
         JMenuItem connectItem = new JMenuItem("Connect to server...");
-        // TODO: Ctrl-C should be "copy"?
         connectItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
             ActionEvent.CTRL_MASK));
         connectItem.addActionListener(new ActionListener()
