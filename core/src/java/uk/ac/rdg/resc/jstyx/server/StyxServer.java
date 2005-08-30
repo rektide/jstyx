@@ -53,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/08/30 16:28:23  jonblower
+ * Subsumed TestServer program into StyxServer class
+ *
  * Revision 1.6  2005/05/05 16:57:38  jonblower
  * Updated MINA library to revision 168337 and changed code accordingly
  *
@@ -171,5 +174,66 @@ public class StyxServer
         
         log.info( "Listening on port " + this.port + ", SSL " +
             (this.sslContext == null ? "disabled" : "enabled"));
+    }
+    
+    /**
+     * Simple test Styx server that exposes the contents of a local directory.
+     * The TestServer takes two arguments, both optional.  The first is the
+     * port number under which the server will listen (defaults to 8080 if
+     * not set). The second is the directory in the host filesystem which
+     * will be at the root of the Styx server. This defaults to the user's
+     * home directory (i.e. the output of System.getProperty("user.home"))
+     * if not set.
+     */
+    public static void main(String[] args) throws Throwable
+    {
+        // Set the default port and root directory of the server
+        int port = 8080;
+        // Default root directory is the user's home directory
+        String home = System.getProperty("user.home");
+        // Use SSL if there is a third command-line argument
+        boolean useSSL = false;
+        
+        if (args.length > 0)
+        {
+            try
+            {
+                port = Integer.parseInt(args[0]);
+            }
+            catch (NumberFormatException nfe)
+            {
+                System.err.println(args[0] + " is not a valid port number");
+                return;
+            }
+        }
+        if (args.length > 1)
+        {
+            home = args[1];
+        }
+        if (args.length > 2)
+        {
+            // TODO: perhaps this third argument should be something specific...
+            useSSL = true;
+        }
+        if (args.length > 3)
+        {
+            System.err.println("Usage: TestServer [port] [root directory] [use SSL]");
+            return;
+        }
+        
+        // Set up the file tree
+        System.out.println("Building directory tree (this can take some time)");
+        StyxDirectory root = new DirectoryOnDisk(home);
+        
+        // Set the SSL settings, using a default keystore for now
+        SSLContext sslContext = null;
+        if (useSSL)
+        {
+            sslContext = JonSSLContextFactory.getInstance(true, "C:\\bogus.cert");
+        }
+        
+        // Set up the server and start it
+        StyxServer server = new StyxServer(port, root, sslContext);
+        server.start();
     }
 }

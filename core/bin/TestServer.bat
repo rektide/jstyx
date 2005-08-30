@@ -1,3 +1,3 @@
 @echo off
 
-call JStyxRun uk.ac.rdg.resc.jstyx.examples.TestServer %*
+call JStyxRun uk.ac.rdg.resc.jstyx.server.StyxServer %*
