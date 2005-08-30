@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/08/30 16:29:40  jonblower
+ * Minor update to comments
+ *
  * Revision 1.11  2005/05/10 19:17:54  jonblower
  * Added dispose() method
  *
@@ -150,7 +153,8 @@ public class RreadMessage extends StyxMessage
     }
     
     /**
-     * Creates an RreadMessage from the given org.apache.mina.common.ByteBuffer
+     * Creates an RreadMessage from the given org.apache.mina.common.ByteBuffer.
+     * The position and limit of the buffer must be set correctly.
      */
     public RreadMessage(ByteBuffer data)
     {
