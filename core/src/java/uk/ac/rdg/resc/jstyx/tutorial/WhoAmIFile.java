@@ -44,15 +44,18 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.1  2005/08/30 09:50:48  jonblower
+ * Renamed "WhoAmI" to "WhoAmIFile"
+ *
  * Revision 1.1  2005/08/30 08:01:48  jonblower
  * Continuing development of tutorial
  *
  */
-public class WhoAmI extends StyxFile
+public class WhoAmIFile extends StyxFile
 {
     
-    /** Creates a new instance of WhoAmI */
-    public WhoAmI() throws StyxException
+    /** Creates a new instance of WhoAmIFile */
+    public WhoAmIFile() throws StyxException
     {
         super("whoami");
     }
@@ -90,16 +93,14 @@ public class WhoAmI extends StyxFile
     }
     
     /**
-     * Simple test function: sets up a StyxServer that serves up a WhoAmI file
+     * Simple test function: sets up a StyxServer that serves up a WhoAmIFile
      */
     public static void main (String[] args) throws Exception
     {
         // Create the root directory
         StyxDirectory root = new StyxDirectory("/");
-        // Create an InMemoryFile called "readme", whose contents are stored in RAM
-        WhoAmI file = new WhoAmI();
-        // Add the file to the root directory
-        root.addChild(file);
+        // Create a WhoAmI file and add it to the root directory
+        root.addChild(new WhoAmIFile());
         // Create and start a Styx server, listening on port 9876
         new StyxServer(9876, root).start();
     }
