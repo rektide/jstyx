@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/08/30 16:29:00  jonblower
+ * Added processAndReplyRead() helper functions to StyxFile
+ *
  * Revision 1.4  2005/03/24 09:48:31  jonblower
  * Changed 'count' from long to int throughout for reading and writing
  *
@@ -76,20 +79,7 @@ class SDEFile extends StyxFile
         throws StyxException
     {
         byte[] bytes = this.sde.getBytes();
-        if ((int)offset >= bytes.length)
-        {
-            // Send zero bytes back
-            this.replyRead(client, new byte[0], tag);
-        }
-        else
-        {
-            int numBytes = (int)count; // the number of bytes to send
-            if (numBytes > bytes.length - (int)offset)
-            {
-                numBytes = bytes.length - (int)offset;
-            }
-            this.replyRead(client, bytes, (int)offset, numBytes, tag);
-        }
+        this.processAndReplyRead(bytes, client, offset, count, tag);
     }
 
     /**

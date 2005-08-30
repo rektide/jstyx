@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2005/08/30 16:29:00  jonblower
+ * Added processAndReplyRead() helper functions to StyxFile
+ *
  * Revision 1.16  2005/07/06 17:42:47  jonblower
  * Changed getUniqueID() to be based on creation time in addition to file name
  *
@@ -677,6 +680,93 @@ public class StyxFile
     protected void clientDisconnected(StyxFileClient client)
     {
         return;
+    }
+    
+    /**
+     * Method for processing a read request and replying appropriately to the
+     * client, based on the contents of the file.  This method is used
+     * for StyxFiles whose contents can be represented as a String (i.e. fairly
+     * short files).
+     * @param fileContents String representing the <b>entire contents</b> of 
+     * the file.
+     * @param client the StyxFileClient making the request
+     * @param offset the index of the first byte in the file to return to the client
+     * @param count the maximum number of bytes to return to the client
+     * @param tag the tag of the incoming read message
+     */
+    public void processAndReplyRead(String fileContents, StyxFileClient client,
+        long offset, int count, int tag)
+    {
+        // Convert the string to bytes using the UTF-8 character set
+        byte[] bytes = StyxUtils.strToUTF8(fileContents);
+        this.processAndReplyRead(bytes, client, offset, count, tag);
+    }
+    
+    /**
+     * Method for processing a read request and replying appropriately to the
+     * client, based on the contents of the file.  This method is used
+     * for StyxFiles whose contents can be represented as a byte array.
+     * @param fileContents Byte array representing the <b>entire contents</b> of 
+     * the file.
+     * @param client the StyxFileClient making the request
+     * @param offset the index of the first byte in the file to return to the client
+     * @param count the maximum number of bytes to return to the client
+     * @param tag the tag of the incoming read message
+     */
+    public void processAndReplyRead(byte[] fileContents, StyxFileClient client,
+        long offset, int count, int tag)
+    {
+        // Check to see if the offset is beyond the end of the file
+        if (offset >= fileContents.length)
+        {
+            // The client has reached end-of-file.  Return no bytes.
+            this.replyRead(client, new byte[0], tag);
+        }
+        else
+        {
+            // Calculate the number of bytes to return to the client 
+            int numBytesToReturn = Math.min(fileContents.length - (int)offset, count);
+            // Now reply to the client
+            this.replyRead(client, fileContents, (int)offset, numBytesToReturn, tag);
+        }
+    }
+    
+    /**
+     * Method for processing a read request and replying appropriately to the
+     * client, based on the contents of the file.  This method is used
+     * for StyxFiles whose contents can be represented as a ByteBuffer.
+     * @param fileContents ByteBuffer representing the <b>entire contents</b> of 
+     * the file. The position and limit of this buffer will be unchanged by this
+     * method.  This can be null: in this case all read requests will return zero bytes.
+     * @param client the StyxFileClient making the request
+     * @param offset the index of the first byte in the file to return to the client
+     * @param count the maximum number of bytes to return to the client
+     * @param tag the tag of the incoming read message
+     */
+    public void processAndReplyRead(ByteBuffer fileContents, StyxFileClient client,
+        long offset, int count, int tag)
+    {
+        if (fileContents == null || offset >= fileContents.limit())
+        {
+            // Attempt to read off the end of the file, or no data have yet
+            // been written to the file
+            this.replyRead(client, new byte[0], tag);
+        }
+        else
+        {
+            int numBytesToReturn = Math.min(fileContents.limit() - (int)offset, count);
+            // Remember the position and limit of the buffer
+            int oldPos = fileContents.position();
+            int oldLimit = fileContents.limit();
+            // Set the position and limit of the buffer so that the correct bytes
+            // get returned
+            fileContents.position((int)offset);
+            fileContents.limit((int)offset + numBytesToReturn);
+            this.replyRead(client, fileContents, tag);
+            // Reset the buffer position and limit
+            fileContents.position(oldPos);
+            fileContents.limit(oldLimit);
+        }
     }
     
     /**

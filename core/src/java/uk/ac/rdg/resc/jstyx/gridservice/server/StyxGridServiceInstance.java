@@ -64,6 +64,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.26  2005/08/30 16:29:00  jonblower
+ * Added processAndReplyRead() helper functions to StyxFile
+ *
  * Revision 1.25  2005/08/02 16:45:20  jonblower
  * *** empty log message ***
  *
@@ -539,14 +542,7 @@ class StyxGridServiceInstance extends StyxDirectory
         {
             // TODO: a bit inefficient to create the command line from scratch
             // each time, but this won't be called much anyway
-            byte[] bytes = StyxUtils.strToUTF8(getCommandLine());
-            if (offset > bytes.length)
-            {
-                this.replyRead(client, new byte[0], tag);
-            }
-            int bytesToReturn = (bytes.length - (int)offset) > count ? count :
-                (bytes.length - (int)offset);
-            this.replyRead(client, bytes, (int)offset, bytesToReturn, tag);
+            this.processAndReplyRead(getCommandLine(), client, offset, count, tag);
         }
         
         // TODO: Shall we allow direct writing to this file?  This might either
@@ -751,20 +747,7 @@ class StyxGridServiceInstance extends StyxDirectory
         public void read(StyxFileClient client, long offset, int count, int tag)
             throws StyxException
         {
-            byte[] bytesToReturn = new byte[0];
-            int pos = 0; // The position of the first byte to return to the client
-            int n = 0; // The number of bytes to return to the client
-            if (inputURL != null)
-            {
-                bytesToReturn = StyxUtils.strToUTF8(inputURL.toString());
-                if (offset < bytesToReturn.length)
-                {
-                    // Calculate the number of bytes to return
-                    pos = (int)offset;
-                    n = Math.min(bytesToReturn.length - (int)offset, count);
-                }
-            }
-            this.replyRead(client, bytesToReturn, pos, n, tag);
+            this.processAndReplyRead(inputURL.toString(), client, offset, count, tag);
         }
         
         /**

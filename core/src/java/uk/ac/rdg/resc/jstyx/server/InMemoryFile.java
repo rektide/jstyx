@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2005/08/30 16:29:00  jonblower
+ * Added processAndReplyRead() helper functions to StyxFile
+ *
  * Revision 1.15  2005/08/30 08:01:47  jonblower
  * Continuing development of tutorial
  *
@@ -149,20 +152,7 @@ public class InMemoryFile extends StyxFile
     public synchronized void read(StyxFileClient client, long offset, int count,
         int tag) throws StyxException
     {
-        if (this.buf == null || offset >= this.buf.limit())
-        {
-            // Attempt to read off the end of the file, or no data have yet
-            // been written to the file
-            this.replyRead(client, new byte[0], tag);
-            return;
-        }
-        int numBytesToReturn = Math.min(this.buf.limit() - (int)offset, count);
-        // Must create a copy of the data to return to the client
-        // TODO: Must we? Can't we just set the buffer position appropriately?
-        byte[] bytes = new byte[numBytesToReturn];
-        this.buf.position((int)offset);
-        this.buf.get(bytes);
-        this.replyRead(client, bytes, tag);
+        this.processAndReplyRead(this.buf, client, offset, count, tag);
     }
     
     public synchronized void write(StyxFileClient client, long offset,
