@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/08/30 08:01:47  jonblower
+ * Continuing development of tutorial
+ *
  * Revision 1.14  2005/07/06 17:38:59  jonblower
  * Minor changes
  *
@@ -155,6 +158,7 @@ public class InMemoryFile extends StyxFile
         }
         int numBytesToReturn = Math.min(this.buf.limit() - (int)offset, count);
         // Must create a copy of the data to return to the client
+        // TODO: Must we? Can't we just set the buffer position appropriately?
         byte[] bytes = new byte[numBytesToReturn];
         this.buf.position((int)offset);
         this.buf.get(bytes);

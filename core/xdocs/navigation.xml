@@ -16,7 +16,8 @@
             <item name="FAQs" href="faq.html"/>
             <item name="Tutorial" href="tutorial/index.html" collapse="false">
                 <item name="1. First Styx system" href="tutorial/FirstStyxSystem.html"/>
-                <item name="2. Next steps" href="tutorial/NextSteps.html"/>
+                <item name="2. Custom files" href="tutorial/CustomFiles.html"/>
+                <item name="3. Next steps" href="tutorial/NextSteps.html"/>
                 <!--<item name="3. Blocking files" href="tutorial/tutorial_3.html" collapse="true"/>
                 <item name="4. Streams" href="tutorial/tutorial_4.html" collapse="true"/>
                 <item name="5. Simple chat application" href="tutorial/tutorial_5.html" collapse="true"/>-->
