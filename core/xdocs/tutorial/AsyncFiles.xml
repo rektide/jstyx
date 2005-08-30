@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>JStyx Tutorial: Asynchronous files</title>
+  </properties>
+
+  <body>
+		
+    <section name="Blocking files">
+    <p>
+    An important concept in Styx is that, when a client sends a message to read
+    from (or write to) a file, the reply need not be sent immediately.  TO BE 
+    CONTINUED.
+    </p>
+    </section>
+    
+  </body>
+</document>

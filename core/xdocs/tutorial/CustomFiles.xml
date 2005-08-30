@@ -2,7 +2,7 @@
 <document>
   <properties>
     <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
-    <title>JStyx Tutorial 2: Custom files</title>
+    <title>JStyx Tutorial: Custom files</title>
   </properties>
 
   <body>
@@ -12,9 +12,9 @@
         <p>
         In the <a href="FirstStyxSystem.html">first section</a> of this tutorial,
         we created a very simple Styx system which exposed a single file, an 
-        <a href="xref/uk/ac/rdg/resc/jstyx/server/InMemoryFile.html">InMemoryFile</a>
+        <a href="../xref/uk/ac/rdg/resc/jstyx/server/InMemoryFile.html">InMemoryFile</a>
         that simply represented a section of RAM.  Similarly, the
-        <a href="xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
+        <a href="../xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
         class is used to create a Styx file that represents a literal file on the local filesystem.
         The key to creating powerful distributed systems using Styx is to design and
         construct new types of virtual files that exhibit the correct behaviour.
@@ -22,37 +22,41 @@
         <p>
         In this section of the tutorial, you will learn how to create customized
         virtual files.  In essence, this simply involves creating a subclass of the
-        <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a> class
+        <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a> class
         and overriding key methods such as <code>read()</code> and <code>write()</code>.
         </p>
       </subsection>
       
       <subsection name="Custom file 1: WhoAmI">
+        <p>
         For our first example, let's create a file that, when read, will return the IP address
         and port number of the client that is making the connection.  This file will therefore
         return data that is different for each client that is connected.  This will be a
-        read-only file.  We'll call this class "WhoAmI".  (See the full source code of the 
-        WhoAmI class, including full comments, <a href="xref/uk/ac/rdg/resc/jstyx/tutorial/WhoAmI.html">here</a>.)
+        read-only file.  We'll call this class "WhoAmIFile".  (See the full source code of the 
+        WhoAmIFile class, including full comments, <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/WhoAmIFile.html">here</a>.)
         </p>
         <p>
-        As always, we need to subclass the <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
+        As always, we need to subclass the <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
         class:
         <source>
-        public class WhoAmI extends StyxFile
+        public class WhoAmIFile extends StyxFile
         </source>
-        Note that the <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
+        Note that the <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
         class is not abstract: it provides methods to give (not very useful) default
         behaviour.  Now we need to create a constructor:
         <source>
-        public WhoAmI() throws StyxException
+        public WhoAmIFile() throws StyxException
         {
             super("whoami");
         }
         </source>
         The call to the superclass constructor sets the name of the file.  Note
-        that the superclass constructor throws a <a href="xref/uk/ac/rdg/resc/jstyx/StyxException.html">StyxException</a>
+        that the superclass constructor throws a <a href="../xref/uk/ac/rdg/resc/jstyx/StyxException.html">StyxException</a>
         if the file name is illegal.  We know that this is not the case here, but we
         will simply re-throw the exception anyway.
+        </p>
+        <p>
+        Now we must override the <code>read()</code> method so that...
         </p>
       </subsection>
       

@@ -94,13 +94,13 @@
   <part id="specific-points">
     <title>Specific points</title>
     
-    <faq id="data-streaming">
+    <!--<faq id="data-streaming">
       <question>I've heard of people using JStyx in workflows to allow data
       to be streamed directly...</question>
       <answer>
         <p>Goes here</p>
       </answer>
-    </faq>
+    </faq>-->
   </part>
   
 </faqs>

@@ -2,7 +2,7 @@
 <document>
   <properties>
     <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
-    <title>JStyx Tutorial 2: Next Steps</title>
+    <title>JStyx Tutorial: Next Steps</title>
   </properties>
 
   <body>
@@ -11,7 +11,7 @@
     <p>
     In the <a href="FirstStyxSystem.html">first section</a> of this tutorial,
     we created a very simple Styx system which exposed a single file, an 
-    <a href="xref/uk/ac/rdg/resc/jstyx/server/InMemoryFile.html">InMemoryFile</a>
+    <a href="../xref/uk/ac/rdg/resc/jstyx/server/InMemoryFile.html">InMemoryFile</a>
     that simply represented a section of RAM.  In this tutorial we will create
     a more complex namespace that includes many different resources that are 
     exposed as Styx files.
@@ -22,12 +22,12 @@
       <subsection name="Files on disk">
       <p>
       As you might expect, it is easy to represent a file on the local filesystem
-      as a Styx file.  We do this using the <a href="xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
+      as a Styx file.  We do this using the <a href="../xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
       class that is provided with the JStyx library.  As with all files that can be
-      exposed in a Styx namespace, the <a href="xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
-      class inherits from the <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
-      class.  Creating a <a href="xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
-      is very easy: the <a href="xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">source code</a>
+      exposed in a Styx namespace, the <a href="../xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
+      class inherits from the <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
+      class.  Creating a <a href="../xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
+      is very easy: the <a href="../xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">source code</a>
       contains all the possible constructors, but the easiest way is simply to 
       use the full path of the file, for example:
       <source>
@@ -51,7 +51,7 @@
         this class "WhoAmI".
         </p>
         <p>
-        As always, we need to subclass the <a href="xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
+        As always, we need to subclass the <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
         class.
         </p>
       </subsection>      

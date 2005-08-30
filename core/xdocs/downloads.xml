@@ -21,5 +21,14 @@
       above (<a href="http://java.sun.com/">http://java.sun.com</a>) in order to run the installer (and,
       indeed, to run the software).</p>
     </section>
+    <section name="Uninstalling the software">
+      <p>If you installed using the JAR installer, you can uninstall the software
+      by changing to the "Uninstall" directory of the distribution and running
+      <source>
+      java -jar uninstaller.jar
+      </source>
+      If you are running Windows, there is probably a shortcut to this uninstaller
+      in the JStyx program group in the Start Menu.</p>
+    </section>
   </body>
 </document>

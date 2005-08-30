@@ -14,6 +14,7 @@
       and build up to more complex ones, showing how even quite sophisticated
       applications can be created with little effort.
       </p>
+      
       <subsection name="Basic concepts">
         <p>
         As you may be aware, in Styx systems <em>all</em> resources are represented
@@ -37,6 +38,7 @@
         http://www.vitanuova.com/inferno/man/5/INDEX.html</a>).
         </p>
       </subsection>
+      
       <subsection name="Tutorial contents">
       <p>
       You can follow this tutorial online or, if you
@@ -44,11 +46,15 @@
       of this entire website.  The tutorial sections are:
       <ul>
         <li><a href="FirstStyxSystem.html">Your first Styx system</a></li>
-        <li><a href="NextSteps.html">Next steps: exploring more types of StyxFile</a></li>
+        <li><a href="ReadingAndWriting.html">Reading and writing Styx files</a></li>
+        <li><a href="CustomFiles.html">Creating new types of file</a></li>
+        <li><a href="NextSteps.html">More complex namespaces</a></li>
+        <li><a href="AsyncFiles.html">Asynchronous files</a></li>
+        <li><a href="Streams.html">JStyx and data streaming</a></li>
       </ul>
-      (more sections will follow soon!)
       </p>
       </subsection>
+      
     </section>
   </body>
 </document>

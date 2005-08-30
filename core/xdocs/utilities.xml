@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>JStyx Utilities</title>
+  </properties>
+
+  <body>
+    <section name="Useful utilities">
+      <p>
+      The JStyx library comes with a set of useful utilities to aid with creating
+      and debugging Styx applications. TO BE CONTINUED.
+      </p>
+      <subsection name="StyxBrowser">
+      </subsection>
+      <subsection name="StyxMon">
+      </subsection>
+    </section>
+  </body>
+</document>

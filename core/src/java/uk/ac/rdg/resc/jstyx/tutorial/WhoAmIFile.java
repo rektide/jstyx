@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/08/30 16:27:49  jonblower
+ * Continued to develop website and tutorial
+ *
  * Revision 1.1  2005/08/30 09:50:48  jonblower
  * Renamed "WhoAmI" to "WhoAmIFile"
  *
@@ -75,21 +78,8 @@ public class WhoAmIFile extends StyxFile
     {
         // Get the IP address and port of the remote client
         String clientAddr = client.getSession().getRemoteAddress().toString();
-        // Convert the string to bytes using the UTF-8 character set
-        byte[] clientAddrBytes = StyxUtils.strToUTF8(clientAddr);
-        // Check to see if the offset is beyond the end of the file
-        if (offset >= clientAddrBytes.length)
-        {
-            // The client has reached end-of-file.  Return no bytes.
-            this.replyRead(client, new byte[0], tag);
-        }
-        else
-        {
-            // Calculate the number of bytes to return to the client 
-            int numBytesToReturn = Math.min(clientAddrBytes.length - (int)offset, count);
-            // Now reply to the client
-            this.replyRead(client, clientAddrBytes, (int)offset, numBytesToReturn, tag);
-        }
+        // Process the request and reply to the client
+        this.processAndReplyRead(clientAddr, client, offset, count, tag);
     }
     
     /**
