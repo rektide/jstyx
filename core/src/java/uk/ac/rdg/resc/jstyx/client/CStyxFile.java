@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.38  2005/08/31 17:07:15  jonblower
+ * Fixed bug in getContents() and released ByteBuffer in fireDataArrived()
+ *
  * Revision 1.37  2005/08/31 08:15:35  jonblower
  * Bug fixes
  *
@@ -632,7 +635,10 @@ public class CStyxFile
      * allowed in a single message, starting at the given file offset. 
      * Returns immediately; the replyArrived() events of the provided callback
      * will be called when the data arrive, and the error() method of the
-     * callback will be called if an error occurs.
+     * callback will be called if an error occurs.  When the reply arrives,
+     * the data will be contained in a ByteBuffer that is part of the RreadMessage:
+     * use RreadMessage.getData() to get the buffer.  After you have finished with 
+     * the buffer, call release() on the buffer to return it to the pool.
      */
     public void readAsync(long offset, MessageCallback callback)
     {
@@ -645,7 +651,10 @@ public class CStyxFile
      * the maximum number of bytes allowed in a single message will be read.
      * Returns immediately; the replyArrived() events of the provided callback
      * will be called when the data arrive, and the error() method of the
-     * callback will be called if an error occurs.
+     * callback will be called if an error occurs.  When the reply arrives,
+     * the data will be contained in a ByteBuffer that is part of the RreadMessage:
+     * use RreadMessage.getData() to get the buffer.  After you have finished with 
+     * the buffer, call release() on the buffer to return it to the pool.
      */
     public void readAsync(long offset, int bytesRequired, MessageCallback callback)
     {
@@ -676,6 +685,8 @@ public class CStyxFile
             buf = this.read(pos);
             if (buf.hasRemaining())
             {
+                // Update the position of the file pointer
+                pos += buf.remaining();
                 // Convert the data to a string and append to the buffer
                 strBuf.append(StyxUtils.dataToString(buf));
                 // Release the buffer back to the pool
@@ -1231,7 +1242,8 @@ public class CStyxFile
                 data.position(pos);
                 data.limit(limit);
             }
-            // TODO: release the buffer here?  Or do it in ReadCallback?
+            // Release the buffer
+            data.release();
         }
     }
     
@@ -1379,17 +1391,23 @@ public class CStyxFile
         return canonicalPath.toString();
     }
     
-    public static void main(String[] args) throws Exception
+    public static void main(String[] args)
     {
-        StyxConnection conn = new StyxConnection("localhost", 9876);
-        conn.connect();
-        CStyxFile file = conn.getFile("test");
-        file.open(StyxUtils.OREAD);
-        for (int i = 0; i < 2; i++)
+        StyxConnection conn = new StyxConnection("localhost", 9999);
+        try
         {
+            conn.connect();
+            CStyxFile file = conn.getFile("hello.txt");
             System.out.println(file.getContents());
+            file.setContents("goodbye from client");
         }
-        file.close();
-        conn.close();
+        catch(StyxException se)
+        {
+            se.printStackTrace();
+        }
+        finally
+        {
+            conn.close();
+        }
     }
 }
