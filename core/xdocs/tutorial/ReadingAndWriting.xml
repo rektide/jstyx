@@ -9,8 +9,26 @@
 		
     <section name="Reading and Writing Styx files">
     <p>
-    TO BE CONTINUED.
+    The most common tasks in a Styx system are reading from and writing to files.
+    There are several ways to do this, each with advantages and disadvantages.  In
+    this section of the tutorial, we'll go through the options.
     </p>
+      
+      <subsection name="getContents() and setContents()">
+      </subsection>
+      
+      <subsection name="read() and write()">
+      </subsection>
+      
+      <subsection name="InputStreams and OutputStreams">
+      </subsection>
+      
+      <subsection name="Using URLs">
+      </subsection>
+      
+      <subsection name="Asynchronous reading and writing">
+      </subsection>
+      
     </section>
     
   </body>
