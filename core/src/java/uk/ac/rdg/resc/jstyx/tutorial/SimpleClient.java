@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.jstyx.tutorial;
 
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
+import uk.ac.rdg.resc.jstyx.StyxException;
 
 /**
  * A client program that interacts with the SimpleServer.
@@ -38,6 +39,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/08/31 17:05:53  jonblower
+ * Improved error handling in SimpleClient and updated tutorial
+ *
  * Revision 1.1  2005/08/30 07:23:45  jonblower
  * Initial import of tutorial files
  *
@@ -46,20 +50,31 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 public class SimpleClient
 {
     
-    public static void main(String[] args) throws Exception
+    public static void main(String[] args)
     {
         // Create a connection to the server.  You may need to change the server
         // address and port to suit your system.
         StyxConnection conn = new StyxConnection("localhost", 9876);
-        // Connect to the server and perform handshaking
-        conn.connect();
-        // Get a handle to the "readme" file on the server
-        CStyxFile readmeFile = conn.getFile("readme");
-        // Read the contents of the file.  This opens the file, reads the contents,
-        // closes the file, then returns the contents as a String.
-        System.out.println(readmeFile.getContents());
-        // Close the connection.
-        conn.close();
+        try
+        {
+            // Connect to the server and perform handshaking
+            conn.connect();
+            // Get a handle to the "readme" file on the server
+            CStyxFile readmeFile = conn.getFile("readme");
+            // Read the contents of the file.  This opens the file, reads the contents,
+            // closes the file, then returns the contents as a String.
+            System.out.println(readmeFile.getContents());
+        }
+        catch (StyxException se)
+        {
+            se.printStackTrace();
+        }
+        finally
+        {
+            // Close the connection.  If this isn't done some threads will not
+            // be stopped.
+            conn.close();
+        }
     }
     
 }

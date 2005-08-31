@@ -64,10 +64,20 @@
         </p>
         <source>
         StyxConnection conn = new StyxConnection("localhost", 9876);
-        conn.connect();
-        CStyxFile readmeFile = conn.getFile("readme");
-        System.out.println(readmeFile.getContents());
-        conn.close();
+        try
+        {
+            conn.connect();
+            CStyxFile readmeFile = conn.getFile("readme");
+            System.out.println(readmeFile.getContents());
+        }
+        catch (StyxException se)
+        {
+            se.printStackTrace();
+        }
+        finally
+        {
+            conn.close();
+        }
         </source>
         <p>
         We create a <a href="../xref/uk/ac/rdg/resc/jstyx/client/StyxConnection.html">StyxConnection</a>
