@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.37  2005/08/31 08:15:35  jonblower
+ * Bug fixes
+ *
  * Revision 1.36  2005/08/10 18:31:55  jonblower
  * Bug fixes, plus added synchronous openOrCreate() method
  *
@@ -596,7 +599,10 @@ public class CStyxFile
      * When you have finished with the data in the ByteBuffer that is returned,
      * call release() on the buffer to ensure that the buffer can be re-used.
      *
-     * @return a ByteBuffer containing the data that have been read
+     * @return a ByteBuffer containing the data that have been read.  The position
+     * and limit of this buffer will be set correctly.  Note that the position
+     * may not necessarily be zero (the buffer may well contain the entire contents
+     * of an RreadMessage, header and all).
      */
     public ByteBuffer read(long offset) throws StyxException
     {
@@ -663,16 +669,24 @@ public class CStyxFile
         ByteBuffer buf;
         byte[] arr = null;
         long pos = 0;
-        int n = 0;
-        do
+        boolean stillReading = true;
+        while(stillReading)
         {
             // Read the data from the file
             buf = this.read(pos);
-            // Convert the data to a string and append to the buffer
-            strBuf.append(StyxUtils.dataToString(buf));
-            // Release the buffer back to the pool
-            buf.release();
-        } while (n > 0);
+            if (buf.hasRemaining())
+            {
+                // Convert the data to a string and append to the buffer
+                strBuf.append(StyxUtils.dataToString(buf));
+                // Release the buffer back to the pool
+                buf.release();
+            }
+            else
+            {
+                // We have reached EOF
+                stillReading = false;
+            }
+        }
         if (!wasOpen)
         {
             // If the file wasn't open before we called this function, close it
@@ -730,7 +744,7 @@ public class CStyxFile
             int bytesRemaining = bytes.length - pos;
             
             // Calculate the number of bytes that we can write in a single message
-            int bytesToWrite = (bytesRemaining < this.ioUnit) ? bytesRemaining : this.ioUnit;
+            int bytesToWrite = Math.min(bytesRemaining, this.ioUnit);
             
             // Write the bytes to the file with truncation
             int bytesWritten = (int)this.write(bytes, pos, bytesToWrite, filePos, true);
@@ -1217,6 +1231,7 @@ public class CStyxFile
                 data.position(pos);
                 data.limit(limit);
             }
+            // TODO: release the buffer here?  Or do it in ReadCallback?
         }
     }
     
