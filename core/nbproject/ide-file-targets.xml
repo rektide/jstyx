@@ -21,7 +21,7 @@
     
     <target name="run-selected-file" depends="compile" description="Run Single File">
       <fail unless="runclass">Must set property 'runclass'</fail>
-      <java classname="${runclass}">
+      <java classname="${runclass}" fork="true">
             <!-- Set the classpath -->
             <classpath>
                 <pathelement path="${java.class.path}"/>
