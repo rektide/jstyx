@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/08/31 08:15:57  jonblower
+ * Corrections to comments
+ *
  * Revision 1.8  2005/07/28 16:38:58  jonblower
  * Added material to comments
  *
@@ -91,18 +94,15 @@ public class CStyxFileChangeAdapter implements CStyxFileChangeListener
      * update the offset of the file if required (e.g.
      * <code>file.setOffset(offset + data.remaining())</code>).
      *
-     * After this method is finished, the ByteBuffer will be returned to the pool.
+     * After this method is finished, the ByteBuffer will automatically be returned to the pool.
      * If you want to delay this happening, call data.acquire() within this
      * method.  Then when you no longer need the data in the buffer, call 
-     * data.release().  Implementations of this method should leave the position
-     * and limit of the data buffer unchanged (so that if there are several
-     * CStyxFileChangeListeners registered, they all see the buffer in the correct
-     * state).
+     * data.release().
      *
      * @param file The CStyxFile containing the data
-     * @param offset The offset (i.e. file position) of the start of the new data
-     * @param data The new data that has been read from the file
-     * @param tag The tag of the Tread/Rread messages
+     * @param tReadMsg The original TreadMessage that was sent (contains the offset,
+     * tag etc of the message)
+     * @param data The new data that have been read from the file
      */
     public void dataArrived(CStyxFile file, TreadMessage tReadMsg, ByteBuffer data){}
     

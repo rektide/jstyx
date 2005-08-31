@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/08/31 08:15:57  jonblower
+ * Corrections to comments
+ *
  * Revision 1.9  2005/07/28 16:38:58  jonblower
  * Added material to comments
  *
@@ -95,7 +98,7 @@ public interface CStyxFileChangeListener
      * update the offset of the file if required (e.g.
      * <code>file.setOffset(offset + data.remaining())</code>).
      *
-     * After this method is finished, the ByteBuffer will be returned to the pool.
+     * After this method is finished, the ByteBuffer will automatically be returned to the pool.
      * If you want to delay this happening, call data.acquire() within this
      * method.  Then when you no longer need the data in the buffer, call 
      * data.release().

@@ -41,6 +41,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/08/31 08:15:57  jonblower
+ * Corrections to comments
+ *
  * Revision 1.5  2005/06/27 17:17:15  jonblower
  * Changed MessageCallback to pass Tmessage as parameter, rather than storing in the instance
  *
@@ -86,7 +89,9 @@ public abstract class MessageCallback
     }
     
     /**
-     * Called when the reply arrives.
+     * Called when the reply arrives.  If the reply is an RreadMessage, the
+     * message's buffer should be released when it is no longer needed, 
+     * using <code>rMessage.getData().release()</code>.
      * @param rMessage the reply
      * @param tMessage the original T-message
      */
