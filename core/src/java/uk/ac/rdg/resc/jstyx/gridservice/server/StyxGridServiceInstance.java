@@ -64,6 +64,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.27  2005/08/31 17:08:54  jonblower
+ * Fixed bug with handling exception when Process could not be created
+ *
  * Revision 1.26  2005/08/30 16:29:00  jonblower
  * Added processAndReplyRead() helper functions to StyxFile
  *
@@ -440,10 +443,20 @@ class StyxGridServiceInstance extends StyxDirectory
                 catch(IOException ioe)
                 {
                     ioe.printStackTrace();
-                    process.destroy();
-                    setStatus(StatusCode.ERROR, ioe.getMessage());
-                    throw new StyxException("Internal error: could not start "
-                        + "reading from output and error streams");
+                    if (process == null)
+                    {
+                        // We didn't even start the process
+                        throw new StyxException("Internal error: could not create process "
+                            + getCommandLine());
+                    }
+                    else
+                    {
+                        // We've started the process but an error occurred elsewhere
+                        process.destroy();
+                        setStatus(StatusCode.ERROR, ioe.getMessage());
+                        throw new StyxException("Internal error: could not start "
+                            + "reading from output and error streams");
+                    }
                 }
                 if (inputURL != null)
                 {
