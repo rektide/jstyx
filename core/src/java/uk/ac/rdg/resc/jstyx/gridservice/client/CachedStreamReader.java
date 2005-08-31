@@ -32,27 +32,29 @@ import java.io.File;
 import java.io.IOException;
 
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
-import uk.ac.rdg.resc.jstyx.client.StyxFileInputStream;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileInputStream;
 
 import uk.ac.rdg.resc.jstyx.gridservice.server.GeneralCachingStreamReader;
 
 /**
- * Reads a StyxFileInputStream and caches the results locally, allowing multiple
+ * Reads a CStyxFileInputStream and caches the results locally, allowing multiple
  * windows to be opened on the same data feed whilst saving network traffic
- *
+ * 
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/08/31 17:03:19  jonblower
+ * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
+ *
  * Revision 1.3  2005/06/07 16:44:45  jonblower
  * Fixed problem with caching stream reader on client side
- *
+ * 
  * Revision 1.2  2005/05/27 21:22:39  jonblower
  * Further development of caching stream readers
- *
+ * 
  * Revision 1.1  2005/05/27 17:02:59  jonblower
  * Initial import
- *
  */
 public class CachedStreamReader extends GeneralCachingStreamReader
 {
@@ -74,7 +76,7 @@ public class CachedStreamReader extends GeneralCachingStreamReader
         if (!this.started)
         {
             this.started = true;
-            this.startReading(new StyxFileInputStream(this.stream));
+            this.startReading(new CStyxFileInputStream(this.stream));
         }
     }
     

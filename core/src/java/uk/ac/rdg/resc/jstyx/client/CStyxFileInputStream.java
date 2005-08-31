@@ -40,37 +40,39 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * @todo Implement read(byte[]), read(byte[], off, len), skip() in most
  * efficient way possible
  * @todo Also make into a Channel?
- *
+ * 
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.1  2005/08/31 17:03:18  jonblower
+ * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
+ *
  * Revision 1.8  2005/06/22 17:07:29  jonblower
  * Added read(byte[]) method
- *
+ * 
  * Revision 1.7  2005/05/12 07:40:52  jonblower
  * CStyxFile.close() no longer throws a StyxException
- *
+ * 
  * Revision 1.6  2005/05/05 07:09:06  jonblower
  * Improved comments
- *
+ * 
  * Revision 1.5  2005/05/04 16:25:49  jonblower
  * Improved parameter naming in constructor
- *
+ * 
  * Revision 1.4  2005/03/22 10:19:52  jonblower
- * Fixed problem with ByteBuffer leak in StyxMessageDecoder and StyxFileInputStream
- *
+ * Fixed problem with ByteBuffer leak in StyxMessageDecoder and CStyxFileInputStream
+ * 
  * Revision 1.3  2005/03/19 21:46:58  jonblower
  * Further fixes relating to releasing ByteBuffers
- *
+ * 
  * Revision 1.2  2005/03/16 17:55:53  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
- *
+ * 
  * Revision 1.1.1.1  2005/02/16 18:58:19  jonblower
  * Initial import
- *
  */
-public class StyxFileInputStream extends InputStream
+public class CStyxFileInputStream extends InputStream
 {
     
     private CStyxFile file; // The file from which we are reading
@@ -82,12 +84,12 @@ public class StyxFileInputStream extends InputStream
         // getting an input stream through the StyxURLConnection class)
     
     /**
-     * Creates a StyxFileInputStream for reading the given file.
+     * Creates a CStyxFileInputStream for reading the given file.
      * @param openedThroughURL If this is true, we shall close the underlying
      * StyxConnection when this stream is closed (this is normally set when
      * getting an input stream through the StyxURLConnection class)
      */
-    public StyxFileInputStream(CStyxFile file, boolean closeConnectionWhenCloseStream)
+    public CStyxFileInputStream(CStyxFile file, boolean closeConnectionWhenCloseStream)
     {
         if (file == null)
         {
@@ -100,7 +102,7 @@ public class StyxFileInputStream extends InputStream
         this.closeConnectionWhenCloseStream = closeConnectionWhenCloseStream;
     }
     
-    public StyxFileInputStream(CStyxFile file)
+    public CStyxFileInputStream(CStyxFile file)
     {
         this(file, false);
     }

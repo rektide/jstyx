@@ -39,7 +39,7 @@ import java.awt.Component;
 import java.io.IOException;
 
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
-import uk.ac.rdg.resc.jstyx.client.StyxFileInputStream;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileInputStream;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
@@ -51,6 +51,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/08/31 17:03:18  jonblower
+ * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
+ *
  * Revision 1.5  2005/03/11 13:58:54  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -137,7 +140,7 @@ public class StyxBrowserPopupMenu extends JPopupMenu
             if (node != null)
             {
                 CStyxFile file = node.getFile();
-                StyxFileInputStream is = new StyxFileInputStream(file);
+                CStyxFileInputStream is = new CStyxFileInputStream(file);
                 TextDisplayer display = new TextDisplayer(file.getName());
                 display.setVisible(true);
                 try

@@ -34,8 +34,8 @@ import java.io.BufferedReader;
 import java.io.Reader;
 import java.io.IOException;
 
-import uk.ac.rdg.resc.jstyx.client.StyxFileInputStream;
-import uk.ac.rdg.resc.jstyx.client.StyxFileInputStreamReader;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileInputStream;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileInputStreamReader;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/08/31 17:03:18  jonblower
+ * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
+ *
  * Revision 1.4  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
  *
@@ -87,9 +90,9 @@ public class TextDisplayer extends javax.swing.JFrame
     public void displayData (InputStream is) throws IOException
     {
         Reader reader;
-        if (is instanceof StyxFileInputStream)
+        if (is instanceof CStyxFileInputStream)
         {
-            reader = new StyxFileInputStreamReader((StyxFileInputStream)is);
+            reader = new CStyxFileInputStreamReader((CStyxFileInputStream)is);
         }
         else
         {

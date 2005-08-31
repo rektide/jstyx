@@ -37,8 +37,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
-import uk.ac.rdg.resc.jstyx.client.StyxFileInputStream;
-import uk.ac.rdg.resc.jstyx.client.StyxFileOutputStream;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileInputStream;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileOutputStream;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -50,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/08/31 17:03:18  jonblower
+ * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
+ *
  * Revision 1.3  2005/05/23 16:48:23  jonblower
  * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
  *
@@ -102,7 +105,7 @@ public class StyxURLConnection extends URLConnection
         try
         {
             this.file.open(StyxUtils.OREAD);
-            StyxFileInputStream in = new StyxFileInputStream(this.file, true);
+            CStyxFileInputStream in = new CStyxFileInputStream(this.file, true);
             return in;
         }
         catch(Exception e)
@@ -116,7 +119,7 @@ public class StyxURLConnection extends URLConnection
         try
         {
             this.file.open(StyxUtils.OWRITE);
-            StyxFileOutputStream out = new StyxFileOutputStream(this.file);
+            CStyxFileOutputStream out = new CStyxFileOutputStream(this.file);
             return out;
         }
         catch(Exception e)

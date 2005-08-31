@@ -37,31 +37,33 @@ import uk.ac.rdg.resc.jstyx.StyxException;
 /**
  * Output stream for writing data to a Styx File.  The file will be truncated
  * at the end of the data that are written through this class.
- *
+ * 
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.1  2005/08/31 17:03:18  jonblower
+ * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
+ *
  * Revision 1.6  2005/08/10 18:33:45  jonblower
  * Bug fixes
- *
+ * 
  * Revision 1.5  2005/08/08 09:36:19  jonblower
  * Minor changes
- *
+ * 
  * Revision 1.4  2005/05/23 16:48:17  jonblower
  * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
- *
+ * 
  * Revision 1.3  2005/05/12 07:40:52  jonblower
  * CStyxFile.close() no longer throws a StyxException
- *
+ * 
  * Revision 1.2  2005/03/16 17:55:53  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
- *
+ * 
  * Revision 1.1.1.1  2005/02/16 18:58:19  jonblower
  * Initial import
- *
  */
-public class StyxFileOutputStream extends OutputStream
+public class CStyxFileOutputStream extends OutputStream
 {
     
     private CStyxFile file; // The file to which we are writing
@@ -70,11 +72,11 @@ public class StyxFileOutputStream extends OutputStream
     private long offset;    // The current position in the file
     
     /**
-     * Creates a new StyxFileOutputStream to write data to the given CStyxFile.
+     * Creates a new CStyxFileOutputStream to write data to the given CStyxFile.
      * If the file already exists it will be overwritten.
      * @todo: Add flag to prevent overwriting in certain cases?
      */
-    public StyxFileOutputStream(CStyxFile file) throws StyxException
+    public CStyxFileOutputStream(CStyxFile file) throws StyxException
     {
         this.file = file;
         this.file.openOrCreate(false, StyxUtils.OWRITE | StyxUtils.OTRUNC);

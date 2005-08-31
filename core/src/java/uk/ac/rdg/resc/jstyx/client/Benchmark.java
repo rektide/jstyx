@@ -16,7 +16,7 @@ import java.io.InputStream;
 
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
-import uk.ac.rdg.resc.jstyx.client.StyxFileInputStream;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileInputStream;
 
 /**
  * Program that compares the downloading of a file via HTTP and Styx, with

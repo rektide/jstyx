@@ -34,8 +34,8 @@ import java.io.IOException;
 
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
-import uk.ac.rdg.resc.jstyx.client.StyxFileInputStream;
-import uk.ac.rdg.resc.jstyx.client.StyxFileInputStreamReader;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileInputStream;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileInputStreamReader;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/08/31 17:03:19  jonblower
+ * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
+ *
  * Revision 1.2  2005/08/10 18:34:28  jonblower
  * Implemented working S-expression parser
  *
@@ -228,7 +231,7 @@ public class SexpParser
         CStyxFile nodesFile = conn.getFile("admin/nodes");
         nodesFile.open(StyxUtils.ORDWR | StyxUtils.OTRUNC);
         nodesFile.setContents("(name ipaddr blacklisted ncompleted)");
-        InputStreamReader reader = new StyxFileInputStreamReader(new StyxFileInputStream(nodesFile));
+        InputStreamReader reader = new CStyxFileInputStreamReader(new CStyxFileInputStream(nodesFile));
         SexpParser parser = new SexpParser(reader);
         Sexpression se;
         do

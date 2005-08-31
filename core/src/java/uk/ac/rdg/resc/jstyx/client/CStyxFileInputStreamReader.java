@@ -35,23 +35,25 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 /**
  * Convenience class for reading character data from a Styx input stream. Simply
  * makes sure that UTF-8 encoding is used when reading from the stream
- *
+ * 
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.1  2005/08/31 17:03:18  jonblower
+ * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
+ *
  * Revision 1.2  2005/03/02 08:08:54  jonblower
  * Changed constructor to accept any InputStream
- *
+ * 
  * Revision 1.1.1.1  2005/02/16 18:58:19  jonblower
  * Initial import
- *
  */
-public class StyxFileInputStreamReader extends InputStreamReader
+public class CStyxFileInputStreamReader extends InputStreamReader
 {
     
     /** Creates a new instance of StyxFileReader */
-    public StyxFileInputStreamReader(InputStream in)
+    public CStyxFileInputStreamReader(InputStream in)
     {
         super(in, StyxUtils.UTF8);
     }
