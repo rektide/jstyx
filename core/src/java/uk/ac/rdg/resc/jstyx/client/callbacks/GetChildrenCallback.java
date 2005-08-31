@@ -51,6 +51,9 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/08/31 17:07:59  jonblower
+ * Fixed bug with clunking fids and released ByteBuffer correctly
+ *
  * Revision 1.1  2005/08/05 13:46:40  jonblower
  * Factored out all callback objects from CStyxFile into separate classes
  *
@@ -61,6 +64,7 @@ public class GetChildrenCallback extends MessageCallback
     private Vector dirEntries;
     private long offset;
     private boolean wasOpen;
+    private boolean firstTime;
     private MessageCallback callback;
     private CStyxFile file;
     private StyxConnection conn;
@@ -72,6 +76,7 @@ public class GetChildrenCallback extends MessageCallback
         this.dirEntries = new Vector();
         this.offset = 0;
         this.callback = callback;
+        this.firstTime = true;
     }
 
     public void nextStage()
@@ -85,9 +90,13 @@ public class GetChildrenCallback extends MessageCallback
         else if (this.file.getQid().getType() == 128)
         {
             // this is a directory (or we don't care if this is a directory
-            // or not). First check to see if we already have it open
-            this.wasOpen = this.file.isOpen();
-            System.err.println(this.file.getPath() + ".wasOpen = " + this.wasOpen);
+            // or not).
+            if (this.firstTime)
+            {
+                // First check to see if we already have it open
+                this.wasOpen = this.file.isOpen();
+                this.firstTime = false; 
+            }
             // Now find the children
             this.file.readAsync(this.offset, this);
         }
@@ -135,8 +144,6 @@ public class GetChildrenCallback extends MessageCallback
                 {
                     // If this file wasn't open before we started reading
                     // the children, close it
-                    System.err.println(this.file.getPath() + ".wasOpen = " + this.wasOpen +
-                        " closing file");
                     this.file.close();
                 }
                 this.file.setChildren((CStyxFile[])this.dirEntries.toArray(new CStyxFile[0]));
@@ -149,8 +156,7 @@ public class GetChildrenCallback extends MessageCallback
                     this.file.fireChildrenFound();
                 }
             }
-            // TODO: is this necessary? Shouldn't the buffer be released 
-            // anyway? If so, why doesn't this cause an error?
+            // We need to release the buffer
             data.release();
         }
     }
