@@ -50,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/09/01 17:12:11  jonblower
+ * Changes to Input and Output stream code
+ *
  * Revision 1.4  2005/08/31 17:03:18  jonblower
  * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
  *
@@ -77,18 +80,22 @@ public class StyxURLConnection extends URLConnection
     
     public void connect() throws IOException
     {
-        try
+        if (!this.connected)
         {
-            // TODO: does getUserInfo() include password information?
-            String user = this.url.getUserInfo() == null ? "" : this.url.getUserInfo();
-            conn = new StyxConnection(this.url.getHost(), this.url.getPort(), user);
-            conn.connect();
-            this.file = conn.getFile(this.url.getPath());
-            // TODO: check that the file exists here?
-        }
-        catch (Exception e)
-        {
-            throw new IOException(e.getClass().getName() + ": " + e.getMessage());
+            try
+            {
+                // TODO: does getUserInfo() include password information?
+                String user = this.url.getUserInfo() == null ? "" : this.url.getUserInfo();
+                conn = new StyxConnection(this.url.getHost(), this.url.getPort(), user);
+                conn.connect();
+                this.connected = true;
+                this.file = conn.getFile(this.url.getPath());
+                // TODO: check that the file exists here?
+            }
+            catch (Exception e)
+            {
+                throw new IOException(e.getClass().getName() + ": " + e.getMessage());
+            }
         }
     }
     
@@ -119,7 +126,7 @@ public class StyxURLConnection extends URLConnection
         try
         {
             this.file.open(StyxUtils.OWRITE);
-            CStyxFileOutputStream out = new CStyxFileOutputStream(this.file);
+            CStyxFileOutputStream out = new CStyxFileOutputStream(this.file, true);
             return out;
         }
         catch(Exception e)

@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/09/01 17:12:09  jonblower
+ * Changes to Input and Output stream code
+ *
  * Revision 1.1  2005/08/31 17:03:18  jonblower
  * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
  *
@@ -85,7 +88,8 @@ public class CStyxFileInputStream extends InputStream
     
     /**
      * Creates a CStyxFileInputStream for reading the given file.
-     * @param openedThroughURL If this is true, we shall close the underlying
+     * @param file The file to read from
+     * @param closeConnectionWhenCloseStream If this is true, we shall close the underlying
      * StyxConnection when this stream is closed (this is normally set when
      * getting an input stream through the StyxURLConnection class)
      */

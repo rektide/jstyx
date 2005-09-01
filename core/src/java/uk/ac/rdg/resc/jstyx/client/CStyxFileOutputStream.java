@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/09/01 17:12:10  jonblower
+ * Changes to Input and Output stream code
+ *
  * Revision 1.1  2005/08/31 17:03:18  jonblower
  * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
  *
@@ -70,6 +73,32 @@ public class CStyxFileOutputStream extends OutputStream
     private byte[] buf;     // Buffer for storing the results of the last write
     private int pos;        // Current position in the buffer
     private long offset;    // The current position in the file
+    private boolean closeConnectionWhenCloseStream; // If this is true, we shall close the underlying
+        // StyxConnection when this stream is closed (this is normally set when
+        // getting an output stream through the StyxURLConnection class)
+    
+    /**
+     * Creates a new CStyxFileOutputStream to write data to the given CStyxFile.
+     * If the file already exists it will be overwritten.
+     * @param the file to write to
+     * @param closeConnectionWhenCloseStream If this is true, we shall close the underlying
+     * StyxConnection when this stream is closed (this is normally set when
+     * getting an output stream through the StyxURLConnection class)
+     * @todo: Add flag to prevent overwriting in certain cases?
+     */
+    public CStyxFileOutputStream(CStyxFile file, boolean closeConnectionWhenCloseStream) throws StyxException
+    {
+        if (file == null)
+        {
+            throw new NullPointerException("file cannot be null");
+        }
+        this.file = file;
+        this.file.openOrCreate(false, StyxUtils.OWRITE | StyxUtils.OTRUNC);
+        this.buf = new byte[(int)this.file.getIoUnit()];
+        this.pos = 0;
+        this.offset = 0;
+        this.closeConnectionWhenCloseStream = closeConnectionWhenCloseStream;
+    }
     
     /**
      * Creates a new CStyxFileOutputStream to write data to the given CStyxFile.
@@ -78,11 +107,7 @@ public class CStyxFileOutputStream extends OutputStream
      */
     public CStyxFileOutputStream(CStyxFile file) throws StyxException
     {
-        this.file = file;
-        this.file.openOrCreate(false, StyxUtils.OWRITE | StyxUtils.OTRUNC);
-        this.buf = new byte[(int)this.file.getIoUnit()];
-        this.pos = 0;
-        this.offset = 0;
+        this(file, false);
     }
     
     /**
@@ -129,5 +154,9 @@ public class CStyxFileOutputStream extends OutputStream
     {
         this.flush();
         this.file.close();
+        if (this.closeConnectionWhenCloseStream)
+        {
+            this.file.getConnection().close();
+        }
     }
 }
