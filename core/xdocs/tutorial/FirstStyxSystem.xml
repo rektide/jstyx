@@ -118,8 +118,8 @@
       class, which we use to interact with files on the server.
       </p>
       <p>
-      In the <a href="CustomFiles.html">next section</a> of the tutorial we will
-      look at creating customized <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>s.
+      In the <a href="ReadingAndWriting.html">next section</a> of the tutorial we will
+      look at different ways of reading from and writing to Styx files.
       </p>
     </section>
   </body>

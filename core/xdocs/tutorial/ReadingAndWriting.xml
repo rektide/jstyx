@@ -9,12 +9,60 @@
 		
     <section name="Reading and Writing Styx files">
     <p>
-    The most common tasks in a Styx system are reading from and writing to files.
+    The most common tasks (from the client's point of view at least) in a Styx
+    system are reading from and writing to files.
     There are several ways to do this, each with advantages and disadvantages.  In
     this section of the tutorial, we'll go through the options.
     </p>
       
+      <subsection name="Setting up">
+      <p>
+      In all of the examples in this section, we'll use the <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/SimpleServer.html">SimpleServer</a>
+      from <a href="FirstStyxSystem">earlier</a> in this tutorial.  This
+      simply serves up a single file that holds its contents in memory.  Run this
+      server by running:
+      <source>
+      JStyxRun uk.ac.rdg.resc.jstyx.tutorial.SimpleServer
+      </source>
+      from the <code>bin/</code> directory of your JStyx distribution.
+      </p>
+      <p>
+      All the client programs we shall write are based on the <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/SimpleClient.html">SimpleClient</a>
+      from <a href="FirstStyxSystem">earlier</a> in this tutorial.  In each of the
+      examples below we shall first write some data to the file on the server, 
+      then we shall read it back.  All the functions described below are part of the 
+      <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>
+      class.
+      </p>
+      <p>
+      All the code below can be found in the <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/ReadingAndWriting.html">ReadingAndWriting</a>
+      class, including full comments.
+      </p>
+      </subsection>
+    
       <subsection name="getContents() and setContents()">
+      <p>
+      The easiest way to read from and write to files is to use the <code>getContents()</code>
+      and <code>setContents()</code> methods, as used in the original
+      <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/SimpleClient.html">SimpleClient</a>.  These
+      methods are suitable if the entire contents of the file can fit sensibly in a String, i.e. for relatively
+      small data volumes.
+      </p>
+      <p>
+      In the <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/ReadingAndWriting.html">ReadingAndWriting</a>,
+      class, the <code>main()</code> method makes the connection to the server and gets
+      the handle (i.e. a <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a> object)
+      to the file on the remote server.  Then it calls the <code>setAndGetContents()</code>
+      method, whose contents are very simple:
+      <source>
+      file.setContents("hello JStyx world");
+      System.out.println(file.getContents());
+      </source>
+      Note that both <code>setContents()</code> and <code>getContents</code> can
+      throw <a href="../xref/uk/ac/rdg/resc/jstyx/StyxException.html">StyxException</a>s
+      and so we have to catch this or re-throw it from the method.  If you run this code
+      the string "hello JStyx world" should be printed out.
+      </p>      
       </subsection>
       
       <subsection name="read() and write()">
