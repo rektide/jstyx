@@ -48,6 +48,9 @@ import org.apache.log4j.Logger;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/09/01 07:49:39  jonblower
+ * Set to print stack trace of IOException whether or not logger is debug-enabled
+ *
  * Revision 1.3  2005/06/10 07:54:49  jonblower
  * Added code to convert event-based StreamViewer to InputStream-based one
  *
@@ -271,10 +274,8 @@ public abstract class GeneralCachingStreamReader
             }
             catch(IOException ioe)
             {
-                if (log.isDebugEnabled())
-                {
-                    ioe.printStackTrace();
-                }
+                // I think this exception is thrown sometimes.  Look out for it.
+                ioe.printStackTrace();
                 // We have to reply with an error message here (as opposed to
                 // throwing a StyxException) because we're no longer within
                 // the readFile() method
