@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2005/09/01 07:50:22  jonblower
+ * Trying to fix bug with ByteBuffers being released (can't read from InMemoryFile)
+ *
  * Revision 1.16  2005/08/30 16:29:00  jonblower
  * Added processAndReplyRead() helper functions to StyxFile
  *
@@ -152,6 +155,9 @@ public class InMemoryFile extends StyxFile
     public synchronized void read(StyxFileClient client, long offset, int count,
         int tag) throws StyxException
     {
+        // TODO: do we have to make a copy of the data in the ByteBuffer, to avoid
+        // getting problems with the ByteBuffer being released before the RreadMessage
+        // is sent? (although I'm still not 100% sure why this happens)
         this.processAndReplyRead(this.buf, client, offset, count, tag);
     }
     
@@ -168,7 +174,7 @@ public class InMemoryFile extends StyxFile
         }
         if (offset > this.buf.limit())
         {
-            throw new StyxException("offset is greater than the current data length");
+            throw new StyxException("attempt to write past the end of the file");
         }
         // Calculate the new size of the data after the write operation
         int newSize = (int)offset + count;
