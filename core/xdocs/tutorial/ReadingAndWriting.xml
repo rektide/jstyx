@@ -65,13 +65,63 @@
       </p>      
       </subsection>
       
-      <subsection name="read() and write()">
-      </subsection>
-      
       <subsection name="InputStreams and OutputStreams">
+      <p>
+      Another easy-to-use option for reading and writing is through streams.  This
+      is probably one of the most familiar ways of dealing with I/O to Java
+      programmers.  In essence, once you have a <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>
+      object you can turn it into an InputStream or OutputStream by using the 
+      wrapper classes <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileInputStream.html">CStyxFileInputStream</a>
+      and <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileOutputStream.html">CStyxFileOutputStream</a>
+      respectively.  You can then use standard stream I/O to get data from and to
+      the files on the Styx server.
+      </p>
+      <p>
+      Character-based I/O can be achieved by further wrapping
+      these streams in <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileInputStreamReader.html">CStyxFileInputStreamReader</a>
+      and <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileOutputStreamWriter.html">CStyxFileOutputStreamWriter</a>
+      objects.  These convert the streams into character streams by using the
+      UTF-8 character set.  These Readers and Writers can then be wrapped yet again as BufferedReaders
+      and BufferedWriters to allow, for example, reading and writing data a line at a time
+      from a remote file.
+      </p>
+      <p>
+      TODO: code example
+      </p>
       </subsection>
       
       <subsection name="Using URLs">
+      <p>
+      You can get a handle to a Styx file on a remote server using a URL.  For
+      example, the URL of a file called <code>readme</code> in the root directory
+      of a Styx server on <code>localhost</code>, port 9876 would be
+      <code>styx://localhost:9876/readme</code>.  You can use this URL to get
+      an Input- or OutputStream for interacting with this file, as in this code
+      snippet:
+      <source>
+      URL url = new URL("styx://localhost:9876/readme");
+      InputStream is = url.openStream();
+      OutputStream os = url.openConnection().getOutputStream();
+      </source>
+      Note that you do not have to instantiate or open a 
+      <a href="../xref/uk/ac/rdg/resc/jstyx/client/StyxConnection.html">StyxConnection</a>
+      before you do this. This is done automatically in the protocol handler for 
+      the <code>styx://</code> URLs.
+      </p>
+      <p>
+      In order to make Java recognize <code>styx://</code> URLs, you have to add the string 
+      <code>uk.ac.rdg.resc.jstyx.client.protocol</code> to the system property
+      <code>java.protocol.handler.pkgs</code>.  This is done automatically by the
+      JStyxRun script in the <code>bin/</code> directory of the JStyx distribution.
+      If you don't set this property, you will get MalformedURLExceptions when
+      trying to create URL objects from <code>styx://</code> URLs.
+      </p>
+      </subsection>
+      
+      <subsection name="read() and write()">
+      <p>
+      
+      </p>
       </subsection>
       
       <subsection name="Asynchronous reading and writing">
