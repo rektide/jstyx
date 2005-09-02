@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.39  2005/09/02 16:54:26  jonblower
+ * Added new writeAsync() methods
+ *
  * Revision 1.38  2005/08/31 17:07:15  jonblower
  * Fixed bug in getContents() and released ByteBuffer in fireDataArrived()
  *
@@ -813,6 +816,17 @@ public class CStyxFile
      */
     public void writeAsync(String str, long offset)
     {
+        this.writeAsync(str, offset, null);
+    }
+    
+    /**
+     * Writes a string to the file at the given offset, with truncation. When the write
+     * confirmation arrives, the callback's replyArrived() method will be called.
+     * The callback's error() method will be called if an error occurs. The file
+     * will be truncated at the end of the string.
+     */
+    public void writeAsync(String str, long offset, MessageCallback callback)
+    {
         this.writeAsync(StyxUtils.strToUTF8(str), offset, true);
     }
     
@@ -828,7 +842,25 @@ public class CStyxFile
      */
     public void writeAsync(byte[] bytes, long offset, boolean truncate)
     {
-        this.writeAsync(bytes, 0, bytes.length, offset, truncate, null);
+        this.writeAsync(bytes, offset, truncate, null);
+    }
+    
+    /**
+     * Writes a chunk of data to the file at the given file offset.
+     * Returns immediately; the callback's replyArrived() method will be called
+     * when the reply arrives and the callback's error() method will be called
+     * if an error occurs.
+     * @param bytes The array of bytes to write
+     * @param offset The position in the file at which the data will be written
+     * @param truncate If this is true, the file will be truncated at the end
+     * of the new data
+     * @param callback The replyArrived() method of this callback object will be
+     * called when the write confirmation arrives
+     */
+    public void writeAsync(byte[] bytes, long offset, boolean truncate,
+        MessageCallback callback)
+    {
+        this.writeAsync(bytes, 0, bytes.length, offset, truncate, callback);
     }
     
     /**
