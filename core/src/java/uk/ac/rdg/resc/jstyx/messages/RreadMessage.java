@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/09/02 16:52:38  jonblower
+ * Fixed bugs that caused message payload to be printed as empty string
+ *
  * Revision 1.12  2005/08/30 16:29:40  jonblower
  * Minor update to comments
  *
@@ -106,7 +109,7 @@ public class RreadMessage extends StyxMessage
                              // data in the ByteBuffer
     
     private byte[] bytes; // The raw data bytes (only used if we have constructed
-                          // this Tmessage from scratch before sending it).  It is
+                          // this Rmessage from scratch before sending it).  It is
                           // not used if this message is decoded from bytes that
                           // have been read over the network.
     private int pos;      // If the byte array is filled, this is the index of
@@ -331,7 +334,16 @@ public class RreadMessage extends StyxMessage
         }
         else
         {
+            // Remember the original position and limit of the buffer
+            int pos = this.data.position();
+            int limit = this.data.limit();
+            // Set the buffer to the start of the data and the limit to the end
+            this.data.position(this.dataPos);
+            this.data.limit(this.dataPos + this.count);
+            // Append the first 30 bytes of the data to the string
             s.append(StyxUtils.getDataSummary(30, this.data));
+            // Reset the data position and limit
+            this.data.position(pos).limit(limit);
         }
         return s.toString();
     }
@@ -347,7 +359,16 @@ public class RreadMessage extends StyxMessage
         }
         else
         {
-            s.append(StyxUtils.getDataSummary(30, this.getData()));
+            // Remember the original position and limit of the buffer
+            int pos = this.data.position();
+            int limit = this.data.limit();
+            // Set the buffer to the start of the data and the limit to the end
+            this.data.position(this.dataPos);
+            this.data.limit(this.dataPos + this.count);
+            // Append the first 30 bytes of the data to the string
+            s.append(StyxUtils.getDataSummary(30, this.data));
+            // Reset the data position and limit
+            this.data.position(pos).limit(limit);
         }
         return s.toString();
     }
