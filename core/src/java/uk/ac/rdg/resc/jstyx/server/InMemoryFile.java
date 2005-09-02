@@ -38,32 +38,26 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
 
 /**
  * File whose underlying data are stored as a ByteBuffer in memory. This buffer
- * can grow to arbitrary size
+ * can grow to arbitrary size.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/09/02 16:51:20  jonblower
+ * Fixed bug with ByteBuffers being released prematurely and changed to use autoExpanding ByteBuffers
+ *
  * Revision 1.17  2005/09/01 07:50:22  jonblower
  * Trying to fix bug with ByteBuffers being released (can't read from InMemoryFile)
  *
  * Revision 1.16  2005/08/30 16:29:00  jonblower
  * Added processAndReplyRead() helper functions to StyxFile
  *
- * Revision 1.15  2005/08/30 08:01:47  jonblower
- * Continuing development of tutorial
- *
- * Revision 1.14  2005/07/06 17:38:59  jonblower
- * Minor changes
- *
  * Revision 1.13  2005/06/10 07:53:12  jonblower
  * Changed SGS namespace: removed "inurl" and subsumed functionality into "stdin"
  *
  * Revision 1.12  2005/04/28 08:11:15  jonblower
  * Modified permissions handling in documentation directory of SGS
- *
- * Revision 1.11  2005/04/27 17:24:14  jonblower
- * Minor changes
  *
  * Revision 1.10  2005/04/27 16:11:43  jonblower
  * Added capability to add documentation files to SGS namespace
@@ -112,12 +106,6 @@ public class InMemoryFile extends StyxFile
     protected ByteBuffer buf;
     
     /**
-     * The maximum size to which this file can grow. This is set to 8192 bytes
-     * by default. Use setCapacity() to increase this limit.
-     */
-    protected int capacity;
-    
-    /**
      * Creates a new instance of InMemoryFile with a capacity of 8KB. Use
      * setCapacity() to increase this limit
      */
@@ -127,7 +115,7 @@ public class InMemoryFile extends StyxFile
     {
         super(name, userID, groupID, permissions, false, isAppendOnly,
             isExclusive);
-        this.capacity = 8192;
+        //this.capacity = 8192;
     }
     
     public InMemoryFile(String name, int permissions,
@@ -155,9 +143,12 @@ public class InMemoryFile extends StyxFile
     public synchronized void read(StyxFileClient client, long offset, int count,
         int tag) throws StyxException
     {
-        // TODO: do we have to make a copy of the data in the ByteBuffer, to avoid
-        // getting problems with the ByteBuffer being released before the RreadMessage
-        // is sent? (although I'm still not 100% sure why this happens)
+        if (this.buf != null)
+        {
+            // We must increment the reference count to this buffer because it will
+            // be decremented when the return message is sent.
+            this.buf.acquire();
+        }
         this.processAndReplyRead(this.buf, client, offset, count, tag);
     }
     
@@ -169,6 +160,8 @@ public class InMemoryFile extends StyxFile
         {
             // This is the first write to the file; create the buffer.
             this.buf = ByteBuffer.allocate(count);
+            // Set the buffer to expand automatically in response to writes
+            this.buf.setAutoExpand(true);
             this.buf.position(0).limit(0);
             log.debug("Allocated InMemoryFile with capacity " + this.buf.capacity());
         }
@@ -176,25 +169,15 @@ public class InMemoryFile extends StyxFile
         {
             throw new StyxException("attempt to write past the end of the file");
         }
-        // Calculate the new size of the data after the write operation
-        int newSize = (int)offset + count;
-        if (!truncate)
-        {
-            newSize = Math.max(this.buf.limit(), newSize);
-        }
-        if (newSize > this.capacity)
-        {
-            throw new StyxException(this.name + " cannot grow to more than "
-                + this.capacity + " bytes in size");
-        }
-        // Make sure the buffer is big enough to hold the new data
-        this.growBuffer(newSize);
-        // Now we can write the new data to the buffer at the correct offset
+        // Set the position of the buffer
         this.buf.position((int)offset);
-        this.buf.limit(newSize);
-        // Set the limit of the input data correctly
-        data.limit(data.position() + count);
+        // We don't have to worry about the size of the buffer because it will
+        // grow automatically if necessary
         this.buf.put(data);
+        if (truncate)
+        {
+            this.buf.limit(this.buf.position());
+        }
         this.replyWrite(client, count, tag);
     }
     
@@ -209,41 +192,17 @@ public class InMemoryFile extends StyxFile
         if (this.buf == null)
         {
             this.buf = ByteBuffer.allocate(bytes.length);
+            this.buf.setAutoExpand(true);
             log.debug("Allocated InMemoryFile with capacity " + this.buf.capacity());
         }
-        else
-        {
-            // Make sure the buffer is big enough to hold the new data
-            this.growBuffer(bytes.length);
-        }
-        // Set the position and limit of the buffer
-        this.buf.position(0).limit(bytes.length);
+        // Write the data at the start of the buffer, then set the length
+        this.buf.position(0);
+        // We don't have to worry about the size of the buffer because it will
+        // grow automatically if necessary
         this.buf.put(bytes);
+        this.buf.limit(bytes.length);
         // Notify that the contents of the file have changed
         this.contentsChanged();
-    }
-    
-    /**
-     * Grows the underlying ByteBuffer to the given size (actually allocates
-     * a new ByteBuffer and copies all the bytes to the new buffer).  TODO:
-     * have several ByteBuffers instead to save all the copying.
-     * Does nothing if the existing ByteBuffer's capacity is >= the given size.
-     */
-    private synchronized void growBuffer(int newSize)
-    {
-        if (newSize > this.buf.capacity())
-        {
-            // Current ByteBuffer is not large enough. Allocate a new one.
-            ByteBuffer newBuf = ByteBuffer.allocate(newSize);
-            // Copy all the bytes (up to the old buffer's limit) from the old
-            // buffer to the new buffer
-            this.buf.position(0);
-            newBuf.put(this.buf);
-            // Free the existing buffer
-            this.buf.release();
-            // Keep the new buffer
-            this.buf = newBuf;
-        }
     }
     
     public synchronized ULong getLength()
@@ -281,14 +240,6 @@ public class InMemoryFile extends StyxFile
         this.buf.position(0);
         // The limit will have already been set
         return StyxUtils.dataToString(this.buf);
-    }
-    
-    /**
-     * Sets the maximum number of bytes that this file can hold
-     */
-    public synchronized void setCapacity(int newCapacity)
-    {
-        this.capacity = newCapacity;
     }
     
     public static void main (String[] args) throws Exception
