@@ -14,83 +14,57 @@
     There are several ways to do this, each with advantages and disadvantages.  In
     this section of the tutorial, we'll go through the options.
     </p>
-      
-      <subsection name="Setting up">
-      <p>
-      In all of the examples in this section, we'll use the <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/SimpleServer.html">SimpleServer</a>
-      from <a href="FirstStyxSystem">earlier</a> in this tutorial.  This
-      simply serves up a single file that holds its contents in memory.  Run this
-      server by running:
-      <source>
-      JStyxRun uk.ac.rdg.resc.jstyx.tutorial.SimpleServer
-      </source>
-      from the <code>bin/</code> directory of your JStyx distribution.
-      </p>
-      <p>
-      All the client programs we shall write are based on the <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/SimpleClient.html">SimpleClient</a>
-      from <a href="FirstStyxSystem">earlier</a> in this tutorial.  In each of the
-      examples below we shall first write some data to the file on the server, 
-      then we shall read it back.  All the functions described below are part of the 
-      <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>
-      class.
-      </p>
-      <p>
-      All the code below can be found in the <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/ReadingAndWriting.html">ReadingAndWriting</a>
-      class, including full comments.
-      </p>
-      </subsection>
+    </section>
     
-      <subsection name="getContents() and setContents()">
-      <p>
-      The easiest way to read from and write to files is to use the <code>getContents()</code>
-      and <code>setContents()</code> methods, as used in the original
-      <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/SimpleClient.html">SimpleClient</a>.  These
-      methods are suitable if the entire contents of the file can fit sensibly in a String, i.e. for relatively
-      small data volumes.
-      </p>
-      <p>
-      In the <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/ReadingAndWriting.html">ReadingAndWriting</a>,
-      class, the <code>main()</code> method makes the connection to the server and gets
-      the handle (i.e. a <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a> object)
-      to the file on the remote server.  Then it calls the <code>setAndGetContents()</code>
-      method, whose contents are very simple:
-      <source>
-      file.setContents("hello JStyx world");
-      System.out.println(file.getContents());
-      </source>
-      Note that both <code>setContents()</code> and <code>getContents</code> can
-      throw <a href="../xref/uk/ac/rdg/resc/jstyx/StyxException.html">StyxException</a>s
-      and so we have to catch this or re-throw it from the method.  If you run this code
-      the string "hello JStyx world" should be printed out.
-      </p>      
-      </subsection>
+    <section name="getContents() and setContents()">
+    <p>
+    The easiest way to read from and write to files is to use the <code>getContents()</code>
+    and <code>setContents()</code> methods, as used in the 
+    <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/SimpleClient.html">SimpleClient</a> from
+    earlier in this tutorial.  These methods are suitable if the entire contents
+    of the file can fit sensibly in a String, i.e. for relatively small data volumes.
+    </p>
+    <p>
+    Once you have a handle to a <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>
+    object, you can call <code>setContents()</code> and <code>getContents()</code>
+    to write and read the entire contents of the file as Strings:
+    <source>
+    file.setContents("hello JStyx world");
+    System.out.println(file.getContents());
+    </source>
+    Note that both <code>setContents()</code> and <code>getContents</code> can
+    throw <a href="../xref/uk/ac/rdg/resc/jstyx/StyxException.html">StyxException</a>s
+    and so you will have to catch this or re-throw it from the method.  If you run this code
+    the string "hello JStyx world" should be printed out.  (Try running the
+    <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/SimpleServer.html">SimpleServer</a>
+    again and try this out.  You can adapt the <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/SimpleClient.html">SimpleClient</a>
+    class to produce the client code.)
+    </p>      
+    </section>
       
-      <subsection name="InputStreams and OutputStreams">
-      <p>
-      Another easy-to-use option for reading and writing is through streams.  This
-      is probably one of the most familiar ways of dealing with I/O to Java
-      programmers.  In essence, once you have a <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>
-      object you can turn it into an InputStream or OutputStream by using the 
-      wrapper classes <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileInputStream.html">CStyxFileInputStream</a>
-      and <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileOutputStream.html">CStyxFileOutputStream</a>
-      respectively.  You can then use standard stream I/O to get data from and to
-      the files on the Styx server.
-      </p>
-      <p>
-      Character-based I/O can be achieved by further wrapping
-      these streams in <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileInputStreamReader.html">CStyxFileInputStreamReader</a>
-      and <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileOutputStreamWriter.html">CStyxFileOutputStreamWriter</a>
-      objects.  These convert the streams into character streams by using the
-      UTF-8 character set.  These Readers and Writers can then be wrapped yet again as BufferedReaders
-      and BufferedWriters to allow, for example, reading and writing data a line at a time
-      from a remote file.
-      </p>
-      <p>
-      TODO: code example
-      </p>
-      </subsection>
+    <section name="InputStreams and OutputStreams">
+    <p>
+    Another easy-to-use option for reading and writing is through streams.  This
+    is probably one of the most familiar ways of dealing with I/O to Java
+    programmers.  In essence, once you have a <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>
+    object you can turn it into an InputStream or OutputStream by using the 
+    wrapper classes <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileInputStream.html">CStyxFileInputStream</a>
+    and <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileOutputStream.html">CStyxFileOutputStream</a>
+    respectively.  You can then use standard stream I/O to get data from and to
+    the files on the Styx server.
+    </p>
+    <p>
+    Character-based I/O can be achieved by further wrapping
+    these streams in <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileInputStreamReader.html">CStyxFileInputStreamReader</a>
+    and <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileOutputStreamWriter.html">CStyxFileOutputStreamWriter</a>
+    objects.  These convert the streams into character streams by using the
+    UTF-8 character set.  These Readers and Writers can then be wrapped yet again as BufferedReaders
+    and BufferedWriters to allow, for example, reading and writing data a line at a time
+    from a remote file.
+    </p>
+    </section>
       
-      <subsection name="Using URLs">
+      <subsection name="Using URLs to get handles to streams">
       <p>
       You can get a handle to a Styx file on a remote server using a URL.  For
       example, the URL of a file called <code>readme</code> in the root directory
@@ -118,13 +92,259 @@
       </p>
       </subsection>
       
-      <subsection name="read() and write()">
-      <p>
+    <section name="download() and upload()">
+    <p>
+    The <code>download()</code> and <code>upload()</code> methods of the
+    <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>
+    class provide convenient methods for copying data from a remote Styx file
+    to a local <code>java.io.File</code> or vice-versa.
+    </p>
+    </section>
       
+    <section name="Some technical details">
+    <p>
+    The above methods of reading and writing completely hide the details of 
+    the Styx protocol mechanisms from the user.  In order to understand the
+    remainder of this section of the tutorial, you will need to know a little
+    about how Styx works.
+    </p>
+    <p>
+    The most important thing you need to know is that when you read from - or
+    write to - Styx files, you do so in chunks.  When you read from a file,
+    you are actually making lots of individual requests for data.  By default,
+    JStyx reads and writes data a maximum of 8KB at a time.  So, if you are
+    downloading a file of 1MB in size, you are actually making at least 128
+    separate requests for 8KB of data.  (It is possible to choose a different
+    maximum message size at the point of making a connection to a server:
+    see the various constructors for the
+    <a href="../xref/uk/ac/rdg/resc/jstyx/client/StyxConnection.html">StyxConnection</a>
+    class.  However, it is generally recommended to stick with the default
+    message size unless you know what you're doing.)
+    </p>
+    <p>
+    When the server receives a request for a chunk of data, it can respond
+    with a chunk of <em>any</em> size from zero bytes to the requested chunk size.
+    If the server responds with zero bytes, this means that the end of the file
+    has been reached.  Clients can make requests for any chunk size up to the
+    maximum allowable on the connection.
+    </p>
+    <p>
+    This feature of the Styx protocol has several advantages, including the
+    fact that it is easy to download data from arbitrary positions in the
+    remote file. However, it means that reading and writing large amounts of
+    data are rather slower than with a system (e.g. HTTP) that simply opens
+    a socket connection and passes the data in one long stream.  The speed can
+    be significantly increased by selecting a larger maximum message size when making the
+    connection to the server (64KB is suggested as a maximum) or by using an
+    "accelerated download" by making several simultaneous read requests, thereby
+    attempting to saturate the connection (see the <code>download(File file, int numRequests)</code>
+    method).  However, Styx file transfer rates generally do not exceed HTTP
+    transfer rates for static files.
+    </p>
+    </section>
+      
+    <section name="read() and write()">
+    <p>
+    There may be situations in which you want to have more control over the
+    reading and writing of files: perhaps you want to read or write data from or
+    to a specific position in the remote file.  In this case
+    you can use the <code>read()</code> and <code>write()</code> methods of
+    <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>.
+    </p>
+    <p>
+    The <code>read()</code> method takes as an argument the offset (position) in
+    the remote file from which you wish to read data.  It returns a
+    <a href="http://directory.apache.org/subprojects/network/xref/org/apache/mina/common/ByteBuffer.html">ByteBuffer</a>
+    of data, but this is not the normal java.nio.ByteBuffer to which you might be
+    accustomed, although it is very similar.  This is a ByteBuffer from the 
+    <a href="http://directory.apache.org/subprojects/network/index.html">MINA</a>
+    framework, which is the networking software that underlies JStyx.  MINA ByteBuffers
+    are obtained from a pool and returned to the pool when they are no longer
+    needed.  This means that ByteBuffers are not continually being created and
+    garbage-collected.  This gain in efficiency comes at a price: when using the
+    <code>read()</code> method of <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>
+    you must remember to call the <code>release()</code> method on the ByteBuffer
+    that is returned, once you have finished with the data.
+    </p>
+    <p>
+    There are a few versions of the <code>write()</code> method.  In each case
+    you provide a byte array containing the data to write and specify the
+    position in the remote file where you want the data to go.  You can also
+    specify whether you want the remote file to be truncated at the end of the
+    data.  If the byte array that you provide is larger than the maximum message
+    size... <em>[TODO: I don't think JStyx checks for this at the moment!!]</em>  To save
+    you worrying about how big the input array is, the <code>writeAll()</code>
+    method allows you to write an array of any size: the data in the array will be split
+    across several messages if necessary.
+    </p>
+    <p>
+    When using the <code>read()</code> and <code>write()</code> methods, the
+    file is opened automatically in the correct mode.  However, you should remember
+    to <code>close()</code> the file when you have finished with it.
+    </p>
+    </section>
+      
+    <section name="Asynchronous reading and writing">
+    <p>
+    So far, all the methods we have used have been synchronous in nature.  That
+    is to say, the methods only return when their job is done.  However, there
+    may be situations in which there may be a significant time gap between sending
+    a read request and actually getting the data back: this may not be because
+    of a slow server, but by deliberate design of the Styx system (see the section
+    of the tutorial on <a href="AsyncFiles">asynchronous files</a> for example).
+    Also, when writing graphical programs, you will want to keep the user interface
+    responsive and it will be undesirable to have your program hang while waiting
+    for data.  You can solve this by firing off lots of threads but there is a neater
+    way: use the asynchronous versions of the reading and writing methods.
+    </p>
+    <p>
+    There are a couple of ways of doing asynchronous reading and writing, but 
+    both are based on the idea that you send the read and write message using
+    one method, which returns immediately, leaving your program to do other things.
+    When the reply arrives, a specified callback method is called so that you can
+    deal with it.
+    </p>
+    
+      <subsection name="Using a change listener">
+      <p>
+      The first way to use asynchronous reading and writing is by creating
+      a class that implements the <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileChangeListener.html">CStyxFileChangeListener</a>
+      interface.  (Or, for convenience, you might choose to subclass the
+      <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileChangeAdapter.html">CStyxFileChangeAdapter</a>
+      abstract class, which provides empty default implementations of all the
+      methods in the interface.)
+      </p>
+      <p>
+      Having got a <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">CStyxFile</a>,
+      you register your change listener using the <code>addChangeListener()</code>
+      method.  Then you call one of the <code>...Async()</code> methods (e.g.
+      <code>readAsync()</code>) and the relevant method in the change listener
+      will be called when the reply arrives.  For example, here is a code snippet
+      that will read a file from a remote server:
+      <source>
+      public class DataReader extends CStyxFileChangeAdapter
+      {
+          ...
+          public void readFile(CStyxFile file)
+          {
+              // Register this object as a change listener
+              file.addChangeListener(this);
+              // Read the first chunk of data from the file
+              file.readAsync(0);
+              // This returns immediately
+          }
+          ...
+          public void dataArrived(CStyxFile file,
+                  TreadMessage tReadMsg, ByteBuffer data)
+          {
+              // This method is called when the data arrive.  The arguments to
+              // this method contain the file that is being read, the original
+              // read message and the data themselves.
+              if (data.hasRemaining())
+              {
+                  // We got some data back.  Work out the offset (file position)
+                  // of the next chunk
+                  long offset = tReadMsg.getOffset().asLong() + data.remaining();
+                  // ... (Do something with the data here)
+                  // Now read the next chunk of data.  This method will be
+                  // called again when the data arrive.
+                  file.readAsync(offset);
+              }
+              else
+              {
+                  // We have reached end of file.  Close the file.
+                  file.close();
+              }
+          }
+          ...
+      }
+      </source>
+      Writing data is very similar, except that you use the <code>writeAsync()</code>
+      method and, when the write confirmation arrives, the <code>dataWritten()</code>
+      method of all registered change listeners will be called.  These are all the
+      asynchronous methods with their relevant callbacks in the
+      <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileChangeListener.html">CStyxFileChangeListener</a>
+      interface:
+      <table border="1">
+      <tbody>
+      <tr><th>Purpose</th><th>CStyxFile method</th><th>Change listener callback</th></tr>
+      <tr><td>Reading data</td><td><code>readAsync()</code></td><td><code>dataArrived()</code></td></tr>
+      <tr><td>Writing data</td><td><code>writeAsync()</code></td><td><code>dataWritten()</code></td></tr>
+      <tr><td>Opening a file</td><td><code>openAsync()</code></td><td><code>fileOpen()</code></td></tr>
+      <tr><td>Creating a file</td><td><code>createAsync()</code></td><td><code>fileCreated()</code></td></tr>
+      <tr><td>Getting the children of a directory</td><td><code>getChildrenAsync()</code></td><td><code>childrenFound()</code></td></tr>
+      <tr><td>Downloading a file</td><td><code>downloadAsync()</code></td><td><code>downloadComplete()</code></td></tr>
+      <tr><td>Uploading a file</td><td><code>uploadAsync()</code></td><td><code>uploadComplete()</code></td></tr> 
+      <tr><td>Getting the stat (properties) of a file</td><td><code>refreshAsync()</code></td><td><code>statChanged()</code></td></tr>
+      <tr><td>Catching errors</td><td>all methods</td><td><code>error()</code></td></tr> 
+      </tbody>
+      </table>
+      Note that errors from all asynchronous methods are caught in the <code>error()</code>
+      method of the change listener.
       </p>
       </subsection>
       
-      <subsection name="Asynchronous reading and writing">
+      <subsection name="One Golden Rule">
+      <p>
+      When implementing callback functions (such as <code>dataArrived()</code>),
+      you must be very careful to avoid using non-asynchronous (blocking) methods
+      such as <code>read()</code> and <code>write()</code>.  This will
+      cause deadlock (you will block the thread that dispatches Styx replies).
+      You can only use asynchronous methods within callback functions.  The Javadoc
+      comments for each function will tell you whether a method blocks, but in 
+      general, only methods called <code>xxxAsync()</code> will be guaranteed
+      not to block.  An exception to this is the <code>close()</code> method,
+      which never blocks (it doesn't wait for the reply to the close request).
+      </p>
+      </subsection>
+    
+      <subsection name="Using MessageCallbacks">
+      <p>
+      Sometimes you might not want to use a 
+      <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFileChangeListener.html">CStyxFileChangeListener</a>:
+      perhaps you want more control over individual Styx messages or you don't
+      like the way that all errors are caught in the same <code>error()</code>
+      callback in the change listener.  In this case, you can create individual 
+      callback objects for each call to an asynchronous method.
+      </p>
+      <p>
+      To do this, you create an instance of the 
+      <a href="../xref/uk/ac/rdg/resc/jstyx/client/MessageCallback.html">MessageCallback</a>
+      abstract class.  This requires you to implement two methods: <code>replyArrived()</code>,
+      which is called if the operation succeeds; and <code>error()</code>, which
+      is called if an error occurs.  (The <code>error()</code> callback is equivalent
+      to the throwing of a <a href="../xref/uk/ac/rdg/resc/jstyx/StyxException.html">StyxException</a>
+      in the synchronous methods).  The following example will set the contents of
+      the remote file to the given String (i.e. the asynchronous equivalent of
+      <code>setContents()</code>:
+      <source>
+      public void writeString(CStyxFile file, String str)
+      {
+          // Write the string to the beginning of the file (offset=0).
+          // The file will be truncated at the end of the string
+          file.writeAsync(str, 0, new WriteStringCallback());
+      }
+      private class WriteStringCallback extends MessageCallback
+      {
+          public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
+          {
+              // The arguments to this method are the request (the tMessage)
+              // and the reply (the rMessage), but we don't always use them.
+              System.out.println("Write confirmation arrived");
+          }
+          public void error(String errString, StyxMessage tMessage)
+          {
+              // The arguments to this method are the request (the tMessage)
+              // and the error string
+              System.err.println("An error occurred: " + errString);
+          }
+      }
+      </source>
+      There are a number of <code>writeAsync()</code> methods that can be used:
+      see the <a href="../xref/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">code</a>
+      or the <a href="../apidocs/uk/ac/rdg/resc/jstyx/client/CStyxFile.html">Javadoc</a>
+      for the CStyxFile class.
+      </p>
       </subsection>
       
     </section>

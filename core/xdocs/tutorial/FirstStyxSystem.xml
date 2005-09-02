@@ -104,6 +104,12 @@
       </subsection>
     </section>
     
+    <section name="Serving up files on disk">
+    <p>
+    TODO (talk about the FileOnDisk and DirectoryOnDisk classes)
+    </p>
+    </section>
+    
     <section name="Summary">
       <p>
       In this section of the tutorial, we have created a simple Styx server and

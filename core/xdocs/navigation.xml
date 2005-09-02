@@ -22,7 +22,7 @@
                 <item name="4. Next steps" href="tutorial/NextSteps.html"/>
                 <item name="5. Asynchronous files" href="tutorial/AsyncFiles.html" collapse="true"/>
                 <item name="6. Streams" href="tutorial/Streams.html" collapse="true"/>
-                <-- <item name="5. Simple chat application" href="tutorial/tutorial_5.html" collapse="true"/>-->
+                <!-- <item name="5. Simple chat application" href="tutorial/tutorial_5.html" collapse="true"/>-->
             </item>
         </menu>
         
