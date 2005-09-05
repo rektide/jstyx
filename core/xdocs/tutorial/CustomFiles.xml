@@ -7,59 +7,92 @@
 
   <body>
 		
-    <section name="Custom files">
-      <subsection name="Introduction">
-        <p>
-        In the <a href="FirstStyxSystem.html">first section</a> of this tutorial,
-        we created a very simple Styx system which exposed a single file, an 
-        <a href="../xref/uk/ac/rdg/resc/jstyx/server/InMemoryFile.html">InMemoryFile</a>
-        that simply represented a section of RAM.  Similarly, the
-        <a href="../xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
-        class is used to create a Styx file that represents a literal file on the local filesystem.
-        The key to creating powerful distributed systems using Styx is to design and
-        construct new types of virtual files that exhibit the correct behaviour.
-        </p>
-        <p>
-        In this section of the tutorial, you will learn how to create customized
-        virtual files.  In essence, this simply involves creating a subclass of the
-        <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a> class
-        and overriding key methods such as <code>read()</code> and <code>write()</code>.
-        </p>
-      </subsection>
+    <section name="Custom files: Introduction">
+    <p>
+    In the <a href="FirstStyxSystem.html">first section</a> of this tutorial,
+    we created a very simple Styx system which exposed a single file, an 
+    <a href="../xref/uk/ac/rdg/resc/jstyx/server/InMemoryFile.html">InMemoryFile</a>
+    that simply represented a section of RAM.  Similarly, the
+    <a href="../xref/uk/ac/rdg/resc/jstyx/server/FileOnDisk.html">FileOnDisk</a>
+    class is used to create a Styx file that represents a literal file on the local filesystem.
+    The key to creating powerful distributed systems using Styx is to design and
+    construct new types of virtual files that exhibit the correct behaviour.
+    </p>
+    <p>
+    In this section of the tutorial, you will learn how to create customized
+    virtual files.  In essence, this simply involves creating a subclass of the
+    <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a> class
+    and overriding key methods such as <code>read()</code> and <code>write()</code>.
+    </p>
       
-      <subsection name="Custom file 1: WhoAmI">
-        <p>
-        For our first example, let's create a file that, when read, will return the IP address
-        and port number of the client that is making the connection.  This file will therefore
-        return data that is different for each client that is connected.  This will be a
-        read-only file.  We'll call this class "WhoAmIFile".  (See the full source code of the 
-        WhoAmIFile class, including full comments, <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/WhoAmIFile.html">here</a>.)
-        </p>
-        <p>
-        As always, we need to subclass the <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
-        class:
-        <source>
-        public class WhoAmIFile extends StyxFile
-        </source>
-        Note that the <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
-        class is not abstract: it provides methods to give (not very useful) default
-        behaviour.  Now we need to create a constructor:
-        <source>
-        public WhoAmIFile() throws StyxException
-        {
-            super("whoami");
-        }
-        </source>
-        The call to the superclass constructor sets the name of the file.  Note
-        that the superclass constructor throws a <a href="../xref/uk/ac/rdg/resc/jstyx/StyxException.html">StyxException</a>
-        if the file name is illegal.  We know that this is not the case here, but we
-        will simply re-throw the exception anyway.
-        </p>
-        <p>
-        Now we must override the <code>read()</code> method so that...
-        </p>
+    <section name="Custom file 1: WhoAmI">
+    <p>
+    For our first example, let's create a file that, when read, will return the IP address
+    and port number of the client that is making the connection.  This file will therefore
+    return data that is different for each client that is connected.  This will be a
+    read-only file.  We'll call this class "WhoAmIFile".  (See the full source code of the 
+    WhoAmIFile class, including full comments, <a href="../xref/uk/ac/rdg/resc/jstyx/tutorial/WhoAmIFile.html">here</a>.)
+    </p>
+    <p>
+    As always, we need to subclass the <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
+    class:
+    <source>
+    public class WhoAmIFile extends StyxFile
+    </source>
+    Note that the <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a>
+    class is not abstract: it provides methods to give (not very useful) default
+    behaviour.  Now we need to create a constructor:
+    <source>
+    public WhoAmIFile() throws StyxException
+    {
+        super("whoami");
+        this.setPermissions(0444);
+    }
+    </source>
+    The call to the superclass constructor sets the name of the file.  Note
+    that the superclass constructor throws a <a href="../xref/uk/ac/rdg/resc/jstyx/StyxException.html">StyxException</a>
+    if the file name is illegal.  We know that this is not the case here, but we
+    will simply re-throw the exception anyway.  Then we set the permissions of the
+    file: we will not allow writing to this file, so we give it read permissions
+    only (0444, i.e. <code>r--r--r--</code>).
+    </p>
+    <p>
+    Now we must override the <code>read()</code> method so that the IP address
+    and port are returned to the client.  This is very easily done:
+    <source>
+    public void read(StyxFileClient client, long offset, int count, int tag)
+        throws StyxException
+    {
+        String clientAddr = client.getSession().getRemoteAddress().toString();
+        this.processAndReplyRead(clientAddr, client, offset, count, tag);
+    }
+    </source>
+    In the first line of this method we get the client's IP address and port
+    as a String.  Then we call <code>processAndReplyRead()</code> to return
+    the data to the client.
+    </p>
+    
+      <subsection name="Replying to the client">
+      <p>
+      In the above example, we used the <code>processAndReplyRead()</code> helper
+      method to process the read request and return the data to the client.  This
+      is a very useful method that is used when the <em>entire</em> contents of a 
+      file can be represented as a String, byte array or
+      <a href="http://directory.apache.org/subprojects/network/xref/org/apache/mina/common/ByteBuffer.html">ByteBuffer</a>.
+      If the file cannot be represented in this way we have to work a little harder,
+      as we shall see in the example below.  In this case, we have to work out
+      exactly what data we need to give to the client (based on the client's read
+      request and the contents of the whole file) and call one of the <code>replyRead()</code>
+      methods.
+      </p>
       </subsection>
-      
+    
+    </section>
+    
+    <section name="A read/write file">
+    <p>
+    The above example implemented a read-only file...
+    </p>
     </section>
     
   </body>
