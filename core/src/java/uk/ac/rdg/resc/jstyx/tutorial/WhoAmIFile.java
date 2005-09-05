@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/09/05 07:21:14  jonblower
+ * Set permissions of file to 0444
+ *
  * Revision 1.2  2005/08/30 16:27:49  jonblower
  * Continued to develop website and tutorial
  *
@@ -61,6 +64,9 @@ public class WhoAmIFile extends StyxFile
     public WhoAmIFile() throws StyxException
     {
         super("whoami");
+        // This will be a read-only file so set the permissions to 0444
+        // (i.e. r--r--r--)
+        this.setPermissions(0444);
     }
     
     /**
