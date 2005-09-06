@@ -24,6 +24,7 @@
     <a href="../xref/uk/ac/rdg/resc/jstyx/server/StyxFile.html">StyxFile</a> class
     and overriding key methods such as <code>read()</code> and <code>write()</code>.
     </p>
+	</section>
       
     <section name="Custom file 1: WhoAmI">
     <p>
