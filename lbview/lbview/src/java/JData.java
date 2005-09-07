@@ -37,6 +37,8 @@ public class JData extends JFrame implements Observer {
 
   private Dimension scrsize;
   
+  // Wallaby wallaby wallaby
+  
   //menu bar
   private JMenuBar jmenubar_main;
   private JMenu jmenu_data;
