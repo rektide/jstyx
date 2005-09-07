@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir=".." name="lbview-IDE">
+    <!-- Import the ant build file -->
+    <import file="../build.xml"/>
+    
+    <target name="compile-selected-files-in-java">
+        <fail unless="files">Must set property 'files'</fail>
+        <mkdir dir="${classes.dir}"/>
+        <javac destdir="${classes.dir}" includes="${files}" srcdir="src/java">
+            <!-- Set the classpath -->
+            <classpath>
+                <pathelement path="${java.class.path}"/>
+                <fileset dir="${lib.dir}">
+                        <include name="**/*.jar"/>
+                </fileset>
+            </classpath>
+         </javac>
+    </target>
+    
+</project>

@@ -1,0 +1,57 @@
+<project name="lbview" default="dist" basedir=".">
+    <description>
+        Viewer application for output from lbflow
+    </description>
+  <!-- set global properties for this build -->
+  <property name="src.dir" value="./src/java" />
+  <property name="classes.dir" value="./target/classes" />
+  <property name="jar.dir"  value="./target" />
+  <property name="lib.dir"  value="./lib" />
+  <property name="jar.file" value="${jar.dir}/lbview.jar" />
+
+  <target name="init">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${classes.dir}"/>
+  </target>
+
+  <target name="compile" depends="init"
+        description="compile the source " >
+    <!-- Compile the java code from ${src} into ${build} -->
+    <javac srcdir="${src.dir}" destdir="${classes.dir}">
+      <classpath>
+        <fileset dir="${lib.dir}">
+          <include name="**/*.jar"/>
+        </fileset>
+      </classpath>
+    </javac>
+  </target>
+
+  <target name="dist" depends="compile"
+        description="generate the distribution" >
+    <!-- Create the distribution directory -->
+    <mkdir dir="${jar.dir}"/>
+    <jar destfile="${jar.file}" basedir="${classes.dir}"/>
+  </target>
+
+  <target name="run" depends="dist" description="run the program">
+    <java classname="JData" fork="true">
+      <classpath>
+        <fileset dir="${lib.dir}">
+          <include name="**/*.jar"/>
+        </fileset>
+        <fileset dir="${jar.dir}">
+          <include name="**/*.jar"/>
+        </fileset>
+      </classpath>
+    </java>
+  </target>
+
+  <target name="clean"
+        description="clean up" >
+    <!-- Delete the ${build} and ${dist} directory trees -->
+    <delete dir="${classes.dir}"/>
+    <delete dir="${jar.dir}"/>
+  </target>
+</project>
