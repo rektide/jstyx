@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/09/08 07:08:59  jonblower
+ * Removed "String user" from list of parameters to StyxFile.write()
+ *
  * Revision 1.9  2005/08/01 16:38:05  jonblower
  * Implemented simple parameter handling
  *
@@ -97,7 +100,7 @@ public class SGSParamFile extends InMemoryFile
      * entire parameter value).  Must also be writing with truncation.
      */
     public synchronized void write(StyxFileClient client, long offset,
-        int count, ByteBuffer data, String user, boolean truncate, int tag)
+        int count, ByteBuffer data, boolean truncate, int tag)
         throws StyxException
     {
         if (offset != 0)
@@ -115,7 +118,7 @@ public class SGSParamFile extends InMemoryFile
         // TODO: Check that the new value is valid
         
         // If we've got this far the value must have been OK.
-        super.write(client, offset, count, data, user, truncate, tag);
+        super.write(client, offset, count, data, truncate, tag);
         // Note that we have set a value
         this.valueSet = true;
         // Notify that the command line has changed

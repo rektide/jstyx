@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/09/08 07:08:59  jonblower
+ * Removed "String user" from list of parameters to StyxFile.write()
+ *
  * Revision 1.9  2005/08/10 18:35:28  jonblower
  * Added simple test main() function
  *
@@ -187,10 +190,10 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
      * clients of the change to the file
      */
     public synchronized void write(StyxFileClient client, long offset,
-        int count, ByteBuffer data, String user, boolean truncate, int tag)
+        int count, ByteBuffer data, boolean truncate, int tag)
         throws StyxException
     {
-        this.baseFile.write(client, offset, count, data, user, truncate, tag);
+        this.baseFile.write(client, offset, count, data, truncate, tag);
     }
     
     /**

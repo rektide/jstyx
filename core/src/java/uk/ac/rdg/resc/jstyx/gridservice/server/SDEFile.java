@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/09/08 07:08:59  jonblower
+ * Removed "String user" from list of parameters to StyxFile.write()
+ *
  * Revision 1.5  2005/08/30 16:29:00  jonblower
  * Added processAndReplyRead() helper functions to StyxFile
  *
@@ -88,7 +91,7 @@ class SDEFile extends StyxFile
      * @todo: what happens if this isn't the case?
      */
     public void write(StyxFileClient client, long offset, int count,
-        ByteBuffer data, String user, boolean truncate, int tag)
+        ByteBuffer data, boolean truncate, int tag)
         throws StyxException
     {
         // TODO: if the sde is readonly, we should alter the permission on the SDEFile

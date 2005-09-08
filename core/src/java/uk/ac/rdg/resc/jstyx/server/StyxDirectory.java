@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/09/08 07:08:59  jonblower
+ * Removed "String user" from list of parameters to StyxFile.write()
+ *
  * Revision 1.10  2005/05/19 14:46:51  jonblower
  * Changed behaviour of StyxDirectory.createChild(): no longer adds file to namespace in this method
  *
@@ -214,7 +217,7 @@ public class StyxDirectory extends StyxFile
      * directory
      */
     public void write(StyxFileClient client, long offset, int count,
-        ByteBuffer data, String user, boolean truncate, int tag)
+        ByteBuffer data, boolean truncate, int tag)
         throws StyxException
     {
         throw new StyxException("Cannot write to a directory");

@@ -54,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/09/08 07:08:59  jonblower
+ * Removed "String user" from list of parameters to StyxFile.write()
+ *
  * Revision 1.14  2005/05/19 18:42:43  jonblower
  * Removed debug message
  *
@@ -269,7 +272,7 @@ public class FileOnDisk extends StyxFile
      * does not exist and <code>mustExist</code> is false.
      */
     public synchronized void write(StyxFileClient client, long offset, 
-        int count, ByteBuffer data, String user, boolean truncate, int tag)
+        int count, ByteBuffer data, boolean truncate, int tag)
         throws StyxException
     {
         if (this.mustExist && !this.file.exists())

@@ -64,6 +64,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.28  2005/09/08 07:08:59  jonblower
+ * Removed "String user" from list of parameters to StyxFile.write()
+ *
  * Revision 1.27  2005/08/31 17:08:54  jonblower
  * Fixed bug with handling exception when Process could not be created
  *
@@ -402,7 +405,7 @@ class StyxGridServiceInstance extends StyxDirectory
         }
         
         public void write(StyxFileClient client, long offset, int count,
-            ByteBuffer data, String user, boolean truncate, int tag)
+            ByteBuffer data, boolean truncate, int tag)
             throws StyxException
         {
             String cmdString = StyxUtils.dataToString(data);
@@ -771,7 +774,7 @@ class StyxGridServiceInstance extends StyxDirectory
          * @todo deal with request to flush the write message
          */
         public void write(StyxFileClient client, long offset, int count,
-            ByteBuffer data, String user, boolean truncate, int tag)
+            ByteBuffer data, boolean truncate, int tag)
             throws StyxException
         {
             if (statusCode != StatusCode.RUNNING)

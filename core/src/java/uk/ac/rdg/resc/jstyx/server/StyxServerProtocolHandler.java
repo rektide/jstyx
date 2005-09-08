@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/09/08 07:08:59  jonblower
+ * Removed "String user" from list of parameters to StyxFile.write()
+ *
  * Revision 1.10  2005/05/19 14:46:51  jonblower
  * Changed behaviour of StyxDirectory.createChild(): no longer adds file to namespace in this method
  *
@@ -479,7 +482,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         }
         // The last modified time is set automatically by sf.replyWrite()
         sf.write(client, offset, tWriteMsg.getCount(), tWriteMsg.getRawData(),
-            sessionState.getUser(), truncate, tag);
+            truncate, tag);
         // We can now free the data buffer of the tWriteMsg. If the StyxFile
         // wanted to keep a reference to this buffer, it will have called
         // acquire() on the buffer.

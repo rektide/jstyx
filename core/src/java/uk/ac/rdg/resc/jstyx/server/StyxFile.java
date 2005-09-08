@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/09/08 07:08:59  jonblower
+ * Removed "String user" from list of parameters to StyxFile.write()
+ *
  * Revision 1.17  2005/08/30 16:29:00  jonblower
  * Added processAndReplyRead() helper functions to StyxFile
  *
@@ -529,14 +532,13 @@ public class StyxFile
      * @param data The data to write. The position and limit of this ByteBuffer
      * will be set correctly, but subclasses should note that the position might
      * not be zero.
-     * @param user The user that is performing the write operation
      * @param truncate If this is true the file will be truncated at the end of 
      * the new data
      * @param tag The tag of the incoming Twrite message (this is needed when
      * calling writeReply())
      */
     public void write(StyxFileClient client, long offset, int count,
-        ByteBuffer data, String user, boolean truncate, int tag)
+        ByteBuffer data, boolean truncate, int tag)
         throws StyxException
     {
         throw new StyxException("Cannot write to this file");

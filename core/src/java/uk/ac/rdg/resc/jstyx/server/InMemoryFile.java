@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2005/09/08 07:08:59  jonblower
+ * Removed "String user" from list of parameters to StyxFile.write()
+ *
  * Revision 1.18  2005/09/02 16:51:20  jonblower
  * Fixed bug with ByteBuffers being released prematurely and changed to use autoExpanding ByteBuffers
  *
@@ -153,7 +156,7 @@ public class InMemoryFile extends StyxFile
     }
     
     public synchronized void write(StyxFileClient client, long offset,
-        int count, ByteBuffer data, String user, boolean truncate, int tag)
+        int count, ByteBuffer data, boolean truncate, int tag)
         throws StyxException
     {
         if (this.buf == null)
