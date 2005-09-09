@@ -63,6 +63,7 @@
         <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/1">
             <compilation-unit>
                 <package-root>src/java</package-root>
+                <classpath mode="compile">lib/TableLayout.jar;lib/vtk-4.5.0-20050503.jar;lib/jstyx-0.1.0-SNAPSHOT.jar;lib/mina-0.7.3.jar</classpath>
                 <source-level>1.5</source-level>
             </compilation-unit>
         </java-data>
