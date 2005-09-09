@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.20  2005/09/09 16:34:03  jonblower
+ * Removed LBViewer as possible stream viewer
+ *
  * Revision 1.19  2005/09/09 14:19:35  jonblower
  * Created populatePanel() methods in panel implementations to send messages to get panel details
  *
@@ -1030,7 +1033,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             // Create the hashtable of possible viewing panels
             this.viewers = new Hashtable();
             this.viewers.put("Text Viewer", TextStreamViewer.class);
-            this.viewers.put("LB Viewer", LBGUI.class);
+            //this.viewers.put("LB Viewer", LBGUI.class);
         }
         
         public void populatePanel()
