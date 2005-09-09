@@ -20,6 +20,12 @@
       This has been tested on Windows and Unix.  You will need a Java runtime environment version 1.4.2 or
       above (<a href="http://java.sun.com/">http://java.sun.com</a>) in order to run the installer (and,
       indeed, to run the software).</p>
+      <p><strong>Note:</strong> Under Unix, you might find that the scripts do not
+      work: you might get messages like "bad interpreter: no such file or directory"
+      or "Command not found". In this case, the newlines in the script might have been
+      inadvertently converted to Windows/DOS newlines. You can fix this by running
+      "<code>perl -pi -e 's/\r//' *</code>" in the <code>bin/</code> directory
+      of the installation.</p>
     </section>
     <section name="Uninstalling the software">
       <p>If you installed using the JAR installer, you can uninstall the software
