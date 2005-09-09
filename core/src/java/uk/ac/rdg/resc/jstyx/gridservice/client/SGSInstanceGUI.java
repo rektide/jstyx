@@ -77,14 +77,14 @@ import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2005/09/09 14:19:35  jonblower
+ * Created populatePanel() methods in panel implementations to send messages to get panel details
+ *
  * Revision 1.18  2005/08/12 08:08:39  jonblower
  * Developments to support web interface
  *
  * Revision 1.17  2005/08/04 16:49:18  jonblower
  * Added and edited upload() methods in CStyxFile
- *
- * Revision 1.16  2005/08/02 16:45:20  jonblower
- * *** empty log message ***
  *
  * Revision 1.15  2005/08/01 16:38:05  jonblower
  * Implemented simple parameter handling
@@ -174,18 +174,22 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         
         // Add the input panel
         this.inputPanel = new InputPanel();
+        this.inputPanel.populatePanel();
         this.masterPanel.add(this.inputPanel, "1, 1");
         
         // Add the panel for uploading input files
         this.inputFilesPanel = new InputFilesPanel();
+        this.inputFilesPanel.populatePanel();
         this.masterPanel.add(this.inputFilesPanel, "1, 3");
         
         // Add the panel for setting parameters for the SGS
         this.paramsPanel = new ParamsPanel();
+        this.paramsPanel.populatePanel();
         this.masterPanel.add(this.paramsPanel, "1, 5");
         
         // Add the panel for steering the SGS
         this.steeringPanel = new SteeringPanel();
+        this.steeringPanel.populatePanel();
         this.masterPanel.add(this.steeringPanel, "1, 7");
         
         // Add the control panel
@@ -194,10 +198,12 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         
         // Add the service data panel
         this.sdPanel = new ServiceDataPanel();
+        this.sdPanel.populatePanel();
         this.masterPanel.add(this.sdPanel, "1, 11");
         
         // Add the output streams panel
         this.osPanel = new OutputStreamsPanel();
+        this.osPanel.populatePanel();
         this.masterPanel.add(this.osPanel, "1, 13");
         
         this.statusBar = new JLabel("Status bar");
@@ -390,7 +396,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         private JTextField inputURL;
         private JButton btnPickFile;
         
-        public InputPanel()
+        public void populatePanel()
         {
             // Send message to find the input methods supported by this instance
             // When the reply arrives, the setInputMethods() method of this
@@ -477,6 +483,10 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             this.layout = new TableLayout(size);
             this.setLayout(this.layout);
             this.setBorder(BorderFactory.createTitledBorder("Input files to upload"));
+        }
+        
+        public void populatePanel()
+        {
             // Send a message to get all the possible input files
             client.getInputFiles();
         }
@@ -622,9 +632,13 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         
         public ParamsPanel()
         {
+            this.cmdLineLabel = new JLabel("Command line: ");
+        }
+        
+        public void populatePanel()
+        {
             client.readAllParametersAsync();
             client.getCommandLineAsync();
-            this.cmdLineLabel = new JLabel("Command line: ");
         }
         
         public void gotParameters(CStyxFile[] paramFiles)
@@ -754,8 +768,8 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         private JTable table;
         private TableLayout layout;
         private ParamsTableModel model;
-        
-        public SteeringPanel()
+    
+        public void populatePanel()
         {
             client.readAllSteeringParams();
         }
@@ -871,12 +885,8 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     {
         private JTable table;
         private SDTableModel model;
-
-        /**
-         * Creates a ServiceDataPanel based on the service data in the given
-         * directory
-         */
-        public ServiceDataPanel()
+        
+        public void populatePanel()
         {
             // Send message to find the service data elements
             client.getServiceDataNames();
@@ -1021,6 +1031,10 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             this.viewers = new Hashtable();
             this.viewers.put("Text Viewer", TextStreamViewer.class);
             this.viewers.put("LB Viewer", LBGUI.class);
+        }
+        
+        public void populatePanel()
+        {
             // Send a message to get the possible output streams
             client.getOutputStreams();
         }
