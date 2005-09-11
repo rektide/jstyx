@@ -38,6 +38,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/09/11 18:52:13  jonblower
+ * Added error() method
+ *
  * Revision 1.3  2005/07/28 16:38:58  jonblower
  * Added material to comments
  *
@@ -61,4 +64,10 @@ public interface SGSChangeListener
      * CStyxFiles without worrying about the method blocking.
      */
     public void gotInstances(CStyxFile[] instances);
+    
+    /**
+     * Fired when an error has occurred
+     */
+    public void error(String message);
+    
 }
