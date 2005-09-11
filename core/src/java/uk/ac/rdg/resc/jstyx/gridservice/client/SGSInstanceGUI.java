@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.21  2005/09/11 19:30:40  jonblower
+ * Changed call to readAllSteeringParams() to readAllSteeringParamsAsync()
+ *
  * Revision 1.20  2005/09/09 16:34:03  jonblower
  * Removed LBViewer as possible stream viewer
  *
@@ -774,7 +777,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     
         public void populatePanel()
         {
-            client.readAllSteeringParams();
+            client.readAllSteeringParamsAsync();
         }
         
         public void gotSteerableParameters(CStyxFile[] steeringFiles)
