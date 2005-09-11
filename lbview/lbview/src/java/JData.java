@@ -29,11 +29,9 @@ import java.util.Observable;
 import java.util.Vector;
 import LBStructures.*;
 
-import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.client.CStyxFileInputStream;
 import uk.ac.rdg.resc.jstyx.StyxException;
-import uk.ac.rdg.resc.jstyx.gridservice.client.SGSClient;
 import uk.ac.rdg.resc.jstyx.gridservice.client.SGSInstanceClient;
 
 public class JData extends JFrame implements Observer
@@ -73,9 +71,13 @@ public class JData extends JFrame implements Observer
     //helpers
     private JFileChooser jfilechooser;
     private File dom_file;
+    
     //JON: all the info for the remote process will be stored here
+    private SGSInstanceClient instance;
+    
     private Process remote_process;
     private PipeDialog pipe_dialog;
+    private SGSDialog sgs_dialog;
     private File remote_sim_file;
     private String command_line_args;
     private String remote_exe;
@@ -285,10 +287,21 @@ public class JData extends JFrame implements Observer
             if (name.equals(action_stop_sim.getValue(NAME)))
             {
                 //kill remote process if it exists. what happens here if it is already finished?
-                if (remote_process != null)
+                /*if (remote_process != null)
                 {
                     remote_process.destroy();
                     remote_process = null;
+                }*/
+                if (instance != null)
+                {
+                    try
+                    {
+                        instance.stopService();
+                    }
+                    catch (StyxException se)
+                    {
+                        se.printStackTrace();
+                    }
                 }
                 action_stop_sim.setEnabled(false);
                 action_start_sim.setEnabled(true);
@@ -464,10 +477,17 @@ public class JData extends JFrame implements Observer
     
     public void simMenuSetRemoteInfo()
     {
-        this.pipe_dialog = new PipeDialog(this);
-        //this should really only be performed if the set remote process info dialog is not cancelled
-        if (this.remote_exe != null && !remote_exe.matches("")) action_start_sim.setEnabled(true);
-        this.pipe_dialog = null;
+        if (this.sgs_dialog == null)
+        {
+            this.sgs_dialog = new SGSDialog(this);
+        }
+        this.sgs_dialog.setVisible(true);
+    }
+    
+    public void setSGSInstanceClient(SGSInstanceClient instanceClient)
+    {
+        this.instance = instanceClient;
+        action_start_sim.setEnabled(true);
     }
     
     public String getCommandLineArgs()
@@ -527,28 +547,15 @@ public class JData extends JFrame implements Observer
     
     private boolean startRemoteProcess()
     {
-        //this will be replaced by some JStyx thingy
-        if (!this.remote_exe.matches(""))
+        if (this.instance != null)
         {
-            String command = this.remote_exe;
-            command += " -i " + this.remote_sim_file.getAbsolutePath();
+            // The instance should never be null, otherwise this menu option
+            // would have been disabled
             try
             {
-                StyxConnection conn = new StyxConnection("lovejoy.nerc-essc.ac.uk", 9092);
-                conn.connect();
-                CStyxFile lbflowRoot = conn.getFile("/lbflow");
-                SGSClient client = new SGSClient(lbflowRoot);
-                String instanceID = client.createNewInstance();
-                SGSInstanceClient instance = client.getClientForInstance(instanceID);
-                instance.startService();
-                // TODO: would be neater to get the CStyxFile from the SGSInstanceClient
-                // object
-                CStyxFile outStreamFile = conn.getFile("/lbflow/instances/" +
-                    instanceID + "/io/out/stdout");
+                this.instance.startService();
+                CStyxFile outStreamFile = this.instance.getOutputStream("stdout");
                 InputStream is = new CStyxFileInputStream(outStreamFile);
-                /*Runtime rt = Runtime.getRuntime();
-                remote_process = rt.exec(command);
-                InputStream is = remote_process.getInputStream();*/
                 this.input_parser = new InputParser(is, this);
                 input_parser_thread = new Thread(this.input_parser);
                 input_parser_thread.start();
@@ -561,7 +568,11 @@ public class JData extends JFrame implements Observer
             }
         }
         return false;
-        
+    }
+    
+    public SGSInstanceClient getSGSInstanceClient()
+    {
+        return this.instance;
     }
     
     public File getDomFile()
