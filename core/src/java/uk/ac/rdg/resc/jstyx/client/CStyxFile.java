@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.40  2005/09/11 18:50:42  jonblower
+ * Added toString() method
+ *
  * Revision 1.39  2005/09/02 16:54:26  jonblower
  * Added new writeAsync() methods
  *
@@ -1421,6 +1424,14 @@ public class CStyxFile
             }
         }
         return canonicalPath.toString();
+    }
+    
+    /**
+     * @return The name of the file (not the full path).
+     */
+    public String toString()
+    {
+        return this.getName();
     }
     
     public static void main(String[] args)
