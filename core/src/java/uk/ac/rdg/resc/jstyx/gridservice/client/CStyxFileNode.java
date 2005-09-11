@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/09/11 19:29:51  jonblower
+ * Changed call to getInstances() to getInstancesAsync()
+ *
  * Revision 1.11  2005/08/12 08:08:39  jonblower
  * Developments to support web interface
  *
@@ -166,7 +169,7 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
                 // If this has already been called, this method will do nothing
                 // When we have got the instances of this service, the
                 // gotInstances() method will be called
-                this.sgsClient.getInstances();
+                this.sgsClient.getInstancesAsync();
             }
             else
             {
