@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.30  2005/09/11 19:28:58  jonblower
+ * Added getSteeringFiles() and getOutputStream()
+ *
  * Revision 1.29  2005/08/12 08:08:39  jonblower
  * Developments to support web interface
  *
@@ -522,6 +525,31 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * @return Array of CStyxFiles representing the steerable parameters of the
+     * SGS.  The first time this method is called, the server will be queried - this
+     * operation might block, and might throw a StyxException if an error
+     * occurs.
+     */
+    public CStyxFile[] getSteeringFiles() throws StyxException
+    {
+        if (this.steeringFiles == null)
+        {
+            this.steeringFiles = this.steeringDir.getChildren();
+        }
+        return this.steeringFiles;
+    }
+    
+    /**
+     * @returns Handle to the output stream with the given name.  This method
+     * does not check that the output stream actually exists!  This method will
+     * not block.
+     */
+    public CStyxFile getOutputStream(String name)
+    {
+        return this.outputStreamsDir.getFile(name);
+    }
+    
+    /**
      * First sends a message to get the parameters of the SGS.  When this arrives,
      * sends messages to read the parameter values.  When we have got the list
      * of available parameters, the gotParameters() event will be fired.  When
@@ -550,7 +578,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * clients will continue to receive updates to steerable parameter values
      * without making any more requests.
      */
-    public void readAllSteeringParams()
+    public void readAllSteeringParamsAsync()
     {
         // Get the children of the params dir.  When the reply arrives, we will
         // fire the gotParameters() event, then read the values of the 
