@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/09/11 18:51:52  jonblower
+ * Added error() method and changed name from getInstances() to getInstancesAsync()
+ *
  * Revision 1.8  2005/08/12 08:08:39  jonblower
  * Developments to support web interface
  *
@@ -140,7 +143,8 @@ public class SGSClient extends CStyxFileChangeAdapter
     /**
      * Requests creation of a new instance of the SGS on the server.  When the instance
      * has been created, the gotInstances() event will be fired on all registered
-     * change listeners, with the new list of instances for this SGS.
+     * change listeners, with the new list of instances for this SGS, and the
+     * error() event will be fired if an error occurs.
      */
     public void createNewInstanceAsync()
     {
@@ -170,7 +174,7 @@ public class SGSClient extends CStyxFileChangeAdapter
      * arrive, the gotInstances() event will be fired on all registered
      * change listeners.  This method does not block.
      */
-    public void getInstances()
+    public void getInstancesAsync()
     {
         // If we have already called this method, do nothing; the event will
         // still be fired on all change listeners
@@ -232,6 +236,22 @@ public class SGSClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * This callback is called if there has been an error with one of the
+     * asynchronous methods
+     */
+    public void error(CStyxFile file, String message)
+    {
+        if (file == this.cloneFile)
+        {
+            this.fireError("Error creating new instance: " + message);
+        }
+        else if (file == this.instancesFile)
+        {
+            this.fireError("Error reading instances: " + message);
+        }
+    }
+    
+    /**
      * Adds a new SGSChangeListener to the list of registered change listeners.
      * If the given listener has already been registered, this method does nothing.
      */
@@ -259,8 +279,8 @@ public class SGSClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Fires the newInstanceCreated() event in all registered change listeners
-     * @param id the ID of the new instance that has been created
+     * Fires the gotInstances() event in all registered change listeners
+     * @param instances The instances belonging to this SGS
      */
     private void fireGotInstances(CStyxFile[] instances)
     {
@@ -270,6 +290,22 @@ public class SGSClient extends CStyxFileChangeAdapter
             {
                 SGSChangeListener listener = (SGSChangeListener)this.changeListeners.get(i);
                 listener.gotInstances(instances);
+            }
+        }
+    }
+    
+    /**
+     * Fires the newInstanceCreated() event in all registered change listeners
+     * @param id the ID of the new instance that has been created
+     */
+    private void fireError(String message)
+    {
+        synchronized(this.changeListeners)
+        {
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                SGSChangeListener listener = (SGSChangeListener)this.changeListeners.get(i);
+                listener.error(message);
             }
         }
     }
