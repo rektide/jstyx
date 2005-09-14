@@ -62,7 +62,6 @@
     and BufferedWriters to allow, for example, reading and writing data a line at a time
     from a remote file.
     </p>
-    </section>
       
       <subsection name="Using URLs to get handles to streams">
       <p>
@@ -91,6 +90,7 @@
       trying to create URL objects from <code>styx://</code> URLs.
       </p>
       </subsection>
+    </section>
       
     <section name="download() and upload()">
     <p>
