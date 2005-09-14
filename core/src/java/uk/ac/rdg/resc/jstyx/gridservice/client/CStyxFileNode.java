@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/09/14 07:26:46  jonblower
+ * Added error() method (from SGSChangeListener interface)
+ *
  * Revision 1.12  2005/09/11 19:29:51  jonblower
  * Changed call to getInstances() to getInstancesAsync()
  *
@@ -312,7 +315,19 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
             }
         }
     }
+    
+    /**
+     * Overrides method in SGSChangeListener: this is called when an error occurs
+     * creating a new instance of the service or reading the instances
+     */
+    public void error(String message)
+    {
+        log.error("Error creating or getting instances: " + message);
+    }
 
+    /**
+     * Overrides method in CStyxFileChangeListener
+     */
     public void error(CStyxFile file, String message)
     {
         log.error("Error with " + file.getName() + ": " + message);
