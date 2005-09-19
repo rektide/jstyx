@@ -74,6 +74,7 @@ public class JData extends JFrame implements Observer
     
     //JON: all the info for the remote process will be stored here
     private SGSInstanceClient instance;
+    private boolean newInstance;
     
     private Process remote_process;
     private PipeDialog pipe_dialog;
@@ -93,6 +94,7 @@ public class JData extends JFrame implements Observer
     private SimPanel sim_panel;
     private MessagePanel message_panel;
     private SteeringPanel steering_panel;
+    private StyxSteeringPanel styx_steering_panel;
     
     //data parsing: may come from system out of lbflow programme, or from file
     InputParser input_parser;
@@ -297,6 +299,8 @@ public class JData extends JFrame implements Observer
                     try
                     {
                         instance.stopService();
+                        // Close the connection
+                        instance.close();
                     }
                     catch (StyxException se)
                     {
@@ -484,10 +488,27 @@ public class JData extends JFrame implements Observer
         this.sgs_dialog.setVisible(true);
     }
     
-    public void setSGSInstanceClient(SGSInstanceClient instanceClient)
+    /**
+     * This is set just before the SGSDialog exits successfully
+     */
+    public void setSGSInstanceClient(SGSInstanceClient instanceClient,
+        boolean newInstance)
     {
         this.instance = instanceClient;
-        action_start_sim.setEnabled(true);
+        this.newInstance = newInstance;
+        try
+        {
+            this.styx_steering_panel = new StyxSteeringPanel(instance);
+            this.styx_steering_panel.populatePanel();
+            this.add(this.styx_steering_panel, "1, 0");
+            this.setVisible(true); // repaint the panel
+            action_start_sim.setEnabled(true);
+        }
+        catch(StyxException se)
+        {
+            JOptionPane.showMessageDialog(this, "Error creating steering panel: "
+                + se.getMessage());
+        }
     }
     
     public String getCommandLineArgs()
@@ -553,9 +574,16 @@ public class JData extends JFrame implements Observer
             // would have been disabled
             try
             {
-                this.instance.startService();
+                // Only start the service if this is a new instance: if not, we
+                // are just watching an existing instance
+                if (this.newInstance)
+                {
+                    this.instance.startService();
+                }
                 CStyxFile outStreamFile = this.instance.getOutputStream("stdout");
                 InputStream is = new CStyxFileInputStream(outStreamFile);
+                // TODO: the InputParser constructor blocks until we start reading
+                // from the stream
                 this.input_parser = new InputParser(is, this);
                 input_parser_thread = new Thread(this.input_parser);
                 input_parser_thread.start();
