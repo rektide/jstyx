@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.31  2005/09/19 07:41:43  jonblower
+ * Added a close() method
+ *
  * Revision 1.30  2005/09/11 19:28:58  jonblower
  * Added getSteeringFiles() and getOutputStream()
  *
@@ -911,6 +914,14 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public void error(CStyxFile file, String message)
     {
         this.fireError(message);
+    }
+    
+    /**
+     * Closes the underlying StyxConnection
+     */
+    public void close()
+    {
+        this.instanceRoot.getConnection().close();
     }
     
     /**
