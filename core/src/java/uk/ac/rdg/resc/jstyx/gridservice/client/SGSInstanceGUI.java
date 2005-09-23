@@ -68,8 +68,6 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 
-import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
-
 /**
  * GUI for interacting with an SGS instance
  *
@@ -77,6 +75,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.client.lbview.LBGUI;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.22  2005/09/23 09:18:38  jonblower
+ * Removed LBGui stuff and hence dependence on VTK libs
+ *
  * Revision 1.21  2005/09/11 19:30:40  jonblower
  * Changed call to readAllSteeringParams() to readAllSteeringParamsAsync()
  *
@@ -1036,7 +1037,6 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             // Create the hashtable of possible viewing panels
             this.viewers = new Hashtable();
             this.viewers.put("Text Viewer", TextStreamViewer.class);
-            //this.viewers.put("LB Viewer", LBGUI.class);
         }
         
         public void populatePanel()

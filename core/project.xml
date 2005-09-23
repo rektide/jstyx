@@ -135,13 +135,6 @@
             <type>jar</type>
             <url>http://www.clearthought.info/software/TableLayout/</url>
         </dependency>
-        <dependency>
-            <groupId>vtk</groupId>
-            <artifactId>vtk</artifactId>
-            <version>4.5.0-20050503</version>
-            <type>jar</type>
-            <url>http://public.kitware.com/VTK/</url>
-        </dependency>
     </dependencies>
     <!-- build information for the project -->
     <build>
