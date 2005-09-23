@@ -69,6 +69,7 @@ public class Viz3DPanel extends JPanel implements Terminable, ActionListener, Ch
     private JButton jbutton_length_update;
     private JCheckBox jcheckbox_scale_to_fit;
     private JCheckBox jcheckbox_streams;
+    private JSlider jslider_streams_pos;
   
   public Viz3DPanel(JData jdata, Dimension scrsize, LBDomain domain) {
     this.dom = domain;
@@ -243,7 +244,7 @@ public class Viz3DPanel extends JPanel implements Terminable, ActionListener, Ch
     //new table layout to hold vels tab components
     double[][] tab_vels_size = {
       { BORDER, TableLayout.FILL, 2, TableLayout.FILL, 2, TableLayout.FILL, 2, BORDER}, // columns
-      { BORDER, TableLayout.MINIMUM, 2, TableLayout.MINIMUM, 2, TableLayout.MINIMUM, 2, TableLayout.MINIMUM, BORDER }  // rows
+      { BORDER, TableLayout.MINIMUM, 2, TableLayout.MINIMUM, 2, TableLayout.MINIMUM, 2, TableLayout.MINIMUM, 2, TableLayout.MINIMUM, BORDER }  // rows
     };
     TableLayout tab_vels_layout = new TableLayout(tab_vels_size);
     this.tab_jpanel_vels.setLayout(tab_vels_layout);
@@ -272,13 +273,20 @@ public class Viz3DPanel extends JPanel implements Terminable, ActionListener, Ch
     this.jcheckbox_streams = new JCheckBox("Streamlines");
     this.jcheckbox_streams.addActionListener(this);
     this.tab_jpanel_vels.add(this.jcheckbox_streams, "1, 7, 5, 7");
+    //control position of streamlines origin
+    this.jslider_streams_pos = new JSlider(JSlider.HORIZONTAL, 0, 100, 0);
+    this.jslider_streams_pos.setMajorTickSpacing(100);
+    this.jslider_streams_pos.setMinorTickSpacing(10);
+    this.jslider_streams_pos.setPaintTicks(true);
+    this.jslider_streams_pos.addChangeListener(this);
+    this.tab_jpanel_vels.add(this.jslider_streams_pos, "1, 9, 5, 9");
     return this.tab_jpanel_vels;
   }
 
   //must implement actionPerformed()
   public void actionPerformed(ActionEvent e) {
     if (e.getSource().equals(this.jcheckbox_surface)) {
-      //vtkDisplay.setVels(0, -1, 0);
+      this.vtkDisplay.toggleSurface();
     }
     if (e.getSource().equals(this.jcheckbox_vels)) {
       //TODO: change to toggle velocity
@@ -295,7 +303,7 @@ public class Viz3DPanel extends JPanel implements Terminable, ActionListener, Ch
       this.jtextfield_length.setText(String.format("%f", this.vtkDisplay.toggleScaleToFit(Double.parseDouble(this.jtextfield_length.getText()))));
     }
     if (e.getSource().equals(this.jcheckbox_streams)) {
-      //vtkDisplay.setVels(0, -1, 0);
+      this.vtkDisplay.toggleStreamlines();
     }
   }
   
@@ -303,7 +311,12 @@ public class Viz3DPanel extends JPanel implements Terminable, ActionListener, Ch
   public void stateChanged(ChangeEvent e) {
     if (e.getSource().equals(this.jslider_surface)) {
       if (!this.jslider_surface.getValueIsAdjusting()) {
-        //this.vtkDisplay.setSurfaceOpacity((int)this.jslider_surface.getValue());
+        this.vtkDisplay.setSurfaceOpacity((int)this.jslider_surface.getValue());
+      }
+    }
+    if (e.getSource().equals(this.jslider_streams_pos)) {
+      if (!this.jslider_streams_pos.getValueIsAdjusting()) {
+        this.vtkDisplay.setStreamPos((int)this.jslider_streams_pos.getValue());
       }
     }
   }

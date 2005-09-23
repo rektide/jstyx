@@ -32,6 +32,14 @@ public class LBVTKPanel extends vtkPanel {
   private vtkDoubleArray vels;
   private vtkActor actor_vels;
   
+  private vtkIntArray type;
+  private vtkActor actor_surface;
+  
+  private vtkActor actor_streamlines;
+  private vtkStreamLine streams;
+  private vtkPolyDataMapper streamMapper;
+  private vtkPlaneSource plane;
+  
   private vtkGlyph3D glyph;
   private vtkPolyDataMapper glyph_mapper;
   
@@ -48,6 +56,12 @@ public class LBVTKPanel extends vtkPanel {
     this.domain = dom;
     VtkPanelUtil.setSize(this, scrsize.width / 3, scrsize.height / 2);
     this.setGrid(this.domain.getLattice());
+    vtkLight light1 = new vtkLight();
+    light1.SetPosition(1, 1, 1);
+    vtkLight light2 = new vtkLight();
+    light2.SetPosition(1, 1, 1);
+    super.GetRenderer().GetLights().AddItem(light1);
+    super.GetRenderer().GetLights().AddItem(light2);
   }
   
   //save the image as a jpeg file
@@ -67,7 +81,7 @@ public class LBVTKPanel extends vtkPanel {
   
   //save the image as a postscript file - this is a bit naff
   public void saveImagePostScript(String image_file) {
-    super.Lock();
+    super.Lock(); 
     vtkWindowToImageFilter image_filter = new vtkWindowToImageFilter();
     image_filter.SetInput(super.GetRenderWindow());
     vtkPostScriptWriter image_writer = new vtkPostScriptWriter();
@@ -93,6 +107,7 @@ public class LBVTKPanel extends vtkPanel {
     this.domain = dom;
     try {
       this.setVels();
+      this.setType();
     } catch (Exception e) {
       System.out.println("LBVTKPanel.domainUpdate()");
       e.printStackTrace();
@@ -133,10 +148,35 @@ public class LBVTKPanel extends vtkPanel {
     }
     this.vels.Modified();
     this.grid.GetPointData().SetVectors(vels);
-    if (this.actor_vels == null) createVelsActor();
+    if (this.actor_vels == null) this.createVelsActor();
     if (this.scale_vels_to_fit) this.scaleVelsToFit(this.scale_factor);
+    if (this.actor_streamlines == null) this.createStreamlinesActor();
+    this.scaleStreamlines();
     this.grid.Modified();
     super.repaint();
+  }
+  
+  public void setType() {
+    LBVariable v = new LBVariable();
+    try {
+      v = this.domain.getVariable('t');
+    } catch (Exception e) {
+      System.out.println("LBVTKPanel.setType()");
+      e.printStackTrace();
+    }
+    if (this.type == null)  {
+      this.type = new vtkIntArray();
+      this.type.SetNumberOfValues(this.grid.GetPoints().GetNumberOfPoints());
+      this.type.SetName("type");
+    }
+    for (int i = 0; i < this.grid.GetPoints().GetNumberOfPoints(); ++i) {
+      this.type.SetValue(i, ((int)(v.getTuple(i).getVal(0)) == 0) ? 0 : 1);
+    }
+    this.type.Modified();
+    this.grid.GetPointData().AddArray(this.type);
+    if (this.actor_surface == null) this.createSurfaceActor();
+    this.grid.Modified();
+    this.repaint();
   }
   
   private void createOutlineActor() {
@@ -160,7 +200,7 @@ public class LBVTKPanel extends vtkPanel {
     cone.SetResolution(8);
 
     this.glyph = new vtkGlyph3D();
-    this.glyph.SetInput(grid);
+    this.glyph.SetInput(this.grid);
     this.glyph.SetSource(cone.GetOutput());
     this.glyph.OrientOn();
     this.glyph.SetScaleModeToScaleByVector();
@@ -177,15 +217,66 @@ public class LBVTKPanel extends vtkPanel {
     this.glyph_mapper.SetLookupTable(lut);
     this.glyph_mapper.Update();
     
-    actor_vels = new vtkActor();
-    actor_vels.SetMapper(this.glyph_mapper);
+    this.actor_vels = new vtkActor();
+    this.actor_vels.SetMapper(this.glyph_mapper);
+  }
+  
+  private void createStreamlinesActor() {
+    double [] dims = new double[6];
+    this.grid.GetBounds(dims);
+    
+    this.plane = new vtkPlaneSource();
+    this.plane.SetOrigin(dims[0], dims[2], dims[4]);
+    this.plane.SetPoint1(dims[0], dims[2], dims[5]);
+    this.plane.SetPoint2(dims[0], dims[3], dims[4]);
+    this.plane.SetResolution(1, 20);
+    
+    this.streams = new vtkStreamLine();
+    this.streams.SetInput(this.grid);
+    this.streams.SetSource(plane.GetOutput());
+    this.streams.SetIntegrationStepLength(0.5);
+    this.streams.SetIntegrationDirectionToIntegrateBothDirections();
+    this.streams.SpeedScalarsOn();
+    this.streams.VorticityOn();
+    vtkRungeKutta4 integ = new vtkRungeKutta4();
+    this.streams.SetIntegrator(integ);
+    
+    vtkRibbonFilter ribbon = new vtkRibbonFilter();
+    ribbon.SetInput(this.streams.GetOutput());
+    ribbon.SetWidth(this.domain.getLattice().getDX() / 4);
+    
+    vtkLookupTable lut = new vtkLookupTable();
+    lut.SetHueRange(0.667, 0.0);
+    lut.SetNumberOfColors(256);
+    lut.Build();
+    this.streamMapper = new vtkPolyDataMapper();
+    this.streamMapper.SetInput(ribbon.GetOutput());
+    this.streamMapper.SetLookupTable(lut);
+
+    this.actor_streamlines = new vtkActor();
+    this.actor_streamlines.SetMapper(this.streamMapper);
+  }
+  
+  private void createSurfaceActor() {
+    vtkContourFilter contour = new vtkContourFilter();
+    //if (lb_data.getGrid().GetPointData().SetActiveScalars("type") == -1) System.out.println("no type data");
+    contour.SetInput(this.grid);
+    contour.SelectInputScalars("type");
+    contour.ComputeNormalsOff();
+    contour.SetValue(0, 0.5);
+    vtkPolyDataMapper mapcontour = new vtkPolyDataMapper();
+    mapcontour.SetInput(contour.GetOutput());
+    this.actor_surface = new vtkActor();
+    this.actor_surface.SetMapper(mapcontour);
+    this.actor_surface.GetProperty().SetOpacity(0.2);
+    super.repaint();
   }
   
   public void toggleOutline() {
     if (super.GetRenderer().HasProp(this.actor_outline) != 0) {
       this.removeActor(this.actor_outline);
     }
-    else super.GetRenderer().AddActor(actor_outline);
+    else super.GetRenderer().AddActor(this.actor_outline);
     super.repaint();
   }
   
@@ -195,7 +286,29 @@ public class LBVTKPanel extends vtkPanel {
     }
     else {
       if (this.actor_vels == null) setVels(); 
-      super.GetRenderer().AddActor(actor_vels);
+      super.GetRenderer().AddActor(this.actor_vels);
+    }
+    super.repaint();
+  }
+  
+  public void toggleStreamlines() {
+    if (super.GetRenderer().HasProp(this.actor_streamlines) != 0) {
+      this.removeActor(this.actor_streamlines);
+    }
+    else {
+      if (this.actor_streamlines == null) setVels(); 
+      super.GetRenderer().AddActor(this.actor_streamlines);
+    }
+    super.repaint();
+  }
+  
+  public void toggleSurface() {
+    if (super.GetRenderer().HasProp(this.actor_surface) != 0) {
+      this.removeActor(this.actor_surface);
+    }
+    else {
+      if (this.actor_surface == null) this.setType(); 
+      super.GetRenderer().AddActor(this.actor_surface);
     }
     super.repaint();
   }
@@ -233,7 +346,7 @@ public class LBVTKPanel extends vtkPanel {
       this.glyph.SetScaleFactor(this.domain.getLattice().getDX() * this.scale_factor / range[1]);
       this.glyph.Modified();
       //update colour map too
-      this.glyph_mapper.SetScalarRange(this.grid.GetPointData().GetVectors().GetRange(-1));
+      this.glyph_mapper.SetScalarRange(range);
       this.glyph_mapper.Modified();
     }
     super.repaint();
@@ -245,6 +358,35 @@ public class LBVTKPanel extends vtkPanel {
       else return this.glyph.GetScaleFactor();
     }
     return 0;
+  }
+  
+  private void scaleStreamlines() {
+    if (this.actor_streamlines != null) {
+      double length = this.grid.GetLength(); //length of diagonal of bounding box
+      double [] range = new double[2];
+      this.grid.GetPointData().GetVectors().GetRange(range, -1);
+      double time = length / range[1];
+      this.streams.SetMaximumPropagationTime(time * 10);
+      this.streams.SetStepLength(time / 20);
+      this.streamMapper.SetScalarRange(range);
+    }
+  }
+  
+  public void setStreamPos(int p) {
+    if (this.actor_streamlines != null) {
+      double [] center = new double[3];
+      center = this.plane.GetCenter();
+      double [] dims = new double[6];
+      this.grid.GetBounds(dims);
+      this.plane.SetCenter(dims[0] + (dims[1] - dims[0]) * p / 100, center[1], center[2]);
+      this.plane.Modified();
+      super.repaint();
+    }
+  }
+  
+  public void setSurfaceOpacity(int o) {
+    if (this.actor_surface != null) this.actor_surface.GetProperty().SetOpacity((double)(o) / 100);
+    super.repaint();
   }
   
   private void removeActor(vtkActor actor) {
