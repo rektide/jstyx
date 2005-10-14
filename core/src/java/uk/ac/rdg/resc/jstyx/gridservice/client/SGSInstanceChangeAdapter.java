@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/10/14 18:00:42  jonblower
+ * Renamed getInputMethods() to getInputStreams()
+ *
  * Revision 1.1  2005/08/12 08:08:39  jonblower
  * Developments to support web interface
  *
@@ -58,11 +61,12 @@ public class SGSInstanceChangeAdapter implements SGSInstanceChangeListener
      */
     public void gotServiceDataElements(CStyxFile[] sdeFiles) {}
     
+    
     /**
-     * Called when we have got the names of the service data elements
-     * @param inputMethods The names of input files (stdin and the input URL)
+     * Called when we have got the names of the input streams
+     * @param inputStreams The CStyxFiles representing the input streams
      */
-    public void gotInputMethods(CStyxFile[] inputMethods) {}
+    public void gotInputStreams(CStyxFile[] inputStreams) {}
     
     /**
      * Called when we have discovered the input files that the service instance
