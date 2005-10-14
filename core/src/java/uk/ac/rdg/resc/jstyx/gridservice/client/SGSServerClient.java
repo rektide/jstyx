@@ -39,6 +39,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/10/14 18:07:06  jonblower
+ * Added getSGSClient()
+ *
  * Revision 1.1  2005/08/12 08:08:39  jonblower
  * Developments to support web interface
  *
@@ -55,6 +58,27 @@ public class SGSServerClient
     public SGSServerClient(CStyxFile root)
     {
         this.serverRoot = root;
+    }
+    
+    /**
+     * Gets an SGSClient object for a given Styx Grid Service.  This method
+     * blocks until the SGS is found and proven to exist on the server
+     * @param serviceName The name of the Styx Grid Service
+     * @return an SGSClient object for the requested Styx Grid Service
+     * @throws StyxException if there is no SGS with the given name on the server
+     */
+    public SGSClient getSGSClient(String serviceName) throws StyxException
+    {
+        CStyxFile sgsRoot = this.serverRoot.getFile(serviceName);
+        if (sgsRoot.exists())
+        {
+            return new SGSClient(sgsRoot);
+        }
+        else
+        {
+            throw new StyxException("There is no Styx Grid Service called " +
+                serviceName + " on the server");
+        }
     }
     
     /**
