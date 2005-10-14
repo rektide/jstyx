@@ -42,17 +42,14 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/10/14 18:04:33  jonblower
+ * Fixed bug with not updating file offset, and added code to write zero bytes to signify EOF
+ *
  * Revision 1.2  2005/09/01 17:12:10  jonblower
  * Changes to Input and Output stream code
  *
  * Revision 1.1  2005/08/31 17:03:18  jonblower
  * Renamed "StyxFile*putStream*" to "CStyxFile*putStream*" for consistency with CStyxFile class
- *
- * Revision 1.6  2005/08/10 18:33:45  jonblower
- * Bug fixes
- * 
- * Revision 1.5  2005/08/08 09:36:19  jonblower
- * Minor changes
  * 
  * Revision 1.4  2005/05/23 16:48:17  jonblower
  * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
@@ -137,13 +134,15 @@ public class CStyxFileOutputStream extends OutputStream
         try
         {
             this.file.write(this.buf, 0, pos, this.offset, true);
+            // Update the offset of the file
+            this.offset += pos;
+            // Reset the pointer position
+            this.pos = 0;
         }
         catch(StyxException se)
         {
             throw new IOException(se.getMessage());
         }
-        // Reset the pointer position
-        this.pos = 0;
     }
     
     /**
@@ -152,7 +151,12 @@ public class CStyxFileOutputStream extends OutputStream
      */
     public synchronized void close() throws IOException
     {
+        // Write all remaining bytes in the buffer
         this.flush();
+        
+        // Write an empty message to signify end-of-file
+        this.flush();
+        
         this.file.close();
         if (this.closeConnectionWhenCloseStream)
         {
