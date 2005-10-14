@@ -98,7 +98,10 @@
             <description>Scripts to launch Styx Grid Service client programs (e.g. SGSExplorer)</description>
             <file src="bin/SGSExplorer.bat" targetdir="$INSTALL_PATH/bin" os="windows"/>
             <file src="bin/SGSExplorer" targetdir="$INSTALL_PATH/bin" os="unix"/>
+            <file src="bin/SGSRun.bat" targetdir="$INSTALL_PATH/bin" os="windows"/>
+            <file src="bin/SGSRun" targetdir="$INSTALL_PATH/bin" os="unix"/>
             <executable targetfile="$INSTALL_PATH/bin/SGSExplorer" stage="never" os="unix" keep="true"/>
+            <executable targetfile="$INSTALL_PATH/bin/SGSRun" stage="never" os="unix" keep="true"/>
         </pack>
             <pack name="SGS server" required="no">
             <description>Scripts and sample configuration files for launching Styx Grid Service server</description>
