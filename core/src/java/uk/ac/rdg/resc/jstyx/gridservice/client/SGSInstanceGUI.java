@@ -75,6 +75,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.23  2005/10/14 18:09:40  jonblower
+ * Changed getInputMethods() to getInputStreams() and added synchronous and async versions
+ *
  * Revision 1.22  2005/09/23 09:18:38  jonblower
  * Removed LBGui stuff and hence dependence on VTK libs
  *
@@ -261,12 +264,12 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
     }
     
     /**
-     * Called when we have got the names of the service data elements
+     * Called when we have got the names of the input streams
      * @param inputMethods The input files (stdin and the input URL)
      */
-    public void gotInputMethods(CStyxFile[] inputMethods)
+    public void gotInputStreams(CStyxFile[] inputStreams)
     {
-        this.inputPanel.setInputMethods(inputMethods);
+        this.inputPanel.setInputStreams(inputStreams);
     }
     
     /**
@@ -409,14 +412,14 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
             // When the reply arrives, the setInputMethods() method of this
             // class will be called and the GUI will be set up.  If there are
             // no input methods this panel will not appear
-            client.getInputMethods();
+            client.getInputStreamsAsync();
         }
         
-        public void setInputMethods(CStyxFile[] inputMethods)
+        public void setInputStreams(CStyxFile[] inputStreams)
         {
             // We only expect 0 or 1 input methods (either the service expects
             // data on stdin or it doesn't).
-            if (inputMethods.length > 0)
+            if (inputStreams.length > 0)
             {
                 double[][] size =
                 {
@@ -1042,7 +1045,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         public void populatePanel()
         {
             // Send a message to get the possible output streams
-            client.getOutputStreams();
+            client.getOutputStreamsAsync();
         }
         
         private JComboBox makeComboBox()

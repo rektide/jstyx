@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.32  2005/10/14 18:09:40  jonblower
+ * Changed getInputMethods() to getInputStreams() and added synchronous and async versions
+ *
  * Revision 1.31  2005/09/19 07:41:43  jonblower
  * Added a close() method
  *
@@ -174,8 +177,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // input files other than the compulsory ones
     private CStyxFile[] inputFiles; // The compulsory input files
     
-    // Input streams (stdin and URL to redirect to stdin)
-    private CStyxFile inputDir;
+    // Input streams
+    private CStyxFile inputStreamsDir;
     private CStyxFile stdin;
     
     // Output streams
@@ -216,8 +219,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         
         // Create the directory that we will read to see if we can write data
         // to stdin
-        this.inputDir = this.instanceRoot.getFile("/io/in");
-        this.inputDir.addChangeListener(this);
+        this.inputStreamsDir = this.instanceRoot.getFile("/io/in");
+        this.inputStreamsDir.addChangeListener(this);
         
         // Create the file that we will use to write input data
         this.stdin = this.instanceRoot.getFile("io/in/stdin");
@@ -310,14 +313,45 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Sends a message to get the possible input methods for this instance.
-     * This reads the contents of the "io/in" directory.
+     * Sends a message to get the possible input streams for this instance.
+     * This reads the contents of the "io/in" directory.  This method
+     * does not block: when the available output streams have been read, the 
+     * gotInputStreams() event will be fired on all registered change listeners
      */
-    public void getInputMethods()
+    public void getInputStreamsAsync()
     {
         // When the contents of the directory have been found, the childrenFound
         // method of this class will be called.
-        this.inputDir.getChildrenAsync();
+        this.inputStreamsDir.getChildrenAsync();
+    }
+    
+    /**
+     * @return Array of CStyxFiles, one for each input stream to which data
+     * can be written
+     * @throws StyxException if there was an error retrieving the data
+     */
+    public CStyxFile[] getInputStreams() throws StyxException
+    {
+        // When the contents of the directory have been found, the childrenFound
+        // method of this class will be called.
+        return this.inputStreamsDir.getChildren();
+    }
+    
+    /**
+     * @returns Handle to the input stream with the given name.  This method
+     * does not check that the input stream actually exists!  This method will
+     * not block.
+     */
+    public CStyxFile getInputStream(String name)
+    {
+        if (name.equals("stdin"))
+        {
+            return this.stdin;
+        }
+        else
+        {
+            return this.inputStreamsDir.getFile(name);
+        }
     }
     
     /**
@@ -366,11 +400,23 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Sends a message to get the output streams that can be viewed
+     * Sends a message to get the output streams that can be viewed.  This method
+     * does not block: when the available output streams have been read, the 
+     * gotOutputStreams() event will be fired on all registered change listeners
      */
-    public void getOutputStreams()
+    public void getOutputStreamsAsync()
     {
         this.outputStreamsDir.getChildrenAsync();
+    }
+    
+    /**
+     * @return Array of CStyxFiles, one for each output stream from which data
+     * can be read
+     * @throws StyxException if there was an error retrieving the data
+     */
+    public CStyxFile[] getOutputStreams() throws StyxException
+    {
+        return this.outputStreamsDir.getChildren();
     }
     
     private class UploadFilesCallback extends CStyxFileChangeAdapter
@@ -856,10 +902,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 this.serviceDataFiles[i].openAsync(StyxUtils.ORDWR | StyxUtils.OTRUNC);
             }
         }
-        else if (file == this.inputDir)
+        else if (file == this.inputStreamsDir)
         {
             // We have just discovered the input methods
-            this.fireGotInputMethods(children);
+            this.fireGotInputStreams(children);
         }
         else if (file == this.inputFilesDir)
         {
@@ -1043,11 +1089,11 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Fires the gotInputMethods() event on all registered change listeners
-     * @param inputMethods Array of CStyxFiles representing all the files
+     * Fires the gotInputStreams() event on all registered change listeners
+     * @param inputStreams Array of CStyxFiles representing all the files
      * in the "io/in" directory of the SGS instance
      */
-    private void fireGotInputMethods(CStyxFile[] inputMethods)
+    private void fireGotInputStreams(CStyxFile[] inputStreams)
     {
         synchronized(this.changeListeners)
         {
@@ -1055,7 +1101,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
-                listener.gotInputMethods(inputMethods);
+                listener.gotInputStreams(inputStreams);
             }
         }
     }
