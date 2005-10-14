@@ -64,6 +64,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.29  2005/10/14 18:03:23  jonblower
+ * Fixed bug with writing to input stream
+ *
  * Revision 1.28  2005/09/08 07:08:59  jonblower
  * Removed "String user" from list of parameters to StyxFile.write()
  *
@@ -72,9 +75,6 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  *
  * Revision 1.26  2005/08/30 16:29:00  jonblower
  * Added processAndReplyRead() helper functions to StyxFile
- *
- * Revision 1.25  2005/08/02 16:45:20  jonblower
- * *** empty log message ***
  *
  * Revision 1.24  2005/08/02 08:05:18  jonblower
  * Continuing to implement steering
@@ -117,9 +117,6 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  *
  * Revision 1.11  2005/05/11 15:14:31  jonblower
  * Implemented more flexible definition of service data elements
- *
- * Revision 1.10  2005/05/09 07:07:48  jonblower
- * Minor change
  *
  * Revision 1.9  2005/04/27 16:11:43  jonblower
  * Added capability to add documentation files to SGS namespace
@@ -461,40 +458,37 @@ class StyxGridServiceInstance extends StyxDirectory
                             + "reading from output and error streams");
                     }
                 }
-                if (inputURL != null)
+                // If the inputURL is not null, this means that the executable
+                // expects to get data via stdin (this has been set in the 
+                // config file).  In the following code, we decide whether
+                // we're going to get the data from a URL or whether the user
+                // is expected to write data into the stdin file in the namespace
+                if (inputURL == null)
                 {
-                    // If the inputURL is not null, this means that the executable
-                    // expects to get data via stdin (this has been set in the 
-                    // config file).  In the following code, we decide whether
-                    // we're going to get the data from a URL or whether the user
-                    // is expected to write data into the stdin file in the namespace
-                    if (inputURL == null)
+                    // We haven't set a URL, so we connect the "stdin" file in the
+                    // Styx namespace to the standard input of the executable.
+                    stdin.setOutputStream(process.getOutputStream());
+                }
+                else
+                {
+                    // We have set a URL so we shall get an InputStream to read 
+                    // data from this URL, then start a thread to read from the URL
+                    // and redirect the data to the standard input of the executable
+                    // From this point on, we will not be able to write to the
+                    // "stdin" file in the namespace
+                    // TODO: should we remove the "stdin" file from the namespace?
+                    try
                     {
-                        // We haven't set a URL, so we connect the "stdin" file in the
-                        // Styx namespace to the standard input of the executable.
-                        stdin.setOutputStream(process.getOutputStream());
+                        InputStream urlin = inputURL.openStream();
+                        // Start a thread reading from the url and writing to the 
+                        // process's standard input.
+                        new RedirectStream(urlin, process.getOutputStream()).start();
                     }
-                    else
+                    catch (IOException ioe)
                     {
-                        // We have set a URL so we shall get an InputStream to read 
-                        // data from this URL, then start a thread to read from the URL
-                        // and redirect the data to the standard input of the executable
-                        // From this point on, we will not be able to write to the
-                        // "stdin" file in the namespace
-                        // TODO: should we remove the "stdin" file from the namespace?
-                        try
-                        {
-                            InputStream urlin = inputURL.openStream();
-                            // Start a thread reading from the url and writing to the 
-                            // process's standard input.
-                            new RedirectStream(urlin, process.getOutputStream()).start();
-                        }
-                        catch (IOException ioe)
-                        {
-                            process.destroy();
-                            setStatus(StatusCode.ERROR);
-                            throw new StyxException("Cannot read from " + inputURL);
-                        }
+                        process.destroy();
+                        setStatus(StatusCode.ERROR);
+                        throw new StyxException("Cannot read from " + inputURL);
                     }
                 }
                 this.replyWrite(client, count, tag);
