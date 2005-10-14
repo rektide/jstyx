@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.41  2005/10/14 18:05:19  jonblower
+ * Added walkFid() and exists() methods
+ *
  * Revision 1.40  2005/09/11 18:50:42  jonblower
  * Added toString() method
  *
@@ -485,6 +488,49 @@ public class CStyxFile
     public void walkFidAsync(MessageCallback callback)
     {
         new GetFidCallback(this, callback).walkFid();
+    }
+    
+    /**
+     * Gets a new fid from the pool and walks it to the
+     * location of this file. This method blocks until the fid has been walked
+     * to the location of the file
+     * @throws StyxException if there was an error walking the fid (i.e. the 
+     * file does not exist)
+     */
+    public void walkFid() throws StyxException
+    {
+        StyxReplyCallback callback = new StyxReplyCallback();
+        this.walkFidAsync(callback);
+        // We don't need to do anything with the reply
+        callback.getReply();
+    }
+    
+    /**
+     * Tests to see if this file exists on the server, returning true if so
+     * and false if not.  This method may block (it will do so if we have
+     * to get a new fid and walk it to this file location, i.e. if the file
+     * has not been opened before).
+     */
+    public boolean exists()
+    {
+        if (this.hasFid())
+        {
+            return true; // TODO: doesn't check if the file has been deleted since
+                         // we created this fid
+        }
+        else
+        {
+            try
+            {
+                this.walkFid();
+                return true;
+            }
+            catch (StyxException ex)
+            {
+                // the file does not exist
+                return false;
+            }
+        }
     }
     
     /**
