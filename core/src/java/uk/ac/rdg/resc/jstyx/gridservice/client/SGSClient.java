@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/10/14 18:07:56  jonblower
+ * Minor changes
+ *
  * Revision 1.9  2005/09/11 18:51:52  jonblower
  * Added error() method and changed name from getInstances() to getInstancesAsync()
  *
@@ -103,9 +106,9 @@ public class SGSClient extends CStyxFileChangeAdapter
      * Creates a new instance of SGSClient.
      * @param root The CStyxFile representing the root of the SGS
      */
-    public SGSClient(CStyxFile root)
+    public SGSClient(CStyxFile sgsRoot)
     {
-        this.sgsRoot = root;
+        this.sgsRoot = sgsRoot;
         this.cloneFile = this.sgsRoot.getFile("clone");
         this.instancesFile = this.sgsRoot.getFile(".instances");
         this.cloneFile.addChangeListener(this);
@@ -152,7 +155,8 @@ public class SGSClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Requests creation of a new instance of the SGS on the server.
+     * Requests creation of a new instance of the SGS on the server.  This method
+     * blocks until the instance has been created and the ID returned.
      * @return The ID of the new instance
      */
     public String createNewInstance() throws StyxException
