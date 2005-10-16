@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Hashtable;
 
 import org.apache.mina.common.ByteBuffer;
@@ -50,6 +51,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/10/16 22:05:28  jonblower
+ * Improved handling of output streams (mapped CStyxFiles to PrintStreams)
+ *
  * Revision 1.1  2005/10/14 17:57:18  jonblower
  * Added SGSRun and associated shell scripts
  *
@@ -60,7 +64,7 @@ public class SGSRun extends CStyxFileChangeAdapter
     private SGSInstanceClient instanceClient;
     
     private CStyxFile[] osFiles;
-    private Hashtable/*<CStyxFiles, PrintWriter>*/ outputStreams; // The streams from which we can read output data
+    private Hashtable/*<CStyxFile, PrintStream>*/ outputStreams; // The streams from which we can read output data
     
     private CStyxFile[] inputStreams; // The streams to which we can write data
     private CStyxFileOutputStream stdin; // The standard input to the SGS instance
@@ -95,6 +99,7 @@ public class SGSRun extends CStyxFileChangeAdapter
         
         // Get handles to the output streams and register this class as a listener
         this.osFiles = this.instanceClient.getOutputStreams();
+        this.outputStreams = new Hashtable()/*<CStyxFile, PrintStream>*/;
         for (int i = 0; i < osFiles.length; i++)
         {
             this.osFiles[i].addChangeListener(this);
@@ -108,7 +113,7 @@ public class SGSRun extends CStyxFileChangeAdapter
             }
             else
             {
-                // Associate the file with a PrintWriter that represents a local file
+                // TODO: Associate the file with a PrintWriter that represents a local file
             }
             this.openStreams++;
         }
@@ -123,8 +128,11 @@ public class SGSRun extends CStyxFileChangeAdapter
                 this.stdin = new CStyxFileOutputStream(this.inputStreams[i]);
                 this.openStreams++;
             }
+            else
+            {
+                // TODO: at the moment we're ignoring all other possible input streams
+            }
         }
-        // TODO: at the moment we're ignoring all other possible input streams
     }
     
     /**
@@ -143,6 +151,7 @@ public class SGSRun extends CStyxFileChangeAdapter
         // Read from the output streams
         for (int i = 0; i < this.osFiles.length; i++)
         {
+            System.err.println("Started reading from " + this.osFiles[i].getName());
             this.osFiles[i].readAsync(0);
         }
     }
@@ -191,41 +200,33 @@ public class SGSRun extends CStyxFileChangeAdapter
      */
     public void dataArrived(CStyxFile file, TreadMessage tReadMsg, ByteBuffer data)
     {
+        // Get the stream associated with this file
+        PrintStream stream = (PrintStream)this.outputStreams.get(file);
+        if (stream == null)
+        {
+            // TODO: log error message (should never happen anyway)
+            System.err.println("stream is null");
+            return;
+        }
+        
         if (data.hasRemaining())
         {
+            // Calculate the offset from which we need to read the next data chunk
             long newOffset = tReadMsg.getOffset().asLong() + data.remaining();
+            
             // Get the data out of the buffer
             byte[] buf = new byte[data.remaining()];
             data.get(buf);
-            // Write the data to the appropriate stream
-            // TODO: get the PrintWriters from the Hashtable
-            if (file.getName().equals("stdout"))
-            {
-                System.out.write(buf, 0, buf.length);
-            }
-            else if (file.getName().equals("stderr"))
-            {
-                System.err.write(buf, 0, buf.length);
-            }
-            else
-            {
-                // TODO: handle other output streams.  Perhaps take the name
-                // of the stream and create a local file with the same name,
-                // prompting the user if it already exists?
-            }
+            
+            // Write the data to the stream
+            stream.write(buf, 0, buf.length);
+            
+            // Read the next chunk of data from the file
             file.readAsync(newOffset);
         }
         else
         {
-            // TODO: associate CStyxFiles with PrintStreams in a hashtable
-            if (file.getName().equals("stdout"))
-            {
-                System.out.flush();
-            }
-            else if (file.getName().equals("stderr"))
-            {
-                System.err.flush();
-            }
+            stream.flush();
             file.close();
             this.streamClosed();
         }
