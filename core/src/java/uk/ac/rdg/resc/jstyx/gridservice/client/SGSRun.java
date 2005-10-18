@@ -51,6 +51,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/10/18 14:41:32  jonblower
+ * Closed PrintStreams properly
+ *
  * Revision 1.2  2005/10/16 22:05:28  jonblower
  * Improved handling of output streams (mapped CStyxFiles to PrintStreams)
  *
@@ -226,7 +229,7 @@ public class SGSRun extends CStyxFileChangeAdapter
         }
         else
         {
-            stream.flush();
+            stream.close();
             file.close();
             this.streamClosed();
         }
