@@ -28,24 +28,23 @@
     
         <gridservice name="md5sum" command="python c:\md5lines.py"
             description="Calculates MD5 sum of each line of input">
-            <streams>
-                <!-- Defines the available streams. -->
-                <instream name="stdin"/>
-                <outstream name="stdout"/>
-                <outstream name="stderr"/>
-            </streams>
+            <io>
+                <input name="stdin"/>
+                <output name="stdout"/>
+                <output name="stderr"/>
+            </io>
             <params>
                 <!-- The command-line parameters that are passed to the executable -->
                 <param name="waittime" switch="-w"/>
             </params>
-            <steering>
-                <steerable name="viscosity" file="viscosity.txt" initialvalue="34"/>
-            </steering>
             <serviceData>
                 <serviceDataElement name="status" />
                 <serviceDataElement name="bytesConsumed" />
                 <serviceDataElement name="progress" file="progress.txt" minUpdateInterval="1.0"/>
             </serviceData>
+            <steering>
+                <steerable name="viscosity" file="viscosity.txt" initialvalue="34"/>
+            </steering>
             <docs>
                 <!-- <doc location="C:\install.log"/> Will appear as "install.log" in the namespace -->
                 <doc location="C:\md5lines.py" name="source"/>
@@ -53,23 +52,21 @@
             </docs>
         </gridservice>
         
-        <gridservice name="simple" command="python c:\simple.py" description="doesn't do much really" />
-        
         <gridservice name="lbflow" command="c:\cygwin\home\jdb\lbflow-0.1\src\lbflow -i input.sim"
             description="Lattice Boltzmann simulation">
-            <streams>
-                <outstream name="stdout"/>
-            </streams>
-            <steering>
-                <steerable name="Pressure_gradient_x" file="Pgrad_x.str" initialvalue="0"/>
-            </steering>
+            <io>
+                <output name="stdout"/>
+            </io>
             <serviceData>
                 <serviceDataElement name="status" />
                 <serviceDataElement name="exitCode" />
             </serviceData>
-            <inputfiles allowOthers="no">
+            <steering>
+                <steerable name="Pressure_gradient_x" file="Pgrad_x.str" initialvalue="0"/>
+            </steering>
+            <!--<inputfiles allowOthers="no">
                 <inputfile path="input.sim"/>
-            </inputfiles>
+            </inputfiles>-->
         </gridservice>
         
     </gridservices>

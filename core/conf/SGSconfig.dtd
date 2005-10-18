@@ -6,18 +6,17 @@
     SYSTEM ID: http://server/path/SGSconfig.dtd
 
 -->
-
-<!-- A stream of data that the SGS makes available. Currently only the standard
-     streams (stdin, stdout and stderr) are supported. -->
-<!ELEMENT streams (instream*, outstream*)>
-<!ELEMENT instream EMPTY>
-<!ATTLIST instream
-   name (stdin) #REQUIRED
+ 
+<!-- The inputs and outputs of the SGS (files and streams) -->
+<!ELEMENT input EMPTY>
+<!ATTLIST input
+   name CDATA #REQUIRED
  >
-<!ELEMENT outstream EMPTY>
-<!ATTLIST outstream
-   name (stdout | stderr) #REQUIRED
+<!ELEMENT output EMPTY>
+<!ATTLIST output
+   name CDATA #REQUIRED
  >
+<!ELEMENT io (input*, output*)>
 
 <!-- A parameter for a SGS (passed on the command-line to the executable) 
      name: The name of the parameter (must not contain spaces)
@@ -83,7 +82,7 @@
 <!-- Element that defines a Styx Grid Service -->
 <!-- The description of the service will automatically appear as a file called
      "description" in the docs/ directory of the SGS. -->
-<!ELEMENT gridservice (streams?, params?, steering?, serviceData?, inputfiles?, docs?)>
+<!ELEMENT gridservice (io?, params?, serviceData?, steering?, docs?)>
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED

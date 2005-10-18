@@ -43,8 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.13  2005/08/02 16:45:20  jonblower
- * *** empty log message ***
+ * Revision 1.14  2005/10/18 14:08:14  jonblower
+ * Removed inputfiles from namespace
+ *
  *
  * Revision 1.12  2005/08/02 08:05:18  jonblower
  * Continuing to implement steering
@@ -90,13 +91,14 @@ class SGSConfig
     private String workDir;     // The working directory of this SGS
     private String description; // Short description of this SGS
     
-    private Vector streams;     // The streams exposed by this service
+    private Vector inputs;      // The inputs (files and streams) expected by this service
+    private Vector outputs;     // The outputs (files and streams) made available by this service
     private Vector docFiles;    // The documentation files
     private Vector params;      // The parameters for this SGS
     private Vector steerables;  // The steerable parameters for this SGS
     private Vector serviceData; // The service data elements for this SGS
-    private Vector inputFiles;  // The input files needed by the executable
-    private boolean allowOtherInputFiles; // If this is true, we shall allow 
+    //private Vector inputFiles;  // The input files needed by the executable
+    //private boolean allowOtherInputFiles; // If this is true, we shall allow 
                                           // input files other than those specified
                                           // to be uploaded to the SGS instance
 
@@ -120,21 +122,21 @@ class SGSConfig
         this.description = gridService.valueOf("@description");
         this.workDir = sgsRootDir + StyxUtils.SYSTEM_FILE_SEPARATOR + name;
         
-        // Create the streams
-        this.streams = new Vector();
-        // Do the input streams first
-        Iterator streamListIter = gridService.selectNodes("streams/instream").iterator();
-        while(streamListIter.hasNext())
+        // Look for input files and streams
+        this.inputs = new Vector();
+        Iterator inputListIter = gridService.selectNodes("io/input").iterator();
+        while(inputListIter.hasNext())
         {
-            Node stream = (Node)streamListIter.next();
-            this.streams.add(new SGSStream(stream, SGSStream.INPUT));
+            Node input = (Node)inputListIter.next();
+            this.inputs.add(new SGSInput(input));
         }
-        // Now the output streams
-        streamListIter = gridService.selectNodes("streams/outstream").iterator();
-        while(streamListIter.hasNext())
+        // Now the output files and streams
+        this.outputs = new Vector();
+        Iterator outputListIter = gridService.selectNodes("io/output").iterator();
+        while(outputListIter.hasNext())
         {
-            Node stream = (Node)streamListIter.next();
-            this.streams.add(new SGSStream(stream, SGSStream.OUTPUT));
+            Node input = (Node)outputListIter.next();
+            this.outputs.add(new SGSOutput(input));
         }
 
         // Now create the parameters
@@ -168,7 +170,7 @@ class SGSConfig
         // Create the input files: just a Vector of Files to indicate the path
         // of the input file relative to the working directory of the service
         // instance.
-        Node inputFilesNode = gridService.selectSingleNode("inputfiles");
+        /*Node inputFilesNode = gridService.selectSingleNode("inputfiles");
         this.inputFiles = new Vector();
         if (inputFilesNode != null)
         {
@@ -186,7 +188,7 @@ class SGSConfig
                 }
                 this.inputFiles.add(inputFilePath);
             }
-        }
+        }*/
         
         // Create the documentation files
         this.docFiles = new Vector();
@@ -235,12 +237,21 @@ class SGSConfig
     }
     
     /**
-     * @return Vector of SGSStream objects containing details of all the 
-     * streams exposed by this service
+     * @return Vector of SGSInput objects containing details of all the 
+     * input files and streams expected by the service
      */
-    public Vector getStreams()
+    public Vector getInputs()
     {
-        return this.streams;
+        return this.inputs;
+    }
+    
+    /**
+     * @return Vector of SGSOutput objects containing details of all the 
+     * output files and streams exposed by the service
+     */
+    public Vector getOutputs()
+    {
+        return this.outputs;
     }
 
     /** 
@@ -281,44 +292,32 @@ class SGSConfig
      * @return Vector of java.io.Files indicating the path of the input file
      * relative to the working directory of the service instance.
      */
-    public Vector getInputFiles()
+    /*public Vector getInputFiles()
     {
         return this.inputFiles;
-    }
+    }*/
     
     /**
      * @return true if we shall allow input files other than those specified
      * to be uploaded to the SGS instance
      */
-    public boolean getAllowOtherInputFiles()
+    /*public boolean getAllowOtherInputFiles()
     {
         return this.allowOtherInputFiles;
-    }
+    }*/
 }
 
 /**
- * Class containing information about a stream that can be accessed through
- * the SGS.  Currently only the standard streams (stdin, stdout, stderr)
- * are supported.
+ * Class containing information about an input that is expected by
+ * the SGS.
  */
-class SGSStream
+class SGSInput
 {
-    public static final int INPUT = 0;
-    public static final int OUTPUT = 1;
+    private String name; // Name of the file or stream (e.g. "stdin" or "input.dat")
     
-    private String name; // Name of the stream ("stdin", "stdout" or "stderr")
-    private int type; // Type of the stream (INPUT or OUTPUT)
-    
-    public SGSStream(Node streamNode, int type)
+    public SGSInput(Node inputNode)
     {
-        this.name = streamNode.valueOf("@name").trim();
-        String typeStr = streamNode.valueOf("@type").trim();
-        if (type != INPUT && type != OUTPUT)
-        {
-            throw new IllegalArgumentException("Internal error: type must be" +
-                " INPUT or OUTPUT");
-        }
-        this.type = type;
+        this.name = inputNode.valueOf("@name").trim();
     }
     
     /**
@@ -328,13 +327,27 @@ class SGSStream
     {
         return this.name;
     }
+}
+
+/**
+ * Class containing information about an output file or stream that is exposed by
+ * the SGS.
+ */
+class SGSOutput
+{
+    private String name; // Name of the file or stream (e.g. "stdout" or "output.dat")
+    
+    public SGSOutput(Node outputNode)
+    {
+        this.name = outputNode.valueOf("@name").trim();
+    }
     
     /**
-     * @return the type of the stream (INPUT or OUTPUT)
+     * @return the name of the stream
      */
-    public int getType()
+    public String getName()
     {
-        return this.type;
+        return this.name;
     }
 }
 

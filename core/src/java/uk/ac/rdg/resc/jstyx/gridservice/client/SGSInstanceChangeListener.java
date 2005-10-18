@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2005/10/18 14:08:14  jonblower
+ * Removed inputfiles from namespace
+ *
  * Revision 1.15  2005/10/14 18:00:42  jonblower
  * Renamed getInputMethods() to getInputStreams()
  *
@@ -123,7 +126,7 @@ public interface SGSInstanceChangeListener
      * @param allowOtherInputFiles If true, we will have the option of uploading
      * other input files to the service instance
      */
-    public void gotInputFiles(CStyxFile[] inputFiles, boolean allowOtherInputFiles);
+    //public void gotInputFiles(CStyxFile[] inputFiles, boolean allowOtherInputFiles);
     
     /**
      * Called when we have got the output streams that can be viewed
@@ -168,7 +171,7 @@ public interface SGSInstanceChangeListener
     /**
      * Called when we have successfully set the input URL of the SGS
      */
-    public void inputURLSet();
+    //public void inputURLSet();
     
     /**
      * Called when the input files have been successfully uploaded

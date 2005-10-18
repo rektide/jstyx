@@ -64,6 +64,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.30  2005/10/18 14:08:14  jonblower
+ * Removed inputfiles from namespace
+ *
  * Revision 1.29  2005/10/14 18:03:23  jonblower
  * Fixed bug with writing to input stream
  *
@@ -205,38 +208,47 @@ class StyxGridServiceInstance extends StyxDirectory
         // Add the ctl file
         this.addChild(new ControlFile(this)); // the ctl file
         
-        // Add the streams
-        // TODO: would the name "streams" be more appropriate?  The presence of
-        // the "inurl" file would be contrary to this though (it's not a stream)
+        // Add the inputs and outputs
         StyxDirectory ioDir = new StyxDirectory("io");
-        StyxDirectory inStreams = new StyxDirectory("in");
-        StyxDirectory outStreams = new StyxDirectory("out");
-        ioDir.addChild(inStreams).addChild(outStreams);
-        Vector streams = sgsConfig.getStreams();
-        for (int i = 0; i < streams.size(); i++)
+        StyxDirectory inputsDir = new StyxDirectory("inputs");
+        StyxDirectory outputsDir = new StyxDirectory("outputs");
+        ioDir.addChild(inputsDir).addChild(outputsDir);
+        
+        Vector inputs = sgsConfig.getInputs();
+        for (int i = 0; i < inputs.size(); i++)
         {
-            SGSStream stream = (SGSStream)streams.get(i);
+            SGSInput input = (SGSInput)inputs.get(i);
             // Currently we're only dealing with the standard streams. In future
             // we may allow other i/o streams (e.g. file-based ones)
-            if (stream.getName().equals("stdin"))
+            if (input.getName().equals("stdin"))
             {
                 // Add the input stream and the inurl file
-                inStreams.addChild(this.stdin);  // input stream
-            }
-            else if (stream.getName().equals("stdout"))
-            {
-                // Add the standard output file
-                outStreams.addChild(this.stdout);
-            }
-            else if (stream.getName().equals("stderr"))
-            {
-                // Add the standard error file
-                outStreams.addChild(this.stderr);
+                inputsDir.addChild(this.stdin);  // input stream
             }
             else
             {
-                throw new StyxException("Stream \"" + stream.getName() +
-                    "\" is not supported (must be stdin, stdout or stderr");
+                // TODO: deal with other input files
+                throw new StyxException("Currently only supports input through stdin");
+            }
+        }
+        
+        Vector outputs = sgsConfig.getOutputs();
+        for (int i = 0; i < outputs.size(); i++)
+        {
+            SGSOutput output = (SGSOutput)outputs.get(i);
+            if (output.getName().equals("stdout"))
+            {
+                // Add the standard output file
+                outputsDir.addChild(this.stdout);
+            }
+            else if (output.getName().equals("stderr"))
+            {
+                // Add the standard error file
+                outputsDir.addChild(this.stderr);
+            }
+            else
+            {
+                throw new StyxException("Currently only supports output through stdout and stderr");
             }
         }
         this.addChild(ioDir);
@@ -330,7 +342,7 @@ class StyxGridServiceInstance extends StyxDirectory
         // Add the input files
         // Create a directory which creates its children as FilesOnDisk in the
         // working directory of the instance
-        StyxDirectory inputFilesDir = new StyxDirectory("inputFiles")
+        /*StyxDirectory inputFilesDir = new StyxDirectory("inputFiles")
         {
              public StyxFile createChild(String name, int perm, boolean isDir,
                 boolean isAppOnly, boolean isExclusive)
@@ -361,7 +373,7 @@ class StyxGridServiceInstance extends StyxDirectory
             FileOnDisk inputFile = new FileOnDisk(realPath, false);
             inputFilesDir.addChild(inputFile);
         }
-        this.addChild(inputFilesDir);
+        this.addChild(inputFilesDir);*/
         
         // Add the debug directory
         StyxDirectory debugDir = new StyxDirectory("debug");

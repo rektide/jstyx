@@ -75,6 +75,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.24  2005/10/18 14:08:14  jonblower
+ * Removed inputfiles from namespace
+ *
  * Revision 1.23  2005/10/14 18:09:40  jonblower
  * Changed getInputMethods() to getInputStreams() and added synchronous and async versions
  *
@@ -190,7 +193,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         // Add the panel for uploading input files
         this.inputFilesPanel = new InputFilesPanel();
         this.inputFilesPanel.populatePanel();
-        this.masterPanel.add(this.inputFilesPanel, "1, 3");
+        //this.masterPanel.add(this.inputFilesPanel, "1, 3");
         
         // Add the panel for setting parameters for the SGS
         this.paramsPanel = new ParamsPanel();
@@ -379,7 +382,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         // we will start the service
         File[] srcFiles = inputFilesPanel.getSourceFiles();
         String[] targetNames = inputFilesPanel.getTargetFileNames();
-        client.uploadInputFiles(srcFiles, targetNames);
+        //client.uploadInputFiles(srcFiles, targetNames);
     }
     
     /**
@@ -498,7 +501,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
         public void populatePanel()
         {
             // Send a message to get all the possible input files
-            client.getInputFiles();
+            //client.getInputFiles();
         }
         
         private void updateGUI()
