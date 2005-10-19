@@ -7,10 +7,13 @@
 
 -->
  
-<!-- The inputs and outputs of the SGS (files and streams) -->
+<!-- The inputs and outputs of the SGS (files and streams)
+     Input files are either specified by a fixed name with the "name" attribute,
+     or from the value of parameter (with the "fromParam" attribute) -->
 <!ELEMENT input EMPTY>
 <!ATTLIST input
-   name CDATA #REQUIRED
+   name CDATA #IMPLIED
+   fromParam CDATA #IMPLIED
  >
 <!ELEMENT output EMPTY>
 <!ATTLIST output
@@ -20,15 +23,27 @@
 
 <!-- A parameter for a SGS (passed on the command-line to the executable) 
      name: The name of the parameter (must not contain spaces)
-     default: (Optional) default value for the parameter.
-     switch: (Optional) The command-line switch used to prefix the parameter value, e.g. "-p"
+     type: Type of the parameter: "switch", "flaggedOption" or "unflaggedOption" - see JSAP
+     flag: (Optional) The command-line flag used to prefix the parameter value, e.g. "-v"
+           Used in "switch" and "flaggedOption" only
+     longFlag: (Optional) The long version of the command-line flag, e.g. "- -verbose"
+     defaultValue: (Optional) default value for the parameter.  For switches, the
+           defaults can only be "true" or "false".  For other parameter types,
+           the default can be any string.
+           If this is not specified, default values will either be "false" or the 
+           empty string.
+     description: (Optional) short description of the parameter
+     TODO: make parameter values strongly typed (e.g. Integers, Floats, Booleans and Strings)
 -->
 <!ELEMENT params (param*)>
 <!ELEMENT param EMPTY>
 <!ATTLIST param
     name CDATA #REQUIRED
-    switch CDATA #IMPLIED
-    default CDATA #IMPLIED
+    type (switch | flaggedOption | unflaggedOption) #REQUIRED
+    flag CDATA #IMPLIED
+    longFlag CDATA #IMPLIED
+    defaultValue CDATA #IMPLIED
+    description CDATA #IMPLIED
   >
 
 <!-- A steerable parameter for an SGS (i.e. one whose value can be changed

@@ -29,13 +29,17 @@
         <gridservice name="md5sum" command="python c:\md5lines.py"
             description="Calculates MD5 sum of each line of input">
             <io>
-                <input name="stdin"/>
+                <!-- Input file is specified by the value of the "inputfile" parameter -->
+                <input fromParam="inputfile"/>
                 <output name="stdout"/>
                 <output name="stderr"/>
             </io>
             <params>
                 <!-- The command-line parameters that are passed to the executable -->
-                <param name="waittime" switch="-w"/>
+                <param name="waittime" type="flaggedOption" flag="-w"
+                    description="time to wait between reading each line"/>
+                <param name="inputfile" type="flaggedOption" flag="-i" defaultValue="stdin"
+                    description="input file: if not specified, uses stdin"/>
             </params>
             <serviceData>
                 <serviceDataElement name="status" />
