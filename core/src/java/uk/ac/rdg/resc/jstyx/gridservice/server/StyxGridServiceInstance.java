@@ -64,6 +64,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.31  2005/10/19 21:10:51  jonblower
+ * Corrected comment
+ *
  * Revision 1.30  2005/10/18 14:08:14  jonblower
  * Removed inputfiles from namespace
  *
@@ -541,7 +544,6 @@ class StyxGridServiceInstance extends StyxDirectory
             }
             else
             {
-                // TODO: implement "destroy" (frees all resources and deletes all caches)            
                 throw new StyxException("unknown command: " + cmdString);
             }
         }        
