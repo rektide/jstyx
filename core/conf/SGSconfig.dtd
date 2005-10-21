@@ -6,24 +6,12 @@
     SYSTEM ID: http://server/path/SGSconfig.dtd
 
 -->
- 
-<!-- The inputs and outputs of the SGS (files and streams)
-     Input files are either specified by a fixed name with the "name" attribute,
-     or from the value of parameter (with the "fromParam" attribute) -->
-<!ELEMENT input EMPTY>
-<!ATTLIST input
-   name CDATA #IMPLIED
-   fromParam CDATA #IMPLIED
- >
-<!ELEMENT output EMPTY>
-<!ATTLIST output
-   name CDATA #REQUIRED
- >
-<!ELEMENT io (input*, output*)>
 
 <!-- A parameter for a SGS (passed on the command-line to the executable) 
      name: The name of the parameter (must not contain spaces)
-     type: Type of the parameter: "switch", "flaggedOption" or "unflaggedOption" - see JSAP
+     paramType: Type of the parameter: "switch", "flaggedOption" or "unflaggedOption" - see JSAP
+     valueType: Type of the parameter's value: currently "string", "inputfile" or "outputfile"
+           Defaults to "string" if not specified
      flag: (Optional) The command-line flag used to prefix the parameter value, e.g. "-v"
            Used in "switch" and "flaggedOption" only
      longFlag: (Optional) The long version of the command-line flag, e.g. "- -verbose"
@@ -39,12 +27,27 @@
 <!ELEMENT param EMPTY>
 <!ATTLIST param
     name CDATA #REQUIRED
-    type (switch | flaggedOption | unflaggedOption) #REQUIRED
+    paramType (switch | flaggedOption | unflaggedOption) #REQUIRED
+    valueType (string | inputfile | outputfile) "string"
     flag CDATA #IMPLIED
     longFlag CDATA #IMPLIED
     defaultValue CDATA #IMPLIED
     description CDATA #IMPLIED
   >
+ 
+<!-- The inputs and outputs of the SGS (files and streams)
+     Input files are either specified by a fixed name with the "name" attribute,
+     or from the value of parameter (with the "fromParam" attribute) -->
+<!ELEMENT input EMPTY>
+<!ATTLIST input
+   name CDATA #IMPLIED
+   fromParam CDATA #IMPLIED
+ >
+<!ELEMENT output EMPTY>
+<!ATTLIST output
+   name CDATA #REQUIRED
+ >
+<!ELEMENT io (input*, output*)>
 
 <!-- A steerable parameter for an SGS (i.e. one whose value can be changed
      whilst the simulation is running) -->
@@ -97,7 +100,7 @@
 <!-- Element that defines a Styx Grid Service -->
 <!-- The description of the service will automatically appear as a file called
      "description" in the docs/ directory of the SGS. -->
-<!ELEMENT gridservice (io?, params?, serviceData?, steering?, docs?)>
+<!ELEMENT gridservice (params?, io?, serviceData?, steering?, docs?)>
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED

@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/10/21 08:11:01  jonblower
+ * Improving parameter/input file handling
+ *
  * Revision 1.14  2005/10/18 14:08:14  jonblower
  * Removed inputfiles from namespace
  *
@@ -364,6 +367,7 @@ class SGSParam
     private String name; // Name for the parameter
     private String defaultValue; // Optional default value for the parameter
     private String strSwitch; // Optional command-line switch that precedes this parameter
+    private String valueType; // Type of the parameter's value (string, inputfile or outputfile)
 
     /**
      * Creates a parameter object for a SGS.
@@ -376,6 +380,7 @@ class SGSParam
         // force a space between the switch and the parameter value
         this.strSwitch = paramNode.valueOf("@switch");
         this.defaultValue = paramNode.valueOf("@default");
+        this.valueType = paramNode.valueOf("@valueType");
     }
 
     public String getName()
