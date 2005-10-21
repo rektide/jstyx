@@ -130,6 +130,13 @@
             <url>http://directory.apache.org/subprojects/network/</url>
         </dependency>
         <dependency>
+            <groupId>JSAP</groupId>
+            <artifactId>JSAP</artifactId>
+            <version>2.0a</version>
+            <type>jar</type>
+            <url>http://www.martiansoftware.com/jsap/</url>
+        </dependency>
+        <dependency>
             <groupId>TableLayout</groupId>
             <artifactId>TableLayout</artifactId>
             <type>jar</type>
