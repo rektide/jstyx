@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/10/28 14:48:53  jonblower
+ * Implementing JSAP-enabled parameter parsing
+ *
  * Revision 1.10  2005/09/08 07:08:59  jonblower
  * Removed "String user" from list of parameters to StyxFile.write()
  *
@@ -115,7 +118,17 @@ public class SGSParamFile extends InMemoryFile
         data.limit(data.position() + count);
         String newValue = StyxUtils.dataToString(data);
         
-        // TODO: Check that the new value is valid
+        // Check that the new value is valid
+        // Only matters for switches at the moment: must be "true" or "false"
+        if (this.param.getParamType() == SGSParam.SWITCH)
+        {
+            if (!newValue.equalsIgnoreCase("true") &&
+                !newValue.equalsIgnoreCase("false"))
+            {
+                throw new StyxException("Parameter " + this.getName() +
+                    " can only be true or false");
+            }
+        }
         
         // If we've got this far the value must have been OK.
         super.write(client, offset, count, data, truncate, tag);
@@ -136,13 +149,44 @@ public class SGSParamFile extends InMemoryFile
         {
             return "";
         }
-        if (this.param.getSwitch() == null)
+        if (this.param.getParamType() == SGSParam.SWITCH)
+        {
+            if (this.getContents().equalsIgnoreCase("true"))
+            {
+                if (this.param.getFlag().trim().equals(""))
+                {
+                    return this.param.getLongFlag();
+                }
+                else
+                {
+                    return this.param.getFlag();
+                }
+            }
+            else
+            {
+                return "";
+            }
+        }
+        else if (this.param.getParamType() == SGSParam.FLAGGED_OPTION)
+        {
+            // Use the short flag if present, if not the long one
+            if (this.param.getFlag().trim().equals(""))
+            {
+                return this.param.getLongFlag() + "=" + this.getContents();
+            }
+            else
+            {
+                return this.param.getFlag() + this.getContents();
+            }
+        }
+        else if (this.param.getParamType() == SGSParam.UNFLAGGED_OPTION)
         {
             return this.getContents();
         }
         else
         {
-            return this.param.getSwitch() + this.getContents();
+            // Should never get here unless we add more param types in future
+            return "";
         }
     }
     
