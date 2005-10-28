@@ -2,12 +2,15 @@
 <project xmlns="http://www.netbeans.org/ns/project/1">
     <type>org.netbeans.modules.ant.freeform</type>
     <configuration>
-        <general-data xmlns="http://www.netbeans.org/ns/freeform-project/1">
+        
+        
+    <general-data xmlns="http://www.netbeans.org/ns/freeform-project/1">
             <!--Do not use Project Properties customizer when editing this file manually.-->
             <name>JStyx</name>
             <properties/>
             <folders>
-                <source-folder>
+                
+            <source-folder>
                     <label>src\java</label>
                     <type>java</type>
                     <location>src/java</location>
@@ -56,6 +59,7 @@
             </ide-actions>
             <view>
                 <items>
+                    
                     <source-folder style="packages">
                         <label>src\java</label>
                         <location>src/java</location>
@@ -75,12 +79,14 @@
                     </action>
                 </context-menu>
             </view>
-            <subprojects/>
+            
+        <subprojects/>
         </general-data>
         <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/1">
-            <compilation-unit>
+            
+        <compilation-unit>
                 <package-root>src/java</package-root>
-                <classpath mode="compile">lib/dom4j-1.6.jar;lib/jaxen-1.1-beta-5.jar;lib/log4j-1.2.8.jar;lib/mina-0.7.3.jar;lib/TableLayout.jar;lib/vtk-4.5.0-20050503.jar</classpath>
+                <classpath mode="compile">lib/dom4j-1.6.jar;lib/jaxen-1.1-beta-5.jar;lib/log4j-1.2.8.jar;lib/mina-0.7.3.jar;lib/TableLayout.jar;lib/JSAP-2.0a.jar</classpath>
                 <source-level>1.4</source-level>
             </compilation-unit>
         </java-data>
