@@ -10,6 +10,8 @@
 <!-- A parameter for a SGS (passed on the command-line to the executable) 
      name: The name of the parameter (must not contain spaces)
      paramType: Type of the parameter: "switch", "flaggedOption" or "unflaggedOption" - see JSAP
+     required: "true" if this parameter must be set.  Irrelevant if a default value is set
+           or if this is a switch
      valueType: Type of the parameter's value: currently "string", "inputfile" or "outputfile"
            Defaults to "string" if not specified
      flag: (Optional) The command-line flag used to prefix the parameter value, e.g. "-v"
@@ -27,6 +29,7 @@
 <!ELEMENT param EMPTY>
 <!ATTLIST param
     name CDATA #REQUIRED
+    required (true | false) "false"
     paramType (switch | flaggedOption | unflaggedOption) #REQUIRED
     valueType (string | inputfile | outputfile) "string"
     flag CDATA #IMPLIED
