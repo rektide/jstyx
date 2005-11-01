@@ -4,14 +4,15 @@
     TODO define vocabulary indentification
     PUBLIC ID: -//vendor//vocabulary//EN
     SYSTEM ID: http://server/path/SGSconfig.dtd
-
 -->
 
 <!-- A parameter for a SGS (passed on the command-line to the executable) 
      name: The name of the parameter (must not contain spaces)
      paramType: Type of the parameter: "switch", "flaggedOption" or "unflaggedOption" - see JSAP
-     required: "true" if this parameter must be set.  Irrelevant if a default value is set
-           or if this is a switch
+     required: "yes" if this parameter must be set.  Setting required="yes" for a 
+           switch means that the switch cannot be turned off.  For other parameter
+           types, setting required="yes" means that the parameter must contain a 
+           value (i.e. not just whitespace characters)
      valueType: Type of the parameter's value: currently "string", "inputfile" or "outputfile"
            Defaults to "string" if not specified
      flag: (Optional) The command-line flag used to prefix the parameter value, e.g. "-v"
@@ -22,6 +23,9 @@
            the default can be any string.
            If this is not specified, default values will either be "false" or the 
            empty string.
+     greedy: (Optional) Only relevant for unflagged options.  If this is "yes",
+           this parameter will consume all the remaining unflagged options on the 
+           command line.  Only one greedy unflagged option is allowed.
      description: (Optional) short description of the parameter
      TODO: make parameter values strongly typed (e.g. Integers, Floats, Booleans and Strings)
 -->
@@ -29,12 +33,13 @@
 <!ELEMENT param EMPTY>
 <!ATTLIST param
     name CDATA #REQUIRED
-    required (true | false) "false"
+    required (yes | no) "no"
     paramType (switch | flaggedOption | unflaggedOption) #REQUIRED
     valueType (string | inputfile | outputfile) "string"
     flag CDATA #IMPLIED
     longFlag CDATA #IMPLIED
     defaultValue CDATA #IMPLIED
+    greedy (yes | no) "no"
     description CDATA #IMPLIED
   >
  

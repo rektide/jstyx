@@ -30,14 +30,14 @@
             description="Calculates MD5 sum of each line of input">
             <!-- The command-line parameters that are passed to the executable -->
             <params>
-                <param name="waittime" paramType="flaggedOption" flag="-w"
+                <param name="verbose" paramType="switch" flag="v" longFlag="verbose"
+                    description="if set, will produce more verbose output"/>
+                <param name="waittime" paramType="flaggedOption" flag="w"
                     description="time to wait between reading each line"/>
-                <param name="inputfile" paramType="flaggedOption" flag="-i" defaultValue="stdin"
+                <param name="inputfile" paramType="flaggedOption" flag="i" defaultValue="stdin"
                     valueType="inputfile" description="input file: if not specified, uses stdin"/>
             </params>
             <io>
-                <!-- Input file is specified by the value of the "inputfile" parameter -->
-                <input fromParam="inputfile"/>
                 <output name="stdout"/>
                 <output name="stderr"/>
             </io>

@@ -44,6 +44,9 @@ import java.util.Vector;
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
 
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.Parameter;
+
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
@@ -64,8 +67,8 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.31  2005/10/19 21:10:51  jonblower
- * Corrected comment
+ * Revision 1.32  2005/11/01 16:27:34  jonblower
+ * Continuing to implement JSAP-enabled parameter parsing
  *
  * Revision 1.30  2005/10/18 14:08:14  jonblower
  * Removed inputfiles from namespace
@@ -258,10 +261,12 @@ class StyxGridServiceInstance extends StyxDirectory
         
         // Add the parameters as SGSParamFiles.
         this.paramDir = new StyxDirectory("params");
-        Vector params = sgsConfig.getParams();
-        for (int i = 0; i < params.size(); i++)
+        JSAP params = sgsConfig.getParams();
+        Vector paramNames = sgsConfig.getParamNames();
+        for (int i = 0; i < paramNames.size(); i++)
         {
-            SGSParam param = (SGSParam)params.get(i);
+            String paramName = (String)paramNames.get(i);
+            Parameter param = params.getByID(paramName);
             // Parameter files exhibit asynchronous behaviour so that many
             // clients can be notified when a parameter value changes
             this.paramDir.addChild(new AsyncStyxFile(new SGSParamFile(param, this)));

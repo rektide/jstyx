@@ -35,9 +35,11 @@ import java.io.File;
 import org.dom4j.Node;
 
 import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
 import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.UnflaggedOption;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
@@ -48,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2005/11/01 16:27:34  jonblower
+ * Continuing to implement JSAP-enabled parameter parsing
+ *
  * Revision 1.16  2005/10/28 14:48:53  jonblower
  * Implementing JSAP-enabled parameter parsing
  *
@@ -104,7 +109,9 @@ class SGSConfig
     private Vector inputs;      // The inputs (files and streams) expected by this service
     private Vector outputs;     // The outputs (files and streams) made available by this service
     private Vector docFiles;    // The documentation files
-    private Vector params;      // The parameters for this SGS
+    //private Vector params;      // The parameters for this SGS
+    private JSAP params;        // Object that contains and parses the parameters for this service
+    private Vector paramNames;  // Contains all the names of the parameters as Strings
     private Vector steerables;  // The steerable parameters for this SGS
     private Vector serviceData; // The service data elements for this SGS
     //private Vector inputFiles;  // The input files needed by the executable
@@ -133,12 +140,23 @@ class SGSConfig
         this.workDir = sgsRootDir + StyxUtils.SYSTEM_FILE_SEPARATOR + name;
 
         // Create the parameters
-        this.params = new Vector();
+        this.params = new JSAP();
+        this.paramNames = new Vector();
         Iterator paramListIter = gridService.selectNodes("params/param").iterator();
         while(paramListIter.hasNext())
         {
             Node paramEl = (Node)paramListIter.next();
-            this.params.add(new SGSParam(paramEl));
+            // There is no way of getting the parameters back out of the JSAP object
+            // so we must keep a separate record of the names
+            this.paramNames.add(paramEl.valueOf("@name"));
+            try
+            {
+                this.params.registerParameter(getParameter(paramEl));
+            }
+            catch (JSAPException jsape)
+            {
+                throw new SGSConfigException("Error parsing parameters: " + jsape.getMessage());
+            }
         }
         
         // Look for input files and streams
@@ -219,47 +237,72 @@ class SGSConfig
      */
     private static Parameter getParameter(Node paramNode) throws SGSConfigException
     {
+        // Name and paramType are compulsory attributes so must exist
         String name = paramNode.valueOf("@name").trim();
         String paramType = paramNode.valueOf("@paramType");
-        String defaultValue = paramNode.valueOf("@defaultValue");
-        if (defaultValue == null)
-        {
-            defaultValue = JSAP.NO_DEFAULT;
-        }
-        String description = paramNode.valueOf("@description");
-        boolean required = paramNode.valueOf("@required").equalsIgnoreCase("true")
-            ? JSAP.REQUIRED : JSAP.NOT_REQUIRED;
         
-        // Get the flags
-        String shortFlagStr = paramNode.valueOf("@flag").trim();
-        char shortFlag;
-        if (shortFlagStr == null || shortFlagStr.equals(""))
+        // We must check to see if a default value has been set
+        String defaultValue;
+        if (paramNode.selectSingleNode("@defaultValue") == null)
         {
-            shortFlag = JSAP.NO_SHORTFLAG;
-        }
-        else if (shortFlagStr.length() == 1)
-        {
-            shortFlag = shortFlagStr.charAt(0);
+            // Note: JSAP.NO_DEFAULT == null (at least in current JSAP version)
+            defaultValue = JSAP.NO_DEFAULT;
         }
         else
         {
-            throw new SGSConfigException("Short flag can only be 1 character long");
+            defaultValue = paramNode.valueOf("@defaultValue");
         }
-        String longFlagStr = paramNode.valueOf("@longFlag").trim();
+        
+        // All other strings other than "yes" are interpreted as "no"
+        boolean required = paramNode.valueOf("@required").equalsIgnoreCase("yes")
+            ? JSAP.REQUIRED : JSAP.NOT_REQUIRED;
+        
+        // The description is not compulsory: if it has not been set then 
+        // description will be the empty string
+        String description = paramNode.valueOf("@description");
+        
+        // Get the flags
+        char shortFlag;
+        if (paramNode.selectSingleNode("@flag") == null)
+        {
+            shortFlag = JSAP.NO_SHORTFLAG;
+        }
+        else
+        {
+            String shortFlagStr = paramNode.valueOf("@flag").trim();
+            if (shortFlagStr.equals(""))
+            {
+                shortFlag = JSAP.NO_SHORTFLAG;
+            }
+            else if (shortFlagStr.length() == 1)
+            {
+                shortFlag = shortFlagStr.charAt(0);
+            }
+            else
+            {
+                throw new SGSConfigException("Short flag can only be 1 character long");
+            }
+        }
+        
         String longFlag;
-        if (longFlagStr == null || longFlagStr.equals(""))
+        if (paramNode.selectSingleNode("@longFlag") == null)
         {
             longFlag = JSAP.NO_LONGFLAG;
         }
         else
         {
-            longFlag = longFlagStr;
+            longFlag = paramNode.valueOf("@longFlag").trim();
+            if (longFlag.equals(""))
+            {
+                longFlag = JSAP.NO_LONGFLAG;
+            }
         }
         
         if (paramType.equals("switch"))
         {
             Switch param = new Switch(name, shortFlag, longFlag, description);
-            if (defaultValue == null || defaultValue.trim().equalsIgnoreCase("false"))
+            if (defaultValue == JSAP.NO_DEFAULT
+                || defaultValue.trim().equalsIgnoreCase("false"))
             {
                 param.setDefault("false");
             }
@@ -269,15 +312,34 @@ class SGSConfig
             }
             else
             {
-                throw new SGSConfigException("Default value for a switch must be empty, \"true\" or \"false\"");
+                throw new SGSConfigException("Default value for " + name +
+                    " must be empty, \"true\" or \"false\"");
             }
             return param;
         }
-        else if (paramType.equals("flaggedOption"))
+        else
         {
-            
+            if (defaultValue != JSAP.NO_DEFAULT && defaultValue.trim().equals(""))
+            {
+                throw new SGSConfigException("Default value for " + name
+                    + " cannot be empty");
+            }
+            else if (paramType.equals("flaggedOption"))
+            {
+                return new FlaggedOption(name, JSAP.STRING_PARSER, 
+                    defaultValue, required, shortFlag, longFlag, description);
+            }
+            else if (paramType.equals("unflaggedOption"))
+            {
+                boolean greedy = paramNode.valueOf("@greedy").equals("yes");
+                return new UnflaggedOption(name, JSAP.STRING_PARSER, defaultValue, 
+                    required, greedy, description);
+            }
+            else
+            {
+                throw new SGSConfigException("Illegal parameter type: " + paramType);
+            }
         }
-        return null;
     }
 
     /**
@@ -333,12 +395,23 @@ class SGSConfig
     }
 
     /** 
-     * @return Vector of SGSParam objects containing details of all the 
-     * parameters
+     * @return JSAP object containing details of all the parameters (and the methods
+     * to parse them).
      */
-    public Vector getParams()
+    public JSAP getParams()
     {
         return this.params;
+    }
+
+    /** 
+     * @return Vector of Strings containing the names of the parameters.  This
+     * method exists because there is no way to get the parameters back out of
+     * the JSAP object (as returned by <code>getParams()</code>) except by name
+     * (or flag). 
+     */
+    public Vector getParamNames()
+    {
+        return this.paramNames;
     }
     
     /**
@@ -426,114 +499,6 @@ class SGSOutput
     public String getName()
     {
         return this.name;
-    }
-}
-
-/**
- * Class containing information about a single SGS parameter.  Note that this
- * does not contain the value of the parameter at a given instant.  Rather, it
- * defines the type and the possible values that the parameter can take.  The
- * SGSParamFile class contains the actual value of the parameter.
- *
- * @todo what about command-line switches that take no argument?
- */
-class SGSParam
-{
-    // Type of the parameter: TODO: replace with type-safe enumeration
-    public static int SWITCH = 0;
-    public static int FLAGGED_OPTION = 1;
-    public static int UNFLAGGED_OPTION = 2;
-    
-    private String name; // Name for the parameter
-    private int paramType; // Type of the parameter (switch, flagged option or unflagged option)
-    private String shortFlag; // Optional command-line switch that precedes this parameter (e.g. -v)
-    private String longFlag; // Optional command-line switch that precedes this parameter (e.g. --verbose)
-    private String defaultValue; // Optional default value for the parameter
-    private String valueType; // Type of the parameter's value (string, inputfile or outputfile)
-    private String description; // Description of the parameter
-
-    /**
-     * Creates a parameter object for a SGS.
-     * @param paramNode The XML element in the config file representing the parameter
-     */
-    SGSParam(Node paramNode) throws SGSConfigException
-    {
-        this.name = paramNode.valueOf("@name").trim();
-        String paramTypeStr = paramNode.valueOf("@paramType").trim();
-        if (paramTypeStr.equals("switch"))
-        {
-            this.paramType = SWITCH;
-        }
-        else if (paramTypeStr.equals("flaggedOption"))
-        {
-            this.paramType = FLAGGED_OPTION;
-        }
-        else if (paramTypeStr.equals("unflaggedOption"))
-        {
-            this.paramType = UNFLAGGED_OPTION;
-        }
-        if (this.paramType == SWITCH || this.paramType == FLAGGED_OPTION)
-        {
-            // We don't trim the short flag because the user might want to 
-            // force a space between the switch and the parameter value
-            this.shortFlag = paramNode.valueOf("@flag");
-            this.longFlag = paramNode.valueOf("@longFlag").trim();
-            if (this.shortFlag.trim().equals("") && this.longFlag.equals(""))
-            {
-                throw new SGSConfigException("Must set a flag for a switch or a flaggedOption");
-            }
-        }
-        this.defaultValue = paramNode.valueOf("@default");
-        if (this.paramType == SWITCH)
-        {
-            // Default value can only be "true" or "false".  If absent, set to false
-            if (this.defaultValue == null)
-            {
-                this.defaultValue = "false";
-            }
-            else if (!this.defaultValue.equalsIgnoreCase("true") &&
-                     !this.defaultValue.equalsIgnoreCase("false"))
-            {
-                throw new SGSConfigException("Default value for a switch can only be \"true\" or \"false\"");
-            }
-        }
-        this.valueType = paramNode.valueOf("@valueType");
-        this.description = paramNode.valueOf("@description");
-    }
-
-    public String getName()
-    {
-        return this.name;
-    }
-    
-    /**
-     * @return the type of this parameter (SWITCH, FLAGGED_OPTION or
-     * UNFLAGGED_OPTION)
-     */
-    public int getParamType()
-    {
-        return this.paramType;
-    }
-
-    /**
-     * @return the command-line flag that precedes this parameter (e.g. "-v")
-     */
-    public String getFlag()
-    {
-        return this.shortFlag;
-    }
-
-    /**
-     * @return the long version of the command-line flag that precedes this parameter (e.g. "--verbose")
-     */
-    public String getLongFlag()
-    {
-        return this.longFlag;
-    }
-    
-    public String getDefaultValue()
-    {
-        return this.defaultValue;
     }
 }
 

@@ -30,6 +30,12 @@ package uk.ac.rdg.resc.jstyx.gridservice.server;
 
 import org.apache.mina.common.ByteBuffer;
 
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.UnflaggedOption;
+
 import uk.ac.rdg.resc.jstyx.server.InMemoryFile;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
 import uk.ac.rdg.resc.jstyx.StyxException;
@@ -46,8 +52,8 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.11  2005/10/28 14:48:53  jonblower
- * Implementing JSAP-enabled parameter parsing
+ * Revision 1.12  2005/11/01 16:27:34  jonblower
+ * Continuing to implement JSAP-enabled parameter parsing
  *
  * Revision 1.10  2005/09/08 07:08:59  jonblower
  * Removed "String user" from list of parameters to StyxFile.write()
@@ -77,19 +83,20 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 public class SGSParamFile extends InMemoryFile
 {
     
-    private SGSParam param; // The logical representation of the parameter
+    private Parameter param; // The logical representation of the parameter
     private StyxGridServiceInstance instance;
     private boolean valueSet; // True if a value has been set for this parameter
     
-    public SGSParamFile(SGSParam param, StyxGridServiceInstance instance) throws StyxException
+    public SGSParamFile(Parameter param, StyxGridServiceInstance instance) throws StyxException
     {
         // The file is named after the parameter name
-        super(param.getName());
+        super(param.getID());
         this.param = param;
         this.instance = instance;
-        if (!this.param.getDefaultValue().equals(""))
+        if (this.param.getDefault() != null)
         {
-            this.setContents(this.param.getDefaultValue());
+            // TODO: We are only allowing a single default value
+            this.setContents(this.param.getDefault()[0]);
             this.valueSet = true;
         }
     }
@@ -119,14 +126,26 @@ public class SGSParamFile extends InMemoryFile
         String newValue = StyxUtils.dataToString(data);
         
         // Check that the new value is valid
-        // Only matters for switches at the moment: must be "true" or "false"
-        if (this.param.getParamType() == SGSParam.SWITCH)
+        // Switches must be "true" or "false"
+        if (this.param instanceof Switch)
         {
             if (!newValue.equalsIgnoreCase("true") &&
                 !newValue.equalsIgnoreCase("false"))
             {
                 throw new StyxException("Parameter " + this.getName() +
-                    " can only be true or false");
+                    " can only be \"true\" or \"false\"");
+            }
+        }
+        // Options must have some content - can't be just whitespace
+        // TODO: also check type of argument (integer, float etc)
+        else
+        {
+            // TODO: should be allowed to set empty value if parameter is not
+            // required
+            if (newValue.trim().equals(""))
+            {
+                throw new StyxException("Parameter " + this.getName() +
+                    " must have a non-empty value");
             }
         }
         
@@ -149,17 +168,18 @@ public class SGSParamFile extends InMemoryFile
         {
             return "";
         }
-        if (this.param.getParamType() == SGSParam.SWITCH)
+        if (this.param instanceof Switch)
         {
+            Switch sw = (Switch)this.param;
             if (this.getContents().equalsIgnoreCase("true"))
             {
-                if (this.param.getFlag().trim().equals(""))
+                if (sw.getLongFlag() == JSAP.NO_LONGFLAG)
                 {
-                    return this.param.getLongFlag();
+                    return "-" + sw.getShortFlag();
                 }
                 else
                 {
-                    return this.param.getFlag();
+                    return "--" + sw.getLongFlag();
                 }
             }
             else
@@ -167,19 +187,20 @@ public class SGSParamFile extends InMemoryFile
                 return "";
             }
         }
-        else if (this.param.getParamType() == SGSParam.FLAGGED_OPTION)
+        else if (this.param instanceof FlaggedOption)
         {
+            FlaggedOption fo = (FlaggedOption)this.param;
             // Use the short flag if present, if not the long one
-            if (this.param.getFlag().trim().equals(""))
+            if (fo.getLongFlag() == JSAP.NO_LONGFLAG)
             {
-                return this.param.getLongFlag() + "=" + this.getContents();
+                return "-" + fo.getShortFlag() + " " + this.getContents();
             }
             else
             {
-                return this.param.getFlag() + this.getContents();
+                return "--" + fo.getLongFlag() + "=" + this.getContents();
             }
         }
-        else if (this.param.getParamType() == SGSParam.UNFLAGGED_OPTION)
+        else if (this.param instanceof UnflaggedOption)
         {
             return this.getContents();
         }
@@ -192,73 +213,11 @@ public class SGSParamFile extends InMemoryFile
     
     /**
      * @return the value of this parameter as a string. Simply calls
-     * super.getContents(); this is only here for consistency of naming with
+     * this.getContents(); this is only here for consistency of naming with
      * the other getValue...() methods
      */
     public String getValueAsString()
     {
         return this.getContents();
-    }
-    
-    /**
-     * @return the value of this parameter as a boolean (only valid if this
-     * parameter is of boolean type)
-     * @throws SGSConfigException if the value is not a valid boolean ("true"
-     * or "false")
-     */
-    public boolean getValueAsBoolean() throws SGSConfigException
-    {
-        String val = this.getContents();
-        if (val.trim().equalsIgnoreCase("true"))
-        {
-            return true;
-        }
-        else if (val.trim().equalsIgnoreCase("false"))
-        {
-            return false;
-        }
-        else
-        {
-            // TODO: should this be a StyxException?
-            throw new SGSConfigException("\"" + val + "\" is not a valid boolean");
-        }
-    }
-    
-    /**
-     * @return the value of this parameter as a long integer (only valid if this
-     * parameter is of "int" type)
-     * @throws SGSConfigException if the value is not a valid long (8-byte)
-     * signed integer
-     */
-    public long getValueAsLong() throws SGSConfigException
-    {
-        String val = this.getContents();
-        try
-        {
-            return Long.parseLong(val);
-        }
-        catch(NumberFormatException nfe)
-        {
-            throw new SGSConfigException("\"" + val +
-                "\" is not a valid 8-byte signed integer");
-        }
-    }
-    
-    /**
-     * @return the value of this parameter as a double precision floating-point
-     * number (only valid if this parameter is of "float" type)
-     */
-    public double getValueAsDouble() throws SGSConfigException
-    {
-        String val = this.getContents();
-        try
-        {
-            return Double.parseDouble(val);
-        }
-        catch(NumberFormatException nfe)
-        {
-            throw new SGSConfigException("\"" + val +
-                "\" is not a valid double-precision floating-point number");
-        }
     }
 }
