@@ -132,7 +132,8 @@
         <dependency>
             <groupId>JSAP</groupId>
             <artifactId>JSAP</artifactId>
-            <version>2.0a</version>
+            <!-- Needs version of JSAP libs that I have edited -->
+            <version>2.0a-jb</version>
             <type>jar</type>
             <url>http://www.martiansoftware.com/jsap/</url>
         </dependency>
