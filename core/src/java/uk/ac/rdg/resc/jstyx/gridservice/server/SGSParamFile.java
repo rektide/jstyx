@@ -33,6 +33,7 @@ import org.apache.mina.common.ByteBuffer;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.Option;
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.UnflaggedOption;
 
@@ -52,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/11/02 09:01:54  jonblower
+ * Continuing to implement JSAP-based parameter parsing
+ *
  * Revision 1.12  2005/11/01 16:27:34  jonblower
  * Continuing to implement JSAP-enabled parameter parsing
  *
@@ -102,6 +106,14 @@ public class SGSParamFile extends InMemoryFile
     }
     
     /**
+     * @return the JSAP Parameter object that is associated with this file
+     */
+    public Parameter getParameter()
+    {
+        return this.param;
+    }
+    
+    /**
      * When we write to a SGSParamFile, we first check that the new value
      * is within range for the parameter.
      *
@@ -115,7 +127,7 @@ public class SGSParamFile extends InMemoryFile
     {
         if (offset != 0)
         {
-            throw new StyxException("Must write to the parameter file at offset zero.");
+            throw new StyxException("Must write to the start of the parameter file");
         }
         if (!truncate)
         {
@@ -159,7 +171,7 @@ public class SGSParamFile extends InMemoryFile
     
     /**
      * @return the parameter as it will appear on the command line, including
-     * the switch, if present (e.g. "-p 12"). Returns an empty string if no 
+     * the flag, if present (e.g. "-p 12"). Returns an empty string if no 
      * value has yet been set
      */
     public synchronized String getCommandLineFragment()
@@ -212,12 +224,21 @@ public class SGSParamFile extends InMemoryFile
     }
     
     /**
-     * @return the value of this parameter as a string. Simply calls
-     * this.getContents(); this is only here for consistency of naming with
-     * the other getValue...() methods
+     * Checks to see if the contents of this file are valid.  At the moment, this
+     * just checks to see if a value has been set for a required parameter.
+     * @throws StyxException if the file contents are not valid for some reason.
      */
-    public String getValueAsString()
+    public void checkValid() throws StyxException
     {
-        return this.getContents();
+        if (this.param instanceof Option)
+        {
+            Option op = (Option)this.param;
+            if (op.required() && !this.valueSet)
+            {
+                throw new StyxException(this.name + " is a required parameter:" +
+                    " a value must be set");
+            }
+        }
     }
+    
 }

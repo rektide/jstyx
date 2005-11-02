@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.34  2005/11/02 09:01:54  jonblower
+ * Continuing to implement JSAP-based parameter parsing
+ *
  * Revision 1.33  2005/10/18 14:08:14  jonblower
  * Removed inputfiles from namespace
  *
@@ -244,7 +247,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.steeringDir.addChangeListener(this);
         
         // We will read this file to get the command line
-        this.cmdLineFile = this.instanceRoot.getFile("debug/commandline");
+        this.cmdLineFile = this.instanceRoot.getFile("commandline");
         this.cmdLineFile.addChangeListener(this);
         this.cmdLineBuf = new StringBuffer();
         

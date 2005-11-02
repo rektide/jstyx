@@ -50,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/11/02 09:01:54  jonblower
+ * Continuing to implement JSAP-based parameter parsing
+ *
  * Revision 1.17  2005/11/01 16:27:34  jonblower
  * Continuing to implement JSAP-enabled parameter parsing
  *
@@ -111,7 +114,6 @@ class SGSConfig
     private Vector docFiles;    // The documentation files
     //private Vector params;      // The parameters for this SGS
     private JSAP params;        // Object that contains and parses the parameters for this service
-    private Vector paramNames;  // Contains all the names of the parameters as Strings
     private Vector steerables;  // The steerable parameters for this SGS
     private Vector serviceData; // The service data elements for this SGS
     //private Vector inputFiles;  // The input files needed by the executable
@@ -141,14 +143,10 @@ class SGSConfig
 
         // Create the parameters
         this.params = new JSAP();
-        this.paramNames = new Vector();
         Iterator paramListIter = gridService.selectNodes("params/param").iterator();
         while(paramListIter.hasNext())
         {
             Node paramEl = (Node)paramListIter.next();
-            // There is no way of getting the parameters back out of the JSAP object
-            // so we must keep a separate record of the names
-            this.paramNames.add(paramEl.valueOf("@name"));
             try
             {
                 this.params.registerParameter(getParameter(paramEl));
@@ -332,6 +330,7 @@ class SGSConfig
             else if (paramType.equals("unflaggedOption"))
             {
                 boolean greedy = paramNode.valueOf("@greedy").equals("yes");
+                System.out.println("Param " + name + ": greedy = " + greedy);
                 return new UnflaggedOption(name, JSAP.STRING_PARSER, defaultValue, 
                     required, greedy, description);
             }
@@ -401,17 +400,6 @@ class SGSConfig
     public JSAP getParams()
     {
         return this.params;
-    }
-
-    /** 
-     * @return Vector of Strings containing the names of the parameters.  This
-     * method exists because there is no way to get the parameters back out of
-     * the JSAP object (as returned by <code>getParams()</code>) except by name
-     * (or flag). 
-     */
-    public Vector getParamNames()
-    {
-        return this.paramNames;
     }
     
     /**

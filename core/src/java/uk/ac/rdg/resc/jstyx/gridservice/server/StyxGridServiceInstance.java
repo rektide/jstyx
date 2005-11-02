@@ -40,12 +40,15 @@ import java.io.RandomAccessFile;
 import java.io.FileNotFoundException;
 
 import java.util.Vector;
+import java.util.Iterator;
 
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
 
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.JSAPResult;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
@@ -67,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.33  2005/11/02 09:01:54  jonblower
+ * Continuing to implement JSAP-based parameter parsing
+ *
  * Revision 1.32  2005/11/01 16:27:34  jonblower
  * Continuing to implement JSAP-enabled parameter parsing
  *
@@ -179,6 +185,7 @@ class StyxGridServiceInstance extends StyxDirectory
     private CachingStreamReader stdout = new CachingStreamReader(this, "stdout");  // The standard output from the program
     private CachingStreamReader stderr = new CachingStreamReader(this, "stderr");  // The standard error from the program
     private StreamWriter stdin  = new StreamWriter("stdin");   // The standard input to the program
+    private JSAP jsap; // JSAP object for parsing the command-line parameters
     private StyxDirectory paramDir; // Contains the command-line parameters to pass to the executable
     private StyxFile commandLineFile; // The file containing the command line
     private String command; // The command to run (i.e. the string that is passed to System.exec)
@@ -261,13 +268,12 @@ class StyxGridServiceInstance extends StyxDirectory
         
         // Add the parameters as SGSParamFiles.
         this.paramDir = new StyxDirectory("params");
-        JSAP params = sgsConfig.getParams();
-        Vector paramNames = sgsConfig.getParamNames();
-        for (int i = 0; i < paramNames.size(); i++)
+        this.jsap = sgsConfig.getParams();
+        Iterator paramsIt = this.jsap.getParametersIterator();
+        while(paramsIt.hasNext())
         {
-            String paramName = (String)paramNames.get(i);
-            Parameter param = params.getByID(paramName);
-            // Parameter files exhibit asynchronous behaviour so that many
+            Parameter param = (Parameter)paramsIt.next();
+            // Parameter files exhibit asynchronous behaviour so that other
             // clients can be notified when a parameter value changes
             this.paramDir.addChild(new AsyncStyxFile(new SGSParamFile(param, this)));
         }
@@ -384,14 +390,15 @@ class StyxGridServiceInstance extends StyxDirectory
         this.addChild(inputFilesDir);*/
         
         // Add the debug directory
-        StyxDirectory debugDir = new StyxDirectory("debug");
+        //StyxDirectory debugDir = new StyxDirectory("debug");
         // Add a file that, when read, reveals that command line that will
         // be executed through Runtime.exec(). This is an AsyncStyxFile so
         // that clients can be notified asynchronously of changes to the 
         // command line if they wish
         this.commandLineFile = new CommandLineFile();
-        debugDir.addChild(new AsyncStyxFile(this.commandLineFile));
-        this.addChild(debugDir);
+        //debugDir.addChild(new AsyncStyxFile(this.commandLineFile));
+        //this.addChild(debugDir);
+        this.addChild(new AsyncStyxFile(this.commandLineFile));
         
         this.bytesCons = 0;
         this.statusCode = StatusCode.CREATED;
@@ -439,6 +446,16 @@ class StyxGridServiceInstance extends StyxDirectory
                     {
                         throw new StyxException("Service is already running");
                     }
+                }
+                // Check that all the parameters are valid
+                StyxFile[] paramFiles = paramDir.getChildren();
+                for (int i = 0; i < paramFiles.length; i++)
+                {
+                    AsyncStyxFile asf = (AsyncStyxFile)paramFiles[i];
+                    SGSParamFile sgsPF = (SGSParamFile)asf.getBaseFile();
+                    // The checkValid() method throws a StyxException if the
+                    // contents of the parameter file are not valid for some reason
+                    sgsPF.checkValid();
                 }
                 // Start the executable
                 try
@@ -556,14 +573,14 @@ class StyxGridServiceInstance extends StyxDirectory
     
     /**
      * File that, when read, reveals the command line that will be executed
-     * when the SGS instance is started
+     * when the SGS instance is started.  Clients can write the whole command line
+     * to this file and hence set all the parameters at once.
      */
     private class CommandLineFile extends StyxFile
     {
         public CommandLineFile() throws StyxException
         {
-            // The file is read-only
-            super("commandline", 0444);
+            super("commandline", 0666);
         }
         
         public void read(StyxFileClient client, long offset, int count, int tag)
@@ -574,10 +591,80 @@ class StyxGridServiceInstance extends StyxDirectory
             this.processAndReplyRead(getCommandLine(), client, offset, count, tag);
         }
         
-        // TODO: Shall we allow direct writing to this file?  This might either
-        // automatically populate the individual parameter files (hard) or
-        // simply disable the ability to read from or write to the parameter
-        // files (easy).
+        /**
+         * Write the command line all in one go (not including the name of the
+         * executable itself).  This will set the values of
+         * all the parameters in the params/ directory. At the moment the command
+         * line must be written in a single Styx message.
+         */
+        public void write(StyxFileClient client, long offset, int count,
+            ByteBuffer data, boolean truncate, int tag)
+            throws StyxException
+        {
+            if (offset != 0)
+            {
+                throw new StyxException("Must write to the start of the command line file");
+            }
+            if (!truncate)
+            {
+                throw new StyxException("Must write to the command line file with truncation");
+            }
+            // Set the limit of the input data buffer correctly
+            data.limit(data.position() + count);
+            String cmdLine = StyxUtils.dataToString(data);
+            
+            // Parse the command line
+            JSAPResult result = jsap.parse(cmdLine);
+            
+            if (result.success())
+            {
+                // Parsing was successful: populate all of the parameter files
+                // TODO: I guess that if the new and old values are identical
+                // we don't need to change the contents and hence notify waiting clients?
+                StyxFile[] paramFiles = paramDir.getChildren();
+                for (int i = 0; i < paramFiles.length; i++)
+                {
+                    AsyncStyxFile asf = (AsyncStyxFile)paramFiles[i];
+                    SGSParamFile sgsPF = (SGSParamFile)asf.getBaseFile();
+                    Parameter param = sgsPF.getParameter();
+
+                    if (param instanceof Switch)
+                    {
+                        boolean switchSet = result.getBoolean(sgsPF.getName());
+                        sgsPF.setContents(switchSet ? "true" : "false");
+                    }
+                    else
+                    {
+                        // This is an Option (flagged or unflagged)
+                        // TODO: make this strongly-typed
+                        String str = result.getString(sgsPF.getName());
+                        sgsPF.setContents(str == null ? "" : str);
+                    }
+                }
+            }
+            else
+            {
+                // An error occurred in parsing: get the first error in the
+                // Iterator (TODO: get more errors?)
+                Iterator errIt = result.getErrorMessageIterator();
+                String errMsg = "Error occurred parsing command line: ";
+                if (errIt.hasNext())
+                {
+                    errMsg += (String)errIt.next();
+                }
+                else
+                {
+                    errMsg += "no details";
+                }
+                throw new StyxException(errMsg);
+            }
+            
+            // Notify waiting clients that the command line has changed
+            // TODO: should this just be an AsyncStyxFile instead?
+            commandLineChanged();
+            
+            this.replyWrite(client, count, tag);
+        }
     }
     
     /**

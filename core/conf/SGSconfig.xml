@@ -32,10 +32,14 @@
             <params>
                 <param name="verbose" paramType="switch" flag="v" longFlag="verbose"
                     description="if set, will produce more verbose output"/>
-                <param name="waittime" paramType="flaggedOption" flag="w"
+                <param name="waittime" paramType="flaggedOption" flag="w" required="yes"
                     description="time to wait between reading each line"/>
                 <param name="inputfile" paramType="flaggedOption" flag="i" defaultValue="stdin"
                     valueType="inputfile" description="input file: if not specified, uses stdin"/>
+                <param name="theRest2" paramType="unflaggedOption"
+                    description="consumes the rest of the command line"/>
+                <param name="theRest" paramType="unflaggedOption" greedy="yes"
+                    description="consumes the rest of the command line"/>
             </params>
             <io>
                 <output name="stdout"/>
