@@ -54,14 +54,12 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.16  2005/11/03 17:09:27  jonblower
- * Created more efficient RreadMessage that involves less copying of buffers (still reliable)
+ * Revision 1.17  2005/11/03 21:49:18  jonblower
+ * Changes to comments
+ *
  *
  * Revision 1.15  2005/09/08 07:08:59  jonblower
  * Removed "String user" from list of parameters to StyxFile.write()
- *
- * Revision 1.14  2005/05/19 18:42:43  jonblower
- * Removed debug message
  *
  * Revision 1.13  2005/05/19 14:47:38  jonblower
  * Realised that new RandomAccessFile("..", "rw") doesn't throw FileNotFoundException
@@ -226,7 +224,8 @@ public class FileOnDisk extends StyxFile
             // Open a new FileChannel for reading
             FileChannel chan = new FileInputStream(this.file).getChannel();
 
-            // Get a ByteBuffer from MINA's pool.
+            // Get a ByteBuffer from MINA's pool.  This becomes part of the Rread
+            // message and is automatically released when the message is sent
             ByteBuffer buf = ByteBuffer.allocate(count);
             // Make sure the position and limit are set correctly (remember that
             // the actual buffer size might be larger than requested)
@@ -241,9 +240,6 @@ public class FileOnDisk extends StyxFile
 
             buf.flip();
             this.replyRead(client, buf, tag);
-            
-            // Now we can release the buffer
-            //buf.release(); (we don't do this since we are keeping the buffer in the RreadMessage object)
         }
         catch(FileNotFoundException fnfe)
         {
