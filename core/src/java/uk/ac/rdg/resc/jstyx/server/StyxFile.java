@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2005/11/03 21:50:04  jonblower
+ * Added clarification to comments
+ *
  * Revision 1.18  2005/09/08 07:08:59  jonblower
  * Removed "String user" from list of parameters to StyxFile.write()
  *
@@ -820,7 +823,9 @@ public class StyxFile
      * Method to reply to a Read message. One of the replyRead() methods
      * must be called by all subclasses when sending data back to the client in
      * response to a read request. Leaves the position of the input ByteBuffer
-     * unchanged.
+     * unchanged.  The buffer that is provided to this method will be released
+     * automatically so users of this method should not release the buffer
+     * themselves.
      * @param client The connection on which the reply will be sent
      * @param buf a org.apache.mina.common.ByteBuffer containing the data to
      * write to the file.  All the remaining data in the buffer will be sent
