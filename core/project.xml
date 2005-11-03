@@ -102,11 +102,26 @@
     <!-- jar files the project is dependent on -->
     <dependencies>
         <dependency>
+            <groupId>directory-network</groupId>
+            <artifactId>mina</artifactId>
+            <version>0.8.0</version>
+            <type>jar</type>
+            <url>http://directory.apache.org/subprojects/network/</url>
+        </dependency>
+        <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.9</version>
             <type>jar</type>
             <url>http://logging.apache.org/log4j</url>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j</artifactId>
+            <version>log4j12-1.0-beta9</version>
+            <type>jar</type>
+            <url>http://www.clearthought.info/software/TableLayout/</url>
+            <!-- Only needed for running, not compiling (runtime dependency for MINA) -->
         </dependency>
         <dependency>
             <groupId>dom4j</groupId>
@@ -121,13 +136,6 @@
             <version>1.1-beta-6</version>
             <type>jar</type>
             <url>http://jaxen.org/</url>
-        </dependency>
-        <dependency>
-            <groupId>directory-network</groupId>
-            <artifactId>mina</artifactId>
-            <version>0.7.3</version>
-            <type>jar</type>
-            <url>http://directory.apache.org/subprojects/network/</url>
         </dependency>
         <dependency>
             <groupId>JSAP</groupId>
