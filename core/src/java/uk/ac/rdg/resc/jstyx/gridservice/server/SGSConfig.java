@@ -50,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2005/11/03 07:42:47  jonblower
+ * Implemented JSAP-based parameter parsing
+ *
  * Revision 1.18  2005/11/02 09:01:54  jonblower
  * Continuing to implement JSAP-based parameter parsing
  *
@@ -330,7 +333,6 @@ class SGSConfig
             else if (paramType.equals("unflaggedOption"))
             {
                 boolean greedy = paramNode.valueOf("@greedy").equals("yes");
-                System.out.println("Param " + name + ": greedy = " + greedy);
                 return new UnflaggedOption(name, JSAP.STRING_PARSER, defaultValue, 
                     required, greedy, description);
             }

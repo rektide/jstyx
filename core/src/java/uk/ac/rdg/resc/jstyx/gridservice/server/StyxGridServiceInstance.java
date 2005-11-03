@@ -48,6 +48,8 @@ import org.apache.log4j.Logger;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.JSAPResult;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
@@ -70,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.34  2005/11/03 07:42:47  jonblower
+ * Implemented JSAP-based parameter parsing
+ *
  * Revision 1.33  2005/11/02 09:01:54  jonblower
  * Continuing to implement JSAP-based parameter parsing
  *
@@ -620,7 +625,8 @@ class StyxGridServiceInstance extends StyxDirectory
             {
                 // Parsing was successful: populate all of the parameter files
                 // TODO: I guess that if the new and old values are identical
-                // we don't need to change the contents and hence notify waiting clients?
+                //   we don't need to change the contents and hence notify waiting clients?
+                //   Maybe this logic can be handled in the SGSParamFile class.
                 StyxFile[] paramFiles = paramDir.getChildren();
                 for (int i = 0; i < paramFiles.length; i++)
                 {
@@ -631,14 +637,28 @@ class StyxGridServiceInstance extends StyxDirectory
                     if (param instanceof Switch)
                     {
                         boolean switchSet = result.getBoolean(sgsPF.getName());
-                        sgsPF.setContents(switchSet ? "true" : "false");
+                        sgsPF.setParameterValue(switchSet ? "true" : "false");
                     }
                     else
                     {
-                        // This is an Option (flagged or unflagged)
-                        // TODO: make this strongly-typed
-                        String str = result.getString(sgsPF.getName());
-                        sgsPF.setContents(str == null ? "" : str);
+                        String[] arr = result.getStringArray(sgsPF.getName());
+                        if (arr != null && arr.length > 0)
+                        {
+                            StringBuffer str = new StringBuffer(arr[0]);
+                            for (int j = 1; j < arr.length; j++)
+                            {
+                                str.append(" " + arr[j]);
+                            }
+                            sgsPF.setParameterValue(str.toString());
+                        }
+                        else
+                        {
+                            // This probably won't be reached but it's here just
+                            // in case getStringArray() doesn't return a result
+                            // but getString() does - unlikely!
+                            String str = result.getString(sgsPF.getName());
+                            sgsPF.setParameterValue(str == null ? "" : str);
+                        }
                     }
                 }
             }

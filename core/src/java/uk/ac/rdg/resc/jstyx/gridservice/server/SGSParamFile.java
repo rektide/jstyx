@@ -53,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/11/03 07:42:47  jonblower
+ * Implemented JSAP-based parameter parsing
+ *
  * Revision 1.13  2005/11/02 09:01:54  jonblower
  * Continuing to implement JSAP-based parameter parsing
  *
@@ -114,12 +117,9 @@ public class SGSParamFile extends InMemoryFile
     }
     
     /**
-     * When we write to a SGSParamFile, we first check that the new value
-     * is within range for the parameter.
-     *
      * The new value for the parameter must come in a single message (i.e.
      * the offset must be zero and the incoming ByteBuffer must contain the
-     * entire parameter value).  Must also be writing with truncation.
+     * entire parameter value).  Must also write with truncation.
      */
     public synchronized void write(StyxFileClient client, long offset,
         int count, ByteBuffer data, boolean truncate, int tag)
@@ -137,35 +137,11 @@ public class SGSParamFile extends InMemoryFile
         data.limit(data.position() + count);
         String newValue = StyxUtils.dataToString(data);
         
-        // Check that the new value is valid
-        // Switches must be "true" or "false"
-        if (this.param instanceof Switch)
-        {
-            if (!newValue.equalsIgnoreCase("true") &&
-                !newValue.equalsIgnoreCase("false"))
-            {
-                throw new StyxException("Parameter " + this.getName() +
-                    " can only be \"true\" or \"false\"");
-            }
-        }
-        // Options must have some content - can't be just whitespace
-        // TODO: also check type of argument (integer, float etc)
-        else
-        {
-            // TODO: should be allowed to set empty value if parameter is not
-            // required
-            if (newValue.trim().equals(""))
-            {
-                throw new StyxException("Parameter " + this.getName() +
-                    " must have a non-empty value");
-            }
-        }
+        this.setParameterValue(newValue);
         
         // If we've got this far the value must have been OK.
         super.write(client, offset, count, data, truncate, tag);
-        // Note that we have set a value
-        this.valueSet = true;
-        // Notify that the command line has changed
+        
         this.instance.commandLineChanged();
     }
     
@@ -221,6 +197,39 @@ public class SGSParamFile extends InMemoryFile
             // Should never get here unless we add more param types in future
             return "";
         }
+    }
+    
+    /**
+     * Sets the parameter value, checking that the value is OK.
+     * @throws StyxException if the parameter is not valid
+     */
+    public void setParameterValue(String newValue) throws StyxException
+    {
+        // Check that the new value is valid
+        // Switches must be "true" or "false"
+        if (this.param instanceof Switch)
+        {
+            if (!newValue.equalsIgnoreCase("true") &&
+                !newValue.equalsIgnoreCase("false"))
+            {
+                throw new StyxException("Parameter " + this.getName() +
+                    " can only be \"true\" or \"false\"");
+            }
+        }
+        // Options must have some content - can't be just whitespace
+        // TODO: also check type of argument (integer, float etc)
+        else
+        {
+            // TODO: should be allowed to set empty value if parameter is not
+            // required
+            if (newValue.trim().equals(""))
+            {
+                throw new StyxException("Parameter " + this.getName() +
+                    " must have a non-empty value");
+            }
+        }
+        super.setContents(newValue);
+        this.valueSet = true;
     }
     
     /**
