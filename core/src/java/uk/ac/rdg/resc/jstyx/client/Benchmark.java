@@ -28,8 +28,9 @@ public class Benchmark
     
     public static void main (String[] args) throws Exception
     {
-        String filename = "jdk-1_5_0_03-linux-i586.rpm";
-        long fileSize = 47284527;
+        System.setProperty("java.protocol.handler.pkgs", "uk.ac.rdg.resc.jstyx.client.protocol");
+        String filename = "jdk-1_5_0-doc.zip";
+        long fileSize = 45635523;
         String httpRoot = "http://www.resc.rdg.ac.uk/";
         String styxRoot = "styx://www.resc.rdg.ac.uk:8080/";
         
@@ -39,7 +40,7 @@ public class Benchmark
         double styxSmallMsg10Requests = 0;
         double styxLargeMsg10Requests = 0;
         
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 5; i++)
         {
             httpTime += downloadFromURL(httpRoot + filename);
             styxSmallMsg1Request += downloadFromStyxURL(styxRoot + filename, 8192, 1);
