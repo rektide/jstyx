@@ -46,11 +46,14 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.14  2005/11/03 07:46:55  jonblower
- * Trying to fix bug with sending RreadMessages
+ * Revision 1.15  2005/11/03 16:02:54  jonblower
+ * Created simplified version (less efficient, more reliable)
  *
  * Revision 1.13  2005/09/02 16:52:38  jonblower
  * Fixed bugs that caused message payload to be printed as empty string
+ *
+ * Revision 1.12  2005/08/30 16:29:40  jonblower
+ * Minor update to comments
  *
  * Revision 1.11  2005/05/10 19:17:54  jonblower
  * Added dispose() method
@@ -97,16 +100,9 @@ public class RreadMessage extends StyxMessage
 
     private static final Logger log = Logger.getLogger(RreadMessage.class);
     
-    private int count; // The amount of data in bytes in this message
-    
-    private ByteBuffer data; // Buffer containing the data to write to the file.
-                             // This is normally only used if we have decoded this message
-                             // from bytes that have been read over the network
-                             // (i.e. only used by client programs). It can also
-                             // be used if we have created this message from a
-                             // ByteBuffer (e.g. when reading from a FileOnDisk)
-    private int dataPos;     // Stores the location of the first byte of payload
-                             // data in the ByteBuffer
+    private byte[] bytes; // Byte array containing the payload bytes
+    private int pos; // position of the first byte of data in the array
+    private int count; // number of data bytes in the array
     
     /** 
      * Creates a new RversionMessage 
@@ -142,8 +138,8 @@ public class RreadMessage extends StyxMessage
             throw new IllegalArgumentException("Not enough bytes in the given byte array:" +
                 " pos = " + pos + ", count = " + count + ", length = " + bytes.length);
         }
-        this.data = ByteBuffer.wrap(bytes, pos, count);
-        this.dataPos = pos;
+        this.bytes = bytes;
+        this.pos = pos;
         this.count = count;
         this.length = StyxUtils.HEADER_LENGTH + 4 + this.count;
         if (log.isDebugEnabled())
@@ -155,15 +151,20 @@ public class RreadMessage extends StyxMessage
     
     /**
      * Creates an RreadMessage from the given org.apache.mina.common.ByteBuffer.
-     * The position and limit of the buffer must be set correctly.
+     * The position and limit of the buffer must be set correctly.  This method
+     * does <b>not</b> release the buffer: it just copies the data into a new array.
+     * This method does not change the position or limit of the data buffer.
      */
     public RreadMessage(ByteBuffer data)
     {
         this(0, (short)117, 0); // We'll set the length and tag later
-        this.data = data;
-        this.dataPos = data.position();
-        this.count = data.limit() - this.dataPos;
+        int oldPos = data.position();
+        this.bytes = new byte[data.remaining()];
+        data.get(this.bytes);
+        this.pos = 0;
+        this.count = this.bytes.length;
         this.length = StyxUtils.HEADER_LENGTH + 4 + this.count;
+        data.position(oldPos);
         if (log.isDebugEnabled())
         {
             log.debug("Created RreadMessage from buffer with pos = " +
@@ -186,86 +187,8 @@ public class RreadMessage extends StyxMessage
                 "cannot be less than 0 or greater than Integer.MAX_VALUE bytes");
         }
         this.count = (int)n; // We know this cast must be safe
-        
-        if (buf.remaining() == this.count)
-        {
-            // The buffer contains the payload bytes and no more. We can simply
-            // keep a reference to this buffer instead of copying it. This happens
-            // frequently in practice, so this could be a significant efficiency
-            
-            // Increment the reference count for the underlying ByteBuffer, so that
-            // it is not reused prematurely.
-            buf.getBuffer().acquire();
-            this.data = buf.getBuffer();
-            
-            // Remember the position of this buffer
-            this.dataPos = this.data.position();
-        
-            // We need to set the position of the input buffer to its limit to make
-            // sure that we don't keep reading from this buffer. We'll set the position
-            // back to zero when we get the buffer using getData();
-            this.data.position(this.data.limit());
-        }
-        else
-        {
-            // We need to copy the data in this buffer.
-            log.debug("Need to make a copy of the data in this buffer: " +
-                this.count + " bytes");
-            byte[] b = buf.getData(this.count);
-            this.data = ByteBuffer.wrap(b, 0, this.count);
-            this.dataPos = 0;
-        }
-    }
-    
-    /**
-     * Called by StyxMessageEncoder to send a message to the output. We need to 
-     * override StyxMessage's default implementation because we may already have
-     * the payload data as a ByteBuffer (for example, if we are forwarding a
-     * message in the StyxInterloper).  Note that, after calling this method,
-     * the data in the ByteBuffer are no longer valid (so calling this.getData()
-     * might not return valid data).
-     */
-    public void write(ProtocolEncoderOutput out) throws ProtocolViolationException
-    {
-        // We already have the bulk of the data in a ByteBuffer, so we don't
-        // need to copy it to a new one. Make sure that the position is set
-        // correctly
-        this.data.position(dataPos);
-        this.data.acquire(); // Increment reference count to this ByteBuffer. We'll
-                        // release it once the message has been sent (in dispose(),
-                        // via StyxServerProtocolHandler.messageSent()). This makes
-                        // sure the data will still be valid if we make a call
-                        // to toString() after the message has been sent.
-
-        // Allocate a buffer for the header and count only. This buffer will
-        // get freed when the header is written
-        this.buf = ByteBuffer.allocate(StyxUtils.HEADER_LENGTH + 4);
-        // Wrap as a StyxBuffer
-        StyxBuffer styxBuf = new StyxBuffer(this.buf);
-        // Encode everything but the payload, then flip the buffer
-        styxBuf.putUInt(this.length).putUByte(this.type).putUShort(this.tag).putUInt(this.count);
-        this.buf.flip();
-
-        // TODO (urgent!): Sometimes something writes to the output in between
-        // writing the header and writing the actual data - how can we stop this?
-        // Can we create something to synchronize on (semaphore??)
-        // We must synchronize this section to prevent other messages getting in
-        // between the header and the body
-        synchronized(lock)
-        {
-            // Write the header
-            out.write(this.buf);
-            System.out.print("Header written ");
-            // Now write the payload; this releases the buffer so subsequent
-            // calls to getData() will not return valid results
-            if (this.data.remaining() != this.count)
-            {
-                log.error("count = " + this.count + " but " +
-                    this.data.remaining() + " bytes are in the buffer");
-            }
-            out.write(this.data);
-            System.out.println(", Body written");
-        }
+        this.bytes = buf.getData(this.count);
+        this.pos = 0;
     }
     
     /**
@@ -273,26 +196,15 @@ public class RreadMessage extends StyxMessage
      */
     protected final void encodeBody(StyxBuffer buf)
     {
-        buf.putUInt(this.count).putData(this.data, this.count);
-        this.data.release();
+        buf.putUInt(this.count).put(this.bytes, this.pos, this.count);
     }
     
     /**
-     * @return the data contained in this message (i.e. the message payload).
-     * The position and limit of the ByteBuffer will be set correctly, but
-     * please note that the position will probably not be zero!  This ByteBuffer
-     * might actually contain all the raw data for the RreadMessage.  When you have
-     * finished with the data, call buf.release() to return the buffer to the
-     * pool.
+     * @return the data contained in this message as a MINA ByteBuffer
      */
     public ByteBuffer getData()
     {
-        if (this.data == null)
-        {
-            return null;
-        }
-        this.data.position(this.dataPos);
-        return this.data;
+        return ByteBuffer.wrap(this.bytes, this.pos, this.count);
     }
     
     /**
@@ -310,25 +222,13 @@ public class RreadMessage extends StyxMessage
      */
     public void dispose()
     {
-        if (this.data != null)
-        {
-            this.data.release();
-        }
+        this.bytes = null; // TODO: do we need this method anymore?
     }
     
     protected String getElements()
     {
         StringBuffer s = new StringBuffer(", " + this.count + ", ");
-        // Remember the original position and limit of the buffer
-        int pos = this.data.position();
-        int limit = this.data.limit();
-        // Set the buffer to the start of the data and the limit to the end
-        this.data.position(this.dataPos);
-        this.data.limit(this.dataPos + this.count);
-        // Append the first 30 bytes of the data to the string
-        s.append(StyxUtils.getDataSummary(30, this.data));
-        // Reset the data position and limit
-        this.data.position(pos).limit(limit);
+        s.append(StyxUtils.getDataSummary(30, this.bytes));
         return s.toString();
     }
     
@@ -337,16 +237,7 @@ public class RreadMessage extends StyxMessage
         StringBuffer s = new StringBuffer("count: ");
         s.append(this.count);
         s.append(", ");
-        // Remember the original position and limit of the buffer
-        int pos = this.data.position();
-        int limit = this.data.limit();
-        // Set the buffer to the start of the data and the limit to the end
-        this.data.position(this.dataPos);
-        this.data.limit(this.dataPos + this.count);
-        // Append the first 30 bytes of the data to the string
-        s.append(StyxUtils.getDataSummary(30, this.data));
-        // Reset the data position and limit
-        this.data.position(pos).limit(limit);
+        s.append(StyxUtils.getDataSummary(30, this.bytes));
         return s.toString();
     }
     
