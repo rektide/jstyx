@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/11/03 07:46:55  jonblower
+ * Trying to fix bug with sending RreadMessages
+ *
  * Revision 1.3  2005/03/16 17:56:22  jonblower
  * Replaced use of java.nio.ByteBuffer with MINA's ByteBuffer to minimise copying of buffers
  *
@@ -387,6 +390,20 @@ public class StyxBuffer
         data.limit(limit);
         
         return this;
+    }
+    
+    
+    
+    /**
+     * Puts a chunk of data to the buffer.
+     * @param data The data to write. The position and limit of this buffer will
+     * be unaffected by this method.  All the remaining data in the buffer will
+     * be written.
+     * @return this StyxBuffer (allows chaining of put commands)
+     */
+    public StyxBuffer putData(ByteBuffer data)
+    {
+        return this.putData(data, data.remaining());
     }
     
     /**

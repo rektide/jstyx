@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/11/03 07:46:55  jonblower
+ * Trying to fix bug with sending RreadMessages
+ *
  * Revision 1.11  2005/05/10 19:17:54  jonblower
  * Added dispose() method
  *
@@ -81,6 +84,9 @@ public abstract class StyxMessage
 {
     
     private static final Logger log = Logger.getLogger(StyxMessage.class);
+    
+    protected static final String lock = new String(); // Just used to synchronize
+                                                       // writes to the network
     
     protected int length;  // The length of the StyxMessage (although in Styx
                            // this is an *unsigned* int, we guarantee in
@@ -273,8 +279,12 @@ public abstract class StyxMessage
     {
         // Encode this message into a ByteBuffer
         this.encode();
-        // Write this ByteBuffer
-        out.write(this.buf);
+        synchronized(lock)
+        {
+            // Write this ByteBuffer
+            out.write(this.buf);
+            System.out.println("Message written");
+        }
     }
     
     /**

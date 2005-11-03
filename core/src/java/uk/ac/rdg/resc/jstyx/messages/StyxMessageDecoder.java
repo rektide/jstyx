@@ -29,6 +29,10 @@
 package uk.ac.rdg.resc.jstyx.messages;
 
 import java.nio.ByteOrder;
+
+import java.io.RandomAccessFile;
+import java.io.IOException;
+
 import org.apache.mina.common.ByteBuffer;
 import org.apache.mina.protocol.ProtocolDecoder;
 import org.apache.mina.protocol.ProtocolDecoderOutput;
@@ -45,11 +49,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/11/03 07:46:55  jonblower
+ * Trying to fix bug with sending RreadMessages
+ *
  * Revision 1.10  2005/06/27 17:19:22  jonblower
  * Synchronized decode() method to try to eliminate concurrency problems
- *
- * Revision 1.9  2005/05/25 15:39:02  jonblower
- * Bug fixes
  *
  * Revision 1.8  2005/05/10 19:21:18  jonblower
  * Minor change: replaced ternary ?: operator with Math.min
@@ -112,6 +116,8 @@ public class StyxMessageDecoder implements ProtocolDecoder
         ProtocolDecoderOutput out)
         throws ProtocolViolationException
     {
+        // Uncomment this line to dump the values of all bytes in the input buffer
+        //dumpBytes("c:\\dump.txt", session, in);
         while(in.hasRemaining())
         {
             if (this.message == null)
@@ -169,6 +175,37 @@ public class StyxMessageDecoder implements ProtocolDecoder
                 this.message = null;
                 this.headerBuf.clear();
             }
+        }
+    }
+    
+    /**
+     * Dumps the hex codes of all the characters in the given buffer to the 
+     * given file.  Each buffer is recorded on a separate line
+     */
+    private static void dumpBytes(String filename, ProtocolSession session, ByteBuffer buf)
+    {
+        int pos = buf.position();
+        int lim = buf.limit();
+        try
+        {
+            RandomAccessFile raf = new RandomAccessFile(filename, "rwd");
+            raf.seek(raf.length());
+            StringBuffer strBuf = new StringBuffer(buf.remaining() +
+                " bytes from " + session.getRemoteAddress() + ": ");
+            byte[] b = new byte[buf.remaining()];
+            buf.get(b);
+            buf.position(pos).limit(lim);
+            for (int i = 0; i < b.length; i++)
+            {
+                strBuf.append((b[i] & 0xff) + " ");
+            }
+            strBuf.append(StyxUtils.NEWLINE);
+            raf.writeBytes(strBuf.toString());
+            raf.close();
+        }
+        catch (IOException ioe)
+        {
+            System.err.println(ioe.getMessage());
         }
     }
     
