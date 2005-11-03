@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2005/11/03 21:47:17  jonblower
+ * getElements() and toFriendlyString() now use getData()
+ *
  * Revision 1.16  2005/11/03 17:09:27  jonblower
  * Created more efficient RreadMessage that involves less copying of buffers (still reliable)
  *
@@ -54,9 +57,6 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  *
  * Revision 1.13  2005/09/02 16:52:38  jonblower
  * Fixed bugs that caused message payload to be printed as empty string
- *
- * Revision 1.12  2005/08/30 16:29:40  jonblower
- * Minor update to comments
  *
  * Revision 1.11  2005/05/10 19:17:54  jonblower
  * Added dispose() method
@@ -195,8 +195,8 @@ public class RreadMessage extends StyxMessage
             // The buffer contains the payload bytes and no more. We can simply
             // keep a reference to this buffer instead of copying it. This happens
             // frequently in practice, so this could be a significant efficiency
-            
             this.data = buf.getBuffer();
+            
             // Increment the reference count for the underlying ByteBuffer, so that
             // it is not reused prematurely.
             this.data.acquire();
@@ -261,7 +261,7 @@ public class RreadMessage extends StyxMessage
     protected String getElements()
     {
         StringBuffer s = new StringBuffer(", " + this.count + ", ");
-        s.append(StyxUtils.getDataSummary(30, this.data));
+        s.append(StyxUtils.getDataSummary(30, this.getData()));
         return s.toString();
     }
     
@@ -270,7 +270,7 @@ public class RreadMessage extends StyxMessage
         StringBuffer s = new StringBuffer("count: ");
         s.append(this.count);
         s.append(", ");
-        s.append(StyxUtils.getDataSummary(30, this.data));
+        s.append(StyxUtils.getDataSummary(30, this.getData()));
         return s.toString();
     }
     
