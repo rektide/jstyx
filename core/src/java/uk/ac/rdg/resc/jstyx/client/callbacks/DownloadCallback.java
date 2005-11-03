@@ -54,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/11/03 07:39:45  jonblower
+ * Bug fixes
+ *
  * Revision 1.1  2005/08/05 13:46:40  jonblower
  * Factored out all callback objects from CStyxFile into separate classes
  *
@@ -91,17 +94,12 @@ public class DownloadCallback extends MessageCallback
     {
         if (this.file.isOpen())
         {
-            // We must open the file
-            this.file.openAsync(StyxUtils.OREAD, this);
-        }
-        else
-        {
             try
             {
                 // The file is open. Open the output stream for the local file
                 if (this.fout == null)
                 {
-                    if (this.file != null)
+                    if (this.localFile != null)
                     {
                         this.fout = new RandomAccessFile(this.localFile, "rw").getChannel();
                         // This truncation is not necessary if we have just
@@ -117,13 +115,18 @@ public class DownloadCallback extends MessageCallback
             }
             catch (FileNotFoundException fnfe)
             {
-                this.error("cannot open " + this.file + " for writing", null);
+                this.error("cannot open " + this.localFile + " for writing", null);
             }
             catch (IOException ioe)
             {
-                this.error("cannot truncate " + this.file + ": " +
+                this.error("cannot truncate " + this.localFile + ": " +
                     ioe.getMessage(), null);
             }
+        }
+        else
+        {
+            // We must open the file
+            this.file.openAsync(StyxUtils.OREAD, this);
         }
     }
 
