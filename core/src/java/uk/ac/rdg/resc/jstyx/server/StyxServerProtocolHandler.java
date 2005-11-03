@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/11/03 17:09:27  jonblower
+ * Created more efficient RreadMessage that involves less copying of buffers (still reliable)
+ *
  * Revision 1.11  2005/09/08 07:08:59  jonblower
  * Removed "String user" from list of parameters to StyxFile.write()
  *
@@ -481,12 +484,8 @@ public class StyxServerProtocolHandler implements ProtocolHandler
             truncate = false;
         }
         // The last modified time is set automatically by sf.replyWrite()
-        sf.write(client, offset, tWriteMsg.getCount(), tWriteMsg.getRawData(),
+        sf.write(client, offset, tWriteMsg.getCount(), tWriteMsg.getData(),
             truncate, tag);
-        // We can now free the data buffer of the tWriteMsg. If the StyxFile
-        // wanted to keep a reference to this buffer, it will have called
-        // acquire() on the buffer.
-        tWriteMsg.getRawData().release();
     }
     
     private void replyClunk(ProtocolSession session, StyxSessionState sessionState,

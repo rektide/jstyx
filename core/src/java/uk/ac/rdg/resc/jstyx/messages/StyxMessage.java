@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/11/03 17:09:27  jonblower
+ * Created more efficient RreadMessage that involves less copying of buffers (still reliable)
+ *
  * Revision 1.12  2005/11/03 07:46:55  jonblower
  * Trying to fix bug with sending RreadMessages
  *
@@ -283,7 +286,6 @@ public abstract class StyxMessage
         {
             // Write this ByteBuffer
             out.write(this.buf);
-            System.out.println("Message written");
         }
     }
     

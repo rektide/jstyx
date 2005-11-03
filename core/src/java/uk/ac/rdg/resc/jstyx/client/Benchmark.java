@@ -66,6 +66,7 @@ public class Benchmark
      */
     private static long downloadFromURL(String urlStr) throws Exception
     {
+        System.err.print("HTTP: ");
         URL url = new URL(urlStr);
         InputStream is = url.openStream();
         long start = System.currentTimeMillis();
@@ -74,10 +75,11 @@ public class Benchmark
         do
         {
             n = is.read(bytes);
+            // System.err.print(".");
         } while (n >= 0);
         is.close();
         long time = System.currentTimeMillis() - start;
-        System.err.println("HTTP: " + time);
+        System.err.println("time: " + time);
         return time;
     }
     

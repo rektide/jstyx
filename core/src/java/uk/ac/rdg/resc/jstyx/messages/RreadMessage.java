@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2005/11/03 17:09:27  jonblower
+ * Created more efficient RreadMessage that involves less copying of buffers (still reliable)
+ *
  * Revision 1.15  2005/11/03 16:02:54  jonblower
  * Created simplified version (less efficient, more reliable)
  *
@@ -100,9 +103,9 @@ public class RreadMessage extends StyxMessage
 
     private static final Logger log = Logger.getLogger(RreadMessage.class);
     
-    private byte[] bytes; // Byte array containing the payload bytes
-    private int pos; // position of the first byte of data in the array
-    private int count; // number of data bytes in the array
+    private ByteBuffer data; // Contains the data
+    private int pos; // Position of the first byte of data in the buffer
+    private int count; // Number of data bytes in the buffer
     
     /** 
      * Creates a new RversionMessage 
@@ -138,7 +141,7 @@ public class RreadMessage extends StyxMessage
             throw new IllegalArgumentException("Not enough bytes in the given byte array:" +
                 " pos = " + pos + ", count = " + count + ", length = " + bytes.length);
         }
-        this.bytes = bytes;
+        this.data = ByteBuffer.wrap(bytes, pos, count);
         this.pos = pos;
         this.count = count;
         this.length = StyxUtils.HEADER_LENGTH + 4 + this.count;
@@ -152,19 +155,18 @@ public class RreadMessage extends StyxMessage
     /**
      * Creates an RreadMessage from the given org.apache.mina.common.ByteBuffer.
      * The position and limit of the buffer must be set correctly.  This method
-     * does <b>not</b> release the buffer: it just copies the data into a new array.
-     * This method does not change the position or limit of the data buffer.
+     * will not acquire() or release() the buffer: the buffer will be released
+     * automatically when the data are written to the network.  Users of this
+     * constructor therefore should not release the buffer after using this
+     * constructor otherwise the data will no longer be valid.
      */
     public RreadMessage(ByteBuffer data)
     {
         this(0, (short)117, 0); // We'll set the length and tag later
-        int oldPos = data.position();
-        this.bytes = new byte[data.remaining()];
-        data.get(this.bytes);
-        this.pos = 0;
-        this.count = this.bytes.length;
+        this.data = data;
+        this.pos = data.position();
+        this.count = data.remaining() - this.pos;
         this.length = StyxUtils.HEADER_LENGTH + 4 + this.count;
-        data.position(oldPos);
         if (log.isDebugEnabled())
         {
             log.debug("Created RreadMessage from buffer with pos = " +
@@ -187,8 +189,35 @@ public class RreadMessage extends StyxMessage
                 "cannot be less than 0 or greater than Integer.MAX_VALUE bytes");
         }
         this.count = (int)n; // We know this cast must be safe
-        this.bytes = buf.getData(this.count);
-        this.pos = 0;
+        
+        if (buf.remaining() == this.count)
+        {
+            // The buffer contains the payload bytes and no more. We can simply
+            // keep a reference to this buffer instead of copying it. This happens
+            // frequently in practice, so this could be a significant efficiency
+            
+            this.data = buf.getBuffer();
+            // Increment the reference count for the underlying ByteBuffer, so that
+            // it is not reused prematurely.
+            this.data.acquire();
+            
+            // Remember the position of this buffer
+            this.pos = this.data.position();
+        
+            // We need to set the position of the input buffer to its limit to make
+            // sure that we don't keep reading from this buffer. We'll set the position
+            // back to zero when we get the buffer using getData();
+            this.data.position(this.data.limit());
+        }
+        else
+        {
+            // We need to copy the data in this buffer.
+            log.debug("Need to make a copy of the data in this buffer: " +
+                this.count + " bytes");
+            byte[] b = buf.getData(this.count);
+            this.data = ByteBuffer.wrap(b);
+            this.pos = 0;
+        }
     }
     
     /**
@@ -196,15 +225,19 @@ public class RreadMessage extends StyxMessage
      */
     protected final void encodeBody(StyxBuffer buf)
     {
-        buf.putUInt(this.count).put(this.bytes, this.pos, this.count);
+        buf.putUInt(this.count).putData(this.getData());
     }
     
     /**
-     * @return the data contained in this message as a MINA ByteBuffer
+     * @return the data contained in this message as a MINA ByteBuffer.  Makes
+     * sure that the position and limit of the buffer are set correctly
      */
     public ByteBuffer getData()
     {
-        return ByteBuffer.wrap(this.bytes, this.pos, this.count);
+        // Set the position and limit correctly in case we have changed it
+        // elsewhere
+        this.data.position(this.pos).limit(this.pos + this.count);
+        return this.data;
     }
     
     /**
@@ -218,17 +251,17 @@ public class RreadMessage extends StyxMessage
     /**
      * This is called <b>after</b> the message has been sent (in
      * StyxServerProtocolHandler.messageSent().  This releases the ByteBuffer
-     * holding the payload of the message, if one exists.
+     * holding the payload of the message.
      */
     public void dispose()
     {
-        this.bytes = null; // TODO: do we need this method anymore?
+        this.data.release();
     }
     
     protected String getElements()
     {
         StringBuffer s = new StringBuffer(", " + this.count + ", ");
-        s.append(StyxUtils.getDataSummary(30, this.bytes));
+        s.append(StyxUtils.getDataSummary(30, this.data));
         return s.toString();
     }
     
@@ -237,7 +270,7 @@ public class RreadMessage extends StyxMessage
         StringBuffer s = new StringBuffer("count: ");
         s.append(this.count);
         s.append(", ");
-        s.append(StyxUtils.getDataSummary(30, this.bytes));
+        s.append(StyxUtils.getDataSummary(30, this.data));
         return s.toString();
     }
     
