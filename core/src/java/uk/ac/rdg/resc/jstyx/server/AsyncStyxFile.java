@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/11/04 09:12:05  jonblower
+ * Made baseFile a protected field (instead of private)
+ *
  * Revision 1.10  2005/09/08 07:08:59  jonblower
  * Removed "String user" from list of parameters to StyxFile.write()
  *
@@ -86,7 +89,7 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
 public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
 {
     
-    private StyxFile baseFile;       // The file to wrap
+    protected StyxFile baseFile;       // The file to wrap
     private Hashtable knownClients;  // Clients that have connected to this file before
     private Vector clientQueue;      // Clients that are awaiting a reply
     private long minReplyInterval;   // The minimum amount of time in ms between replies to the same client
