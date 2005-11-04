@@ -50,20 +50,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.20  2005/11/04 19:28:20  jonblower
+ * Changed structure of input files in config file and Styx namespace
+ *
  * Revision 1.19  2005/11/03 07:42:47  jonblower
  * Implemented JSAP-based parameter parsing
- *
- * Revision 1.18  2005/11/02 09:01:54  jonblower
- * Continuing to implement JSAP-based parameter parsing
- *
- * Revision 1.17  2005/11/01 16:27:34  jonblower
- * Continuing to implement JSAP-enabled parameter parsing
- *
- * Revision 1.16  2005/10/28 14:48:53  jonblower
- * Implementing JSAP-enabled parameter parsing
- *
- * Revision 1.15  2005/10/21 08:11:01  jonblower
- * Improving parameter/input file handling
  *
  * Revision 1.14  2005/10/18 14:08:14  jonblower
  * Removed inputfiles from namespace
@@ -113,16 +104,12 @@ class SGSConfig
     private String description; // Short description of this SGS
     
     private Vector inputs;      // The inputs (files and streams) expected by this service
+                                // Instance of SGSInputFile
     private Vector outputs;     // The outputs (files and streams) made available by this service
     private Vector docFiles;    // The documentation files
-    //private Vector params;      // The parameters for this SGS
     private JSAP params;        // Object that contains and parses the parameters for this service
     private Vector steerables;  // The steerable parameters for this SGS
     private Vector serviceData; // The service data elements for this SGS
-    //private Vector inputFiles;  // The input files needed by the executable
-    //private boolean allowOtherInputFiles; // If this is true, we shall allow 
-                                          // input files other than those specified
-                                          // to be uploaded to the SGS instance
 
     /**
      * @param gridService The Node in the XML config file that is at the
@@ -143,6 +130,7 @@ class SGSConfig
         this.command = gridService.valueOf("@command");
         this.description = gridService.valueOf("@description");
         this.workDir = sgsRootDir + StyxUtils.SYSTEM_FILE_SEPARATOR + name;
+        boolean usingStdin = false;
 
         // Create the parameters
         this.params = new JSAP();
@@ -162,19 +150,24 @@ class SGSConfig
         
         // Look for input files and streams
         this.inputs = new Vector();
-        Iterator inputListIter = gridService.selectNodes("io/input").iterator();
+        Iterator inputListIter = gridService.selectNodes("inputs/input").iterator();
         while(inputListIter.hasNext())
         {
             Node input = (Node)inputListIter.next();
-            this.inputs.add(new SGSInput(input));
+            SGSInput sgsIn = new SGSInput(input.valueOf("@name"), input.valueOf("@type"));
+            if (sgsIn.getType() == SGSInput.STREAM)
+            {
+                usingStdin = true;
+            }
+            this.inputs.add(sgsIn);
         }
         // Now the output files and streams
         this.outputs = new Vector();
-        Iterator outputListIter = gridService.selectNodes("io/output").iterator();
+        Iterator outputListIter = gridService.selectNodes("outputs/output").iterator();
         while(outputListIter.hasNext())
         {
-            Node input = (Node)outputListIter.next();
-            this.outputs.add(new SGSOutput(input));
+            Node output = (Node)outputListIter.next();
+            this.outputs.add(new SGSOutput(output));
         }
         
         // Now the steerable parameters
@@ -193,31 +186,16 @@ class SGSConfig
         while(serviceDataIter.hasNext())
         {
             Node sdEl = (Node)serviceDataIter.next();
-            this.serviceData.add(new SDEConfig(sdEl));
-        }
-        
-        // Create the input files: just a Vector of Files to indicate the path
-        // of the input file relative to the working directory of the service
-        // instance.
-        /*Node inputFilesNode = gridService.selectSingleNode("inputfiles");
-        this.inputFiles = new Vector();
-        if (inputFilesNode != null)
-        {
-            this.allowOtherInputFiles = inputFilesNode.valueOf("@allowOthers").equals("yes");
-            Iterator inputFilesIter = inputFilesNode.selectNodes("inputfile").iterator();
-            while(inputFilesIter.hasNext())
+            SDEConfig sdeConf = new SDEConfig(sdEl);
+            // If we've asked for bytesConsumed to be available we must be
+            // reading from stdin
+            if (sdeConf.getName().equals("bytesConsumed") && !usingStdin)
             {
-                Node fileEl = (Node)inputFilesIter.next();
-                File inputFilePath = new File(fileEl.valueOf("@path"));
-                if (inputFilePath.isAbsolute())
-                {
-                    // Path must be relative so that the input file can be placed
-                    // in the working directory of the SGS instance
-                    throw new SGSConfigException("Input files locations cannot be absolute paths");
-                }
-                this.inputFiles.add(inputFilePath);
+                throw new SGSConfigException("The bytesConsumed service data" +
+                    " element is only available when input is provided through stdin");
             }
-        }*/
+            this.serviceData.add(sdeConf);
+        }
         
         // Create the documentation files
         this.docFiles = new Vector();
@@ -428,45 +406,55 @@ class SGSConfig
     {
         return this.serviceData;
     }
-    
-    /**
-     * @return Vector of java.io.Files indicating the path of the input file
-     * relative to the working directory of the service instance.
-     */
-    /*public Vector getInputFiles()
-    {
-        return this.inputFiles;
-    }*/
-    
-    /**
-     * @return true if we shall allow input files other than those specified
-     * to be uploaded to the SGS instance
-     */
-    /*public boolean getAllowOtherInputFiles()
-    {
-        return this.allowOtherInputFiles;
-    }*/
 }
 
 /**
- * Class containing information about an input that is expected by
- * the SGS.
+ * Class containing information about the input file and streams required by
+ * the service
  */
 class SGSInput
 {
-    private String name; // Name of the file or stream (e.g. "stdin" or "input.dat")
+    public static final int STREAM = 0;
+    public static final int FILE = 1;
+    public static final int FILE_FROM_PARAM = 2;
     
-    public SGSInput(Node inputNode)
+    private String name;
+    private int type;
+    
+    public SGSInput(String name, String type) throws SGSConfigException
     {
-        this.name = inputNode.valueOf("@name").trim();
+        this.name = name;
+        if (type.equals("stream"))
+        {
+            if (!name.equals("stdin"))
+            {
+                throw new SGSConfigException("The only input stream that is " +
+                    "supported is stdin");
+            }
+            this.type = STREAM;
+        }
+        else if (type.equals("file"))
+        {
+            this.type = FILE;
+        }
+        else if (type.equals("fileFromParam"))
+        {
+            this.type = FILE_FROM_PARAM;
+        }
+        else
+        {
+            throw new SGSConfigException("Unknown input type: " + type);
+        }
     }
     
-    /**
-     * @return the name of the stream
-     */
     public String getName()
     {
         return this.name;
+    }
+    
+    public int getType()
+    {
+        return this.type;
     }
 }
 

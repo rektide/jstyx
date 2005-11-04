@@ -40,19 +40,29 @@
     description CDATA #IMPLIED
   >
  
-<!-- The inputs and outputs of the SGS (files and streams)
-     Input files are either specified by a fixed name with the "name" attribute,
-     or from the value of a parameter (with the "fromParam" attribute) -->
+<!--
+    The inputs and outputs of the SGS (files and streams)
+    type: Type of the input.  "stream" means an input stream that is read while
+          the program is running.  "file" means an input file that must be present
+          (i.e. uploaded) before the program starts.  "fileFromParam" is a file
+          whose name is specified by a certain parameter.
+    name: Name of the input.  For a stream, the only valid name is "stdin".
+          For a file, this is the fixed name of the file as it will appear in the
+          working directory of the executable.  For a "fileFromParam", this is
+          the name of the parameter from whose value the name will be taken (so
+          this must match exactly the name of one of the params specified above).
+-->
+<!ELEMENT inputs (input*)>
 <!ELEMENT input EMPTY>
 <!ATTLIST input
-   name CDATA #IMPLIED
-   fromParam CDATA #IMPLIED
+    type (stream | file | fileFromParam) "file"
+    name CDATA #REQUIRED
  >
+<!ELEMENT outputs (output*)>
 <!ELEMENT output EMPTY>
 <!ATTLIST output
    name CDATA #REQUIRED
  >
-<!ELEMENT io (input*, output*)>
 
 <!-- A steerable parameter for an SGS (i.e. one whose value can be changed
      whilst the simulation is running) -->
@@ -105,7 +115,7 @@
 <!-- Element that defines a Styx Grid Service -->
 <!-- The description of the service will automatically appear as a file called
      "description" in the docs/ directory of the SGS. -->
-<!ELEMENT gridservice (params?, io?, serviceData?, steering?, docs?)>
+<!ELEMENT gridservice (params?, inputs?, outputs?, serviceData?, steering?, docs?)>
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED

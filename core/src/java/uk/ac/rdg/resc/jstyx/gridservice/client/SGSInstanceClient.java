@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.35  2005/11/04 19:28:20  jonblower
+ * Changed structure of input files in config file and Styx namespace
+ *
  * Revision 1.34  2005/11/02 09:01:54  jonblower
  * Continuing to implement JSAP-based parameter parsing
  *
@@ -225,15 +228,15 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         
         // Create the directory that we will read to see if we can write data
         // to stdin
-        this.inputStreamsDir = this.instanceRoot.getFile("/io/inputs");
+        this.inputStreamsDir = this.instanceRoot.getFile("/inputs");
         this.inputStreamsDir.addChangeListener(this);
         
         // Create the file that we will use to write input data
-        this.stdin = this.instanceRoot.getFile("io/inputs/stdin");
+        this.stdin = this.instanceRoot.getFile("/inputs/stdin");
         this.stdin.addChangeListener(this);
         
         // Create the directory that we will read to find the output streams
-        this.outputStreamsDir = this.instanceRoot.getFile("io/outputs");
+        this.outputStreamsDir = this.instanceRoot.getFile("/outputs");
         this.outputStreamsDir.addChangeListener(this);
         this.activeStreams = new Hashtable();
         

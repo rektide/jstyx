@@ -41,11 +41,15 @@
                 <param name="theRest" paramType="unflaggedOption" greedy="yes"
                     description="consumes the rest of the command line"/>
             </params>
-            <io>
-                <!--<input fromParam="inputfile"/>--><!-- Gets its name from the "inputfile" parameter -->
+            <inputs>
+                <input type="stream" name="stdin"/>
+                <input type="file" name="sample.txt"/>
+                <input type="fileFromParam" name="inputfile"/>
+            </inputs>
+            <outputs>
                 <output name="stdout"/>
                 <output name="stderr"/>
-            </io>
+            </outputs>
             <serviceData>
                 <serviceDataElement name="status" />
                 <serviceDataElement name="bytesConsumed" />
@@ -61,11 +65,29 @@
             </docs>
         </gridservice>
         
+        <gridservice name="md5sum2" command="python c:\md5lines.py"
+            description="Calculates MD5 sum of each line of input">
+            <!-- The command-line parameters that are passed to the executable -->
+            <params>
+                <param name="waittime" paramType="flaggedOption" flag="w" required="yes"
+                    description="time to wait between reading each line"/>
+                <param name="inputfile" paramType="flaggedOption" flag="i"
+                    required="yes" description="input file: if not specified, uses stdin"/>
+            </params>
+            <inputs>
+                <input type="stream" name="stdin"/>
+            </inputs>
+            <outputs>
+                <output name="stdout"/>
+                <output name="stderr"/>
+            </outputs>
+        </gridservice>
+        
         <gridservice name="lbflow" command="c:\cygwin\home\jdb\lbflow-0.1\src\lbflow -i input.sim"
             description="Lattice Boltzmann simulation">
-            <io>
+            <outputs>
                 <output name="stdout"/>
-            </io>
+            </outputs>
             <serviceData>
                 <serviceDataElement name="status" />
                 <serviceDataElement name="exitCode" />
