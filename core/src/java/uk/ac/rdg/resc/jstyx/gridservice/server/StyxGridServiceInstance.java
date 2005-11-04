@@ -53,9 +53,9 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.JSAPResult;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
+import uk.ac.rdg.resc.jstyx.server.AsyncStyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
-import uk.ac.rdg.resc.jstyx.server.AsyncStyxFile;
 import uk.ac.rdg.resc.jstyx.server.InMemoryFile;
 import uk.ac.rdg.resc.jstyx.server.FileOnDisk;
 import uk.ac.rdg.resc.jstyx.server.DirectoryOnDisk;
@@ -72,14 +72,11 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.35  2005/11/04 09:11:23  jonblower
+ * Made SGSParamFile inherit from AsyncStyxFile instead of InMemoryFile
+ *
  * Revision 1.34  2005/11/03 07:42:47  jonblower
  * Implemented JSAP-based parameter parsing
- *
- * Revision 1.33  2005/11/02 09:01:54  jonblower
- * Continuing to implement JSAP-based parameter parsing
- *
- * Revision 1.32  2005/11/01 16:27:34  jonblower
- * Continuing to implement JSAP-enabled parameter parsing
  *
  * Revision 1.30  2005/10/18 14:08:14  jonblower
  * Removed inputfiles from namespace
@@ -280,7 +277,7 @@ class StyxGridServiceInstance extends StyxDirectory
             Parameter param = (Parameter)paramsIt.next();
             // Parameter files exhibit asynchronous behaviour so that other
             // clients can be notified when a parameter value changes
-            this.paramDir.addChild(new AsyncStyxFile(new SGSParamFile(param, this)));
+            this.paramDir.addChild(new SGSParamFile(param, this));
         }
         this.addChild(paramDir);
         
@@ -456,8 +453,7 @@ class StyxGridServiceInstance extends StyxDirectory
                 StyxFile[] paramFiles = paramDir.getChildren();
                 for (int i = 0; i < paramFiles.length; i++)
                 {
-                    AsyncStyxFile asf = (AsyncStyxFile)paramFiles[i];
-                    SGSParamFile sgsPF = (SGSParamFile)asf.getBaseFile();
+                    SGSParamFile sgsPF = (SGSParamFile)paramFiles[i];
                     // The checkValid() method throws a StyxException if the
                     // contents of the parameter file are not valid for some reason
                     sgsPF.checkValid();
@@ -630,8 +626,7 @@ class StyxGridServiceInstance extends StyxDirectory
                 StyxFile[] paramFiles = paramDir.getChildren();
                 for (int i = 0; i < paramFiles.length; i++)
                 {
-                    AsyncStyxFile asf = (AsyncStyxFile)paramFiles[i];
-                    SGSParamFile sgsPF = (SGSParamFile)asf.getBaseFile();
+                    SGSParamFile sgsPF = (SGSParamFile)paramFiles[i];
                     Parameter param = sgsPF.getParameter();
 
                     if (param instanceof Switch)
@@ -809,8 +804,7 @@ class StyxGridServiceInstance extends StyxDirectory
             for (int i = 0; i < paramFiles.length; i++)
             {
                 // We can be pretty confident that this cast is safe
-                AsyncStyxFile asyncFile = (AsyncStyxFile)paramFiles[i];
-                SGSParamFile paramFile = (SGSParamFile)asyncFile.getBaseFile();
+                SGSParamFile paramFile = (SGSParamFile)paramFiles[i];
                 buf.append(paramFile.getCommandLineFragment());
                 if (i < paramFiles.length - 1)
                 {

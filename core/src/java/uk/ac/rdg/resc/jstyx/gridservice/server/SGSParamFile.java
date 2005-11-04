@@ -37,6 +37,7 @@ import com.martiansoftware.jsap.Option;
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.UnflaggedOption;
 
+import uk.ac.rdg.resc.jstyx.server.AsyncStyxFile;
 import uk.ac.rdg.resc.jstyx.server.InMemoryFile;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
 import uk.ac.rdg.resc.jstyx.StyxException;
@@ -44,23 +45,19 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * A StyxFile interface to a parameter that is passed to an SGS instance as 
- * part of the command line of the underlying executable.
- * @todo Perhaps this should extend AsyncStyxFile?
- * @todo We should allow parameters to be backed by a file (i.e. steerable
- * rather than on the command line)
+ * part of the command line of the underlying executable.  This is an AsyncStyxFile
+ * so clients can be automatically notified of changes to the value of the
+ * parameter.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/11/04 09:11:23  jonblower
+ * Made SGSParamFile inherit from AsyncStyxFile instead of InMemoryFile
+ *
  * Revision 1.14  2005/11/03 07:42:47  jonblower
  * Implemented JSAP-based parameter parsing
- *
- * Revision 1.13  2005/11/02 09:01:54  jonblower
- * Continuing to implement JSAP-based parameter parsing
- *
- * Revision 1.12  2005/11/01 16:27:34  jonblower
- * Continuing to implement JSAP-enabled parameter parsing
  *
  * Revision 1.10  2005/09/08 07:08:59  jonblower
  * Removed "String user" from list of parameters to StyxFile.write()
@@ -87,7 +84,7 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * Initial import
  *
  */
-public class SGSParamFile extends InMemoryFile
+public class SGSParamFile extends AsyncStyxFile
 {
     
     private Parameter param; // The logical representation of the parameter
@@ -97,13 +94,13 @@ public class SGSParamFile extends InMemoryFile
     public SGSParamFile(Parameter param, StyxGridServiceInstance instance) throws StyxException
     {
         // The file is named after the parameter name
-        super(param.getID());
+        super(new InMemoryFile(param.getID()));
         this.param = param;
         this.instance = instance;
         if (this.param.getDefault() != null)
         {
             // TODO: We are only allowing a single default value
-            this.setContents(this.param.getDefault()[0]);
+            this.setParameterValue(this.param.getDefault()[0]);
             this.valueSet = true;
         }
     }
@@ -159,7 +156,7 @@ public class SGSParamFile extends InMemoryFile
         if (this.param instanceof Switch)
         {
             Switch sw = (Switch)this.param;
-            if (this.getContents().equalsIgnoreCase("true"))
+            if (this.getParameterValue().equalsIgnoreCase("true"))
             {
                 if (sw.getLongFlag() == JSAP.NO_LONGFLAG)
                 {
@@ -181,22 +178,30 @@ public class SGSParamFile extends InMemoryFile
             // Use the short flag if present, if not the long one
             if (fo.getLongFlag() == JSAP.NO_LONGFLAG)
             {
-                return "-" + fo.getShortFlag() + " " + this.getContents();
+                return "-" + fo.getShortFlag() + " " + this.getParameterValue();
             }
             else
             {
-                return "--" + fo.getLongFlag() + "=" + this.getContents();
+                return "--" + fo.getLongFlag() + "=" + this.getParameterValue();
             }
         }
         else if (this.param instanceof UnflaggedOption)
         {
-            return this.getContents();
+            return this.getParameterValue();
         }
         else
         {
             // Should never get here unless we add more param types in future
             return "";
         }
+    }
+    
+    /**
+     * @return the current value of this parameter
+     */
+    public String getParameterValue()
+    {
+        return ((InMemoryFile)this.baseFile).getContents();
     }
     
     /**
@@ -228,7 +233,8 @@ public class SGSParamFile extends InMemoryFile
                     " must have a non-empty value");
             }
         }
-        super.setContents(newValue);
+        // TODO: only set contents if the value has changed
+        ((InMemoryFile)this.baseFile).setContents(newValue);
         this.valueSet = true;
     }
     
