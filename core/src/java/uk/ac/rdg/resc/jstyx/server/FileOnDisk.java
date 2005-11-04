@@ -54,6 +54,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/11/04 19:34:35  jonblower
+ * Added code to recognise EOF (i.e. zero-byte) write messages
+ *
  * Revision 1.17  2005/11/03 21:49:18  jonblower
  * Changes to comments
  *
@@ -114,6 +117,8 @@ public class FileOnDisk extends StyxFile
         // Furthermore, if the File is deleted, the FileOnDisk will be removed
         // from the namespace.  If this is set false, a non-existent File will be
         // represented as a zero-length FileOnDisk in the namespace.
+    protected boolean eofWritten; // Set true when we have received EOF (i.e. a
+        // write of zero bytes) from the client;
     
     /**
      * Gets a StyxFile that wraps the given java.io.File. If the File is a 
@@ -206,6 +211,7 @@ public class FileOnDisk extends StyxFile
         }
         this.file = file;
         this.mustExist = mustExist;
+        this.eofWritten = false;
     }
     
     /**
@@ -286,32 +292,43 @@ public class FileOnDisk extends StyxFile
         }
         try
         {
-            // Open a new FileChannel for writing. Can't use FileOutputStream
-            // as this doesn't allow successful writing at a certain file offset:
-            // for some reason everything before this offset gets turned into
-            // blank spaces.
-            FileChannel chan = new RandomAccessFile(this.file, "rw").getChannel();
-            
-            // Remember old limit and position
-            int pos = data.position();
-            int lim = data.limit();
-            // Make sure only the requested number of bytes get written
-            data.limit(data.position() + count);
-            
-            // Write to the file
-            int nWritten = chan.write(data.buf(), offset);
-            
-            // Reset former buffer positions
-            data.limit(lim).position(pos);
-            
-            // Truncate the file at the end of the new data if requested
-            if (truncate)
+            int nWritten = 0;
+            if (data.remaining() > 0)
             {
-                log.debug("Truncating file at " + (offset + nWritten) + " bytes");
-                chan.truncate(offset + nWritten);
+                // Open a new FileChannel for writing. Can't use FileOutputStream
+                // as this doesn't allow successful writing at a certain file offset:
+                // for some reason everything before this offset gets turned into
+                // blank spaces.
+                FileChannel chan = new RandomAccessFile(this.file, "rw").getChannel();
+
+                // Remember old limit and position
+                int pos = data.position();
+                int lim = data.limit();
+                // Make sure only the requested number of bytes get written
+                data.limit(data.position() + count);
+            
+                // Write to the file
+                nWritten = chan.write(data.buf(), offset);
+
+                // Reset former buffer positions
+                data.limit(lim).position(pos);
+
+                // Truncate the file at the end of the new data if requested
+                if (truncate)
+                {
+                    log.debug("Truncating file at " + (offset + nWritten) + " bytes");
+                    chan.truncate(offset + nWritten);
+                }
+                // We haven't reached EOF yet
+                this.eofWritten = false;
+                // Close the channel
+                chan.close();
             }
-            // Close the channel
-            chan.close();
+            else
+            {
+                // We've got zero bytes from the client.  This means EOF.
+                this.eofWritten = true;
+            }
             // Reply to the client
             this.replyWrite(client, nWritten, tag);
         }
@@ -337,6 +354,16 @@ public class FileOnDisk extends StyxFile
     {
         // This returns zero if the file does not exist
         return new ULong(this.file.length());
+    }
+    
+    /**
+     * @return true if we have received an EOF message from the client when 
+     * the client uploaded data to this file and no data have been received since
+     * this EOF message was received.
+     */
+    public boolean receivedEOF()
+    {
+        return this.eofWritten;
     }
     
     /**
