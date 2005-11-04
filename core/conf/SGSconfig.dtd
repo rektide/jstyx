@@ -6,17 +6,16 @@
     SYSTEM ID: http://server/path/SGSconfig.dtd
 -->
 
-<!-- A parameter for a SGS (passed on the command-line to the executable) 
+<!-- A parameter for a SGS (passed on the command-line to the executable).  For
+           now, all parameter values will be plain strings.
      name: The name of the parameter (must not contain spaces)
      paramType: Type of the parameter: "switch", "flaggedOption" or "unflaggedOption" - see JSAP
      required: "yes" if a value for this parameter must be set.  Meaningless for switches.
            For other parameter types, setting required="yes" means that the
            parameter must contain a value (i.e. not just whitespace characters)
-     valueType: Type of the parameter's value: currently "string", "inputfile" or "outputfile"
-           Defaults to "string" if not specified
-     flag: (Optional) The command-line flag used to prefix the parameter value, e.g. "-v"
-           Used in "switch" and "flaggedOption" only
-     longFlag: (Optional) The long version of the command-line flag, e.g. "- -verbose"
+     flag: (Optional) The command-line flag (single character) used to prefix
+           the parameter value, e.g. "v".  Used in "switch" and "flaggedOption" only
+     longFlag: (Optional) The long version of the command-line flag, e.g. "verbose"
      defaultValue: (Optional) default value for the parameter.  For switches, the
            defaults can only be "true" or "false".  For other parameter types,
            the default can be any string.
@@ -34,7 +33,6 @@
     name CDATA #REQUIRED
     paramType (switch | flaggedOption | unflaggedOption) #REQUIRED
     required (yes | no) "no"
-    valueType (string | inputfile | outputfile) "string"
     flag CDATA #IMPLIED
     longFlag CDATA #IMPLIED
     defaultValue CDATA #IMPLIED
@@ -44,7 +42,7 @@
  
 <!-- The inputs and outputs of the SGS (files and streams)
      Input files are either specified by a fixed name with the "name" attribute,
-     or from the value of parameter (with the "fromParam" attribute) -->
+     or from the value of a parameter (with the "fromParam" attribute) -->
 <!ELEMENT input EMPTY>
 <!ATTLIST input
    name CDATA #IMPLIED
