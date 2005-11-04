@@ -53,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2005/11/04 19:31:16  jonblower
+ * Added code to disallow parameter setting while service is running
+ *
  * Revision 1.15  2005/11/04 09:11:23  jonblower
  * Made SGSParamFile inherit from AsyncStyxFile instead of InMemoryFile
  *
@@ -122,6 +125,10 @@ public class SGSParamFile extends AsyncStyxFile
         int count, ByteBuffer data, boolean truncate, int tag)
         throws StyxException
     {
+        if (instance.getStatus() == StatusCode.RUNNING)
+        {
+            throw new StyxException("Cannot set new parameter values while service is running");
+        }
         if (offset != 0)
         {
             throw new StyxException("Must write to the start of the parameter file");
