@@ -28,9 +28,15 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.server;
 
+import java.io.OutputStream;
+import java.io.IOException;
+import java.net.URL;
+
+import org.apache.mina.common.ByteBuffer;
+
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
-import uk.ac.rdg.resc.jstyx.server.StyxFileChangeListener;
+import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
 
 /**
  * A file that is used to provide input (as a file or as stdin stream) to a 
@@ -40,46 +46,138 @@ import uk.ac.rdg.resc.jstyx.server.StyxFileChangeListener;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/11/04 19:29:53  jonblower
+ * Moved code that writes to std input to SGSInputFile
+ *
  * Revision 1.1  2005/11/04 09:12:23  jonblower
  * Initial import
  *
  */
-public class SGSInputFile extends StyxFile implements StyxFileChangeListener
+public abstract class SGSInputFile extends StyxFile
 {
-    /**
-     * This is the prefix given to files that take their name from the value 
-     * of a parameter
-     */
-    public static final String PARAM_FILE_PREFIX = "__fromParam-";
     
-    /**
-     * Creates a new SGSInputFile with the given (fixed) name.  This name will
-     * never change
-     */
-    public SGSInputFile(String name) throws StyxException
+    protected InputURLFile urlFile;
+    protected StyxGridServiceInstance instance;
+    
+    private SGSInputFile(String name, InputURLFile urlFile, StyxGridServiceInstance instance)
+        throws StyxException
     {
-        super(name, 0222); // A write-only file
+        super(name, 0222); // Input files are always write-only
+        this.urlFile = urlFile;
+        this.instance = instance;
     }
     
     /**
-     * Creates an SGSInputFile whose name is given by the contents of the given
-     * parameter file
+     * file through which clients can write to the process's input stream directly
      */
-    public SGSInputFile(SGSParamFile paramFile) throws StyxException
+    public static class StdinFile extends SGSInputFile
     {
-        super(PARAM_FILE_PREFIX + paramFile.getName(), 0222);
-        // Make sure this class is notified if the value of the parameter changes:
-        // when this happens, this.contentsChanged() will be called
-        paramFile.addChangeListener(this);
+        private OutputStream stream = null;
+        private long bytesCons;
+
+        /**
+         * Creates new StdinFile - will be called "stdin"
+         */
+        public StdinFile(InputURLFile urlFile, StyxGridServiceInstance instance)
+            throws StyxException
+        {
+            super("stdin", urlFile, instance);
+        }
+
+        public void setOutputStream(OutputStream os)
+        {
+            this.stream = os;
+            this.bytesCons = 0;
+        }
+        
+        /**
+         * Writes the given number of bytes to the stream. The offset
+         * is ignored; it will always writes to the current stream position, so
+         * the behaviour of this method when multiple clients are connected is
+         * undefined
+         * @todo deal with request to flush the write message
+         */
+        public void write(StyxFileClient client, long offset, int count,
+            ByteBuffer data, boolean truncate, int tag)
+            throws StyxException
+        {
+            if (instance.getStatus() != StatusCode.RUNNING)
+            {
+                // Can't write to this file until the service is running
+                // TODO: should we allow this but cache the input?
+                throw new StyxException("Cannot write to the standard input" +
+                    " when the service is not running");
+            }
+            else if (this.getInputURL() != null)
+            {
+                // We're not allowed to write to this file if the service is running
+                // and the input URL is set
+                throw new StyxException("Cannot write to the input stream " +
+                    "because the service is reading from " + this.getInputURL());
+            }
+            else
+            {
+                // The service is running
+                try
+                {
+                    if (count == 0)
+                    {
+                        stream.close();
+                    }
+                    int bytesToWrite = data.remaining();
+                    if (count < data.remaining())
+                    {
+                        // Would normally be an error if count != data.remaining(),
+                        // but we'll let the calling application pick this up
+                        bytesToWrite = count;
+                    }
+                    byte[] arr = new byte[bytesToWrite];
+                    data.get(arr);
+                    stream.write(arr);
+                    stream.flush();
+                    // Update the number of bytes consumed
+                    bytesCons += bytesToWrite;
+                    instance.setBytesConsumed(bytesCons);
+                    this.replyWrite(client, bytesToWrite, tag);
+                }
+                catch(IOException ioe)
+                {
+                    throw new StyxException("IOException occurred when writing to "
+                            + "the stream: " + ioe.getMessage());
+                }
+            }
+        }
     }
     
     /**
-     * This method will be called when the contents of the associated parameter
-     * file has changed, if this input file is specified by an input parameter
+     * @return the url from which this file will get its data, or null if this
+     * has not been set
      */
-    public void contentsChanged()
+    public URL getInputURL()
     {
+        return this.urlFile.getURL();
+    }
+    
+    public static class File extends SGSInputFile
+    {
+        private File(String name, InputURLFile urlFile,
+            StyxGridServiceInstance instance)
+            throws StyxException
+        {
+            super(name, urlFile, instance);
+        }
+        
         
     }
+    
+    /*public static class FileFromParam extends SGSInputFile
+    {
+        private FileFromParam(String name) throws StyxException
+        {
+            super(name);
+        }
+    }*/
+    
+    
     
 }
