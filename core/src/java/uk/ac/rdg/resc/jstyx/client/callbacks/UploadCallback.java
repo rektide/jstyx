@@ -39,6 +39,7 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.client.MessageCallback;
 
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
+import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.messages.RwriteMessage;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -52,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/11/04 19:25:14  jonblower
+ * Added code to write a zero-byte message to represent EOF
+ *
  * Revision 1.2  2005/08/10 18:33:48  jonblower
  * Bug fixes
  *
@@ -110,24 +114,16 @@ public class UploadCallback extends MessageCallback
                 }
                 // Read from the source file
                 int n = in.read(this.bytes);
-                if (n >= 0)
+                if (n > 0)
                 {
                     // Write to the server
                     this.file.writeAsync(this.bytes, 0, n, this.offset, true, this);
                 }
                 else
                 {
-                    // We've reached EOF. Close the file and notify that
-                    // upload is complete.
-                    this.file.close();
-                    if (this.callback == null)
-                    {
-                        this.file.fireUploadComplete();
-                    }
-                    else
-                    {
-                        this.callback.replyArrived(rMessage, tMessage);
-                    }
+                    // We've reached EOF. Write zero bytes
+                    // to the server to signify EOF
+                    this.file.writeAsync(new byte[0], this.offset, true, this);
                 }
             }
             catch(IOException ioe)
@@ -147,10 +143,37 @@ public class UploadCallback extends MessageCallback
     {
         if (rMessage instanceof RwriteMessage)
         {
+            TwriteMessage tWriteMsg = (TwriteMessage)tMessage;
             RwriteMessage rWriteMsg = (RwriteMessage)rMessage;
-            this.offset += rWriteMsg.getNumBytesWritten();
+            if (tWriteMsg.getCount() == rWriteMsg.getNumBytesWritten())
+            {
+                if (rWriteMsg.getNumBytesWritten() > 0)
+                {
+                    this.offset += rWriteMsg.getNumBytesWritten();
+                    this.nextStage(rMessage, tMessage);
+                }
+                else
+                {
+                    // We've reached EOF. Close the file and notify that
+                    // upload is complete.
+                    this.file.close();
+                    if (this.callback == null)
+                    {
+                        this.file.fireUploadComplete();
+                    }
+                    else
+                    {
+                        this.callback.replyArrived(rMessage, tMessage);
+                    }
+                }
+            }
+            else
+            {
+                this.error("Error writing data: tried to write " + tWriteMsg.getCount()
+                    + " bytes, actually wrote " + rWriteMsg.getNumBytesWritten()
+                    + " bytes.", tMessage);
+            }
         }
-        this.nextStage(rMessage, tMessage);
     }
 
     public void error(String message, StyxMessage tMessage)
