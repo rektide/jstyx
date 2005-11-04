@@ -36,8 +36,11 @@ package uk.ac.rdg.resc.jstyx.server;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:33  jonblower
- * Initial revision
+ * Revision 1.2  2005/11/04 19:33:41  jonblower
+ * Changed contentsChanged() to fileContentsChanged() in StyxFileChangeListener
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:33  jonblower
+ * Initial import
  *
  */
 public interface StyxFileChangeListener
@@ -47,7 +50,7 @@ public interface StyxFileChangeListener
      * If the StyxFile is a directory, this method will be called when files
      * are added to, or removed from, this directory.
      */
-    public void contentsChanged();
+    public void fileContentsChanged();
     
     /**
      * This method will be called when the stat of the file has changed. In fact,

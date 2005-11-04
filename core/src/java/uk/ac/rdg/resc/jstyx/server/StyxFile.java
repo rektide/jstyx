@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.20  2005/11/04 19:33:41  jonblower
+ * Changed contentsChanged() to fileContentsChanged() in StyxFileChangeListener
+ *
  * Revision 1.19  2005/11/03 21:50:04  jonblower
  * Added clarification to comments
  *
@@ -983,7 +986,7 @@ public class StyxFile
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
                 listener = (StyxFileChangeListener)this.changeListeners.get(i);
-                listener.contentsChanged();
+                listener.fileContentsChanged();
             }
         }
     }

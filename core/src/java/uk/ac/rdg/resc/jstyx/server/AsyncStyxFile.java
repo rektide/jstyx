@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/11/04 19:33:41  jonblower
+ * Changed contentsChanged() to fileContentsChanged() in StyxFileChangeListener
+ *
  * Revision 1.11  2005/11/04 09:12:05  jonblower
  * Made baseFile a protected field (instead of private)
  *
@@ -204,7 +207,7 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
      * @param force If this is true, clients will be notified of changes to 
      * the underlying data, irrespective of how long they have waited.
      */
-    public void contentsChanged(boolean force)
+    public void fileContentsChanged(boolean force)
     {
         this.incrementVersion();
         // Reply to all waiting clients with the file's new data
@@ -250,9 +253,9 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
      * This is called when the contents of the underlying StyxFile are changed
      * (required by StyxFileChangeListener interface).
      */
-    public void contentsChanged()
+    public void fileContentsChanged()
     {
-        this.contentsChanged(false);
+        this.fileContentsChanged(false);
     }
     
     /**

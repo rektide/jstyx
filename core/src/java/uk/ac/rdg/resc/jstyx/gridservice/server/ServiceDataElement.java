@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/11/04 19:33:41  jonblower
+ * Changed contentsChanged() to fileContentsChanged() in StyxFileChangeListener
+ *
  * Revision 1.2  2005/03/24 17:33:51  jonblower
  * Improved reading of service parameters from config file
  *
@@ -59,7 +62,7 @@ abstract class ServiceDataElement
     private float minUpdateInterval;
     
     private StyxFile styxFile = null;
-    private AsyncStyxFile blockStyxFile = null;
+    private AsyncStyxFile asyncStyxFile = null;
     
     /**
      * Creates a ServiceDataElement.
@@ -177,12 +180,12 @@ abstract class ServiceDataElement
      */
     public StyxFile getAsyncStyxFile() throws StyxException
     {
-        if (this.blockStyxFile == null)
+        if (this.asyncStyxFile == null)
         {
-            this.blockStyxFile = new AsyncStyxFile(this.getStyxFile());
-            this.blockStyxFile.setMinReplyInterval(this.minUpdateInterval);
+            this.asyncStyxFile = new AsyncStyxFile(this.getStyxFile());
+            this.asyncStyxFile.setMinReplyInterval(this.minUpdateInterval);
         }
-        return this.blockStyxFile;
+        return this.asyncStyxFile;
     }
     
     /**
@@ -192,9 +195,9 @@ abstract class ServiceDataElement
      */
     public void flush()
     {
-        if (this.blockStyxFile != null)
+        if (this.asyncStyxFile != null)
         {
-            this.blockStyxFile.contentsChanged(true);
+            this.asyncStyxFile.fileContentsChanged(true);
         }
     }
     
