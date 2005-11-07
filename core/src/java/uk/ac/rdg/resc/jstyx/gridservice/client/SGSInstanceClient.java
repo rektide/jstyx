@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.36  2005/11/07 21:05:35  jonblower
+ * Added setCommandLineArgs() method
+ *
  * Revision 1.35  2005/11/04 19:28:20  jonblower
  * Changed structure of input files in config file and Styx namespace
  *
@@ -395,6 +398,16 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public String getCommandLine() throws StyxException
     {
         return this.cmdLineFile.getContents();
+    }
+    
+    /**
+     * Sets all the command-line arguments of the service instance at once.
+     * @param args The command-line arguments (does not include the name of the
+     * executable itself)
+     */
+    public void setCommandLineArgs(String args) throws StyxException
+    {
+        this.cmdLineFile.setContents(args);
     }
     
     /**
