@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.42  2005/11/07 22:00:54  jonblower
+ * Added upload(java.io.File) method
+ *
  * Revision 1.41  2005/10/14 18:05:19  jonblower
  * Added walkFid() and exists() methods
  *
@@ -74,14 +77,8 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * Revision 1.38  2005/08/31 17:07:15  jonblower
  * Fixed bug in getContents() and released ByteBuffer in fireDataArrived()
  *
- * Revision 1.37  2005/08/31 08:15:35  jonblower
- * Bug fixes
- *
  * Revision 1.36  2005/08/10 18:31:55  jonblower
  * Bug fixes, plus added synchronous openOrCreate() method
- *
- * Revision 1.35  2005/08/08 09:36:19  jonblower
- * Minor changes
  *
  * Revision 1.34  2005/08/05 13:46:40  jonblower
  * Factored out all callback objects from CStyxFile into separate classes
@@ -1154,6 +1151,23 @@ public class CStyxFile
     {
         StyxReplyCallback callback = new StyxReplyCallback();
         this.uploadAsync(in, callback);
+        // The getReply() method blocks until the download is complete.
+        StyxMessage message = callback.getReply();
+    }
+    
+    /**
+     * Uploads data from an local file to this file.  If this (Styx) file does
+     * not exist it will be created with rw-rw-rw- (0666) permissions, subject
+     * to the permissions of the host directory.  Blocks until the file has been
+     * uploaded, or throws a StyxException if an error occurred.
+     * @param file The File from which to read data to be written to this file
+     * @todo Add a flag to prevent overwriting a file if it already exists?
+     * @todo Allow a callback to be provided for progress monitoring?
+     */
+    public void upload(File fromFile) throws StyxException
+    {
+        StyxReplyCallback callback = new StyxReplyCallback();
+        this.uploadAsync(fromFile, callback);
         // The getReply() method blocks until the download is complete.
         StyxMessage message = callback.getReply();
     }
