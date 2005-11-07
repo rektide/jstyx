@@ -53,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2005/11/07 21:06:42  jonblower
+ * Now allows setting of empty values for non-required parameters
+ *
  * Revision 1.16  2005/11/04 19:31:16  jonblower
  * Added code to disallow parameter setting while service is running
  *
@@ -228,16 +231,25 @@ public class SGSParamFile extends AsyncStyxFile
                     " can only be \"true\" or \"false\"");
             }
         }
-        // Options must have some content - can't be just whitespace
-        // TODO: also check type of argument (integer, float etc)
         else
         {
-            // TODO: should be allowed to set empty value if parameter is not
-            // required
+            Option op = (Option)this.param;
+            // Check for empty values
+            // TODO: also check type of argument (integer, float etc)
             if (newValue.trim().equals(""))
             {
-                throw new StyxException("Parameter " + this.getName() +
-                    " must have a non-empty value");
+                if (op.required())
+                {
+                    throw new StyxException("Parameter " + this.getName() +
+                        " must have a non-empty value");
+                }
+                else
+                {
+                    // Parameter is not required, so unset the parameter and return
+                    ((InMemoryFile)this.baseFile).setContents("");
+                    this.valueSet = false;
+                    return;
+                }
             }
         }
         // TODO: only set contents if the value has changed
