@@ -53,11 +53,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/11/07 22:01:35  jonblower
+ * Added code to close stream when UploadCallback has been created from a File object
+ *
  * Revision 1.3  2005/11/04 19:25:14  jonblower
  * Added code to write a zero-byte message to represent EOF
- *
- * Revision 1.2  2005/08/10 18:33:48  jonblower
- * Bug fixes
  *
  * Revision 1.1  2005/08/05 13:46:40  jonblower
  * Factored out all callback objects from CStyxFile into separate classes
@@ -72,10 +72,12 @@ public class UploadCallback extends MessageCallback
     private MessageCallback callback;
     private CStyxFile file;
     private StyxConnection conn;
+    private boolean closeStreamWhenComplete;
 
     public UploadCallback(CStyxFile file, File localFile, MessageCallback callback)
     {
         this.init(file, null, callback);
+        this.closeStreamWhenComplete = true;
         try
         {
             this.in = new FileInputStream(localFile);
@@ -99,6 +101,7 @@ public class UploadCallback extends MessageCallback
         this.bytes = null;
         this.offset = 0;
         this.callback = callback;
+        this.closeStreamWhenComplete = false;
     }
 
     public void nextStage(StyxMessage rMessage, StyxMessage tMessage)
@@ -157,6 +160,17 @@ public class UploadCallback extends MessageCallback
                     // We've reached EOF. Close the file and notify that
                     // upload is complete.
                     this.file.close();
+                    if (this.closeStreamWhenComplete)
+                    {
+                        try
+                        {
+                            this.in.close();
+                        }
+                        catch(IOException ioe)
+                        {
+                            // Ignore this exception
+                        }
+                    }
                     if (this.callback == null)
                     {
                         this.file.fireUploadComplete();
