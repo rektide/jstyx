@@ -48,8 +48,8 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.10  2005/10/14 18:07:56  jonblower
- * Minor changes
+ * Revision 1.11  2005/11/07 21:03:22  jonblower
+ * Added getConfigXML() method
  *
  * Revision 1.9  2005/09/11 18:51:52  jonblower
  * Added error() method and changed name from getInstances() to getInstancesAsync()
@@ -141,6 +141,18 @@ public class SGSClient extends CStyxFileChangeAdapter
             this.description = descFile.getContents();
         }
         return this.description;
+    }
+    
+    /**
+     * Gets the XML configuration for this Styx Grid Service.  This XML snippet
+     * (returned as a String) will contain all the information a client needs
+     * to know about the SGS instances that will be created for this service.
+     * Clients can interrogate the XML to find out how to parse command-line 
+     * parameters, deal with input files and so forth.
+     */
+    public String getConfigXML() throws StyxException
+    {
+        return this.sgsRoot.getFile("config").getContents();
     }
     
     /**
