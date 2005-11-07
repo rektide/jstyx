@@ -35,6 +35,7 @@ import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
+import uk.ac.rdg.resc.jstyx.types.ULong;
 
 /**
  * StyxFile that contains a URL.
@@ -43,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/11/07 12:22:25  jonblower
+ * Added getLength() method
+ *
  * Revision 1.1  2005/11/04 17:32:11  jonblower
  * Initial import
  *
@@ -112,6 +116,15 @@ public class URLFile extends StyxFile
         this.replyWrite(client, count, tag);
     } 
     
+    /**
+     * @return the size of this file in bytes
+     */
+    public ULong getLength()
+    {
+        String str = this.url.toString();
+        int len = StyxUtils.strToUTF8(str).length;
+        return new ULong(len);
+    }
     
     /**
      * @return the URL contained in this file or null if it hasn't been set
