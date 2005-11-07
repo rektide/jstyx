@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/11/07 21:14:44  jonblower
+ * Fixed null pointer bug in getLength()
+ *
  * Revision 1.2  2005/11/07 12:22:25  jonblower
  * Added getLength() method
  *
@@ -121,9 +124,16 @@ public class URLFile extends StyxFile
      */
     public ULong getLength()
     {
-        String str = this.url.toString();
-        int len = StyxUtils.strToUTF8(str).length;
-        return new ULong(len);
+        if (this.url == null)
+        {
+            return ULong.ZERO;
+        }
+        else
+        {
+            String str = this.url.toString();
+            int len = StyxUtils.strToUTF8(str).length;
+            return new ULong(len);
+        }
     }
     
     /**
