@@ -13,7 +13,7 @@
  * 3. Neither the name of the University of Reading, nor the names of the
  *    authors or contributors may be used to endorse or promote products
  *    derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -26,27 +26,65 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.jstyx.gridservice.server;
+package uk.ac.rdg.resc.jstyx.gridservice.config;
 
 /**
- * Exception that is thrown when an error occurs when reading the SGS config
- * file
+ * Class containing information about the input file and streams required by
+ * the service
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/03/26 14:25:44  jonblower
- * Initial import
+ * Revision 1.1  2005/11/07 20:59:34  jonblower
+ * Refactored SGS config classes to new package
  *
  */
-public class SGSConfigException extends Exception
+
+public class SGSInput
 {
     
-    /** Creates a new instance of SGSConfigException */
-    public SGSConfigException(String message)
+    public static final int STREAM = 0;
+    public static final int FILE = 1;
+    public static final int FILE_FROM_PARAM = 2;
+    
+    private String name;
+    private int type;
+    
+    public SGSInput(String type, String name) throws SGSConfigException
     {
-        super(message);
+        this.name = name;
+        if (type.equals("stream"))
+        {
+            if (!name.equals("stdin"))
+            {
+                throw new SGSConfigException("The only input stream that is " +
+                    "supported is stdin");
+            }
+            this.type = STREAM;
+        }
+        else if (type.equals("file"))
+        {
+            this.type = FILE;
+        }
+        else if (type.equals("fileFromParam"))
+        {
+            this.type = FILE_FROM_PARAM;
+        }
+        else
+        {
+            throw new SGSConfigException("Unknown input type: " + type);
+        }
+    }
+    
+    public String getName()
+    {
+        return this.name;
+    }
+    
+    public int getType()
+    {
+        return this.type;
     }
     
 }
