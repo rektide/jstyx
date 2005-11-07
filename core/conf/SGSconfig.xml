@@ -36,7 +36,7 @@
                     description="time to wait between reading each line"/>
                 <param name="inputfile" paramType="flaggedOption" flag="i" defaultValue="stdin"
                     description="input file: if not specified, uses stdin"/>
-                <param name="random" paramType="unflaggedOption"
+                <param name="random" paramType="unflaggedOption" required="yes"
                     description="first unflagged option"/>
                 <param name="theRest" paramType="unflaggedOption" greedy="yes"
                     description="consumes the rest of the command line"/>
@@ -51,8 +51,6 @@
                 <output name="stderr"/>
             </outputs>
             <serviceData>
-                <serviceDataElement name="status" />
-                <serviceDataElement name="bytesConsumed" />
                 <serviceDataElement name="progress" file="progress.txt" minUpdateInterval="1.0"/>
             </serviceData>
             <steering>
@@ -88,10 +86,6 @@
             <outputs>
                 <output name="stdout"/>
             </outputs>
-            <serviceData>
-                <serviceDataElement name="status" />
-                <serviceDataElement name="exitCode" />
-            </serviceData>
             <steering>
                 <steerable name="Pressure_gradient_x" file="Pgrad_x.str" initialvalue="0"/>
             </steering>
