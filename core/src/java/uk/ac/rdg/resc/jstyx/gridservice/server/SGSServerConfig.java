@@ -42,6 +42,9 @@ import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Node;
 
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfigException;
+
 /**
  * Configuration of a Styx Grid Service server
  *
@@ -49,6 +52,9 @@ import org.dom4j.Node;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/11/07 21:04:48  jonblower
+ * Moved SGS config classes to new package
+ *
  * Revision 1.7  2005/05/16 11:00:53  jonblower
  * Changed SGS config XML file structure: separated input and output streams and changed some tag names
  *
