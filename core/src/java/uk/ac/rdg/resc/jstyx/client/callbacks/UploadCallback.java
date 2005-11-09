@@ -53,6 +53,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/11/09 17:39:55  jonblower
+ * Fixed bug with omission of response to Ropen/Rcreate message
+ *
  * Revision 1.4  2005/11/07 22:01:35  jonblower
  * Added code to close stream when UploadCallback has been created from a File object
  *
@@ -187,6 +190,11 @@ public class UploadCallback extends MessageCallback
                     + " bytes, actually wrote " + rWriteMsg.getNumBytesWritten()
                     + " bytes.", tMessage);
             }
+        }
+        else
+        {
+            // We've just got an Ropen or Rcreate message.
+            this.nextStage(rMessage, tMessage);
         }
     }
 
