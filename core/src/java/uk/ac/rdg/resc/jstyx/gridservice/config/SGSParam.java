@@ -33,6 +33,7 @@ import org.dom4j.Node;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.Option;
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.UnflaggedOption;
 
@@ -44,6 +45,9 @@ import com.martiansoftware.jsap.UnflaggedOption;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/11/09 17:46:30  jonblower
+ * setInputFile() now only works for Options
+ *
  * Revision 1.1  2005/11/07 20:59:34  jonblower
  * Refactored SGS config classes to new package
  *
@@ -79,10 +83,18 @@ public class SGSParam
     
     /**
      * Sets the input file that is linked to this parameter
+     * @throws SGSConfigException if this parameter is not an Option
      */
-    public void setInputFile(SGSInput inputFile)
+    public void setInputFile(SGSInput inputFile) throws SGSConfigException
     {
-        this.inputFile = inputFile;
+        if (this.param instanceof Option)
+        {
+            this.inputFile = inputFile;
+        }
+        else
+        {
+            throw new SGSConfigException("Can only set an input file for an Option");
+        }
     }
     
     /**
