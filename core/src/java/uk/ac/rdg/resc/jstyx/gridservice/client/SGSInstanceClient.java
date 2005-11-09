@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.37  2005/11/09 17:43:19  jonblower
+ * Added getInputStreamsDir() and removed urls/ directory from getInputStreams()
+ *
  * Revision 1.36  2005/11/07 21:05:35  jonblower
  * Added setCommandLineArgs() method
  *
@@ -183,13 +186,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private long sdeValuesVersion; // Version of this Hashtable
     private long sdeValuesVersionLastRead; // Version of this Hashtable on the last read
     
-    // Input files
-    //private CStyxFile inputFilesDir;
-    //private boolean allowOtherInputFiles; // True if we are allowed to upload
-        // input files other than the compulsory ones
-    //private CStyxFile[] inputFiles; // The compulsory input files
-    
-    // Input streams
+    // Input files and streams
     private CStyxFile inputStreamsDir;
     private CStyxFile stdin;
     
@@ -225,12 +222,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.ctlFile = this.instanceRoot.getFile("ctl");
         this.ctlFile.addChangeListener(this);
         
-        // Create the directory that contains the input files
-        /*this.inputFilesDir = this.instanceRoot.getFile("inputFiles");
-        this.inputFilesDir.addChangeListener(this);*/
-        
-        // Create the directory that we will read to see if we can write data
-        // to stdin
+        // Create the directory that will hold the input files
         this.inputStreamsDir = this.instanceRoot.getFile("/inputs");
         this.inputStreamsDir.addChangeListener(this);
         
@@ -325,6 +317,15 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * @return the directory to which input files can be written.  This method
+     * will never block.
+     */
+    public CStyxFile getInputStreamsDir()
+    {
+        return this.inputStreamsDir;
+    }
+    
+    /**
      * Sends a message to get the possible input streams for this instance.
      * This reads the contents of the "io/in" directory.  This method
      * does not block: when the available output streams have been read, the 
@@ -334,6 +335,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         // When the contents of the directory have been found, the childrenFound
         // method of this class will be called.
+        // TODO: remove the urls/ file from this array
         this.inputStreamsDir.getChildrenAsync();
     }
     
@@ -344,9 +346,20 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      */
     public CStyxFile[] getInputStreams() throws StyxException
     {
-        // When the contents of the directory have been found, the childrenFound
-        // method of this class will be called.
-        return this.inputStreamsDir.getChildren();
+        CStyxFile[] children = this.inputStreamsDir.getChildren();
+        // We don't include the urls/ file in this array
+        // TODO: this code is a bit ugly - should use a Vector?
+        CStyxFile[] newChildren = new CStyxFile[children.length - 1];
+        int j = 0;
+        for (int i = 0; i < children.length; i++)
+        {
+            if (!children[i].getName().equals("urls"))
+            {
+                newChildren[j] = children[i];
+                j++;
+            }
+        }
+        return newChildren;
     }
     
     /**
