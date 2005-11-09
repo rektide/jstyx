@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
+import uk.ac.rdg.resc.jstyx.gridservice.config.DocFile;
+
 /**
  * Class representing a Styx Grid Service
  *
@@ -55,11 +58,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2005/11/09 17:50:45  jonblower
+ * Added config file to namespace
+ *
  * Revision 1.15  2005/07/29 16:56:07  jonblower
  * Implementing reading command line asynchronously
- *
- * Revision 1.14  2005/07/06 17:50:13  jonblower
- * Change to comments
  *
  * Revision 1.13  2005/05/19 18:42:07  jonblower
  * Implementing specification of input files required by SGS
@@ -143,6 +146,11 @@ public class StyxGridService
         // This allows GUIs to automatically update when new SGS instances are
         // created or destroyed.
         this.root.addChild(new AsyncStyxFile(this.instancesDir, ".instances"));
+        
+        // Add the XML that was used to create this SGS as a read-only InMemoryFile
+        InMemoryFile configFile = new InMemoryFile("config", 0444);
+        configFile.setContents(sgsConfig.getConfigXML());
+        this.root.addChild(configFile);
         
         // Create documentation tree
         StyxDirectory docDir = new StyxDirectory("docs", 0555);
