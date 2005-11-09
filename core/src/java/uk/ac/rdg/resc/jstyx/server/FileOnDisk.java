@@ -54,12 +54,11 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2005/11/09 17:42:24  jonblower
+ * Modified EOF recognition (now requires zero-byte message to be written to the end of the file)
+ *
  * Revision 1.18  2005/11/04 19:34:35  jonblower
  * Added code to recognise EOF (i.e. zero-byte) write messages
- *
- * Revision 1.17  2005/11/03 21:49:18  jonblower
- * Changes to comments
- *
  *
  * Revision 1.15  2005/09/08 07:08:59  jonblower
  * Removed "String user" from list of parameters to StyxFile.write()
@@ -293,7 +292,14 @@ public class FileOnDisk extends StyxFile
         try
         {
             int nWritten = 0;
-            if (data.remaining() > 0)
+            // If we're writing zero bytes to the end of the file, this is an
+            // EOF signal
+            if (data.remaining() == 0 && offset == this.file.length())
+            {
+                log.debug("Got EOF signal");
+                this.eofWritten = true;
+            }
+            else
             {
                 // Open a new FileChannel for writing. Can't use FileOutputStream
                 // as this doesn't allow successful writing at a certain file offset:
@@ -324,11 +330,6 @@ public class FileOnDisk extends StyxFile
                 // Close the channel
                 chan.close();
             }
-            else
-            {
-                // We've got zero bytes from the client.  This means EOF.
-                this.eofWritten = true;
-            }
             // Reply to the client
             this.replyWrite(client, nWritten, tag);
         }
@@ -350,6 +351,9 @@ public class FileOnDisk extends StyxFile
         this.lastModifiedTime = this.file.lastModified() / 1000;
     }
     
+    /**
+     * @return the length of the file, or zero if the file does not exist
+     */
     public ULong getLength()
     {
         // This returns zero if the file does not exist
