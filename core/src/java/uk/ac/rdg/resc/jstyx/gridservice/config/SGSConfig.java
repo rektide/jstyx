@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/11/09 17:45:00  jonblower
+ * Changes to storing of XML config information
+ *
  * Revision 1.1  2005/11/07 20:59:34  jonblower
  * Refactored SGS config classes to new package
  *
@@ -61,9 +64,6 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.*;
  *
  * Revision 1.12  2005/08/02 08:05:18  jonblower
  * Continuing to implement steering
- *
- * Revision 1.11  2005/08/01 17:01:08  jonblower
- * Started to implement steering
  *
  * Revision 1.10  2005/08/01 16:38:05  jonblower
  * Implemented simple parameter handling
@@ -126,7 +126,7 @@ public class SGSConfig
     {
         this(gridService);
         this.workDir = sgsRootDir + StyxUtils.SYSTEM_FILE_SEPARATOR + name;
-        this.configXML = gridService.asXML();
+        this.configXML = readConfigXML(gridService);
         
         // Create the documentation files
         this.docFiles = new Vector();
@@ -288,6 +288,17 @@ public class SGSConfig
     
     /**
      * @return the XML that was used to create this config object
+     * @todo omit documentation section, this isn't needed
+     */
+    public static String readConfigXML(Node gridService)
+    {
+        // TODO: this still includes the documentation section
+        return gridService.asXML();
+    }
+    
+    /**
+     * @return the XML that was used to create this config object
+     * @todo omit documentation section, this isn't needed
      */
     public String getConfigXML()
     {
