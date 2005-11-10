@@ -75,6 +75,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.38  2005/11/10 19:50:43  jonblower
+ * Added code to handle output files
+ *
  * Revision 1.37  2005/11/09 18:01:31  jonblower
  * Changed way that input files are exposed and their relation to parameters
  *
@@ -183,6 +186,7 @@ class StyxGridServiceInstance extends StyxDirectory
     
     private StyxGridService sgs; // The SGS to which this instance belongs
     private int id; // The ID number of this instance
+    private SGSConfig sgsConfig; // The configuration object used to create this instance
     private File workDir; // The working directory of this instance
     private Process process = null; // The process object returned by runtime.exec()
     private StatusCode statusCode;
@@ -192,6 +196,7 @@ class StyxGridServiceInstance extends StyxDirectory
     private CachingStreamReader stdout = new CachingStreamReader(this, "stdout");  // The standard output from the program
     private CachingStreamReader stderr = new CachingStreamReader(this, "stderr");  // The standard error from the program
     private StyxDirectory inputsDir; // Contains the input files
+    private StyxDirectory outputsDir; // Contains the output files
     private SGSInputFile.StdinFile stdin;  // The standard input to the program
     private JSAP jsap; // JSAP object for parsing the command-line parameters
     private StyxDirectory paramDir; // Contains the command-line parameters to pass to the executable
@@ -199,6 +204,9 @@ class StyxGridServiceInstance extends StyxDirectory
     private String command; // The command to run (i.e. the string that is passed to System.exec)
     private URL inputURL = null; // Non-null if we're going to read the input from a URL
     private long startTime;
+    
+    // SGSInstanceChangeListeners that are listening for changes to this SGS instance
+    private Vector changeListeners;
     
     /**
      * Creates a new StyxGridService with the given configuration
@@ -210,9 +218,12 @@ class StyxGridServiceInstance extends StyxDirectory
         super("" + id);
         this.sgs = sgs;
         this.id = id;
+        this.sgsConfig = sgsConfig;
+        
         this.command = sgsConfig.getCommand();
         this.workDir = new File(sgsConfig.getWorkingDirectory() +
             StyxUtils.SYSTEM_FILE_SEPARATOR + id);
+        this.changeListeners = new Vector();
         
         if (this.workDir.exists())
         {
@@ -260,7 +271,7 @@ class StyxGridServiceInstance extends StyxDirectory
         };
         StyxDirectory inputUrlsDir = new StyxDirectory("urls");
         this.inputsDir.addChild(inputUrlsDir);
-        StyxDirectory outputsDir = new StyxDirectory("outputs");
+        this.outputsDir = new StyxDirectory("outputs");
         
         Vector inputs = sgsConfig.getInputs();
         for (int i = 0; i < inputs.size(); i++)
@@ -296,26 +307,8 @@ class StyxGridServiceInstance extends StyxDirectory
             }
         }
         
-        Vector outputs = sgsConfig.getOutputs();
-        for (int i = 0; i < outputs.size(); i++)
-        {
-            SGSOutput output = (SGSOutput)outputs.get(i);
-            if (output.getName().equals("stdout"))
-            {
-                // Add the standard output file
-                outputsDir.addChild(this.stdout);
-            }
-            else if (output.getName().equals("stderr"))
-            {
-                // Add the standard error file
-                outputsDir.addChild(this.stderr);
-            }
-            else
-            {
-                throw new StyxException("Currently only supports output through stdout and stderr");
-            }
-        }
-        this.addChild(inputsDir).addChild(outputsDir);
+        // We add the output files when the service is started
+        this.addChild(this.inputsDir).addChild(this.outputsDir);
         
         // Add the steerable parameters
         StyxDirectory steeringDir = new StyxDirectory("steering");
@@ -374,8 +367,9 @@ class StyxGridServiceInstance extends StyxDirectory
                 sde.getName().equals("bytesConsumed") ||
                 sde.getName().equals("exitCode"))
             {
-                // Ignore this, we have already added it
-                // TODO should we throw an exception here?
+                // Ignore these: these are default SDEs that we will add automatically
+                // TODO should we throw an exception here and treat these as
+                //     reserved words?
             }
             else
             {
@@ -403,6 +397,66 @@ class StyxGridServiceInstance extends StyxDirectory
         this.addChild(new AsyncStyxFile(this.commandLineFile));
         
         this.statusCode = StatusCode.CREATED;
+    }
+    
+    /**
+     * Adds the outputs to the outputs/ directory
+     */
+    private void addOutputs() throws StyxException
+    {
+        Vector outputs = this.sgsConfig.getOutputs();
+        for (int i = 0; i < outputs.size(); i++)
+        {
+            SGSOutput output = (SGSOutput)outputs.get(i);
+            StyxFile fileToAdd = null;
+            if (output.getType() == SGSOutput.STREAM)
+            {
+                if (output.getName().equals("stdout"))
+                {
+                    // Add the standard output file
+                    fileToAdd = this.stdout;
+                }
+                else if (output.getName().equals("stderr"))
+                {
+                    // Add the standard error file
+                    fileToAdd = this.stderr;
+                }
+            }
+            else if (output.getType() == SGSOutput.FILE)
+            {
+                File file = new File(this.workDir, output.getName());
+                fileToAdd = new SGSOutputFile(file, this);
+            }
+            else if (output.getType() == SGSOutput.FILE_FROM_PARAM)
+            {
+                // Find the parameter that is linked to this file
+                boolean found = false;
+                StyxFile[] paramFiles = this.paramDir.getChildren();
+                for (int j = 0; j < paramFiles.length; j++)
+                {
+                    SGSParamFile paramFile = (SGSParamFile)paramFiles[j];
+                    if (paramFile.getName().equals(output.getName()))
+                    {
+                        found = true;
+                        String val = paramFile.getParameterValue();
+                        if (val != null && !val.equals(""))
+                        {
+                            File file = new File(this.workDir, val);
+                            fileToAdd = new SGSOutputFile(file, this);
+                        }
+                    }
+                }
+                if (!found)
+                {
+                    throw new StyxException("Internal error: couldn't find parameter file "
+                        + output.getName());
+                }
+            }
+            if (fileToAdd != null)
+            {
+                this.outputsDir.addChild(fileToAdd);
+            }
+        }
     }
     
     /**
@@ -468,6 +522,9 @@ class StyxGridServiceInstance extends StyxDirectory
                 
                 // TODO: check all input files have been uploaded, and download
                 // any input files that have been specified by reference.
+                
+                // Add the output files to the namespace
+                addOutputs();
                 
                 // Start the executable
                 try
@@ -847,6 +904,7 @@ class StyxGridServiceInstance extends StyxDirectory
         {
             this.status.setValue(code.getText() + msg);
         }
+        this.fireStatusChanged();
     }
     
     private void setStatus(StatusCode code)
@@ -901,28 +959,51 @@ class StyxGridServiceInstance extends StyxDirectory
         return dir.delete();
     }
     
+    /**
+     * Called when the status of this service instance changes. Fires the
+     * statusChanged() event on all registered change listeners
+     */
+    private void fireStatusChanged()
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener.statusChanged(this.statusCode);
+            }
+        }
+    }
+    
+    /**
+     * Adds a listener that will be notified of changes to this SGS. If the
+     * listener is already registered, this will do nothing.
+     */
+    public void addChangeListener(SGSInstanceChangeListener listener)
+    {
+        synchronized(this.changeListeners)
+        {
+            if (!this.changeListeners.contains(listener))
+            {
+                this.changeListeners.add(listener);
+            }
+        }
+    }
+    
+    /**
+     * Removes a SGSInstanceChangeListener.  (Note that this will only remove the first
+     * instance of a given SGSInstanceChangeListener.  If, for some reason, more than one 
+     * copy of the same change listener has been registered, this method will
+     * only remove the first.)
+     */
+    public void removeChangeListener(SGSInstanceChangeListener listener)
+    {
+        synchronized(this.changeListeners)
+        {
+            boolean contained = this.changeListeners.remove(listener);
+        }
+    }
+    
 }
 
-/**
- * Type-safe enumeration of possible status codes
- */
-class StatusCode
-{
-    private String text;
-    private StatusCode(String text)
-    {
-        this.text = text;
-    }
-    public static final StatusCode CREATED  = new StatusCode("created");
-    public static final StatusCode RUNNING  = new StatusCode("running");
-    public static final StatusCode FINISHED = new StatusCode("finished");
-    public static final StatusCode ABORTED  = new StatusCode("aborted");
-    public static final StatusCode ERROR    = new StatusCode("error");
-    /**
-     * @return a short string describing this status code
-     */
-    public String getText()
-    {
-        return this.text;
-    }
-}

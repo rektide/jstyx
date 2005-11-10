@@ -36,6 +36,7 @@ import org.dom4j.Node;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
 import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.UnflaggedOption;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.gridservice.server.*;
@@ -47,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/11/10 19:50:43  jonblower
+ * Added code to handle output files
+ *
  * Revision 1.3  2005/11/10 08:57:21  jonblower
  * Added code to handle output files and streams
  *
@@ -236,6 +240,17 @@ public class SGSConfig
                     if (param.getName().equals(sgsOut.getName()))
                     {
                         found = true;
+                        // Output files can't be set by a greedy parameter: the
+                        // parameter must only consume one command-line argument
+                        if (param.getParameter() instanceof UnflaggedOption)
+                        {
+                            UnflaggedOption uo = (UnflaggedOption)param.getParameter();
+                            if (uo.isGreedy())
+                            {
+                                throw new SGSConfigException("Cannot link an" +
+                                    " output file to a greedy parameter");
+                            }
+                        }
                         param.setOutputFile(sgsOut);
                     }
                 }
@@ -270,7 +285,7 @@ public class SGSConfig
             if (sdeConf.getName().equals("bytesConsumed") && !usingStdin)
             {
                 throw new SGSConfigException("The bytesConsumed service data" +
-                    " element is only available when input is provided through stdin");
+                    " element is only available when stdin is also available.");
             }
             this.serviceData.add(sdeConf);
         }
