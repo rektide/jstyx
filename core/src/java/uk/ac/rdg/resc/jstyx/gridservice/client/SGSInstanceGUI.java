@@ -75,6 +75,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.25  2005/11/10 19:49:28  jonblower
+ * Renamed SGSInstanceChangeListener to SGSInstanceClientChangeListener
+ *
  * Revision 1.24  2005/10/18 14:08:14  jonblower
  * Removed inputfiles from namespace
  *
@@ -136,7 +139,7 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * Continuing to implement GUI app
  *
  */
-public class SGSInstanceGUI extends JFrame implements SGSInstanceChangeListener
+public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeListener
 {
     
     private static final int ROW_HEIGHT = 20;

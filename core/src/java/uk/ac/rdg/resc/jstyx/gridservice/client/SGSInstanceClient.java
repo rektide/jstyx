@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.38  2005/11/10 19:49:28  jonblower
+ * Renamed SGSInstanceChangeListener to SGSInstanceClientChangeListener
+ *
  * Revision 1.37  2005/11/09 17:43:19  jonblower
  * Added getInputStreamsDir() and removed urls/ directory from getInputStreams()
  *
@@ -209,7 +212,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private CStyxFile cmdLineFile;
     private StringBuffer cmdLineBuf; // Temporary contents for command line
     
-    // SGSInstanceChangeListeners that are listening for changes to this SGS instance
+    // SGSInstanceClientChangeListeners that are listening for changes to this SGS instance
     private Vector changeListeners;
     
     /**
@@ -424,17 +427,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Uploads a set of input files to the inputFiles directory of the SGS.
-     * @param files Array of source files to be uploaded
-     * @param names Array of target names (must be the same length as files[])
-     * @throws IllegalArgumentException if the arrays are not of the same length
-     */
-    /*public void uploadInputFiles(File[] files, String[] names)
-    {
-        new UploadFilesCallback(files, names).uploadNextFile();
-    }*/
-    
-    /**
      * Sends a message to get the output streams that can be viewed.  This method
      * does not block: when the available output streams have been read, the 
      * gotOutputStreams() event will be fired on all registered change listeners
@@ -453,63 +445,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         return this.outputStreamsDir.getChildren();
     }
-    
-    /*private class UploadFilesCallback extends CStyxFileChangeAdapter
-    {
-        private File[] files;
-        private String[] names;
-        private int index;
-        private int numUploaded;
-        
-        public UploadFilesCallback(File[] files, String[] names)
-        {
-            if (files == null)
-            {
-                throw new NullPointerException("files[]");
-            }
-            if (names == null)
-            {
-                throw new NullPointerException("names[]");
-            }
-            if (files.length != names.length)
-            {
-                throw new IllegalArgumentException("files[] and names[] must be" +
-                    " the same length!");
-            }
-            this.files = files;
-            this.names = names;
-            this.index = 0;
-            this.numUploaded = 0;
-        }
-        
-        public void uploadNextFile()
-        {
-            if (index < files.length)
-            {
-                // Get a CStyxFile for the target file: this does not have to exist yet.
-                CStyxFile targetFile = inputFilesDir.getFile(this.names[index]);
-                targetFile.addChangeListener(this);
-                targetFile.uploadAsync(this.files[index]);
-            }
-            else
-            {
-                // We've uploaded all the files. Fire the event.
-                fireInputFilesUploaded();
-            }
-        }
-        
-        public void uploadComplete(CStyxFile targetFile)
-        {
-            System.err.println("File uploaded to " + targetFile.getPath());
-            index++;
-            this.uploadNextFile();
-        }
-        
-        public void error(CStyxFile file, String message)
-        {
-            System.err.println("Error uploading to " + file.getPath());
-        }
-    }*/
     
     /**
      * @return Array of CStyxFiles representing the service data elements of the
@@ -1009,7 +944,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * Adds a listener that will be notified of changes to this SGS. If the
      * listener is already registered, this will do nothing.
      */
-    public void addChangeListener(SGSInstanceChangeListener listener)
+    public void addChangeListener(SGSInstanceClientChangeListener listener)
     {
         synchronized(this.changeListeners)
         {
@@ -1026,7 +961,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * copy of the same change listener has been registered, this method will
      * only remove the first.)
      */
-    public void removeChangeListener(SGSInstanceChangeListener listener)
+    public void removeChangeListener(SGSInstanceClientChangeListener listener)
     {
         synchronized(this.changeListeners)
         {
@@ -1050,10 +985,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         }
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.serviceDataChanged(sdName, newData);
             }
         }
@@ -1066,10 +1001,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.serviceStarted();
             }
         }
@@ -1082,10 +1017,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.serviceAborted();
             }
         }
@@ -1098,10 +1033,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.error(message);
             }
         }
@@ -1114,10 +1049,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.gotServiceDataElements(sdeFiles);
             }
         }
@@ -1132,10 +1067,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.gotInputStreams(inputStreams);
             }
         }
@@ -1186,10 +1121,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.gotOutputStreams(outputStreams);
             }
         }
@@ -1203,10 +1138,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.gotParameters(paramFiles);
             }
         }
@@ -1222,10 +1157,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.gotParameterValue(index, value);
             }
         }
@@ -1239,10 +1174,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.gotSteerableParameters(steeringFiles);
             }
         }
@@ -1258,10 +1193,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.gotSteerableParameterValue(index, value);
             }
         }
@@ -1274,10 +1209,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.inputFilesUploaded();
             }
         }
@@ -1290,10 +1225,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         synchronized(this.changeListeners)
         {
-            SGSInstanceChangeListener listener;
+            SGSInstanceClientChangeListener listener;
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.gotCommandLine(newCmdLine);
             }
         }
