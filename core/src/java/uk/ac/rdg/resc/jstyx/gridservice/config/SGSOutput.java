@@ -33,11 +33,15 @@ import org.dom4j.Node;
 /**
  * Class containing information about an output file or stream that is exposed by
  * the SGS.
+ * @todo: this is virtually identical to SGSInput - can we refactor?
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/11/10 08:55:55  jonblower
+ * Changed to mirror SGSInput
+ *
  * Revision 1.1  2005/11/07 20:59:34  jonblower
  * Refactored SGS config classes to new package
  *
@@ -45,20 +49,47 @@ import org.dom4j.Node;
 
 public class SGSOutput
 {
+    public static final int STREAM = 0;
+    public static final int FILE = 1;
+    public static final int FILE_FROM_PARAM = 2;
     
-    private String name; // Name of the file or stream (e.g. "stdout" or "output.dat")
+    private String name;
+    private int type;
     
-    public SGSOutput(Node outputNode)
+    public SGSOutput(String type, String name) throws SGSConfigException
     {
-        this.name = outputNode.valueOf("@name").trim();
+        this.name = name;
+        if (type.equals("stream"))
+        {
+            if (!name.equals("stdout") && !name.equals("stderr"))
+            {
+                throw new SGSConfigException("The only output streams that are " +
+                    "supported are stdout and stderr");
+            }
+            this.type = STREAM;
+        }
+        else if (type.equals("file"))
+        {
+            this.type = FILE;
+        }
+        else if (type.equals("fileFromParam"))
+        {
+            this.type = FILE_FROM_PARAM;
+        }
+        else
+        {
+            throw new SGSConfigException("Unknown output type: " + type);
+        }
     }
     
-    /**
-     * @return the name of the stream
-     */
     public String getName()
     {
         return this.name;
+    }
+    
+    public int getType()
+    {
+        return this.type;
     }
     
 }
