@@ -45,6 +45,9 @@ import com.martiansoftware.jsap.UnflaggedOption;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/11/10 08:56:41  jonblower
+ * Added link to output file
+ *
  * Revision 1.2  2005/11/09 17:46:30  jonblower
  * setInputFile() now only works for Options
  *
@@ -57,12 +60,14 @@ public class SGSParam
 {
     
     private Parameter param;  // The JSAP parameter object
-    private SGSInput inputFile;  // The input file (if any) linked to this parameter
+    private SGSInput inputFile;   // The input file (if any) linked to this parameter
+    private SGSOutput outputFile; // The output file (if any) linked to this parameter
     
     SGSParam(Node paramNode) throws SGSConfigException
     {
         this.param = createParameter(paramNode);
         this.inputFile = null;
+        this.outputFile = null;
     }
     
     /**
@@ -87,6 +92,11 @@ public class SGSParam
      */
     public void setInputFile(SGSInput inputFile) throws SGSConfigException
     {
+        if (this.outputFile != null)
+        {
+            throw new SGSConfigException("Paramter " + this.getName() + 
+                " is already linked to an output file");
+        }
         if (this.param instanceof Option)
         {
             this.inputFile = inputFile;
@@ -94,6 +104,27 @@ public class SGSParam
         else
         {
             throw new SGSConfigException("Can only set an input file for an Option");
+        }
+    }
+    
+    /**
+     * Sets the output file that is linked to this parameter
+     * @throws SGSConfigException if this parameter is not an Option
+     */
+    public void setOutputFile(SGSOutput outputFile) throws SGSConfigException
+    {
+        if (this.inputFile != null)
+        {
+            throw new SGSConfigException("Paramter " + this.getName() + 
+                " is already linked to an input file");
+        }
+        if (this.param instanceof Option)
+        {
+            this.outputFile = outputFile;
+        }
+        else
+        {
+            throw new SGSConfigException("Can only set an output file for an Option");
         }
     }
     
