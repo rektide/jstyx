@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/11/10 08:57:21  jonblower
+ * Added code to handle output files and streams
+ *
  * Revision 1.2  2005/11/09 17:45:00  jonblower
  * Changes to storing of XML config information
  *
@@ -209,19 +212,40 @@ public class SGSConfig
                 if (!found)
                 {
                     throw new SGSConfigException("Error setting input files:" +
-                        " parameter " + sgsIn.getName()
-                        + " does not exist");
+                        " parameter " + sgsIn.getName() + " does not exist");
                 }
             }
             this.inputs.add(sgsIn);
         }
+        
         // Now the output files and streams
         this.outputs = new Vector();
         Iterator outputListIter = gridService.selectNodes("outputs/output").iterator();
         while(outputListIter.hasNext())
         {
             Node output = (Node)outputListIter.next();
-            this.outputs.add(new SGSOutput(output));
+            SGSOutput sgsOut = new SGSOutput(output.valueOf("@type"), output.valueOf("@name"));
+            if (sgsOut.getType() == SGSOutput.FILE_FROM_PARAM)
+            {
+                // This output file is linked to a parameter.  We need to find
+                // the parameter in question
+                boolean found = false;
+                for (int i = 0; i < this.params.size() && !found; i++)
+                {
+                    SGSParam param = (SGSParam)this.params.get(i);
+                    if (param.getName().equals(sgsOut.getName()))
+                    {
+                        found = true;
+                        param.setOutputFile(sgsOut);
+                    }
+                }
+                if (!found)
+                {
+                    throw new SGSConfigException("Error setting output files:" +
+                        " parameter " + sgsOut.getName() + " does not exist");
+                }
+            }
+            this.outputs.add(sgsOut);
         }
         
         // Now the steerable parameters
