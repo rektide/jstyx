@@ -61,7 +61,8 @@
 <!ELEMENT outputs (output*)>
 <!ELEMENT output EMPTY>
 <!ATTLIST output
-   name CDATA #REQUIRED
+    type (stream | file | fileFromParam) "file"
+    name CDATA #REQUIRED
  >
 
 <!-- A steerable parameter for an SGS (i.e. one whose value can be changed
