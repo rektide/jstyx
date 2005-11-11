@@ -27,14 +27,10 @@
         
         <gridservice name="dirlisting" command="dir c:\"
             description="Lists contents of C: drive">
-            <streams>
-                <outstream name="stdout"/>
-                <outstream name="stderr"/>
-            </streams>
-            <serviceData>
-                <serviceDataElement name="status" />
-                <serviceDataElement name="exitCode" />
-            </serviceData>
+            <outputs>
+                <output type="stream" name="stdout"/>
+                <output type="stream" name="stderr"/>
+            </outputs>
         </gridservice>
         
     </gridservices>
