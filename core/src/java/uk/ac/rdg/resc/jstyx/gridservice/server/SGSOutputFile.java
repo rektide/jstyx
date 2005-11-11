@@ -57,6 +57,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/11/11 21:57:21  jonblower
+ * Implemented passing of URLs to input files
+ *
  * Revision 1.1  2005/11/10 19:50:43  jonblower
  * Added code to handle output files
  *
@@ -67,8 +70,9 @@ public class SGSOutputFile extends StyxFile implements SGSInstanceChangeListener
     private static final Logger log = Logger.getLogger(SGSOutputFile.class);
     
     private File file; // The underlying file that is produced by the executable
+    private SGSParamFile paramFile;  // The parameter that is linked to this output file
     private Vector requestQueue; // Queue of DataRequests that have not yet been fulfilled
-    boolean serviceFinished;
+    private boolean serviceFinished;
     
     /** Creates a new instance of SGSOutputFile */
     public SGSOutputFile(File file, StyxGridServiceInstance instance)

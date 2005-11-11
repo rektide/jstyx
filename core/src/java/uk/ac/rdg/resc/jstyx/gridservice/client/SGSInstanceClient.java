@@ -56,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.39  2005/11/11 21:57:21  jonblower
+ * Implemented passing of URLs to input files
+ *
  * Revision 1.38  2005/11/10 19:49:28  jonblower
  * Renamed SGSInstanceChangeListener to SGSInstanceClientChangeListener
  *
@@ -356,7 +359,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         int j = 0;
         for (int i = 0; i < children.length; i++)
         {
-            if (!children[i].getName().equals("urls"))
+            if (!children[i].getName().equals(".urls"))
             {
                 newChildren[j] = children[i];
                 j++;
@@ -617,6 +620,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * Sets the URL from which the service will read its input data.  When the
      * input url has been set, the inputURLSet() event will be fired on all
      * change listeners.
+     * @todo: this method no longer works - ge
      */
     public void setInputURL(String inputURL)
     {

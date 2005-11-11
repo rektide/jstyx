@@ -31,15 +31,18 @@ package uk.ac.rdg.resc.jstyx.gridservice.server;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.net.MalformedURLException;
+
+import java.nio.channels.FileChannel;
+import java.io.RandomAccessFile;
 
 import org.apache.mina.common.ByteBuffer;
 
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.types.ULong;
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
-import uk.ac.rdg.resc.jstyx.server.FileOnDisk;
-import uk.ac.rdg.resc.jstyx.server.URLFile;
 
 /**
  * A file that is used to provide input (as a file or as stdin stream) to a 
@@ -49,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.server.URLFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/11/11 21:57:21  jonblower
+ * Implemented passing of URLs to input files
+ *
  * Revision 1.3  2005/11/09 17:49:58  jonblower
  * Implemented File subclass (representing fixed-name input files)
  *
@@ -62,19 +68,163 @@ import uk.ac.rdg.resc.jstyx.server.URLFile;
 public abstract class SGSInputFile extends StyxFile
 {
     
-    protected InputURLFile urlFile;
     protected StyxGridServiceInstance instance;
     protected boolean dataWritten;  // True when any data have been written to this file
                                     // (don't necessarily have to have reached EOF)
+    
+    protected ByteBuffer candidateURLBuffer; // This is set when we have received a message that
+                                // seems to contain a valid URL
+    protected String candidateURL; // This is set when we have received a message that
+                                // seems to contain a valid URL
+    protected int candidateURLLength;
+    protected URL url;  // This is non-null if we have specified that this
+                        // file will be read from a URL
     
     private SGSInputFile(String name, StyxGridServiceInstance instance)
         throws StyxException
     {
         super(name, 0222); // Input files are always write-only
         this.instance = instance;
-        this.urlFile = new InputURLFile(name);
         this.dataWritten = false;
+        this.candidateURL = null;
+        this.candidateURLLength = 0;
+        this.url = null;
     }
+    
+    /**
+     * This method does the job of checking for URLs being written to the file.
+     */
+    public void write2(StyxFileClient client, long offset, int count,
+        ByteBuffer data, boolean truncate, int tag)
+        throws StyxException
+    {
+        if (this.url != null)
+        {
+            throw new StyxException("Cannot write to this stream: it is" +
+                " reading from " + this.url);
+        }
+        try
+        {
+            // First check to see if this is an EOF message
+            if (count == 0)
+            {
+                if (this.candidateURLBuffer != null)
+                {
+                    if (offset == this.candidateURLLength)
+                    {
+                        // We're writing EOF at the end of an existing URL
+                        // See if this URL is recognised
+                        try
+                        {
+                            URL url = new URL(this.candidateURL);
+                            this.setURL(url);
+                            this.replyWrite(client, count, tag);
+                            return;
+                        }
+                        catch (MalformedURLException mue)
+                        {
+                            throw new StyxException(this.candidateURL +
+                                " is not recognised as a valid URL");
+                        }
+                    }
+                    else
+                    {
+                        // We're writing EOF elsewhere in the file.  Write
+                        // the "candidate URL" to the file as it is obviously
+                        // not really a URL
+                        this.writeData(client, offset, count, this.candidateURLBuffer,
+                            truncate, tag);
+                        this.candidateURLBuffer.release();
+                        this.candidateURL = null;
+                        this.closeOutput();
+                        this.replyWrite(client, count, tag);
+                        return;
+                    }
+                }
+                else
+                {
+                    // We have reached EOF and we have no stored URL to write.
+                    // Just write the empty buffer to signify EOF
+                    this.writeData(client, offset, count, data, truncate, tag);
+                    this.closeOutput();
+                    this.replyWrite(client, count, tag);
+                    return;
+                }
+            }
+            else
+            {
+                if (offset == 0 && parseURL(data))
+                {
+                    // Don't write any data to the stream.  We've stored
+                    // the candidate URL for future use
+                    this.replyWrite(client, count, tag);
+                    return;
+                }
+                int bytesToWrite = data.remaining();
+                if (count < data.remaining())
+                {
+                    // Would normally be an error if count != data.remaining(),
+                    // but we'll let the calling application pick this up
+                    bytesToWrite = count;
+                }
+                this.writeData(client, offset, count, data, truncate, tag);
+                this.replyWrite(client, bytesToWrite, tag);
+                return;
+            }
+        }
+        catch(IOException ioe)
+        {
+            throw new StyxException("IOException occurred when writing to "
+                    + "the stream: " + ioe.getMessage());
+        }
+    }
+            
+    /**
+     * Attempts to retrieve a URL from the given data. The data buffer must
+     * contain the string "readfrom:<url>" where <url> is a valid URL.
+     * @return True if we might have a url: this url will be stored in
+     * this.candidateURL as a string, and this.candidateURLLength will store
+     * the length of the incoming data buffer
+     */
+    private boolean parseURL(ByteBuffer data)
+    {
+        int dataLen = data.remaining();
+        // Check to see if this could be a URL.  The dataToString() method does
+        // not change the position or limit of the buffer
+        String urlStr = StyxUtils.dataToString(data);
+        final String prefix = "readfrom:";
+        if (urlStr.startsWith(prefix))
+        {
+            // Store this data buffer as we might want to use it later
+            data.acquire();
+            this.candidateURLBuffer = data;
+            this.candidateURL = urlStr.substring(prefix.length());
+            this.candidateURLLength = dataLen;
+            System.out.println("*** Got candidate URL: " + this.candidateURL + " ***");
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    
+    public void setURL(URL url) throws StyxException
+    {
+        this.url = url;
+    }
+    
+    /**
+     * Writes data to the underlying file or stream
+     */
+    protected abstract void writeData(StyxFileClient client, long offset, int count,
+        ByteBuffer data, boolean truncate, int tag)
+        throws StyxException, IOException;
+    
+    /**
+     * Closes the output file or stream. This default implementation does nothing
+     */
+    protected abstract void closeOutput() throws IOException;
     
     /**
      * file through which clients can write to the process's input stream directly
@@ -82,7 +232,6 @@ public abstract class SGSInputFile extends StyxFile
     public static class StdinFile extends SGSInputFile
     {
         private OutputStream stream = null;
-        private long bytesCons;
 
         /**
          * Creates new StdinFile - will be called "stdin"
@@ -96,79 +245,120 @@ public abstract class SGSInputFile extends StyxFile
         public void setOutputStream(OutputStream os)
         {
             this.stream = os;
-            this.bytesCons = 0;
         }
         
         /**
-         * Writes the given number of bytes to the stream. The offset
-         * is ignored; it will always writes to the current stream position, so
-         * the behaviour of this method when multiple clients are connected is
-         * undefined
-         * @todo deal with request to flush the write message
+         * This just writes the data to the current position in the stream
+         * and flushes the write.  The offset is ignored.  The "bytesConsumed"
+         * service data element is updated
          */
+        protected void writeData(StyxFileClient client, long offset, int count,
+            ByteBuffer data, boolean truncate, int tag)
+            throws StyxException, IOException
+        {
+            byte[] arr = new byte[data.remaining()];
+            data.get(arr);
+            this.stream.write(arr);
+            this.stream.flush();
+            // Update the number of bytes consumed
+            this.instance.setBytesConsumed(offset + arr.length);
+        }
+        
         public void write(StyxFileClient client, long offset, int count,
             ByteBuffer data, boolean truncate, int tag)
             throws StyxException
         {
             if (instance.getStatus() != StatusCode.RUNNING)
             {
-                // Can't write to this file until the service is running
-                // TODO: should we allow this but cache the input?
-                throw new StyxException("Cannot write to the standard input" +
-                    " when the service is not running");
-            }
-            else if (this.urlFile.getURL() != null)
-            {
-                // We're not allowed to write to this file if the service is running
-                // and the input URL is set
-                throw new StyxException("Cannot write to the input stream " +
-                    "because the service is reading from " + this.urlFile.getURL());
+                throw new StyxException("Can't write data to standard input" +
+                    " before the service is running");
             }
             else
             {
-                // The service is running
-                try
-                {
-                    if (count == 0)
-                    {
-                        stream.close();
-                    }
-                    int bytesToWrite = data.remaining();
-                    if (count < data.remaining())
-                    {
-                        // Would normally be an error if count != data.remaining(),
-                        // but we'll let the calling application pick this up
-                        bytesToWrite = count;
-                    }
-                    byte[] arr = new byte[bytesToWrite];
-                    data.get(arr);
-                    stream.write(arr);
-                    stream.flush();
-                    // Update the number of bytes consumed
-                    bytesCons += bytesToWrite;
-                    instance.setBytesConsumed(bytesCons);
-                    this.replyWrite(client, bytesToWrite, tag);
-                }
-                catch(IOException ioe)
-                {
-                    throw new StyxException("IOException occurred when writing to "
-                            + "the stream: " + ioe.getMessage());
-                }
+                this.write2(client, offset, count, data, truncate, tag);
             }
+        }
+        
+        protected void closeOutput() throws IOException
+        {
+            this.stream.close();
+        }
+    
+        public void setURL(URL url) throws StyxException
+        {
+            super.setURL(url);
+            this.instance.readFrom(this.url, this.stream);
         }
     }
     
     public static class File extends SGSInputFile
     {
-        private FileOnDisk fileOnDisk;
+        private FileChannel chan;
         private java.io.File file;
+        private boolean eofWritten;
         
         public File(java.io.File file, StyxGridServiceInstance instance)
             throws StyxException
         {
             super(file.getName(), instance);
             this.file = file;
-            this.fileOnDisk = null; // We create this when we get our first write message
+            this.chan = null; // We create this when we get our first write message
+            this.eofWritten = false;
+        }
+        
+        protected void closeOutput() throws IOException
+        {
+            if (this.chan != null)
+            {
+                this.chan.close();
+            }
+        }
+        
+        /**
+         * This just writes the data to the underlying fileOnDisk
+         */
+        protected void writeData(StyxFileClient client, long offset, int count,
+            ByteBuffer data, boolean truncate, int tag)
+            throws StyxException, IOException
+        {
+            if (count == 0)
+            {
+                this.eofWritten = true;
+            }
+            else
+            {
+                if (this.chan == null)
+                {
+                    try
+                    {
+                        this.chan = new RandomAccessFile(this.file, "rw").getChannel();
+                    }
+                    catch (IOException ioe)
+                    {
+                        throw new StyxException("Error creating file " +
+                            this.file.getName() + ": " + ioe.getMessage());
+                    }
+                }
+                // Remember old limit and position
+                int pos = data.position();
+                int lim = data.limit();
+                // Make sure only the requested number of bytes get written
+                data.limit(data.position() + count);
+
+                // Write to the file
+                int nWritten = chan.write(data.buf(), offset);
+
+                // Reset former buffer positions
+                data.limit(lim).position(pos);
+
+                // Truncate the file at the end of the new data if requested
+                if (truncate)
+                {
+                    chan.truncate(offset + nWritten);
+                }
+                this.dataWritten = true;
+                this.eofWritten = false;
+            }
         }
         
         public void write(StyxFileClient client, long offset, int count,
@@ -182,46 +372,18 @@ public abstract class SGSInputFile extends StyxFile
                 throw new StyxException("Cannot write to an input file while " +
                     "the service is running");
             }
-            else if (this.urlFile.getURL() != null)
+            else
             {
-                throw new StyxException("Cannot write to " + this.name +
-                    " because the service is reading from " + this.urlFile.getURL());
+                this.write2(client, offset, count, data, truncate, tag);
             }
-            if (this.fileOnDisk == null)
-            {
-                try
-                {
-                    if(!this.file.createNewFile())
-                    {
-                        throw new StyxException("Could not create file " +
-                            this.file.getName());
-                    }
-                }
-                catch (IOException ioe)
-                {
-                    throw new StyxException("Error creating file " +
-                        this.file.getName() + ": " + ioe.getMessage());
-                }
-                this.fileOnDisk = new FileOnDisk(this.file);
-            }
-            this.fileOnDisk.write(client, offset, count, data, truncate, tag);
-            this.dataWritten = true;
         }
         
         /**
-         * @return true if data have been uploaded to this file and we have
-         * received an EOF message
+         * @return true if we have received an EOF message (an empty write message)
          */
         public boolean dataUploadComplete()
         {
-            if (this.fileOnDisk == null)
-            {
-                return false;
-            }
-            else
-            {
-                return this.fileOnDisk.receivedEOF();
-            }
+            return this.eofWritten = true;
         }
         
         /**
@@ -229,52 +391,19 @@ public abstract class SGSInputFile extends StyxFile
          */
         public ULong getLength()
         {
-            if (this.fileOnDisk == null)
-            {
-                return ULong.ZERO;
-            }
-            else
-            {
-                return this.fileOnDisk.getLength();
-            }
+            return new ULong(this.file.length());
         }
     }
     
     /**
-     * @return the file that will be used to set the URL from which the file's
-     * data will be read
+     * @return the URL from which this file will get its data, or null if the 
+     * URL has not been set
      */
-    public InputURLFile getInputURLFile()
+    public URL getURL()
     {
-        return this.urlFile;
+        return this.url;
     }
     
-    /**
-     * Specialization of URLFile which checks to make sure the service is not
-     * running before allowing the URL to be set
-     */
-    public class InputURLFile extends URLFile
-    {
-        public InputURLFile(String name) throws StyxException
-        {
-            super(name);
-        }
-
-        public synchronized void write(StyxFileClient client, long offset,
-            int count, ByteBuffer data, boolean truncate, int tag)
-            throws StyxException
-        {
-            if (instance.getStatus() == StatusCode.RUNNING)
-            {
-                throw new StyxException("Cannot set input URL while service is running");
-            }
-            else if (dataWritten)
-            {
-                throw new StyxException("Cannot set input URL after data have been" +
-                    " written to the file");
-            }
-            super.write(client, offset, count, data, truncate, tag);
-        }
-    }
+    
     
 }

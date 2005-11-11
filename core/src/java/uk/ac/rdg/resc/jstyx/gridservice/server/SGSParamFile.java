@@ -28,6 +28,10 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.server;
 
+import java.io.File;
+import java.net.URL;
+import java.net.MalformedURLException;
+
 import org.apache.mina.common.ByteBuffer;
 
 import com.martiansoftware.jsap.JSAP;
@@ -36,6 +40,8 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.Option;
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.UnflaggedOption;
+
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSParam;
 
 import uk.ac.rdg.resc.jstyx.server.AsyncStyxFile;
 import uk.ac.rdg.resc.jstyx.server.InMemoryFile;
@@ -53,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/11/11 21:57:21  jonblower
+ * Implemented passing of URLs to input files
+ *
  * Revision 1.17  2005/11/07 21:06:42  jonblower
  * Now allows setting of empty values for non-required parameters
  *
@@ -93,20 +102,20 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 public class SGSParamFile extends AsyncStyxFile
 {
     
-    private Parameter param; // The logical representation of the parameter
+    private SGSParam param; // The logical representation of the parameter
     private StyxGridServiceInstance instance;
     private boolean valueSet; // True if a value has been set for this parameter
     
-    public SGSParamFile(Parameter param, StyxGridServiceInstance instance) throws StyxException
+    public SGSParamFile(SGSParam param, StyxGridServiceInstance instance) throws StyxException
     {
         // The file is named after the parameter name
-        super(new InMemoryFile(param.getID()));
+        super(new InMemoryFile(param.getName()));
         this.param = param;
         this.instance = instance;
-        if (this.param.getDefault() != null)
+        if (this.getJSAPParameter().getDefault() != null)
         {
             // TODO: We are only allowing a single default value
-            this.setParameterValue(this.param.getDefault()[0]);
+            this.setParameterValue(this.getJSAPParameter().getDefault()[0]);
             this.valueSet = true;
         }
     }
@@ -114,9 +123,9 @@ public class SGSParamFile extends AsyncStyxFile
     /**
      * @return the JSAP Parameter object that is associated with this file
      */
-    public Parameter getParameter()
+    public Parameter getJSAPParameter()
     {
-        return this.param;
+        return this.param.getParameter();
     }
     
     /**
@@ -163,9 +172,9 @@ public class SGSParamFile extends AsyncStyxFile
         {
             return "";
         }
-        if (this.param instanceof Switch)
+        if (this.getJSAPParameter() instanceof Switch)
         {
-            Switch sw = (Switch)this.param;
+            Switch sw = (Switch)this.getJSAPParameter();
             if (this.getParameterValue().equalsIgnoreCase("true"))
             {
                 if (sw.getLongFlag() == JSAP.NO_LONGFLAG)
@@ -182,9 +191,9 @@ public class SGSParamFile extends AsyncStyxFile
                 return "";
             }
         }
-        else if (this.param instanceof FlaggedOption)
+        else if (this.getJSAPParameter() instanceof FlaggedOption)
         {
-            FlaggedOption fo = (FlaggedOption)this.param;
+            FlaggedOption fo = (FlaggedOption)this.getJSAPParameter();
             // Use the short flag if present, if not the long one
             if (fo.getLongFlag() == JSAP.NO_LONGFLAG)
             {
@@ -195,7 +204,7 @@ public class SGSParamFile extends AsyncStyxFile
                 return "--" + fo.getLongFlag() + "=" + this.getParameterValue();
             }
         }
-        else if (this.param instanceof UnflaggedOption)
+        else if (this.getJSAPParameter() instanceof UnflaggedOption)
         {
             return this.getParameterValue();
         }
@@ -222,7 +231,7 @@ public class SGSParamFile extends AsyncStyxFile
     {
         // Check that the new value is valid
         // Switches must be "true" or "false"
-        if (this.param instanceof Switch)
+        if (this.getJSAPParameter() instanceof Switch)
         {
             if (!newValue.equalsIgnoreCase("true") &&
                 !newValue.equalsIgnoreCase("false"))
@@ -233,7 +242,7 @@ public class SGSParamFile extends AsyncStyxFile
         }
         else
         {
-            Option op = (Option)this.param;
+            Option op = (Option)this.getJSAPParameter();
             // Check for empty values
             // TODO: also check type of argument (integer, float etc)
             if (newValue.trim().equals(""))
@@ -264,13 +273,48 @@ public class SGSParamFile extends AsyncStyxFile
      */
     public void checkValid() throws StyxException
     {
-        if (this.param instanceof Option)
+        if (this.getJSAPParameter() instanceof Option)
         {
-            Option op = (Option)this.param;
-            if (op.required() && !this.valueSet)
+            Option op = (Option)this.getJSAPParameter();
+            if (this.valueSet)
             {
-                throw new StyxException(this.name + " is a required parameter:" +
-                    " a value must be set");
+                if (this.param.getInputFile() != null)
+                {
+                    // This parameter represents an input file.  See if this is a URL
+                    // and if so, download it
+                    // TODO: if this is not a URL, check that it exists
+                    String str = this.getParameterValue();
+                    String prefix = "readfrom:";
+                    if (str.startsWith(prefix))
+                    {
+                        // This could be a URL
+                        String urlStr = str.substring(prefix.length());
+                        try
+                        {
+                            URL url = new URL(urlStr);
+                            File urlPath = new File(url.getPath());
+                            // TODO: be cleverer about file names, particularly
+                            // watching out for name clashes
+                            String name = urlPath.getName().equals("") ? "random.dat" : urlPath.getName();
+                            this.instance.downloadFrom(url, name);
+                            // Now set the contents of this file to the new file name
+                            this.setParameterValue(name);
+                        }
+                        catch(MalformedURLException mue)
+                        {
+                            throw new StyxException(urlStr + " is not a valid URL");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // A valid hasn't been set
+                if (op.required())
+                {
+                    throw new StyxException(this.name + " is a required parameter:" +
+                        " a value must be set");
+                }
             }
         }
     }

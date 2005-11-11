@@ -34,6 +34,7 @@ import java.net.URLConnection;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.File;
 import java.io.RandomAccessFile;
@@ -75,6 +76,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.39  2005/11/11 21:57:21  jonblower
+ * Implemented passing of URLs to input files
+ *
  * Revision 1.38  2005/11/10 19:50:43  jonblower
  * Added code to handle output files
  *
@@ -202,7 +206,6 @@ class StyxGridServiceInstance extends StyxDirectory
     private StyxDirectory paramDir; // Contains the command-line parameters to pass to the executable
     private StyxFile commandLineFile; // The file containing the command line
     private String command; // The command to run (i.e. the string that is passed to System.exec)
-    private URL inputURL = null; // Non-null if we're going to read the input from a URL
     private long startTime;
     
     // SGSInstanceChangeListeners that are listening for changes to this SGS instance
@@ -249,7 +252,7 @@ class StyxGridServiceInstance extends StyxDirectory
             SGSParam param = (SGSParam)params.get(i);
             // Parameter files exhibit asynchronous behaviour so that other
             // clients can be notified when a parameter value changes
-            this.paramDir.addChild(new SGSParamFile(param.getParameter(), this));
+            this.paramDir.addChild(new SGSParamFile(param, this));
         }
         this.addChild(paramDir);
         
@@ -269,8 +272,6 @@ class StyxGridServiceInstance extends StyxDirectory
                  return DirectoryOnDisk.createFileOrDirectory(f, isDir, perm);
              }
         };
-        StyxDirectory inputUrlsDir = new StyxDirectory("urls");
-        this.inputsDir.addChild(inputUrlsDir);
         this.outputsDir = new StyxDirectory("outputs");
         
         Vector inputs = sgsConfig.getInputs();
@@ -303,7 +304,6 @@ class StyxGridServiceInstance extends StyxDirectory
             if (inputFile != null)
             {
                 this.inputsDir.addChild(inputFile);
-                inputUrlsDir.addChild(inputFile.getInputURLFile());
             }
         }
         
@@ -400,7 +400,8 @@ class StyxGridServiceInstance extends StyxDirectory
     }
     
     /**
-     * Adds the outputs to the outputs/ directory
+     * Adds the outputs to the outputs/ directory.  This is called after the
+     * service is started.
      */
     private void addOutputs() throws StyxException
     {
@@ -429,7 +430,7 @@ class StyxGridServiceInstance extends StyxDirectory
             }
             else if (output.getType() == SGSOutput.FILE_FROM_PARAM)
             {
-                // Find the parameter that is linked to this file
+                // Get the name of the file from the relevant parameter
                 boolean found = false;
                 StyxFile[] paramFiles = this.paramDir.getChildren();
                 for (int j = 0; j < paramFiles.length; j++)
@@ -456,6 +457,79 @@ class StyxGridServiceInstance extends StyxDirectory
             {
                 this.outputsDir.addChild(fileToAdd);
             }
+        }
+    }
+    
+    /**
+     * Makes sure all the input files are ready
+     * @throws StyxException if a required input file is not ready and a URL
+     * has not been set.
+     */
+    private void prepareInputFiles() throws StyxException
+    {
+        StyxFile[] inputFiles = this.inputsDir.getChildren();
+        for (int i = 0; i < inputFiles.length; i++)
+        {
+            if (inputFiles[i] instanceof SGSInputFile)
+            {
+                SGSInputFile inputFile = (SGSInputFile)inputFiles[i];
+                URL url = inputFile.getURL();
+                if (inputFile instanceof SGSInputFile.File)
+                {
+                    // This is a fixed-name input file
+                    SGSInputFile.File inFile = (SGSInputFile.File)inputFile;
+                    if (url == null)
+                    {
+                        // Check to see if any data have been uploaded
+                        if (!inFile.dataUploadComplete())
+                        {
+                            throw new StyxException("Must upload data to input file "
+                                + inFile.getName());
+                        }
+                    }
+                    else
+                    {
+                        // We have set a URL for this file.  Download the data.
+                        this.downloadFrom(url, inFile.getName());
+                    }
+                }
+            }
+        }
+        // Search through the parameters looking for input files
+        
+        System.err.println("All input files uploaded");
+    }
+    
+    public void downloadFrom(URL url, String filename) throws StyxException
+    {
+        try
+        {
+            File targetFile = new File(this.workDir, filename);
+            log.debug("Downloading from " + url + " to " + targetFile.getPath());
+            System.err.println("Downloading from " + url + " to " + targetFile.getPath());
+            FileOutputStream fout = new FileOutputStream(targetFile);
+            InputStream in = url.openStream();
+            byte[] b = new byte[8192];
+            int n = 0;
+            do
+            {
+                n = in.read(b);
+                if (n >= 0)
+                {
+                    fout.write(b, 0, n);
+                }
+                else
+                {
+                    in.close();
+                    fout.close();
+                    b = null;
+                }
+            } while (n >= 0);
+        }
+        catch(IOException ioe)
+        {
+            throw new StyxException("IOException downloading from "
+                + url + ": " + ioe.getMessage());
         }
     }
     
@@ -520,8 +594,10 @@ class StyxGridServiceInstance extends StyxDirectory
                     sgsPF.checkValid();
                 }
                 
-                // TODO: check all input files have been uploaded, and download
+                // Check all input files have been uploaded, and download
                 // any input files that have been specified by reference.
+                // TODO: this will block until all the data have been downloaded.
+                prepareInputFiles();
                 
                 // Add the output files to the namespace
                 addOutputs();
@@ -567,34 +643,7 @@ class StyxGridServiceInstance extends StyxDirectory
                 // Check to see if the process expects some data on standard input
                 if (stdin != null)
                 {
-                    if (inputURL == null)
-                    {
-                        // We haven't set a URL, so we connect the "stdin" file in the
-                        // Styx namespace to the standard input of the executable.
-                        stdin.setOutputStream(process.getOutputStream());
-                    }
-                    else
-                    {
-                        // We have set a URL so we shall get an InputStream to read 
-                        // data from this URL, then start a thread to read from the URL
-                        // and redirect the data to the standard input of the executable
-                        // From this point on, we will not be able to write to the
-                        // "stdin" file in the namespace
-                        // TODO: should we remove the "stdin" file from the namespace?
-                        try
-                        {
-                            InputStream urlin = inputURL.openStream();
-                            // Start a thread reading from the url and writing to the 
-                            // process's standard input.
-                            new RedirectStream(urlin, process.getOutputStream()).start();
-                        }
-                        catch (IOException ioe)
-                        {
-                            process.destroy();
-                            setStatus(StatusCode.ERROR);
-                            throw new StyxException("Cannot read from " + inputURL);
-                        }
-                    }
+                    stdin.setOutputStream(process.getOutputStream());
                 }
                 this.replyWrite(client, count, tag);
             }
@@ -694,7 +743,7 @@ class StyxGridServiceInstance extends StyxDirectory
                 for (int i = 0; i < paramFiles.length; i++)
                 {
                     SGSParamFile sgsPF = (SGSParamFile)paramFiles[i];
-                    Parameter param = sgsPF.getParameter();
+                    Parameter param = sgsPF.getJSAPParameter();
 
                     if (param instanceof Switch)
                     {
@@ -793,6 +842,27 @@ class StyxGridServiceInstance extends StyxDirectory
         }
     }
     
+    /**
+     * Starts a thread that redirects the data from the given URL to the 
+     * given output stream
+     * @throws StyxException if no data could be read from the given url
+     */
+    public void readFrom(URL url, OutputStream os) throws StyxException
+    {
+        try
+        {
+            InputStream is = url.openStream();
+            new RedirectStream(is, os).start();
+            System.out.println("*** Reading stdin from " + url + "***");
+        }
+        catch (IOException ioe)
+        {
+            process.destroy();
+            setStatus(StatusCode.ERROR);
+            throw new StyxException("Cannot read from " + url);
+        }
+    }
+    
     // Reads from an input stream and writes the result to an output stream
     // TODO: can this be done using pipes?
     private class RedirectStream extends Thread
@@ -816,6 +886,7 @@ class StyxGridServiceInstance extends StyxDirectory
                 while (n >= 0)
                 {
                     n = this.is.read(arr);
+                    System.err.println("*** Read " + n + " bytes***");
                     if (n >= 0)
                     {
                         this.os.write(arr, 0, n);

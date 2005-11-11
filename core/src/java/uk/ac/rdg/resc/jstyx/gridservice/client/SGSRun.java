@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.jstyx.gridservice.client;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
@@ -45,8 +46,10 @@ import org.dom4j.Document;
 import org.dom4j.DocumentException;
 
 import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
 import com.martiansoftware.jsap.JSAPResult;
 import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.FlaggedOption;
 
 import org.apache.mina.common.ByteBuffer;
 
@@ -69,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2005/11/11 21:57:21  jonblower
+ * Implemented passing of URLs to input files
+ *
  * Revision 1.5  2005/11/10 19:50:43  jonblower
  * Added code to handle output files
  *
@@ -165,7 +171,7 @@ public class SGSRun extends CStyxFileChangeAdapter
      */
     public void checkArguments(String[] args) throws StyxException
     {
-        JSAP parser = this.config.getParamParser();
+        JSAP parser = this.getJSAP();
         this.result = parser.parse(args);
         if (this.result.success())
         {
@@ -176,27 +182,39 @@ public class SGSRun extends CStyxFileChangeAdapter
             for (int i = 0; i < inputs.size(); i++)
             {
                 SGSInput input = (SGSInput)inputs.get(i);
-                if (input.getType() == SGSInput.STREAM)
+                // See if a URL has been set for this input
+                String url = this.result.getString(input.getName() + "-url");
+                if (url != null && !url.trim().equals(""))
                 {
-                    this.usingStdin = true;
+                    System.out.println("Set URL for " + input.getName() +
+                        ": " + url);
+                    //TODO
                 }
-                else if (input.getType() == SGSInput.FILE)
+                else
                 {
-                    File f = new File(input.getName());
-                    if (f.exists())
+                    // No URL has been set for this input file
+                    if (input.getType() == SGSInput.STREAM)
                     {
-                        this.filesToUpload.add(f);
+                        this.usingStdin = true;
                     }
-                    else
+                    else if (input.getType() == SGSInput.FILE)
                     {
-                        // For now, we assume that all fixed-name files are required
-                        throw new StyxException("File " + input.getName() +
-                            " does not exist");
+                        File f = new File(input.getName());
+                        if (f.exists())
+                        {
+                            this.filesToUpload.add(f);
+                        }
+                        else
+                        {
+                            // For now, we assume that all fixed-name files are required
+                            throw new StyxException("File " + input.getName() +
+                                " does not exist");
+                        }
                     }
-                }
-                else if (input.getType() == SGSInput.FILE_FROM_PARAM)
-                {
-                    // This is dealt with in getParameterValue()
+                    else if (input.getType() == SGSInput.FILE_FROM_PARAM)
+                    {
+                        // This is dealt with in getParameterValue()
+                    }
                 }
             }
         }
@@ -217,6 +235,40 @@ public class SGSRun extends CStyxFileChangeAdapter
             }
             throw new StyxException(errMsg);
         }
+    }
+    
+    /**
+     * Gets the JSAP object from the config object and adds the extra parameters
+     * we need to parse the command line
+     */
+    private JSAP getJSAP() throws StyxException
+    {
+        JSAP jsap = this.config.getParamParser();
+        // Add a switch that the user can set to force all outputs to be URLs,
+        // not actual content
+        try
+        {
+            Switch sw = new Switch("output-urls", JSAP.NO_SHORTFLAG, "output-urls",
+                "Set this switch in order to get URLs to output files rather than actual files");
+            jsap.registerParameter(sw);
+            // Add a parameter for each fixed input file so that the user can set the
+            // URL with an argument like --stdin= or --input.txt=
+            Vector inputs = this.config.getInputs();
+            for (int i = 0; i < inputs.size(); i++)
+            {
+                SGSInput input = (SGSInput)inputs.get(i);
+                FlaggedOption fo = new FlaggedOption(input.getName() + "-url",
+                    JSAP.STRING_PARSER, null, false, JSAP.NO_SHORTFLAG,
+                    input.getName());
+                jsap.registerParameter(fo);
+            }
+        }
+        catch (JSAPException jsape)
+        {
+            throw new StyxException(jsape.getMessage());
+        }
+        
+        return jsap;
     }
     
     /**
@@ -296,19 +348,27 @@ public class SGSRun extends CStyxFileChangeAdapter
                 for (int j = 0; j < arr.length; j++)
                 {
                     String val = arr[j];
+                    System.out.println("val = " + val);
                     if (paramIsInputFile)
                     {
-                        File file = new File(val);
-                        if (file.exists())
+                        if (val.startsWith("readfrom:"))
                         {
-                            // Schedule the file for upload
-                            this.filesToUpload.add(file);
+                            // We are setting a URL to a file. Do nothing.
                         }
                         else
                         {
-                            throw new StyxException(val + " does not exist");
+                            File file = new File(val);
+                            if (file.exists())
+                            {
+                                // Schedule the file for upload
+                                this.filesToUpload.add(file);
+                            }
+                            else
+                            {
+                                throw new StyxException(val + " does not exist");
+                            }
+                            val = file.getName();
                         }
-                        val = file.getName();
                     }
                     str.append(val);
                     if (j < arr.length - 1)
@@ -372,20 +432,21 @@ public class SGSRun extends CStyxFileChangeAdapter
         for (int i = 0; i < osFiles.length; i++)
         {
             this.osFiles[i].addChangeListener(this);
+            PrintStream prtStr = null;
             if (this.osFiles[i].getName().equals("stdout"))
             {
-                this.outputStreams.put(osFiles[i], System.out);
+                prtStr = System.out;
             }
             else if (this.osFiles[i].getName().equals("stderr"))
             {
-                this.outputStreams.put(osFiles[i], System.err);
+                prtStr = System.err;
             }
             else
             {
                 try
                 {
                     FileOutputStream fout = new FileOutputStream(osFiles[i].getName());
-                    this.outputStreams.put(osFiles[i], new PrintStream(fout));
+                    prtStr = new PrintStream(fout);
                 }
                 catch(FileNotFoundException fnfe)
                 {
@@ -394,9 +455,20 @@ public class SGSRun extends CStyxFileChangeAdapter
                         + osFiles[i].getName() + ": " + fnfe.getMessage());
                 }
             }
-            this.openStreams++;
-            System.err.println("Started reading from " + this.osFiles[i].getName());
-            this.osFiles[i].readAsync(0);
+            if (this.result.getBoolean("output-urls"))
+            {
+                // Just write the URL to the relevant PrintStream
+                PrintWriter writer = new PrintWriter(prtStr);
+                writer.write("readfrom:" + osFiles[i].getURL());
+                writer.close();
+            }
+            else
+            {
+                this.outputStreams.put(osFiles[i], prtStr);
+                this.openStreams++;
+                System.err.println("Started reading from " + this.osFiles[i].getName());
+                this.osFiles[i].readAsync(0);
+            }
         }
     }
     
@@ -451,6 +523,7 @@ public class SGSRun extends CStyxFileChangeAdapter
                 {
                     if (stdin != null)
                     {
+                        // This will write a zero-byte message to confirm EOF
                         stdin.close();
                     }
                 }

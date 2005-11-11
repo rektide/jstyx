@@ -74,8 +74,23 @@
                 <param name="waittime" paramType="flaggedOption" flag="w" required="yes"
                     description="time to wait between reading each line"/>
                 <param name="inputfile" paramType="flaggedOption" flag="i"
-                    required="yes" description="input file: if not specified, uses stdin"/>
+                    description="input file: if not specified, uses stdin"/>
+                <param name="outputfile" paramType="flaggedOption" flag="o"
+                    description="output file: if not specified, uses stdout"/>
             </params>
+            <inputs>
+                <input type="stream" name="stdin"/>
+                <input type="fileFromParam" name="inputfile"/>
+            </inputs>
+            <outputs>
+                <output name="stdout"/>
+                <output name="stderr"/>
+                <output type="file" name="progress.txt"/>
+                <output type="fileFromParam" name="outputfile"/>
+            </outputs>
+        </gridservice>
+        
+        <gridservice name="bash" command="bash -i" description="A Bash shell">
             <inputs>
                 <input type="stream" name="stdin"/>
             </inputs>
