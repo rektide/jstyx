@@ -3,17 +3,20 @@
 # Sets the classpath and command-line options for running a program
 # with JStyx
 
+# TODO: Check for $JSTYX_HOME environment variable
+
 case "`uname`" in
 	CYGWIN*) _s=';'
 	;;
 	*) _s=':'
 esac
 
-CP=../conf
-for i in `find ../lib -name '*.jar'`; do
+# Add the conf/ directory to the classpath so it can find .properties files
+CP=$JSTYX_HOME/conf
+for i in `find $JSTYX_HOME/lib -name '*.jar'`; do
     CP="$CP$_s$i"
 done
-for i in `find ../target -name '*.jar'`; do
+for i in `find $JSTYX_HOME/target -name '*.jar'`; do
     CP="$CP$_s$i"
 done
 

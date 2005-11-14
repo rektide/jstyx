@@ -1,8 +1,8 @@
 @echo off
 
-set CP=..\conf
-for %%i in ("..\lib\*.jar") do call catenv.bat %%i
-for %%i in ("..\target\*.jar") do call catenv.bat %%i
+set CP="%JSTYX_HOME%\conf"
+for %%i in ("%JSTYX_HOME%\lib\*.jar") do call catenv.bat %%i
+for %%i in ("%JSTYX_HOME%\target\*.jar") do call catenv.bat %%i
 
 set OPTS=-Djava.protocol.handler.pkgs=uk.ac.rdg.resc.jstyx.client.protocol
 

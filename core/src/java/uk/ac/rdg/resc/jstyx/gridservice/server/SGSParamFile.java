@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2005/11/14 21:31:54  jonblower
+ * Got SGSRun working for SC2005 demo
+ *
  * Revision 1.18  2005/11/11 21:57:21  jonblower
  * Implemented passing of URLs to input files
  *
@@ -101,6 +104,7 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  */
 public class SGSParamFile extends AsyncStyxFile
 {
+    private static final String URL_PREFIX = "readfrom:";
     
     private SGSParam param; // The logical representation of the parameter
     private StyxGridServiceInstance instance;
@@ -194,7 +198,7 @@ public class SGSParamFile extends AsyncStyxFile
         else if (this.getJSAPParameter() instanceof FlaggedOption)
         {
             FlaggedOption fo = (FlaggedOption)this.getJSAPParameter();
-            // Use the short flag if present, if not the long one
+            // Use the long flag if present, if not the short one
             if (fo.getLongFlag() == JSAP.NO_LONGFLAG)
             {
                 return "-" + fo.getShortFlag() + " " + this.getParameterValue();
@@ -260,6 +264,25 @@ public class SGSParamFile extends AsyncStyxFile
                     return;
                 }
             }
+            else if (this.param.getInputFile() != null)
+            {
+                // This parameter represents an input file.
+                // For each value in this paramter, see if it is a "readfrom:<url>"
+                // If so, do nothing: if not, add an InputFile to allow clients
+                // to upload data to this file
+                String[] files = newValue.split(" ");
+                // First we must remove all previous input files that were set by
+                // this parameter
+                this.instance.removeInputFiles(files);
+                for (int i = 0; i < files.length; i++)
+                {
+                    if (!files[i].startsWith(URL_PREFIX))
+                    {
+                        // This is not a URL.
+                        this.instance.addInputFile(files[i]);
+                    }
+                }
+            }
         }
         // TODO: only set contents if the value has changed
         ((InMemoryFile)this.baseFile).setContents(newValue);
@@ -284,11 +307,10 @@ public class SGSParamFile extends AsyncStyxFile
                     // and if so, download it
                     // TODO: if this is not a URL, check that it exists
                     String str = this.getParameterValue();
-                    String prefix = "readfrom:";
-                    if (str.startsWith(prefix))
+                    if (str.startsWith(URL_PREFIX))
                     {
                         // This could be a URL
-                        String urlStr = str.substring(prefix.length());
+                        String urlStr = str.substring(URL_PREFIX.length());
                         try
                         {
                             URL url = new URL(urlStr);
@@ -309,7 +331,7 @@ public class SGSParamFile extends AsyncStyxFile
             }
             else
             {
-                // A valid hasn't been set
+                // A value hasn't been set
                 if (op.required())
                 {
                     throw new StyxException(this.name + " is a required parameter:" +

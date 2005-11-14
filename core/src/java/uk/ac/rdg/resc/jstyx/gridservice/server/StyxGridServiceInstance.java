@@ -76,6 +76,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.40  2005/11/14 21:31:54  jonblower
+ * Got SGSRun working for SC2005 demo
+ *
  * Revision 1.39  2005/11/11 21:57:21  jonblower
  * Implemented passing of URLs to input files
  *
@@ -195,8 +198,8 @@ class StyxGridServiceInstance extends StyxDirectory
     private Process process = null; // The process object returned by runtime.exec()
     private StatusCode statusCode;
     private ServiceDataElement status; // The status of the service
-    private ServiceDataElement exitCode; // The exit code from the executable
     private ServiceDataElement bytesConsumed; // The number of bytes consumed by the service
+    private ExitCodeFile exitCodeFile; // The exit code from the executable
     private CachingStreamReader stdout = new CachingStreamReader(this, "stdout");  // The standard output from the program
     private CachingStreamReader stderr = new CachingStreamReader(this, "stderr");  // The standard error from the program
     private StyxDirectory inputsDir; // Contains the input files
@@ -257,53 +260,33 @@ class StyxGridServiceInstance extends StyxDirectory
         this.addChild(paramDir);
         
         // Add the inputs and outputs
-        // Create a directory which creates its children as FilesOnDisk in the
-        // working directory of the instance. This allows us to upload new files
-        // into the working directory
-        // TODO: we may not always want people to upload arbitrary files into
-        //   this directory?  Only if some files are specified by a parameter?
-        this.inputsDir = new StyxDirectory("inputs")
-        {
-             public StyxFile createChild(String name, int perm, boolean isDir,
-                boolean isAppOnly, boolean isExclusive)
-                throws StyxException
-             {
-                 File f = new File(workDir, name);
-                 return DirectoryOnDisk.createFileOrDirectory(f, isDir, perm);
-             }
-        };
+        this.inputsDir = new StyxDirectory("inputs");
         this.outputsDir = new StyxDirectory("outputs");
         
         Vector inputs = sgsConfig.getInputs();
         for (int i = 0; i < inputs.size(); i++)
         {
             SGSInput input = (SGSInput)inputs.get(i);
-            SGSInputFile inputFile = null;
             if (input.getType() == SGSInput.STREAM)
             {
                 this.stdin = new SGSInputFile.StdinFile(this);
-                inputFile = this.stdin;
+                this.inputsDir.addChild(this.stdin);
             }
             else if (input.getType() == SGSInput.FILE)
             {
                 // This is a fixed input file.  Create the java.io.File object
                 // that represents the local file itself.
-                File file = new File(this.workDir, input.getName());
-                inputFile = new SGSInputFile.File(file, this);
+                this.addInputFile(input.getName());
             }
             else if (input.getType() == SGSInput.FILE_FROM_PARAM)
             {
                 // Do nothing: these files do not appear in the namespace until
-                // they are uploaded
+                // the parameter name is set.  See SGSParamFile.setParameterValue()
             }
             else
             {
                 throw new StyxException("Internal error: unknown type of input "
                     + input.getName());
-            }
-            if (inputFile != null)
-            {
-                this.inputsDir.addChild(inputFile);
             }
         }
         
@@ -349,8 +332,8 @@ class StyxGridServiceInstance extends StyxDirectory
         // Add the default SDEs that all services have
         this.status = new StringServiceDataElement("status", true, "created");
         serviceDataDir.addChild(this.status.getAsyncStyxFile());
-        this.exitCode = new StringServiceDataElement("exitCode", true, "");
-        serviceDataDir.addChild(this.exitCode.getAsyncStyxFile());        
+        this.exitCodeFile = new ExitCodeFile();
+        serviceDataDir.addChild(this.exitCodeFile);        
         // If we are reading from stdin, add a bytesConsumed SDE
         if (this.stdin != null)
         {
@@ -461,6 +444,33 @@ class StyxGridServiceInstance extends StyxDirectory
     }
     
     /**
+     * Adds a new input file to the inputs/ directory
+     */
+    public void addInputFile(String filename) throws StyxException
+    {
+        File file = new File(this.workDir, filename);
+        this.inputsDir.addChild(new SGSInputFile.File(file, this));
+    }
+    
+    /**
+     * Remove input files from the inputs/ directory
+     */
+    public void removeInputFiles(String[] filenames)
+    {
+        synchronized (this.inputsDir)
+        {
+            for (int i = 0; i < filenames.length; i++)
+            {
+                StyxFile child = this.inputsDir.getChild(filenames[i]);
+                if (child != null)
+                {
+                    this.inputsDir.removeChild(child);
+                }
+            }
+        }
+    }
+    
+    /**
      * Makes sure all the input files are ready
      * @throws StyxException if a required input file is not ready and a URL
      * has not been set.
@@ -476,7 +486,6 @@ class StyxGridServiceInstance extends StyxDirectory
                 URL url = inputFile.getURL();
                 if (inputFile instanceof SGSInputFile.File)
                 {
-                    // This is a fixed-name input file
                     SGSInputFile.File inFile = (SGSInputFile.File)inputFile;
                     if (url == null)
                     {
@@ -495,9 +504,6 @@ class StyxGridServiceInstance extends StyxDirectory
                 }
             }
         }
-        // Search through the parameters looking for input files
-        
-        System.err.println("All input files uploaded");
     }
     
     public void downloadFrom(URL url, String filename) throws StyxException
@@ -506,7 +512,7 @@ class StyxGridServiceInstance extends StyxDirectory
         {
             File targetFile = new File(this.workDir, filename);
             log.debug("Downloading from " + url + " to " + targetFile.getPath());
-            System.err.println("Downloading from " + url + " to " + targetFile.getPath());
+            System.err.println("     ****** Downloading from " + url + " to " + targetFile.getPath());
             FileOutputStream fout = new FileOutputStream(targetFile);
             InputStream in = url.openStream();
             byte[] b = new byte[8192];
@@ -591,6 +597,8 @@ class StyxGridServiceInstance extends StyxDirectory
                     SGSParamFile sgsPF = (SGSParamFile)paramFiles[i];
                     // The checkValid() method throws a StyxException if the
                     // contents of the parameter file are not valid for some reason
+                    // The checkValid() method downloads any input files that are
+                    // specified by URLs in the parameters
                     sgsPF.checkValid();
                 }
                 
@@ -826,10 +834,7 @@ class StyxGridServiceInstance extends StyxDirectory
                         setStatus(StatusCode.FINISHED, "took " +
                             (float)duration / 1000 + " seconds.");
                     }
-                    if (exitCode != null)
-                    {
-                        exitCode.setValue("" + exitCodeVal);
-                    }
+                    exitCodeFile.setExitCode(exitCodeVal);
                 }
             }
             catch(Exception e)
@@ -886,7 +891,6 @@ class StyxGridServiceInstance extends StyxDirectory
                 while (n >= 0)
                 {
                     n = this.is.read(arr);
-                    System.err.println("*** Read " + n + " bytes***");
                     if (n >= 0)
                     {
                         this.os.write(arr, 0, n);

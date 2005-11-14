@@ -90,13 +90,38 @@
             </outputs>
         </gridservice>
         
+        <gridservice name="reverse" command="python c:\reverse.py"
+            description="Reverses each line of input">
+            <inputs>
+                <input type="stream" name="stdin"/>
+            </inputs>
+            <outputs>
+                <output type="stream" name="stdout"/>
+            </outputs>
+        </gridservice>
+        
+        <gridservice name="reverse2" command="python c:\reverse.py"
+            description="Reverses each line of input">
+            <!-- The command-line parameters that are passed to the executable -->
+            <params>
+                <param name="inputfile" paramType="flaggedOption" flag="i" required="yes"/>
+                <param name="outputfile" paramType="flaggedOption" flag="o" required="yes"/>
+            </params>
+            <inputs>
+                <input type="fileFromParam" name="inputfile"/>
+            </inputs>
+            <outputs>
+                <output type="fileFromParam" name="outputfile"/>
+            </outputs>
+        </gridservice>
+        
         <gridservice name="bash" command="bash -i" description="A Bash shell">
             <inputs>
                 <input type="stream" name="stdin"/>
             </inputs>
             <outputs>
-                <output name="stdout"/>
-                <output name="stderr"/>
+                <output type="stream" name="stdout"/>
+                <output type="stream" name="stderr"/>
             </outputs>
         </gridservice>
         

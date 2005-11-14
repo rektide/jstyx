@@ -49,6 +49,9 @@ import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/11/14 21:32:30  jonblower
+ * Got SGSRun working for SC2005 demo
+ *
  * Revision 1.12  2005/11/04 19:33:41  jonblower
  * Changed contentsChanged() to fileContentsChanged() in StyxFileChangeListener
  *
@@ -316,7 +319,7 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
      * Class representing a client that is waiting for a reply from an
      * asynchronous read/write
      */
-    private class ClientInfo
+    private static class ClientInfo
     {
         private StyxFileClient client;
         private int tag;

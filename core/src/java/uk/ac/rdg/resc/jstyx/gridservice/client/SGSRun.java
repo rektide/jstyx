@@ -61,6 +61,7 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeAdapter;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 import uk.ac.rdg.resc.jstyx.gridservice.config.*;
 
@@ -72,6 +73,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/11/14 21:31:54  jonblower
+ * Got SGSRun working for SC2005 demo
+ *
  * Revision 1.6  2005/11/11 21:57:21  jonblower
  * Implemented passing of URLs to input files
  *
@@ -93,11 +97,21 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  */
 public class SGSRun extends CStyxFileChangeAdapter
 {
+    private static final String OUTPUT_REFS = "output-refs";
+    private static final String HELP = "sgs-help";
+    private static final String VERBOSE_HELP = "sgs-verbose-help";
+    private static final String DEBUG = "sgs-debug";
+    
     private StyxConnection conn;
     private SGSClient sgsClient;
     private SGSInstanceClient instanceClient;
+    private CStyxFile exitCodeFile;
+    private String exitCode;
+    private boolean serviceStarted;
     
     private JSAPResult result; // Result of parsing command-line parameters
+    
+    private boolean debug;  // If set true we will print debug messages to stdout
     
     // The files we're going to upload to the service
     private Vector/*<File>*/ filesToUpload; 
@@ -122,6 +136,11 @@ public class SGSRun extends CStyxFileChangeAdapter
         throws StyxException
     {
         this.usingStdin = false;
+        this.debug = false;
+        this.openStreams = 0;
+        this.exitCode = null;
+        this.serviceStarted = false;
+        
         // Connect to the server
         this.conn = new StyxConnection(hostname, port);
         this.conn.connect();
@@ -173,10 +192,30 @@ public class SGSRun extends CStyxFileChangeAdapter
     {
         JSAP parser = this.getJSAP();
         this.result = parser.parse(args);
+        
+        // Check if the user wants help
+        if (this.result.getBoolean(VERBOSE_HELP))
+        {
+            System.out.println("");
+            System.out.println("Usage: " + this.sgsClient.getName() + " " +
+                parser.getUsage());
+            System.out.println("");
+            System.out.println(parser.getHelp());
+            System.exit(0);
+        }
+        else if (this.result.getBoolean(HELP))
+        {
+            System.out.println("");
+            System.out.println("Usage: " + this.sgsClient.getName() + " " +
+                parser.getUsage());
+            System.exit(0);
+        }
+        
         if (this.result.success())
         {
-            // Parsing was successful.  Now we can check that the input files
-            // exist
+            // Parsing was successful
+            this.debug = this.result.getBoolean(DEBUG);
+            // Now we can check that the input files exist
             this.filesToUpload = new Vector();
             Vector inputs = this.config.getInputs();
             for (int i = 0; i < inputs.size(); i++)
@@ -186,9 +225,11 @@ public class SGSRun extends CStyxFileChangeAdapter
                 String url = this.result.getString(input.getName() + "-url");
                 if (url != null && !url.trim().equals(""))
                 {
-                    System.out.println("Set URL for " + input.getName() +
-                        ": " + url);
-                    //TODO
+                    if (this.debug)
+                    {
+                        System.out.println("Set URL for " + input.getName() +
+                            ": " + url);
+                    }
                 }
                 else
                 {
@@ -248,19 +289,38 @@ public class SGSRun extends CStyxFileChangeAdapter
         // not actual content
         try
         {
-            Switch sw = new Switch("output-urls", JSAP.NO_SHORTFLAG, "output-urls",
+            // Add a switch to allow the user to print out a help message for this SGS
+            Switch help = new Switch(HELP, JSAP.NO_SHORTFLAG, HELP,
+                "Set this switch to print out a short help message");
+            jsap.registerParameter(help);
+            // Add a switch to allow the user to print out a verbose help message for this SGS
+            Switch verboseHelp = new Switch(VERBOSE_HELP, JSAP.NO_SHORTFLAG, VERBOSE_HELP,
+                "Set this switch to print out a long help message");
+            jsap.registerParameter(verboseHelp);
+            // Add a switch to enable debugging messages to be printed to stdout
+            Switch debug = new Switch(DEBUG, JSAP.NO_SHORTFLAG, DEBUG,
+                "Set this switch in order to enable printing of debug messages");
+            jsap.registerParameter(debug);
+            // Add a switch to allow outputting of references to files instead of
+            // the actual files themselves
+            Switch outputUrls = new Switch(OUTPUT_REFS, JSAP.NO_SHORTFLAG, OUTPUT_REFS,
                 "Set this switch in order to get URLs to output files rather than actual files");
-            jsap.registerParameter(sw);
+            jsap.registerParameter(outputUrls);
             // Add a parameter for each fixed input file so that the user can set the
-            // URL with an argument like --stdin= or --input.txt=
+            // URL with an argument like --input.txt-ref=
             Vector inputs = this.config.getInputs();
             for (int i = 0; i < inputs.size(); i++)
             {
                 SGSInput input = (SGSInput)inputs.get(i);
-                FlaggedOption fo = new FlaggedOption(input.getName() + "-url",
-                    JSAP.STRING_PARSER, null, false, JSAP.NO_SHORTFLAG,
-                    input.getName());
-                jsap.registerParameter(fo);
+                if (input.getType() == SGSInput.FILE)
+                {
+                    FlaggedOption fo = new FlaggedOption(input.getName() + "-ref",
+                        JSAP.STRING_PARSER, null, false, JSAP.NO_SHORTFLAG,
+                        input.getName() + "-ref",
+                        "If set, will cause the input file " + input.getName() +
+                        " to be uploaded from the given URL");
+                    jsap.registerParameter(fo);
+                }
             }
         }
         catch (JSAPException jsape)
@@ -278,6 +338,13 @@ public class SGSRun extends CStyxFileChangeAdapter
     {
         String id = this.sgsClient.createNewInstance();
         this.instanceClient = this.sgsClient.getClientForInstance(id);
+        // Start reading the exit code
+        CStyxFile instanceRoot = this.instanceClient.getInstanceRoot();
+        // TODO: should get the file through SGSInstanceClient interface
+        this.exitCodeFile = instanceRoot.getFile("serviceData/exitCode");
+        this.exitCodeFile.addChangeListener(this);
+        // Start reading from the exit code file
+        this.exitCodeFile.readAsync(0);
     }
     
     /**
@@ -348,7 +415,6 @@ public class SGSRun extends CStyxFileChangeAdapter
                 for (int j = 0; j < arr.length; j++)
                 {
                     String val = arr[j];
-                    System.out.println("val = " + val);
                     if (paramIsInputFile)
                     {
                         if (val.startsWith("readfrom:"))
@@ -396,10 +462,16 @@ public class SGSRun extends CStyxFileChangeAdapter
         {
             File file = (File)this.filesToUpload.get(i);
             CStyxFile targetFile = inputsDir.getFile(file.getName());
-            System.out.print("Uploading " + file.getName() + " to "
-                + targetFile.getPath() + "...");
+            if (this.debug)
+            {
+                System.out.print("Uploading " + file.getName() + " to "
+                    + targetFile.getPath() + "...");
+            }
             targetFile.upload(file);
-            System.out.println(" complete");
+            if (this.debug)
+            {
+                System.out.println(" complete");
+            }
         }
     }
     
@@ -417,6 +489,7 @@ public class SGSRun extends CStyxFileChangeAdapter
             new StdinReader().start();
         }
         this.readOutputStreams();
+        this.serviceStarted = true;
     }
     
     /**
@@ -424,8 +497,6 @@ public class SGSRun extends CStyxFileChangeAdapter
      */
     private void readOutputStreams() throws StyxException
     {
-        this.openStreams = 0;
-        
         // Get handles to the output streams and register this class as a listener
         this.osFiles = this.instanceClient.getOutputStreams();
         this.outputStreams = new Hashtable()/*<CStyxFile, PrintStream>*/;
@@ -455,7 +526,7 @@ public class SGSRun extends CStyxFileChangeAdapter
                         + osFiles[i].getName() + ": " + fnfe.getMessage());
                 }
             }
-            if (this.result.getBoolean("output-urls"))
+            if (this.result.getBoolean(OUTPUT_REFS))
             {
                 // Just write the URL to the relevant PrintStream
                 PrintWriter writer = new PrintWriter(prtStr);
@@ -464,9 +535,12 @@ public class SGSRun extends CStyxFileChangeAdapter
             }
             else
             {
-                this.outputStreams.put(osFiles[i], prtStr);
                 this.openStreams++;
-                System.err.println("Started reading from " + this.osFiles[i].getName());
+                this.outputStreams.put(osFiles[i], prtStr);
+                if (this.debug)
+                {
+                    System.out.println("Started reading from " + this.osFiles[i].getName());
+                }
                 this.osFiles[i].readAsync(0);
             }
         }
@@ -531,7 +605,8 @@ public class SGSRun extends CStyxFileChangeAdapter
                 {
                     // Ignore errors here
                 }
-                streamClosed();
+                openStreams--;
+                checkEnd();
             }
         }
     }
@@ -541,35 +616,49 @@ public class SGSRun extends CStyxFileChangeAdapter
      */
     public void dataArrived(CStyxFile file, TreadMessage tReadMsg, ByteBuffer data)
     {
-        // Get the stream associated with this file
-        PrintStream stream = (PrintStream)this.outputStreams.get(file);
-        if (stream == null)
+        if (file == this.exitCodeFile)
         {
-            // TODO: log error message (should never happen anyway)
-            System.err.println("stream is null");
-            return;
-        }
-        
-        if (data.hasRemaining())
-        {
-            // Calculate the offset from which we need to read the next data chunk
-            long newOffset = tReadMsg.getOffset().asLong() + data.remaining();
-            
-            // Get the data out of the buffer
-            byte[] buf = new byte[data.remaining()];
-            data.get(buf);
-            
-            // Write the data to the stream
-            stream.write(buf, 0, buf.length);
-            
-            // Read the next chunk of data from the file
-            file.readAsync(newOffset);
+            this.exitCode = StyxUtils.dataToString(data);
+            this.checkEnd();
         }
         else
         {
-            stream.close();
-            file.close();
-            this.streamClosed();
+            // Get the stream associated with this file
+            PrintStream stream = (PrintStream)this.outputStreams.get(file);
+            if (stream == null)
+            {
+                // TODO: log error message (should never happen anyway)
+                System.err.println("stream is null");
+                return;
+            }
+
+            if (data.hasRemaining())
+            {
+                // Calculate the offset from which we need to read the next data chunk
+                long newOffset = tReadMsg.getOffset().asLong() + data.remaining();
+
+                // Get the data out of the buffer
+                byte[] buf = new byte[data.remaining()];
+                data.get(buf);
+
+                // Write the data to the stream
+                stream.write(buf, 0, buf.length);
+
+                // Read the next chunk of data from the file
+                file.readAsync(newOffset);
+            }
+            else
+            {
+                if (stream != System.out && stream != System.err)
+                {
+                    // Don't close the standard streams, we may need them for other
+                    // messages
+                    stream.close();
+                }
+                file.close();
+                this.openStreams--;
+                this.checkEnd();
+            }
         }
     }
     
@@ -580,21 +669,38 @@ public class SGSRun extends CStyxFileChangeAdapter
     public void error(CStyxFile file, String message)
     {
         // TODO: log the error message somewhere.
+        System.err.println("Error running Styx Grid Service: " + message);
         file.close();
-        this.streamClosed();
+        this.openStreams--;
+        this.checkEnd();
     }
     
     /**
-     * Called when we close a stream. If this is the last stream to be closed, the 
-     * connection is also closed.
+     * Called when we think the program might have ended (when a stream is closed,
+     * when the exit code is received or when the main() method ends).
      */
-    private void streamClosed()
+    public void checkEnd()
     {
-        this.openStreams--;
-        if (this.openStreams == 0)
+        if (this.openStreams == 0 && this.exitCode != null && this.serviceStarted)
         {
             // No more open streams, so we can close the connection
             this.instanceClient.close();
+            int ec = Integer.MIN_VALUE;
+            try
+            {
+                ec = Integer.parseInt(this.exitCode);
+            }
+            catch(NumberFormatException nfe)
+            {
+                System.err.println("Error parsing exit code: " + this.exitCode
+                    + " is not a valid integer");
+            }
+            if (this.debug)
+            {
+                System.out.println("Exiting with code " + ec);
+                System.out.flush();
+            }
+            System.exit(ec);
         }
     }
     
@@ -642,6 +748,7 @@ public class SGSRun extends CStyxFileChangeAdapter
             {
                 runner.disconnect();
             }
+            // TODO: what is an appropriate error code here?
             System.exit(1);
         }
         catch(StyxException se)
@@ -651,7 +758,12 @@ public class SGSRun extends CStyxFileChangeAdapter
             {
                 runner.disconnect();
             }
+            // TODO: what is an appropriate error code here?
             System.exit(1);
+        }
+        finally
+        {
+            runner.checkEnd();
         }
         // Note that the program will carry on running until all the streams
         // are closed
