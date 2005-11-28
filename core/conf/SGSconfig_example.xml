@@ -13,20 +13,12 @@
 <sgs>
 
     <!-- Configuration of the server -->
-    <!-- TODO: configure max message size here? -->
-    <server port="9092">
-        <!-- TODO: will set SSL parameters in here (server cert location, cipher
-             suites, client authentication, acceptable client certs, etc) -->
-        <ssl activated="no">
-            <keystore location="C:\bogus.cert"/>
-        </ssl>
-        <!-- TODO: will set proxy settings etc here -->
-    </server>
+    <server port="9092"/>
     
+    <!-- Configuration of the Styx Grid Services -->
     <gridservices root="C:\StyxGridServices">
         
-        <gridservice name="dirlisting" command="dir c:\"
-            description="Lists contents of C: drive">
+        <gridservice name="dirlisting" command="dir c:\" description="Lists contents of C: drive">
             <outputs>
                 <output type="stream" name="stdout"/>
                 <output type="stream" name="stderr"/>
