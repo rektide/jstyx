@@ -12,15 +12,15 @@
 
 	<property name="version" value="0.1.0-SNAPSHOT"/>
 	<property name="src.dir" value="./src/java"/>
-	<property name="classes.dir" value="./target/classes"/>
-	<property name="jar.dir" value="./target"/>
-	<property name="javadoc.dir" value="./target/docs/apidocs"/>
+	<property name="target.dir" value="./target"/>
+	<property name="classes.dir" value="${target.dir}/classes"/>
+	<property name="javadoc.dir" value="${target.dir}/docs/apidocs"/>
 	<!-- The directory containing other third-party Java libraries (log4j, MINA etc) -->
 	<property name="lib.dir" value="./lib"/>
-	<!-- The directory in which IzPack is installed -->
-	<property name="izpack.dir" value="C:\Program Files\IzPack"/>
+        <!-- The directory into which the distribution files will be written -->
+        <property name="dist.dir" value="./dist"/>
         <!-- The jar file that will be built -->
-	<property name="jar.file" value="${jar.dir}/jstyx-${version}.jar"/>
+	<property name="jar.file" value="${target.dir}/jstyx-${version}.jar"/>
         
         <target name="pre-compile" description="prepare for compilation">
             <mkdir dir="${classes.dir}"/>
@@ -45,7 +45,7 @@
 	</target>
 
 	<target name="jar" depends="compile" description="generate the JStyx jar file">
-		<mkdir dir="${jar.dir}"/>
+		<mkdir dir="${target.dir}"/>
 		<jar destfile="${jar.file}" basedir="${classes.dir}"/>
 	</target>
 
@@ -59,15 +59,18 @@
 		<mkdir dir="${javadoc.dir}"/>
 		<javadoc sourcepath="${src.dir}" packagenames="*" destdir="${javadoc.dir}"/>
 	</target>
-	
-	<taskdef name="izpack" classpath="${izpack.dir}/lib/compiler.jar"
-		classname="com.izforge.izpack.ant.IzPackTask"/>
-	<target name="installer" depends="jar" description="Build an installer">
-		<izpack input="install.xml"
-			output="jstyx-${version}-installer.jar"
-			installerType="standard"
-			basedir="."
-			izPackDir="${izpack.dir}/"/>
-	</target>
+        
+        <target name="dist" depends="jar" description="build distribution as a zip file">
+            <mkdir dir="${dist.dir}"/>
+            <zip destfile="${dist.dir}/jstyx-${version}.zip">
+                <zipfileset dir="./bin" prefix="bin"/>
+                <zipfileset dir="${lib.dir}" prefix="lib"/>
+                <zipfileset dir="${src.dir}" prefix="src/java"/>
+                <zipfileset dir="./conf" prefix="conf" includes="log4j.properties, SGSconfig.dtd"/>
+                <zipfileset dir="./conf" includes="SGSconfig_example.xml" fullpath="conf/SGSconfig.xml"/>
+                <zipfileset dir="./xdocs" prefix="xdocs"/>
+                <zipfileset dir="." includes="*.txt, build.xml, project.properties, project.xml"/>
+            </zip>
+        </target>
 
 </project>
