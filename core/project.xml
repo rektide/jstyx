@@ -42,7 +42,7 @@
     <organization>
         <name>Reading e-Science Centre</name>
         <url>http://www.resc.rdg.ac.uk/</url>
-        <logo>http://www.resc.rdg.ac.uk/images/resc_logo.jpg</logo>
+        <logo>http://www.resc.rdg.ac.uk/images/new_logo_72dpi_web.png</logo>
     </organization>
     <!-- the year the project started -->
     <inceptionYear>2004</inceptionYear>
@@ -140,8 +140,7 @@
         <dependency>
             <groupId>JSAP</groupId>
             <artifactId>JSAP</artifactId>
-            <!-- Needs version of JSAP libs that I have edited -->
-            <version>2.0a-jb</version>
+            <version>2.0b</version>
             <type>jar</type>
             <url>http://www.martiansoftware.com/jsap/</url>
         </dependency>
@@ -168,8 +167,8 @@
     </build>
     <reports>
         <report>maven-license-plugin</report>
-        <report>maven-javadoc-plugin</report>
-        <report>maven-jxr-plugin</report>
+        <!--<report>maven-javadoc-plugin</report>
+        <report>maven-jxr-plugin</report>-->
         <report>maven-tasklist-plugin</report>
         <report>maven-faq-plugin</report>
     </reports>
