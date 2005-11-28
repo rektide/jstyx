@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfigException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/11/28 17:21:17  jonblower
+ * Allowed for <ssl> tag not existing in config file
+ *
  * Revision 1.8  2005/11/07 21:04:48  jonblower
  * Moved SGS config classes to new package
  *
@@ -99,6 +102,7 @@ public class SGSServerConfig
     public SGSServerConfig(String xmlFilename) throws SGSConfigException
     {
         this.gridServices = new Vector();
+        this.useSSL = false;
         
         try
         {
@@ -146,17 +150,16 @@ public class SGSServerConfig
     private void getSSLConfig(Node serverNode) throws SGSConfigException
     {
         Node sslNode = serverNode.selectSingleNode("ssl");
-        if (sslNode.valueOf("@activated").equalsIgnoreCase("yes"))
+        if (sslNode != null)
         {
-            this.useSSL = true;
+            if (sslNode.valueOf("@activated").equalsIgnoreCase("yes"))
+            {
+                this.useSSL = true;
+            }
+            Node keystoreNode = sslNode.selectSingleNode("keystore");
+            this.keystore = keystoreNode.valueOf("@location");
+            log.debug("SSL keystore location: " + this.keystore);
         }
-        else
-        {
-            this.useSSL = false;
-        }
-        Node keystoreNode = sslNode.selectSingleNode("keystore");
-        this.keystore = keystoreNode.valueOf("@location");
-        log.debug("SSL keystore location: " + this.keystore);
     }
     
     /**
@@ -192,7 +195,8 @@ public class SGSServerConfig
     }
     
     /**
-     * @return the location of the keystore file
+     * @return the location of the keystore file, or null if the server is not
+     * using SSL
      */
     public String getKeystoreLocation()
     {
