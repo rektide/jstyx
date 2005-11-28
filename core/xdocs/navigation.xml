@@ -27,7 +27,7 @@
         </menu>
         
         <menu name="Styx Grid Services">
-            <item name="Tutorial" href="sgs/tutorial.html" collapse="true">
+            <item name="Tutorial" href="sgs/tutorial.html" collapse="false">
                 <item name="Tutorial 1" href="sgs/tutorial_1.html" collapse="true"/>
                 <item name="Tutorial 2" href="sgs/tutorial_2.html" collapse="true"/>
             </item>
