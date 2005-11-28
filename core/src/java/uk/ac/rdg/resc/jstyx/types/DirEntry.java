@@ -41,8 +41,11 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.1  2005/02/16 18:58:35  jonblower
- * Initial revision
+ * Revision 1.2  2005/11/28 17:18:00  jonblower
+ * Changed comments to explain type, dev and DMEXCL
+ *
+ * Revision 1.1.1.1  2005/02/16 18:58:35  jonblower
+ * Initial import
  *
  */
 public class DirEntry
@@ -89,8 +92,8 @@ public class DirEntry
         ULong fileLength, String fileName, String owner, String group, 
         String lastModifiedBy)
     {
-        this.type = 0;  // I don't really know what the type and the dev
-        this.dev = 0;   // are! ;-)
+        this.type = 0;  // The type and dev are not needed in JStyx: they are
+        this.dev = 0;   // used to distinguish devices in Inferno / Plan9
         this.qid = qid;
         this.mode = mode;
         this.lastAccessTime = lastAccessTime;
@@ -135,7 +138,7 @@ public class DirEntry
         }
         if ((this.mode & StyxUtils.DMEXCL) == StyxUtils.DMEXCL)
         {
-            s += "l"; // Not sure why this is "l"
+            s += "l"; // "l" stands for "lock"
         }
         else
         {
