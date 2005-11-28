@@ -73,6 +73,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/11/28 17:20:18  jonblower
+ * Fixed bug with not exiting cleanly when error occurs
+ *
  * Revision 1.7  2005/11/14 21:31:54  jonblower
  * Got SGSRun working for SC2005 demo
  *
@@ -553,7 +556,7 @@ public class SGSRun extends CStyxFileChangeAdapter
     {
         if (this.conn != null)
         {
-            this.conn.close(); // TODO this doesn't seem to work properly
+            this.conn.close();
         }
     }
     
@@ -671,7 +674,10 @@ public class SGSRun extends CStyxFileChangeAdapter
         // TODO: log the error message somewhere.
         System.err.println("Error running Styx Grid Service: " + message);
         file.close();
-        this.openStreams--;
+        if (file != this.exitCodeFile)
+        {
+            this.openStreams--;
+        }
         this.checkEnd();
     }
     
