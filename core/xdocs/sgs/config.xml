@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>Styx Grid Services Configuration</title>
+  </properties>
+
+  <body>
+    <section name="Configuration of Styx Grid Services">
+    <p>
+    In order to run a Styx Grid Services server, you will need to create a
+    configuration file in XML.  This section describes the format of this XML
+    file and gives some examples of how to set up Styx Grid Services.
+    </p>
+    </section>
+      
+    <section name="Overall structure">
+    <p>
+    The overall structure of the XML file is quite simple.  If you are not
+    familiar with XML, don't worry.  XML files are just text files with a
+    defined structure.  Important bits of information are placed between tags
+    like so: <code>&lt;name&gt;Joe Bloggs&lt;/name&gt;</code>.  If this reminds
+    you of HTML, there's a good reason for this.  Modern, well-structured HTML
+    (known as XHTML) is actually a &quot;flavour&quot; of XML.
+    </p>
+    <p>
+    The configuration file is described by a Document Type Definition (DTD).
+    The DTD specification for the SGS configuration file is found in 
+    <code>conf/SGSconfig.dtd</code>.  You don't need to worry about this: it
+    is used internally by the SGS software to make sure that the configuration
+    file is valid.  If you create an invalid configuration file, this will be
+    detected when you try to run the SGS server and an error message will appear.
+    </p>
+    <p>
+    The large-scale structure of the configuration file looks like this:
+    <source>
+    <![CDATA[<sgs>
+    
+      <server port="9092">
+         ...
+      </server>
+      
+      <gridservices root="C:\StyxGridServices">
+        <gridservice name="mysgs" ... ></gridservice>
+        <gridservice name="anotherSGS" ...></gridservice>
+        ...
+      </gridservices>
+      
+    </sgs>]]>
+    </source>
+    Everything is contained between <code>&lt;sgs&gt;</code> and <code>&lt;/sgs&gt;</code>
+    tags.  The information between the <code>&lt;server&gt;</code> tags specifies
+    the server settings.  In the current release, all that matters is the port
+    number (specified as 9092 in the above snippet).  In future releases this
+    section will contain information about security, such as encryption of network
+    traffic and the certificates that are trusted.
+    </p>
+    <p>
+    The <code>&lt;gridservices&gt;</code> tag contains an attribute called <code>root</code>.
+    The value of this attribute is the directory on the server that will be used
+    to store information about all the services.  This directory is used for cached
+    files, state data and other things.  This directory will be created when the server
+    starts if it does not already exist.  You (i.e. the user running the server process)
+    must have write permissions in this directory.
+    </p>
+    </section>
+    
+    <section name="Configuration of a Styx Grid Service">
+    <p>
+    The <code>&lt;gridservices&gt;</code> tag is a container for all the 
+    <code>&lt;gridservice&gt;</code> tags.  There is one <code>&lt;gridservice&gt;</code>
+    tag for each Styx Grid Service that the server exposes.  This tag contains all
+    the information about the executable that the SGS is wrapping: the
+    path to the executable, the command-line parameters that it expects, the 
+    input files it consumes, the output files it creates, plus some other things.
+    The structure of the <code>&lt;gridservice&gt;</code> tag and its sub-tags
+    looks like this:
+    <source>
+    <![CDATA[<gridservice name="mysgs" command="C:\path\to\executable"
+        description="A Styx Grid Service">
+      <params>
+        ...
+      </params>
+      <inputs>
+        ...
+      </inputs>
+      <outputs>
+        ...
+      </outputs>
+      <serviceData>
+        ...
+      </serviceData>
+      <steering>
+        ...
+      </steering>
+      <docs>
+        ...
+      </docs>
+    </gridservice>]]>
+    </source>
+    The <code>&lt;gridservice&gt;</code> tag itself has three attributes.  The
+    <code>name</code> attribute gives a short, unique name for the SGS that will
+    be used to identify it.  This name cannot contain spaces.  The <code>command</code>
+    attribute specifies the full path to the executable that will be run.  A short,
+    one-sentence description of the SGS can be placed in the optional
+    <code>description</code> tag.
+    </p>
+    <p>
+    The sub-tags (children) of the <code>&lt;gridservice&gt;</code> tag specify
+    different aspects of the Styx Grid Service.  Most SGSs will only require a
+    few of these tags to be used, as we shall see.  We shall now go through 
+    each of these tags in turn and describe how to use them.
+    </p>
+    
+    <subsection name="Parameters">
+    <p>
+    Parameters are values that are set before an SGS is run.  In the current system
+    the parameters translate directly into the command-line arguments for the 
+    underlying executable.  The parameters are specified 
+    between the <code>&lt;params&gt;</code> tags.  This is perhaps the most 
+    complicated part of the SGS configuration but hopefully you'll see that it's
+    not too difficult.  The <code>&lt;params&gt;</code> tag is a container for
+    zero or more <code>&lt;param&gt;</code> tags.  There is one <code>&lt;param&gt;</code>
+    tag for each command-line argument that the executable expects.
+    </p>
+    <p>
+    Each <code>&lt;param&gt;</code> tag must contain a set of attributes:
+    <table border="1">
+      <tbody>
+      <tr><th>Attribute</th><th>Possible values</th><th>Default value</th><th>Purpose</th></tr>
+      <tr><td>name</td><td>plain string, no spaces</td><td>None</td><td>Unique name for the parameter</td></tr>
+      <tr><td>paramType</td><td>&quot;switch&quot;, &quot;flaggedOption&quot; or &quot;unflaggedOption&quot;</td>
+            <td>None</td><td>Type of the parameter.  See below.</td></tr>
+      <tr><td>required</td><td>&quot;yes&quot; or &quot;no&quot;</td><td>&quot;no&quot;</td>
+            <td>Set to &quot;yes&quot; if a value for this parameter must be set.  This
+            is irrelevant when paramType=&quot;switch&quot;.</td></tr>
+      <tr><td>flag</td><td>single character</td><td>None</td>
+            <td>For switches and flaggedOptions, the short flag used to identify this parameter
+            (e.g. &quot;v&quot; for a parameter that is specified on the command line 
+            as &quot;-v&quot;)</td></tr>
+      <tr><td>longFlag</td><td>plain string, no spaces</td><td>None</td>
+            <td>For switches and flaggedOptions, the long flag used to identify this parameter
+            (e.g. &quot;verbose&quot; for a parameter that is specified on the command line 
+            as &quot;--verbose&quot;)</td></tr>
+      <tr><td>defaultValue</td><td>plain string</td><td>None</td>
+            <td>Default value for the parameter.  If this is set, the &quot;required&quot;
+            attribute is ignored: if the user does not set a value for a parameter, this default
+            value will be used instead</td></tr>
+      <tr><td>greedy</td><td>&quot;yes&quot; or &quot;no&quot;</td><td>&quot;no&quot;</td>
+            <td>Only meaningful for unflaggedOptions.  See below.</td></tr>
+      </tbody>
+    </table>
+    </p>
+    <p>
+    (The Java Simple Argument Parser, <a href="http://www.martiansoftware.com/jsap">JSAP</a>,
+    is used to handle command line arguments in both the SGS server and client code.
+    Therefore, the nomenclature used here reflects that used in JSAP.)  
+    Most of the attributes are explained adequately (I hope) in the above table.
+    However, some attributes require further explanation:
+    </p>
+    <p>
+    There are three parameter types that the SGS system
+    understands.  They are named after the differing means of specifying their
+    values on a command line through the use of arguments:
+    <ul>
+      <li>A <strong>switch</strong> is an parameter that can either be true or
+      false.  On the command line (i.e. when running the executable outside the 
+      SGS framework) switches are arguments (<em>flags</em>) such as &quot;-v&quot;
+      and &quot;--verbose&quot; whose presence alone is significant.  They do not
+      have an associated value.</li>
+      <li>A <strong>flaggedOption</strong> is like a switch but it has an associated
+      value.  On the command line this value is given by the token after the
+      flag: e.g. &quot;-n 5&quot; or &quot;--number=5&quot; are two different
+      ways of setting the value of a certain parameter to 5.</li>
+      <li>An <strong>unflaggedOption</strong> is a parameter whose value is given purely
+      by the position of its associated argument on the command line, relative to
+      other unflaggedOptions.  The final unflaggedOption can be marked as
+      <em>greedy</em>, meaning that it will consume the remainder of the
+      command line.</li>
+    </ul>
+    </p>
+    <p>
+    It probably helps to look at some examples here.  Let's say that we are 
+    wrapping an executable that reads a single input file and writes a single
+    output file.  The name of the input file is signified on the command line by the short flag &quot;-i&quot;
+    or the long flag &quot;--inputfile&quot;.  The name of the output file is
+    signified by the short flag &quot;-o&quot; or the long flag &quot;--outputfile&quot;.
+    Both of these arguments are compulsory.
+    The <code>&lt;params&gt;</code> tag in the configuration file would look like this:
+    <source>
+    <![CDATA[<params>
+      <param name="inputfile" paramType="flaggedOption" required="yes" 
+          flag="i" longFlag="inputfile"/>
+      <param name="outputfile" paramType="flaggedOption" required="yes"
+          flag="o" longFlag="outputfile"/>
+    </params>]]>
+    </source>
+    The usage of this executable is <code>myprog -i &lt;inputfile&gt; -o &lt;outputfile&gt;.</code>
+    </p>
+    <p>
+    Now let's look at an example in which we are wrapping an executable that 
+    reads a number of input files and writes a single output file.  In this case,
+    there are no command-line flags to help us: the first argument on the command
+    line gives the name of the output file and the remaining arguments are the names
+    of all the input files that must be read.
+    The <code>&lt;params&gt;</code> tag in the configuration file would look like this:
+    <source>
+    <![CDATA[<params>
+      <param name="outputfile" paramType="unflaggedOption" required="yes"/>
+      <param name="inputfiles" paramType="unflaggedOption" required="yes" greedy="yes"/>
+    </params>]]>
+    </source>
+    This time both parameters are unflaggedOptions (parameters whose value is found
+    by looking at a certain position on the command line).  The first argument
+    gives the name of the output file and the remaining arguments are consumed 
+    by the <code>inputfiles</code> parameter, which is set to be greedy.
+    </p>
+    <p>
+    As a final example, let's pretend that we are wrapping an executable (called <code>replaceInFiles</code>)
+    that searches for all instances of a certain string in a file and replaces those instances
+    with another string.  In addition, the user can tell the program to print
+    verbose debug information by specifying the argument "-v".  Here is an example
+    of running this executable from the command line:
+    <source>
+    replaceInFiles -i input.dat -o output.dat Hello Goodbye -v
+    </source>
+    This would replace all instances of &quot;Hello&quot; in the file <code>input.dat</code>
+    with the string &quot;Goodbye&quot; and write the result to <code>output.dat</code>.    
+    The <code>&lt;params&gt;</code> tag in the configuration file would look like this:
+    <source>
+    <![CDATA[<params>
+      <param name="verbose" paramType="switch" flag="v"/>
+      <param name="inputfile" paramType="flaggedOption" required="yes" flag="i"/>
+      <param name="outputfile" paramType="flaggedOption" required="yes" flag="o"/>
+      <param name="stringToFind" paramType="unflaggedOption" required="yes"/>
+      <param name="stringToReplace" paramType="unflaggedOption" required="yes"/>
+    </params>]]>
+    </source>
+    Not that only the order of the unflaggedOptions is important.  Switches
+    and flaggedOptions can be placed anywhere on the command line and can be
+    specified anywhere between the <code>&lt;params&gt;</code> tags.
+    </p>
+    </subsection>
+    
+    <subsection name="Inputs">
+    <p>
+    Having specified the parameters that the executable expects, you'll be glad
+    to know that we've done most of the hard work.  The next thing we specify in
+    the configuration file is the set of inputs from which the executable will read.
+    An executable (and therefore a Styx Grid Service) can read input data either
+    from its standard input stream or from files.  In the case of files, the names
+    of these files are either fixed or they can be set using a parameter (see above).
+    The inputs are specified between the <code>&lt;inputs&gt;</code> tags in the
+    configuration file.
+    </p>
+    <p>
+    The <code>&lt;inputs&gt;</code> tag is a container for
+    zero or more <code>&lt;input&gt;</code> tags, with one <code>&lt;input&gt;</code>
+    tag for each file or stream that provides input data.
+    Each <code>&lt;input&gt;</code> tag contains exactly two attributes:
+    <table border="1">
+      <tbody>
+      <tr><th>Attribute</th><th>Possible values</th><th>Default value</th><th>Purpose</th></tr>
+      <tr><td>type</td><td>&quot;stream&quot;, &quot;file&quot; or &quot;fileFromParam&quot;</td>
+            <td>&quot;file&quot;</td><td>Type of the input.  If <code>type=&quot;stream&quot;</code> then
+            the <code>name</code> must be &quot;stdin&quot;.  If the name of the file is
+            fixed then <code>type=&quot;file&quot;</code>.  If the name of the file is
+            specified by a command-line argument, then <code>type=&quot;fileFromParam&quot;</code>.</td></tr>
+      <tr><td>name</td><td>If <code>type=&quot;stream&quot;</code> then
+            <code>name</code> must be &quot;stdin&quot;.  If <code>type=&quot;fileFromParam&quot;</code>
+            then <code>name</code> must be equal to the name of one of the 
+            parameters and that parameter must not be a switch.  If
+            <code>type=&quot;file&quot;</code>, the name can be any string.</td>
+            <td>None</td><td>The name of the file or stream, or the parameter through which
+            the name is specified.</td></tr>
+      </tbody>
+    </table>
+    </p>
+    <p>
+    All file names are specified relative to the working directory of the executable.
+    This may seem a little confusing, and indeed the design here is probably not
+    optimal.  However, hopefully some examples will clear things up.  We'll look at
+    some examples when we've dealt with the <code>&lt;outputs&gt;</code> section of
+    the configuration file.
+    </p>
+    </subsection>
+    
+    <subsection name="Outputs">
+    <p>
+    Output files and streams are specified in a very similar way to input files.
+    An executable can output data as files or on one of its standard streams
+    (stdout and stderr).  In the case of output files, the names of these files
+    can be fixed or specified by the value of a parameter.
+    </p>
+    <p>
+    The <code>&lt;outputs&gt;</code> tag is a container for
+    zero or more <code>&lt;output&gt;</code> tags, with one <code>&lt;output&gt;</code>
+    tag for each file or stream that contains output data.
+    Each <code>&lt;output&gt;</code> tag contains exactly two attributes:
+    <table border="1">
+      <tbody>
+      <tr><th>Attribute</th><th>Possible values</th><th>Default value</th><th>Purpose</th></tr>
+      <tr><td>type</td><td>&quot;stream&quot;, &quot;file&quot; or &quot;fileFromParam&quot;</td>
+            <td>&quot;file&quot;</td><td>Type of the input.  If <code>type=&quot;stream&quot;</code> then
+            the <code>name</code> must be &quot;stdout&quot; or &quot;stderr&quot;.  If the name of the file is
+            fixed then <code>type=&quot;file&quot;</code>.  If the name of the file is
+            specified by a command-line argument, then <code>type=&quot;fileFromParam&quot;</code>.</td></tr>
+      <tr><td>name</td><td>If <code>type=&quot;stream&quot;</code> then
+            <code>name</code> must be &quot;stdout&quot; or &quot;stderr&quot;.
+            If <code>type=&quot;fileFromParam&quot;</code>
+            then <code>name</code> must be equal to the name of one of the 
+            parameters, and that parameter must not be a switch.  If
+            <code>type=&quot;file&quot;</code>, the name can be any string.</td>
+            <td>None</td><td>The name of the file or stream, or the parameter through which
+            the name is specified.</td></tr>
+      </tbody>
+    </table>
+    All file names are specified relative to the working directory of the executable.
+    </p>
+    </subsection>
+    
+    <subsection name="Service Data">
+    <p>
+    Service data is information about the state of a particular Styx Grid Service
+    instance.  For example, the status of a service is represented by a service 
+    data element (SDE), which can contain values such as "created", "running" and "finished".
+    The &quot;status&quot; SDE is built in to the system and the user does not need to specify
+    it in the configuration file.  It is possible for users to create their own
+    service data elements but this is considered an &quot;advanced&quot; topic and
+    will not be described here (yet).
+    </p> 
+    </subsection>
+    
+    <subsection name="Steerable parameters">
+    <p>
+    With some programs (e.g. fluid dynamics simulations) it is possible to 
+    adjust the values of some parameters while the program is running.  The
+    <code>&lt;steering&gt;</code> section of the configuration file allows this
+    to be set up, but again this is an &quot;advanced&quot; (and rarely-used) topic and
+    will not be described here at the moment.
+    </p>
+    </subsection>
+    
+    <subsection name="Documentation">
+    <p>
+    The Styx Grid Service framework allows service providers to provide access
+    to free-form documentation about each service.  This is specified between
+    the <code>&lt;docs&gt;</code> tags in the configuration file.  The 
+    <code>&lt;docs&gt;</code> tag is a container for zero or more 
+    <code>&lt;doc&gt;</code> tags.  Each <code>&lt;doc&gt;</code> tag is a file
+    or directory that contains documentation: if it represents a directory then
+    all the files under that directory will be exposed for reading by clients.
+    </p>
+    <p>
+    The specification of the <code>&lt;doc&gt;</code> tag is very simple:
+    <table border="1">
+      <tbody>
+      <tr><th>Attribute</th><th>Possible values</th><th>Default value</th><th>Purpose</th></tr>
+      <tr><td>location</td><td>valid path</td><td>None</td><td>Full path to the documentation
+      file or directory.</td></tr>
+      <tr><td>name</td><td>plain string</td><td>None</td><td>(Optional) An alias for
+      the name of the file or directory.  The value of this attribute will be used as the name
+      of the file from the point of view of clients.</td></tr>
+      </tbody>
+    </table>
+    </p>
+    <p>
+    For example, let's say that we want to expose two documentation elements.  The
+    first is a directory of documentation files (say, a set of Word documents that
+    describe the operation of the executable).  The second is a simple one-paragraph
+    description of the executable that is called "description.txt" in real life,
+    but we want to expose it with the name "README".  The documentation part of
+    the configuration file would look like this:
+    <source>
+    <![CDATA[<docs>
+      <doc location="c:\myprog\docs\">
+      <doc location="c:\myprog\description.txt" name="README">
+    </docs>]]>
+    </source>
+    </p>
+    </subsection>
+    
+    </section>
+    
+    <section name="Examples">
+    <p>
+    OK, we've gone through the nuts and bolts of the Styx Grid Service configuration
+    file in some detail.  Let's put it all together with a couple of examples.
+    The sections you will have to worry about most are the parameters and the input
+    and output files.  Other sections are used a lot less, so it is those three
+    sections which we shall focus on here.
+    </p>
+    
+    <subsection name="Example 1: a simple Unix filter">
+    <p>
+    As a first example, let's look at how we expose a very simple program as a
+    Styx Grid Service.  We'll take the example of the <code>md5sum</code> program,
+    a program found on most Unix-like systems.  The <code>md5sum</code> program
+    reads data from its standard input and calculates a &quot;digest&quot; of the data
+    in the form of a large number which is printed out (usually as a hexadecimal
+    string) to its standard output.  (The MD5 digest is usually used as a &quot;checksum&quot;:
+    the MD5 digest of a file is a large number that is highly unlikely to have been
+    produced by any other file.).  Programs that behave in this way (i.e. that read
+    data from standard input and write data to standard output) are sometimes
+    known as <em>filters</em>.
+    </p>
+    <p>
+    The entire configuration file that is required to expose the <code>md5sum</code>
+    program as a Styx Grid Service is as follows:
+    <source>
+    <![CDATA[<sgs>
+    
+      <server port="9092"/>
+      
+      <gridservices root="/home/jon/StyxGridServices">
+      
+        <gridservice name="md5sum" command="/usr/bin/md5sum"
+            description="Calculates the MD5 checksum of data that are read from standard input">
+          
+          <inputs>
+            <input type="stream" name="stdin"/>
+          </inputs>
+          
+          <outputs>
+            <output type="stream" name="stdout"/>
+            <output type="stream" name="stderr"/>
+          </outputs>
+          
+        </gridservice>
+        
+      </gridservices>
+      
+    </sgs>]]>
+    </source>
+    Working down this file: we specify that we want the SGS server to listen on
+    port 9092 and we say that we want to use the <code>/home/jon/StyxGridServices</code>
+    directory to hold persistent information about all the service instances.
+    We specify a single Styx Grid Service called <code>md5sum</code> and specify
+    the full path to the executable that we are wrapping.  The SGS takes no
+    parameters, but reads data from its standard input and writes data to its
+    standard output and standard error streams.
+    </p>
+    </subsection>
+    
+    <subsection name="Example 2: replaceInFiles">
+    <p>
+    In the &quot;Parameters&quot; section above we specified the parameters taken
+    by an executable that reads an input file, replaces all instances of one string
+    with another, then writes the resulting output file.  We've actually already done
+    the hardest bit of creating the configuration file in this case: all we need
+    to do now is to specify the input and output file in the configuration 
+    document.  The information below must be placed within the <code>&lt;gridservices&gt;</code>
+    tag in a complete configuration file such as that given in example 1 above:
+    <source>
+    <![CDATA[<gridservice name="replaceInFiles" command="C:\path\to\replaceInFiles.exe"
+        description="Finds and replaces a string in a file">
+            
+      <params>
+        <param name="verbose" paramType="switch" flag="v"/>
+        <param name="inputfile" paramType="flaggedOption" required="yes" flag="i"/>
+        <param name="outputfile" paramType="flaggedOption" required="yes" flag="o"/>
+        <param name="stringToFind" paramType="unflaggedOption" required="yes"/>
+        <param name="stringToReplace" paramType="unflaggedOption" required="yes"/>
+      </params>
+          
+      <inputs>
+        <input type="fileFromParam" name="inputfile"/>
+      </inputs>
+          
+      <outputs>
+        <output type="fileFromParam" name="outputfile"/>
+      </outputs>
+          
+    </gridservice>]]>
+    </source>
+    We've already described the parameters above.  All we have done is to state
+    that the executable expects one input file, whose name will be given by the
+    value of the parameter called &quot;inputfile&quot;.  Furthermore, we state
+    that the executable writes a single output file, whose name is given by the 
+    value of the parameter called &quot;outputfile&quot;.
+    </p>
+    </subsection>
+    </section>
+  </body>
+</document>
