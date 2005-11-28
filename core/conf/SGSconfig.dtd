@@ -88,8 +88,8 @@
 <!ELEMENT docs (doc*)>
 <!ELEMENT doc EMPTY>
 <!ATTLIST doc
-    name CDATA #IMPLIED
     location CDATA #REQUIRED
+    name CDATA #IMPLIED
   >
   
 <!-- Element describing service data -->
@@ -100,18 +100,6 @@
     minUpdateInterval CDATA "2.0"
     file CDATA #IMPLIED
   >
-  
-<!-- Element describing input files required by the executable -->
-<!ELEMENT inputfiles (inputfile*)>
-<!-- defines whether or not files other than the compulsory ones can be uploaded -->
-<!ATTLIST inputfiles
-    allowOthers (yes | no) #REQUIRED
-  >
-<!-- A compulsory file that must be uploaded -->
-<!ELEMENT inputfile EMPTY>
-<!ATTLIST inputfile
-    path CDATA #REQUIRED
-  >
 
 <!-- Element that defines a Styx Grid Service -->
 <!-- The description of the service will automatically appear as a file called
@@ -120,7 +108,7 @@
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED
-    description CDATA #REQUIRED
+    description CDATA #IMPLIED
   >
   
 <!--- The gridservices tag can contain zero or more gridservices -->
@@ -138,7 +126,7 @@
 <!ATTLIST ssl
     activated (yes | no) #REQUIRED
   >
-<!ELEMENT server (ssl)>
+<!ELEMENT server (ssl?)>
 <!-- TODO: any way to force port to be a positive integer? -->
 <!ATTLIST server
     port CDATA #REQUIRED
