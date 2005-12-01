@@ -33,12 +33,15 @@ import org.dom4j.Node;
 /**
  * Class containing information about an output file or stream that is exposed by
  * the SGS.
- * @todo: this is virtually identical to SGSInput - can we refactor?
+ * @todo this is virtually identical to SGSInput - can we refactor?
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/12/01 08:36:26  jonblower
+ * Fixed javadoc comment
+ *
  * Revision 1.2  2005/11/10 08:55:55  jonblower
  * Changed to mirror SGSInput
  *
