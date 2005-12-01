@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/12/01 17:17:07  jonblower
+ * Simplifying client interface to SGS instances
+ *
  * Revision 1.2  2005/12/01 08:21:56  jonblower
  * Fixed javadoc comments
  *
@@ -110,63 +113,21 @@ public interface SGSInstanceClientChangeListener
     /**
      * Called when the given service data element changes
      */
-    public void serviceDataChanged(String sdName, String newData);
-    
-    /**
-     * Called when we have got the service data elements
-     * @param sdeFiles The CStyxFiles representing the SDEs.
-     */
-    public void gotServiceDataElements(CStyxFile[] sdeFiles);
-    
-    /**
-     * Called when we have got the names of the input streams
-     * @param inputStreams The CStyxFiles representing the input streams
-     */
-    public void gotInputStreams(CStyxFile[] inputStreams);
-    
-    /**
-     * Called when we have discovered the input files that the service instance
-     * expects.
-     * @param inputFiles Array of CStyxFiles representing all the compulsory
-     * input files that must be uploaded to the service
-     * @param allowOtherInputFiles If true, we will have the option of uploading
-     * other input files to the service instance
-     */
-    //public void gotInputFiles(CStyxFile[] inputFiles, boolean allowOtherInputFiles);
-    
-    /**
-     * Called when we have got the output streams that can be viewed
-     * @param outputStreams Array of CStyxFiles representing the output streams
-     */
-    public void gotOutputStreams(CStyxFile[] outputStreams);
-    
-    /**
-     * Called when we have got the list of parameters expected by the SGS
-     * @param paramFiles CStyxFiles representing the parameters
-     */
-    public void gotParameters(CStyxFile[] paramFiles);
+    public void gotServiceDataValue(String sdName, String newData);
     
     /**
      * Called when we have a new value for a parameter
-     * @param index Index of the parameter in the array of parameters previously
-     * returned by the gotParameters() event
+     * @param name Name of the parameter
      * @param value The new value of the parameter
      */
-    public void gotParameterValue(int index, String value);
-    
-    /**
-     * Called when we have got the list of steerable parameters
-     * @param steerableFiles CStyxFiles representing the parameters
-     */
-    public void gotSteerableParameters(CStyxFile[] steerableFiles);
+    public void gotParameterValue(String name, String value);
     
     /**
      * Called when we have a new value for a steerable parameter
-     * @param index Index of the parameter in the array of parameters previously
-     * returned by the gotParameters() event
+     * @param name Name of the parameter
      * @param value The new value of the parameter
      */
-    public void gotSteerableParameterValue(int index, String value);
+    public void gotSteerableParameterValue(String name, String value);
     
     /**
      * Called when we have a new command line string (for debug purposes)

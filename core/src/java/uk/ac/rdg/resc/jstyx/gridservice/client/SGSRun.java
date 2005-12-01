@@ -70,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2005/12/01 17:17:07  jonblower
+ * Simplifying client interface to SGS instances
+ *
  * Revision 1.9  2005/12/01 08:29:47  jonblower
  * Refactored XML config handling to simplify clients
  *
@@ -151,6 +154,55 @@ public class SGSRun extends CStyxFileChangeAdapter
         
         // Get the configuration of this SGS
         this.config = this.sgsClient.getConfig();
+    }
+    
+    /**
+     * Gets the JSAP object from the config object and adds the extra parameters
+     * we need to parse the command line
+     */
+    private JSAP getJSAP() throws StyxException
+    {
+        // Get a JSAP object that can parse the command line
+        JSAP jsap = this.config.getParamParser();
+        // Add extra parameters
+        try
+        {
+            // Add a switch to allow the user to print out a help message for this SGS
+            jsap.registerParameter(new Switch(HELP, JSAP.NO_SHORTFLAG, HELP,
+                "Set this switch to print out a short help message"));
+            // Add a switch to allow the user to print out a verbose help message for this SGS
+            jsap.registerParameter(new Switch(VERBOSE_HELP, JSAP.NO_SHORTFLAG, VERBOSE_HELP,
+                "Set this switch to print out a long help message"));
+            // Add a switch to enable debugging messages to be printed to stdout
+            jsap.registerParameter(new Switch(DEBUG, JSAP.NO_SHORTFLAG, DEBUG,
+                "Set this switch in order to enable printing of debug messages"));
+            // Add a switch to allow outputting of references to files instead of
+            // the actual files themselves
+            jsap.registerParameter(new Switch(OUTPUT_REFS, JSAP.NO_SHORTFLAG, OUTPUT_REFS,
+                "Set this switch in order to get URLs to all output files rather than actual files"));
+            
+            // Add a parameter for each fixed input file so that the user can set the
+            // URL with an argument like --input.txt-ref=
+            Vector inputs = this.config.getInputs();
+            for (int i = 0; i < inputs.size(); i++)
+            {
+                SGSInput input = (SGSInput)inputs.get(i);
+                if (input.getType() == SGSInput.FILE)
+                {
+                    jsap.registerParameter(new FlaggedOption(input.getName() + "-ref",
+                        JSAP.STRING_PARSER, null, false, JSAP.NO_SHORTFLAG,
+                        input.getName() + "-ref",
+                        "If set, will cause the input file " + input.getName() +
+                        " to be uploaded from the given URL"));
+                }
+            }
+        }
+        catch (JSAPException jsape)
+        {
+            throw new StyxException(jsape.getMessage());
+        }
+        
+        return jsap;
     }
     
     /**
@@ -246,55 +298,6 @@ public class SGSRun extends CStyxFileChangeAdapter
             }
             throw new StyxException(errMsg);
         }
-    }
-    
-    /**
-     * Gets the JSAP object from the config object and adds the extra parameters
-     * we need to parse the command line
-     */
-    private JSAP getJSAP() throws StyxException
-    {
-        JSAP jsap = this.config.getParamParser();
-        // Add a switch that the user can set to force all outputs to be URLs,
-        // not actual content
-        try
-        {
-            // Add a switch to allow the user to print out a help message for this SGS
-            jsap.registerParameter(new Switch(HELP, JSAP.NO_SHORTFLAG, HELP,
-                "Set this switch to print out a short help message"));
-            // Add a switch to allow the user to print out a verbose help message for this SGS
-            jsap.registerParameter(new Switch(VERBOSE_HELP, JSAP.NO_SHORTFLAG, VERBOSE_HELP,
-                "Set this switch to print out a long help message"));
-            // Add a switch to enable debugging messages to be printed to stdout
-            jsap.registerParameter(new Switch(DEBUG, JSAP.NO_SHORTFLAG, DEBUG,
-                "Set this switch in order to enable printing of debug messages"));
-            // Add a switch to allow outputting of references to files instead of
-            // the actual files themselves
-            jsap.registerParameter(new Switch(OUTPUT_REFS, JSAP.NO_SHORTFLAG, OUTPUT_REFS,
-                "Set this switch in order to get URLs to all output files rather than actual files"));
-            // Add a parameter for each fixed input file so that the user can set the
-            // URL with an argument like --input.txt-ref=
-            Vector inputs = this.config.getInputs();
-            for (int i = 0; i < inputs.size(); i++)
-            {
-                SGSInput input = (SGSInput)inputs.get(i);
-                if (input.getType() == SGSInput.FILE)
-                {
-                    FlaggedOption fo = new FlaggedOption(input.getName() + "-ref",
-                        JSAP.STRING_PARSER, null, false, JSAP.NO_SHORTFLAG,
-                        input.getName() + "-ref",
-                        "If set, will cause the input file " + input.getName() +
-                        " to be uploaded from the given URL");
-                    jsap.registerParameter(fo);
-                }
-            }
-        }
-        catch (JSAPException jsape)
-        {
-            throw new StyxException(jsape.getMessage());
-        }
-        
-        return jsap;
     }
     
     /**
@@ -464,7 +467,7 @@ public class SGSRun extends CStyxFileChangeAdapter
     private void readOutputStreams() throws StyxException
     {
         // Get handles to the output streams and register this class as a listener
-        this.osFiles = this.instanceClient.getOutputStreams();
+        this.osFiles = this.instanceClient.getOutputs();
         this.outputStreams = new Hashtable()/*<CStyxFile, PrintStream>*/;
         for (int i = 0; i < osFiles.length; i++)
         {

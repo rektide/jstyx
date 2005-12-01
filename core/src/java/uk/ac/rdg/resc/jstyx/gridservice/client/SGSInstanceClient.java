@@ -56,8 +56,8 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.40  2005/12/01 08:34:41  jonblower
- * Deleted unnecessary code
+ * Revision 1.41  2005/12/01 17:17:07  jonblower
+ * Simplifying client interface to SGS instances
  *
  * Revision 1.39  2005/11/11 21:57:21  jonblower
  * Implemented passing of URLs to input files
@@ -185,33 +185,37 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private CStyxFile ctlFile;      // The file that we use to stop, start and
                                     // destroy the instance
     
+    // Hashtable of StringBuffers, one for each CStyxFile that is being read
+    // continuously in an asynchronous fashion (see this.readDataAsync())
+    private Hashtable/*<CStyxFile, StringBuffer>*/ bufs;
+    
     // State data
     private CStyxFile sdeDir; // serviceData directory for the instance
     private CStyxFile[] serviceDataFiles;
-    private StringBuffer[] sdeBufs; // Temporary buffers for each service data element
-    private boolean readingServiceData; // True if we are already reading service data
+    //private StringBuffer[] sdeBufs; // Temporary buffers for each service data element
+    //private boolean readingServiceData; // True if we are already reading service data
     private Hashtable sdeValues; // Hashtable of service data values, keyed by the
                                  // names of the service data files
     private long sdeValuesVersion; // Version of this Hashtable
     private long sdeValuesVersionLastRead; // Version of this Hashtable on the last read
     
     // Input files and streams
-    private CStyxFile inputStreamsDir;
+    private CStyxFile inputsDir;
+    private CStyxFile[] inputFiles;
     
     // Output streams
-    private CStyxFile outputStreamsDir;
+    private CStyxFile outputsDir;
+    private CStyxFile[] outputFiles;
     private Hashtable activeStreams;
     
     // Parameters
     private CStyxFile paramsDir;
     private CStyxFile[] paramFiles;
-    private StringBuffer[] paramBufs; // Temporary contents for each parameter value
     private boolean readingParameters;
     
     // Steerable parameters
     private CStyxFile steeringDir;
     private CStyxFile[] steeringFiles;
-    private StringBuffer[] steeringBufs; // Temporary contents for each parameter value
     
     // Command line file: used to read command line for debugging
     private CStyxFile cmdLineFile;
@@ -230,23 +234,19 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.ctlFile = this.instanceRoot.getFile("ctl");
         this.ctlFile.addChangeListener(this);
         
-        // Create the directory that will hold the input files
-        this.inputStreamsDir = this.instanceRoot.getFile("/inputs");
-        this.inputStreamsDir.addChangeListener(this);
+        // Get the directory that holds the input files
+        this.inputsDir = this.instanceRoot.getFile("inputs");
         
-        // Create the directory that we will read to find the output streams
-        this.outputStreamsDir = this.instanceRoot.getFile("/outputs");
-        this.outputStreamsDir.addChangeListener(this);
+        // Get the directory that holds the output files
+        this.outputsDir = this.instanceRoot.getFile("outputs");
         this.activeStreams = new Hashtable();
         
-        // Create the directory that we will read to find the parameters
+        // Get the directory that holds the parameters
         this.paramsDir = this.instanceRoot.getFile("params");
-        this.paramsDir.addChangeListener(this);
         this.readingParameters = false;
         
-        // Create the directory that we will read to find the steerable parameters
+        // Get the directory that holds the steerable parameters
         this.steeringDir = this.instanceRoot.getFile("steering");
-        this.steeringDir.addChangeListener(this);
         
         // We will read this file to get the command line
         this.cmdLineFile = this.instanceRoot.getFile("commandline");
@@ -255,12 +255,11 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         
         // We will read this directory to find the service data offered by the SGS
         this.sdeDir = this.instanceRoot.getFile("serviceData");
-        this.sdeDir.addChangeListener(this);
         this.sdeValues = new Hashtable();
         this.sdeValuesVersion = 0;
         this.sdeValuesVersionLastRead = 0;
-        this.readingServiceData = false;
         
+        this.bufs = new Hashtable();
         this.changeListeners = new Vector();
     }
     
@@ -310,70 +309,52 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Sends a message to get the names of the service data elements for this instance.
-     * When the SDEs have arrived, the gotServiceDataNames() event will be fired.
+     * @return Array of CStyxFiles, one for each element of service data that
+     * can be read.  The first time this method is called it will query the
+     * server with a blocking call.  Subsequent calls will not block.
+     * @throws StyxException if there was an error getting the service
+     * data files.
      */
-    public void getServiceDataNames()
+    public CStyxFile[] getServiceDataFiles() throws StyxException
     {
-        // When the contents of the directory have been found, the childrenFound
-        // method of this class will be called.
-        this.sdeDir.getChildrenAsync();
-    }
-    
-    /**
-     * @return the directory to which input files can be written.  This method
-     * will never block.
-     */
-    public CStyxFile getInputStreamsDir()
-    {
-        return this.inputStreamsDir;
-    }
-    
-    /**
-     * Sends a message to get the possible input streams for this instance.
-     * This reads the contents of the "io/in" directory.  This method
-     * does not block: when the available output streams have been read, the 
-     * gotInputStreams() event will be fired on all registered change listeners
-     */
-    public void getInputStreamsAsync()
-    {
-        // When the contents of the directory have been found, the childrenFound
-        // method of this class will be called.
-        // TODO: remove the urls/ file from this array
-        this.inputStreamsDir.getChildrenAsync();
-    }
-    
-    /**
-     * @return Array of CStyxFiles, one for each input stream to which data
-     * can be written
-     * @throws StyxException if there was an error retrieving the data
-     */
-    public CStyxFile[] getInputStreams() throws StyxException
-    {
-        CStyxFile[] children = this.inputStreamsDir.getChildren();
-        // We don't include the urls/ file in this array
-        // TODO: this code is a bit ugly - should use a Vector?
-        CStyxFile[] newChildren = new CStyxFile[children.length - 1];
-        int j = 0;
-        for (int i = 0; i < children.length; i++)
+        if (this.serviceDataFiles == null)
         {
-            if (!children[i].getName().equals(".urls"))
-            {
-                newChildren[j] = children[i];
-                j++;
-            }
+            this.serviceDataFiles = this.sdeDir.getChildren();
         }
-        return newChildren;
+        return this.serviceDataFiles;
     }
     
     /**
-     * @return Handle to the input stream with the given name.  This method
-     * does not check that the input stream actually exists!  This method will
-     * not block.
+     * @return Array of CStyxFiles, one for each input stream or file to which data
+     * can be written.  The first time this method is called it will request
+     * the data from the server with a blocking read.  Subsequent calls will 
+     * just return the data without blocking.
+     * @throws StyxException if there was an error retrieving the data from the
+     * server
      */
-    public CStyxFile getInputStream(String name)
+    public CStyxFile[] getInputs() throws StyxException
     {
-        return this.inputStreamsDir.getFile(name);
+        return this.getInputs(false);
+    }
+    
+    /**
+     * Gets the files to which input data can be written.
+     * @param force Force a fresh query of the server (in case input files have
+     * changed, which can happen if a parameter value has been updated).
+     * @return Array of CStyxFiles, one for each input stream or file to which data
+     * can be written.  If force==false, the first time this method is called it will request
+     * the data from the server with a blocking read.  Subsequent calls will 
+     * just return the data without blocking.
+     * @throws StyxException if there was an error retrieving the data from the
+     * server
+     */
+    public CStyxFile[] getInputs(boolean force) throws StyxException
+    {
+        if (this.inputFiles == null || force)
+        {
+            this.inputFiles = this.inputsDir.getChildren();
+        }
+        return this.inputFiles;
     }
     
     /**
@@ -397,49 +378,18 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Sets all the command-line arguments of the service instance at once.
-     * @param args The command-line arguments (does not include the name of the
-     * executable itself)
+     * @return Array of CStyxFiles, one for each output stream or file from which data
+     * can be read.  The first time this method is called it will request
+     * the data from the server with a blocking read.  Subsequent calls will 
+     * just return the data without blocking.
      */
-    public void setCommandLineArgs(String args) throws StyxException
+    public CStyxFile[] getOutputs() throws StyxException
     {
-        this.cmdLineFile.setContents(args);
-    }
-    
-    /**
-     * Sends a message to get the output streams that can be read.  This method
-     * does not block: when the available output streams have been read, the 
-     * gotOutputStreams() event will be fired on all registered change listeners
-     */
-    public void getOutputStreamsAsync()
-    {
-        this.outputStreamsDir.getChildrenAsync();
-    }
-    
-    /**
-     * @return Array of CStyxFiles, one for each output stream from which data
-     * can be read
-     * @throws StyxException if there was an error retrieving the data
-     */
-    public CStyxFile[] getOutputStreams() throws StyxException
-    {
-        return this.outputStreamsDir.getChildren();
-    }
-    
-    /**
-     * @return Array of CStyxFiles representing the service data elements of the
-     * SGS.  The first time this method is called, the server will be queried -
-     * this operation might block, and might throw a StyxException if an error
-     * occurs.  Subsequent calls to this method do nothing.
-     * @todo Merge functionality with getServiceDataNames()
-     */
-    public CStyxFile[] getServiceDataFiles() throws StyxException
-    {
-        if (this.serviceDataFiles== null)
+        if (this.outputFiles == null)
         {
-            this.serviceDataFiles = this.sdeDir.getChildren();
+            this.outputFiles = this.outputsDir.getChildren();
         }
-        return this.serviceDataFiles;
+        return this.outputFiles;
     }
     
     /**
@@ -451,13 +401,13 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * <p>The procedure followed is to open each file for reading, then send
      * a message to read each file, returning the data when it arrives.  The
      * files are <b>not</b> closed between calls to this function (but they might
-     * be closed through the use of other functions</p>
+     * be closed through the use of other functions)</p>
      */
     public Hashtable getServiceDataValues() throws StyxException
     {
         // Start reading the service data.  If we have already called this,
         // this will do nothing.
-        this.readAllServiceDataAsync();
+        this.readDataAsync(this.getServiceDataFiles());
         log.debug("Getting service data");
         log.debug("Version: " + sdeValuesVersion + ", Version last read: "
             + sdeValuesVersionLastRead);
@@ -489,23 +439,61 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Sends message(s) to read all the service data elements.  This method only
-     * needs to be called once (subsequent calls will do nothing) as the service
-     * data are continously read.  Each time an element of service data changes,
-     * the serviceDataChanged() event will be fired on all registered change
-     * listeners.
+     * <p>Read data in an asynchronous manner from all the files in the input array.
+     * This can be used to read from parameter files, steerable parameter files,
+     * service data files or the command line file.  Unpredictable results may
+     * occur if other files are passed to this method.</p>
+     * <p>The behaviour of this is as follows: A message is sent to all files 
+     * in the input array to start reading.  When the file has been completely
+     * read, the appropriate event will be fired on all registered change listeners:
+     * </p>
+     * <table><tbody><tr><th>File type</th><th>Event fired</th></tr>
+     * <tr><td>Parameter</td><td>gotParameterValue()</td></tr>
+     * <tr><td>Service data</td><td>gotServiceDataValue()</td></tr>
+     * <tr><td>Steerable parameter</td><td>gotSteerableParameterValue()</td></tr>
+     * <tr><td>Command line</td><td>gotCommandLine()</td></tr></tbody></table>
+     * <p>The reading of the file will go on <b>indefinitely</b> (i.e. until the
+     * connection is closed - TODO: should stop when service stops).  When each
+     * file has been completely read, it will immediately be read again from the
+     * beginning.  This method therefore only needs to be called <b>once</b>
+     * for each input file.</p>
      */
-    public void readAllServiceDataAsync()
+    public void readDataAsync(CStyxFile[] files)
     {
-        if (!this.readingServiceData)
+        for (int i = 0; i < files.length; i++)
         {
-            this.readingServiceData = true;
-            // Get the children of the service data dir.  When the reply arrives, we will
-            // fire the gotServiceDataElements() event, then read the values of the 
-            // service data.
-            log.debug("Sending message to get children of SDE directory");
-            this.sdeDir.getChildrenAsync();
+            this.readDataAsync(files[i]);
         }
+    }
+    
+    /**
+     * <p>Read data in an asynchronous manner from the given file.
+     * This can be used to read from parameter files, steerable parameter files,
+     * service data files or the command line file.  Unpredictable results may
+     * occur if other files are passed to this method.</p>
+     * <p>The behaviour of this is as follows: A message is sent to all files 
+     * in the input array to start reading.  When the file has been completely
+     * read, the appropriate event will be fired on all registered change listeners:
+     * </p>
+     * <table><tbody><tr><th>File type</th><th>Event fired</th></tr>
+     * <tr><td>Parameter</td><td>gotParameterValue()</td></tr>
+     * <tr><td>Service data</td><td>gotServiceDataValue()</td></tr>
+     * <tr><td>Steerable parameter</td><td>gotSteerableParameterValue()</td></tr>
+     * <tr><td>Command line</td><td>gotCommandLine()</td></tr></tbody></table>
+     * <p>The reading of the file will go on <b>indefinitely</b> (i.e. until the
+     * connection is closed - TODO: should stop when service stops).  When each
+     * file has been completely read, it will immediately be read again from the
+     * beginning.  This method therefore only needs to be called <b>once</b>
+     * for each input file.</p>
+     */
+    public void readDataAsync(CStyxFile file)
+    {
+        // Create a StringBuffer to hold the data from this file, then put it
+        // in the Hashtable, keyed by this file
+        this.bufs.put(file, new StringBuffer());
+        // TODO: check that the input file is of the right type
+        file.addChangeListener(this);
+        file.readAsync(0);
     }
     
     /**
@@ -536,53 +524,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             this.steeringFiles = this.steeringDir.getChildren();
         }
         return this.steeringFiles;
-    }
-    
-    /**
-     * @return Handle to the output stream with the given name.  This method
-     * does not check that the output stream actually exists!  This method will
-     * not block.
-     */
-    public CStyxFile getOutputStream(String name)
-    {
-        return this.outputStreamsDir.getFile(name);
-    }
-    
-    /**
-     * First sends a message to get the parameters of the SGS.  When this arrives,
-     * sends messages to read the parameter values.  When we have got the list
-     * of available parameters, the gotParameters() event will be fired.  When
-     * the value of a parameter arrives, the gotParameterValue() event will be
-     * fired.  Having called this method once, clients will continue to receive
-     * updates to parameter values without making any more requests.
-     */
-    public void readAllParametersAsync()
-    {
-        if (!this.readingParameters)
-        {
-            this.readingParameters = true;
-            // Get the children of the params dir.  When the reply arrives, we will
-            // fire the gotParameters() event, then read the values of the 
-            // parameters.
-            this.paramsDir.getChildrenAsync();
-        }
-    }
-    
-    /**
-     * First sends a message to get the steerable parameters of the SGS.  When
-     * this arrives, sends messages to read the steerable parameter values.
-     * When we have got the list of available parameters, the gotSteerables()
-     * event will be fired.  When the value of a steerable parameter arrives, the
-     * gotSteerableValue() event will be fired.  Having called this method once,
-     * clients will continue to receive updates to steerable parameter values
-     * without making any more requests.
-     */
-    public void readAllSteeringParamsAsync()
-    {
-        // Get the children of the params dir.  When the reply arrives, we will
-        // fire the gotParameters() event, then read the values of the 
-        // parameters.
-        this.steeringDir.getChildrenAsync();
     }
     
     /**
@@ -622,139 +563,59 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Called when a file has been opened.
-     * @param file The file that has been opened
-     * @param mode The mode with which the file was opened
-     */
-    public void fileOpen(CStyxFile file, int mode)
-    {
-        // At the moment, this is only called when we have opened a parameter
-        // file (steerable or otherwise) or a service data file for reading and
-        // writing. We immediately start reading from the file
-        file.readAsync(0);
-    }
-    
-    /**
-     * Called when new data has been read from a file (after the Rread message
-     * arrives).
+     * This is called when we have read data asynchronously using readDataAsync().
      */
     public synchronized void dataArrived(CStyxFile file, TreadMessage tReadMsg,
         ByteBuffer data)
     {
-        if (data.remaining() > 0)
+        // Get the StringBuffer that belongs to this file
+        Object objBuf = this.bufs.get(file);
+        if (objBuf == null || !(objBuf instanceof StringBuffer))
         {
-            // Calculate the offset of the next read
-            long offset = tReadMsg.getOffset().asLong() + data.remaining();
-            boolean fileFound = false;
-            // Update the relevant buffer
-            // First see if this is the command line file
-            if (file == this.cmdLineFile)
-            {
-                this.cmdLineBuf.append(StyxUtils.dataToString(data));
-                fileFound = true;
-            }
-            // Next see if this was a service data file
-            if (this.serviceDataFiles != null)
-            {
-                for (int i = 0; i < this.serviceDataFiles.length && !fileFound; i++)
-                {
-                    if (file == this.serviceDataFiles[i])
-                    {
-                        this.sdeBufs[i].append(StyxUtils.dataToString(data));
-                        fileFound = true;
-                    }
-                }
-            }
-            // Next see if this was a parameter file
-            if (this.paramFiles != null)
-            {
-                for (int i = 0; i < this.paramFiles.length && !fileFound; i++)
-                {
-                    if (file == this.paramFiles[i])
-                    {
-                        this.paramBufs[i].append(StyxUtils.dataToString(data));
-                        fileFound = true;
-                    }
-                }
-            }
-            // Finally see if this was a steerable parameter file
-            if (this.steeringFiles != null)
-            {
-                for (int i = 0; i < this.steeringFiles.length && !fileFound; i++)
-                {
-                    if (file == this.steeringFiles[i])
-                    {
-                        this.steeringBufs[i].append(StyxUtils.dataToString(data));
-                        fileFound = true;
-                    }
-                }
-            }
-            // Read the next chunk of data from the file, whatever it was
-            file.readAsync(offset);
+            // This should never happen
+            log.warn("Internal error: objBuf = null or is not a StringBuffer");
         }
         else
         {
-            // We have zero bytes from the file (i.e. EOF)
-            // If this is the command line file, a service data file or a
-            // parameter file, we start reading from
-            // the start of the file again: that way, clients always get updates
-            boolean readAgain = false;
-            boolean fileFound = false;
-            if (file == this.cmdLineFile)
+            StringBuffer strBuf = (StringBuffer)objBuf;
+            if (data.remaining() > 0)
             {
-                readAgain = true;
-                this.fireGotCommandLine(this.cmdLineBuf.toString());
-                this.cmdLineBuf.setLength(0);
-                fileFound = true;
-            }
-            if (this.serviceDataFiles != null)
-            {
-                for (int i = 0; i < this.serviceDataFiles.length && !fileFound; i++)
-                {
-                    if (file == this.serviceDataFiles[i])
-                    {
-                        readAgain = true;
-                        this.fireServiceDataChanged(file.getName(), this.sdeBufs[i].toString());
-                        this.sdeBufs[i].setLength(0);
-                        fileFound = true;
-                    }
-                }
-            }
-            if (this.paramFiles != null)
-            {
-                for (int i = 0; i < this.paramFiles.length && !fileFound; i++)
-                {
-                    if (file == this.paramFiles[i])
-                    {
-                        readAgain = true;
-                        this.fireGotParameterValue(i, this.paramBufs[i].toString());
-                        this.paramBufs[i].setLength(0);
-                        fileFound = true;
-                    }
-                }
-            }
-            if (this.steeringFiles != null)
-            {
-                for (int i = 0; i < this.steeringFiles.length && !fileFound; i++)
-                {
-                    if (file == this.steeringFiles[i])
-                    {
-                        readAgain = true;
-                        this.fireGotSteerableParameterValue(i, this.steeringBufs[i].toString());
-                        this.steeringBufs[i].setLength(0);
-                        fileFound = true;
-                    }
-                }
-            }
-            if (readAgain)
-            {
-                file.readAsync(0);
+                // Calculate the offset of the next read
+                long offset = tReadMsg.getOffset().asLong() + data.remaining();
+                // Add the new data to the buffer
+                strBuf.append(StyxUtils.dataToString(data));
+                // Read the next chunk of data from the file, whatever it was
+                file.readAsync(offset);
             }
             else
             {
-                // This isn't a file that is continuously monitoried. We have
-                // reached EOF and can stop reading.
-                file.close();
+                // We have zero bytes from the file (i.e. EOF), so we know we have
+                // the complete data for the file.
+                // We now need to know what sort of file this is
+                // TODO: this logic is possibly a bit fragile: if the namespace
+                // changes we will have to change this logic
+                // TODO: should use constants rather than strings here.
+                String[] pathEls = file.getPath().split("/");
+                String parentDirName = pathEls[pathEls.length - 2];
+                if (parentDirName.equals("serviceData"))
+                {
+                    this.fireGotServiceDataValue(file.getName(), strBuf.toString());
+                }
+                else if (parentDirName.equals("params"))
+                {
+                    this.fireGotParameterValue(file.getName(), strBuf.toString());
+                }
+                else if (parentDirName.equals("steering"))
+                {
+                    this.fireGotSteerableParameterValue(file.getName(), strBuf.toString());
+                }
+                else if (file.getName().equals("commandline") && pathEls.length == 4)
+                {
+                    this.fireGotCommandLine(strBuf.toString());
+                }
+                // Clear the buffer and start reading again from the file
+                strBuf.setLength(0);
+                file.readAsync(0);
             }
         }
     }
@@ -772,94 +633,11 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             if (message.equalsIgnoreCase("start"))
             {
                 this.fireServiceStarted();
-                // Start reading the service data
-                for (int i = 0; i < this.serviceDataFiles.length; i++)
-                {
-                    this.serviceDataFiles[i].readAsync(0);
-                }
             }
             else if (message.equalsIgnoreCase("stop"))
             {
                 this.fireServiceAborted();
             }
-        }
-    }
-    
-    /**
-     * Called when we have the list of children for a directory.
-     */
-    public void childrenFound(CStyxFile file, CStyxFile[] children)
-    {
-        if (file == this.sdeDir)
-        {
-            // We have just discovered the service data elements
-            this.serviceDataFiles = children;
-            this.sdeBufs = new StringBuffer[serviceDataFiles.length];
-            this.fireGotServiceDataElements(this.serviceDataFiles);
-            
-            // Set up the hashtable of service data values
-            for (int i = 0; i < this.serviceDataFiles.length; i++)
-            {
-                String sdeName = this.serviceDataFiles[i].getName();
-                if (!this.sdeValues.containsKey(sdeName))
-                {
-                    this.sdeValues.put(sdeName, "");
-                }
-            }
-            log.debug("Populated Hashtable");
-            // Now start reading all the service data elements
-            for (int i = 0; i < this.serviceDataFiles.length; i++)
-            {
-                this.serviceDataFiles[i].addChangeListener(this);                
-                this.sdeBufs[i] = new StringBuffer();
-                // We have to open the file for reading and writing. When the
-                // open confirmation arrives, we will start reading from the file.
-                this.serviceDataFiles[i].openAsync(StyxUtils.ORDWR | StyxUtils.OTRUNC);
-            }
-        }
-        else if (file == this.inputStreamsDir)
-        {
-            // We have just discovered the input methods
-            this.fireGotInputStreams(children);
-        }
-        else if (file == this.outputStreamsDir)
-        {
-            this.fireGotOutputStreams(children);
-        }
-        else if (file == this.paramsDir)
-        {
-            this.paramFiles = children;
-            this.paramBufs = new StringBuffer[this.paramFiles.length];
-            this.fireGotParameters(this.paramFiles);
-            // Now read the values of all the parameters
-            for (int i = 0; i < this.paramFiles.length; i++)
-            {
-                this.paramFiles[i].addChangeListener(this);
-                this.paramBufs[i] = new StringBuffer();
-                // We have to open the file for reading and writing. When the
-                // open confirmation arrives, we will start reading from the file.
-                this.paramFiles[i].openAsync(StyxUtils.ORDWR | StyxUtils.OTRUNC);
-            }
-        }
-        else if (file == this.steeringDir)
-        {
-            // We have just got the list of steerable parameters
-            this.steeringFiles = children;
-            this.steeringBufs = new StringBuffer[this.steeringFiles.length];
-            this.fireGotSteerableParameters(this.steeringFiles);
-            // Now read the values of all the steerable parameters
-            for (int i = 0; i < this.steeringFiles.length; i++)
-            {
-                this.steeringFiles[i].addChangeListener(this);
-                // We have to open the file for reading and writing. When the
-                // open confirmation arrives, we will start reading from the file.
-                this.steeringFiles[i].openAsync(StyxUtils.ORDWR | StyxUtils.OTRUNC);
-                this.steeringBufs[i] = new StringBuffer();
-            }
-        }
-        else
-        {
-            System.err.println("Got children of unknown file " + file.getPath());
         }
     }
     
@@ -910,9 +688,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Fires the serviceDataChanged() event on all registered change listeners
+     * Fires the gotServiceDataValue() event on all registered change listeners
      */
-    private void fireServiceDataChanged(String sdName, String newData)
+    private void fireGotServiceDataValue(String sdName, String newData)
     {
         // Update the Hashtable of service data values
         synchronized(this.sdeValues)
@@ -929,7 +707,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
                 listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
-                listener.serviceDataChanged(sdName, newData);
+                listener.gotServiceDataValue(sdName, newData);
             }
         }
     }
@@ -983,81 +761,11 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Fires the gotServiceDataElements() event on all registered change listeners
-     */
-    private void fireGotServiceDataElements(CStyxFile[] sdeFiles)
-    {
-        synchronized(this.changeListeners)
-        {
-            SGSInstanceClientChangeListener listener;
-            for (int i = 0; i < this.changeListeners.size(); i++)
-            {
-                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
-                listener.gotServiceDataElements(sdeFiles);
-            }
-        }
-    }
-    
-    /**
-     * Fires the gotInputStreams() event on all registered change listeners
-     * @param inputStreams Array of CStyxFiles representing all the files
-     * in the "io/in" directory of the SGS instance
-     */
-    private void fireGotInputStreams(CStyxFile[] inputStreams)
-    {
-        synchronized(this.changeListeners)
-        {
-            SGSInstanceClientChangeListener listener;
-            for (int i = 0; i < this.changeListeners.size(); i++)
-            {
-                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
-                listener.gotInputStreams(inputStreams);
-            }
-        }
-    }
-    
-    /**
-     * Fires the gotOutputStreams() event on all registered change listeners
-     * @param inputFiles Array of CStyxFiles representing all the output streams
-     * that can be read
-     */
-    private void fireGotOutputStreams(CStyxFile[] outputStreams)
-    {
-        synchronized(this.changeListeners)
-        {
-            SGSInstanceClientChangeListener listener;
-            for (int i = 0; i < this.changeListeners.size(); i++)
-            {
-                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
-                listener.gotOutputStreams(outputStreams);
-            }
-        }
-    }
-    
-    /**
-     * Fires the gotParameters() event on all registered change listeners
-     * @param paramFiles Array of CStyxFiles representing the parameters
-     */
-    private void fireGotParameters(CStyxFile[] paramFiles)
-    {
-        synchronized(this.changeListeners)
-        {
-            SGSInstanceClientChangeListener listener;
-            for (int i = 0; i < this.changeListeners.size(); i++)
-            {
-                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
-                listener.gotParameters(paramFiles);
-            }
-        }
-    }
-    
-    /**
      * Fires the gotParameterValue() event on all registered change listeners.
-     * @param index Index of the parameter in the array of parameters previously
-     * returned by the gotParameters() event
+     * @param name Name of the parameter
      * @param value The new value of the parameter
      */
-    private void fireGotParameterValue(int index, String value)
+    private void fireGotParameterValue(String name, String value)
     {
         synchronized(this.changeListeners)
         {
@@ -1065,35 +773,17 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
                 listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
-                listener.gotParameterValue(index, value);
-            }
-        }
-    }
-    
-    /**
-     * Fires the gotSteerableParameters() event on all registered change listeners
-     * @param steeringFiles Array of CStyxFiles representing the steerable parameters
-     */
-    private void fireGotSteerableParameters(CStyxFile[] steeringFiles)
-    {
-        synchronized(this.changeListeners)
-        {
-            SGSInstanceClientChangeListener listener;
-            for (int i = 0; i < this.changeListeners.size(); i++)
-            {
-                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
-                listener.gotSteerableParameters(steeringFiles);
+                listener.gotParameterValue(name, value);
             }
         }
     }
     
     /**
      * Fires the gotSteerableParameterValue() event on all registered change listeners.
-     * @param index Index of the parameter in the array of parameters previously
-     * returned by the gotParameters() event
+     * @param name Name of the parameter
      * @param value The new value of the parameter
      */
-    private void fireGotSteerableParameterValue(int index, String value)
+    private void fireGotSteerableParameterValue(String name, String value)
     {
         synchronized(this.changeListeners)
         {
@@ -1101,7 +791,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
                 listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
-                listener.gotSteerableParameterValue(index, value);
+                listener.gotSteerableParameterValue(name, value);
             }
         }
     }
