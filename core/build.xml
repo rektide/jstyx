@@ -7,7 +7,7 @@
 
 <project name="jstyx" default="jar" basedir=".">
     <description>
-        Builds the JStyx source into classes and creates JAR file
+        Builds the JStyx source into classes and creates JAR file and distribution
     </description>
 
 	<property name="version" value="0.1.0-SNAPSHOT"/>
@@ -21,13 +21,9 @@
         <property name="dist.dir" value="./dist"/>
         <!-- The jar file that will be built -->
 	<property name="jar.file" value="${target.dir}/jstyx-${version}.jar"/>
-        
-        <target name="pre-compile" description="prepare for compilation">
-            <mkdir dir="${classes.dir}"/>
-        </target>
 	
-	<target name="compile" depends="pre-compile" description="compile the source">
-		<mkdir dir="${classes.dir}"/>
+	<target name="compile" description="compile the source">
+                <mkdir dir="${classes.dir}"/>
 		<!-- Compile the java code from ${src.dir} into ${classes.dir}
 		     Using source="1.4" to retain compatibility with other apps such as Triana -->
 		<javac srcdir="${src.dir}" destdir="${classes.dir}" debug="on" source="1.4">
@@ -53,12 +49,35 @@
 		<delete dir="${classes.dir}"/>
 		<delete dir="${javadoc.dir}"/>
 		<delete file="${jar.file}"/>
+                <delete dir="${dist.dir}"/>
         </target>
 
 	<target name="javadoc" description="build javadoc">
 		<mkdir dir="${javadoc.dir}"/>
-		<javadoc sourcepath="${src.dir}" packagenames="*" destdir="${javadoc.dir}"/>
+		<javadoc sourcepath="${src.dir}" packagenames="*" destdir="${javadoc.dir}"
+                    linksource="yes">
+                    <classpath>
+                        <pathelement path="${java.class.path}"/>
+                        <fileset dir="${lib.dir}">
+                                <include name="**/*.jar"/>
+                        </fileset>
+                    </classpath>
+                    <tag name="todo" description="To Do:"/>
+		</javadoc>
 	</target>
+        
+        <taskdef name="java2html" classname="de.java2html.anttasks.Java2HtmlTask"/>
+        <target name="java2html">
+            <java2html
+                   srcdir="${src.dir}"
+                   destdir="${target.dir}/docs/sources"
+                   includes="**/*.java"
+                   style="eclipse"
+                   showLineNumbers="true"
+                   showFileName="true"
+                   showTableBorder="false"
+            />
+        </target>
         
         <target name="dist" depends="jar" description="build distribution as a zip file">
             <mkdir dir="${dist.dir}"/>
@@ -70,6 +89,7 @@
                 <zipfileset dir="./conf" includes="SGSconfig_example.xml" fullpath="conf/SGSconfig.xml"/>
                 <zipfileset dir="./xdocs" prefix="xdocs"/>
                 <zipfileset dir="." includes="*.txt, build.xml, project.properties, project.xml"/>
+                <zipfileset dir="${javadoc.dir}" prefix="docs/apidocs"/>
             </zip>
         </target>
 
