@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/12/01 08:21:56  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.1  2005/11/10 19:47:10  jonblower
  * Renamed SGSInstanceChange* to SGSInstanceClientChange*
  *
@@ -125,13 +128,8 @@ public class SGSInstanceClientChangeAdapter implements SGSInstanceClientChangeLi
     public void gotCommandLine(String newCmdLine) {}
     
     /**
-     * Called when we have successfully set the input URL of the SGS
-     */
-    //public void inputURLSet() {}
-    
-    /**
      * Called when the input files have been successfully uploaded
-     * @todo: add arguments to this
+     * @todo add arguments to this
      */
     public void inputFilesUploaded() {}
     

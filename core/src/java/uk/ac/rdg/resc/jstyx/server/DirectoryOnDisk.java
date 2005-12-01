@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/12/01 08:21:56  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.6  2005/06/20 17:21:26  jonblower
  * Bug fix (listFiles() returns null if no permissions to read directory)
  *
@@ -101,7 +104,7 @@ public class DirectoryOnDisk extends StyxDirectory
      * @param updateChildren if this is true, all the immediate children of this
      * directory will be updated (this parameter is meaningless if this is not a
      * directory)
-     * @todo: check for files that have been deleted in the host filesystem
+     * @todo check for files that have been deleted in the host filesystem
      */
     protected synchronized void refresh(boolean updateChildren)
     {

@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.43  2005/12/01 08:21:55  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.42  2005/11/07 22:00:54  jonblower
  * Added upload(java.io.File) method
  *
@@ -1160,7 +1163,7 @@ public class CStyxFile
      * not exist it will be created with rw-rw-rw- (0666) permissions, subject
      * to the permissions of the host directory.  Blocks until the file has been
      * uploaded, or throws a StyxException if an error occurred.
-     * @param file The File from which to read data to be written to this file
+     * @param fromFile The File from which to read data to be written to this file
      * @todo Add a flag to prevent overwriting a file if it already exists?
      * @todo Allow a callback to be provided for progress monitoring?
      */

@@ -40,12 +40,14 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * Message returned by the server in response to a TreadMessage
- * @todo: Use MINA's ByteBuffer
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/12/01 08:21:56  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.17  2005/11/03 21:47:17  jonblower
  * getElements() and toFriendlyString() now use getData()
  *

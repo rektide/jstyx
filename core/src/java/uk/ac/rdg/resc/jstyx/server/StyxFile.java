@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.21  2005/12/01 08:21:56  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.20  2005/11/04 19:33:41  jonblower
  * Changed contentsChanged() to fileContentsChanged() in StyxFileChangeListener
  *
@@ -160,9 +163,9 @@ public class StyxFile
                                      // file changes
     
     /**
-     * @todo: check that the name is valid (no trailing or leading slashes unless
+     * @todo check that the name is valid (no trailing or leading slashes unless
      * it is the root directory, no spaces)
-     * @todo: according to the Manual, the parent of the root of the tree is itself
+     * @todo according to the Manual, the parent of the root of the tree is itself
      * @throws StyxException if an attempt is made to create a file with the name
      * "." or ".."
      */
@@ -888,7 +891,7 @@ public class StyxFile
     /**
      * Method to reply to a Write message. This must be called by all subclasses
      * when sending data back to the client in response to a write request.
-     * @param session The connection on which the reply will be sent
+     * @param client The connection on which the reply will be sent
      * @param count The number of bytes actually written to the file in question.
      * @param tag The tag to be attached to the message
      */

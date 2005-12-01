@@ -75,6 +75,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.26  2005/12/01 08:21:56  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.25  2005/11/10 19:49:28  jonblower
  * Renamed SGSInstanceChangeListener to SGSInstanceClientChangeListener
  *
@@ -253,8 +256,8 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
     }
     
     /**
-     * Called when we have got the names of the service data elements
-     * @param sdeNames The names of the SDEs as a String array
+     * Called when we have got the files representing the service data elements
+     * @param sdeFiles Array of files representing the SDEs
      */
     public void gotServiceDataElements(CStyxFile[] sdeFiles)
     {
@@ -271,7 +274,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
     
     /**
      * Called when we have got the names of the input streams
-     * @param inputMethods The input files (stdin and the input URL)
+     * @param inputStreams the input streams (stdin and any other input files)
      */
     public void gotInputStreams(CStyxFile[] inputStreams)
     {
@@ -391,7 +394,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
     /**
      * Called when the input files have been successfully uploaded.  This is our
      * cue to start the service going
-     * @todo: add arguments to this
+     * @todo add arguments to this
      */
     public void inputFilesUploaded()
     {
@@ -884,7 +887,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
                 {
                     // Set the input URL for the service.  When we get confirmation
                     // that this has been set, the input files will be uploaded.
-                    client.setInputURL(inputPanel.getInputURL());
+                    //client.setInputURL(inputPanel.getInputURL());
                 }
             }
             else if (e.getSource() == this.btnStop)

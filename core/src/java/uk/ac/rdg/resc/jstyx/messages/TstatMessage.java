@@ -37,6 +37,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/12/01 08:21:56  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.4  2005/03/15 09:01:48  jonblower
  * Message type now stored as short, not int
  *
@@ -104,8 +107,8 @@ public class TstatMessage extends StyxMessage
     }
     
     /**
-     * @param maxMessageSize The requested maximum size of a message that will 
-     * be sent on this connection by either party
+     * Sets the fid for this TstatMessage
+     * @param fid the fid
      */
     public void setFid(long fid)
     {

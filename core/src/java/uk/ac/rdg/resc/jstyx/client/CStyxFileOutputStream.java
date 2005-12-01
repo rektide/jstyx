@@ -42,6 +42,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/12/01 08:21:55  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.3  2005/10/14 18:04:33  jonblower
  * Fixed bug with not updating file offset, and added code to write zero bytes to signify EOF
  *
@@ -77,11 +80,11 @@ public class CStyxFileOutputStream extends OutputStream
     /**
      * Creates a new CStyxFileOutputStream to write data to the given CStyxFile.
      * If the file already exists it will be overwritten.
-     * @param the file to write to
+     * @param file the file to write to
      * @param closeConnectionWhenCloseStream If this is true, we shall close the underlying
      * StyxConnection when this stream is closed (this is normally set when
      * getting an output stream through the StyxURLConnection class)
-     * @todo: Add flag to prevent overwriting in certain cases?
+     * @todo Add flag to prevent overwriting in certain cases?
      */
     public CStyxFileOutputStream(CStyxFile file, boolean closeConnectionWhenCloseStream) throws StyxException
     {
@@ -100,7 +103,7 @@ public class CStyxFileOutputStream extends OutputStream
     /**
      * Creates a new CStyxFileOutputStream to write data to the given CStyxFile.
      * If the file already exists it will be overwritten.
-     * @todo: Add flag to prevent overwriting in certain cases?
+     * @todo Add flag to prevent overwriting in certain cases?
      */
     public CStyxFileOutputStream(CStyxFile file) throws StyxException
     {

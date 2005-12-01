@@ -48,6 +48,9 @@ import org.apache.log4j.Logger;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/12/01 08:21:56  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.4  2005/09/01 07:49:39  jonblower
  * Set to print stack trace of IOException whether or not logger is debug-enabled
  *
@@ -369,7 +372,7 @@ public abstract class GeneralCachingStreamReader
     
     /**
      * Class representing a client that is waiting for data
-     * @todo: this is very similar to the ClientInfo class in AsyncStyxFile.
+     * @todo this is very similar to the ClientInfo class in AsyncStyxFile.
      * Can we avoid this code repetition?
      */
     public static class DataRequest

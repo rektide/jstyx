@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/12/01 08:21:56  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.13  2005/11/03 17:09:27  jonblower
  * Created more efficient RreadMessage that involves less copying of buffers (still reliable)
  *
@@ -176,13 +179,12 @@ public abstract class StyxMessage
     /**
      * Read bytes from the given ByteBuffer into this Message. There may still
      * be bytes remaining in the input buffer after this method has been called.
-     * @param buf The org.apache.mina.common.ByteBuffer that contains the data.
+     * @param in The org.apache.mina.common.ByteBuffer that contains the data.
      * @return true if we now have a complete StyxMessage, false otherwise
      * @throws ProtocolViolationException if the bytes do not represent a valid
      * StyxMessage
      */
-    public final boolean readBytesFrom(ByteBuffer in)
-        throws ProtocolViolationException
+    public final boolean readBytesFrom(ByteBuffer in) throws ProtocolViolationException
     {
         int bodyLength = this.length - StyxUtils.HEADER_LENGTH;
         if (bodyLength == 0)

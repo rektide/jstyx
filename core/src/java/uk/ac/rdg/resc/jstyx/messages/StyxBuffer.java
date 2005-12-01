@@ -44,14 +44,17 @@ import uk.ac.rdg.resc.jstyx.types.DirEntry;
  * number of bytes are available in the ByteBuffer. The easiest way to do this
  * is to read the message length (the first four bytes in the Styx message) and
  * check that this number of bytes are available in the buffer.
- * @todo: do these functions need to be thread-safe?  Are two different threads
+ * @todo do these functions need to be thread-safe?  Are two different threads
  * ever going to want to access the same buffer simultaneously?
- * @todo: does this belong in the messages package?
+ * @todo does this belong in the messages package?
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/12/01 08:21:56  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.4  2005/11/03 07:46:55  jonblower
  * Trying to fix bug with sending RreadMessages
  *
@@ -146,7 +149,7 @@ public class StyxBuffer
     /**
      * Puts an unsigned short (2 bytes) into the buffer at the given position
      * @param index The place in the buffer at which to put the data
-     * @param l The value of the short as an integer between 0 and 65535
+     * @param s The value of the short as an integer between 0 and 65535
      * @return this StyxBuffer (allows chaining of put commands)
      * @throws IllegalArgumentException if the parameter is out of range
      */
@@ -176,13 +179,13 @@ public class StyxBuffer
      * @return this StyxBuffer (allows chaining of put commands)
      * @throws IllegalArgumentException if the parameter is out of range
      */
-    public StyxBuffer putUInt(long i)
+    public StyxBuffer putUInt(long l)
     {
-        if (i < 0 || i > StyxUtils.MAXUINT)
+        if (l < 0 || l > StyxUtils.MAXUINT)
         {
-            throw new IllegalArgumentException("Value (" + i + ") out of range of UInt (0-4294967295)");
+            throw new IllegalArgumentException("Value (" + l + ") out of range of UInt (0-4294967295)");
         }
-        buf.putInt((int)i);
+        buf.putInt((int)l);
         return this;
     }
     
@@ -193,13 +196,13 @@ public class StyxBuffer
      * @return this StyxBuffer (allows chaining of put commands)
      * @throws IllegalArgumentException if the parameter is out of range
      */
-    public StyxBuffer putUInt(int index, long i)
+    public StyxBuffer putUInt(int index, long l)
     {
-        if (i < 0 || i > StyxUtils.MAXUINT)
+        if (l < 0 || l > StyxUtils.MAXUINT)
         {
-            throw new IllegalArgumentException("Value (" + i + ") out of range of UInt (0-4294967295)");
+            throw new IllegalArgumentException("Value (" + l + ") out of range of UInt (0-4294967295)");
         }
-        buf.putInt(index, (int)i);
+        buf.putInt(index, (int)l);
         return this;
     }
     
@@ -302,7 +305,7 @@ public class StyxBuffer
     
     /**
      * Puts the given DirEntry to the buffer at the current position
-     * @param dirEntry The DirEntry to write
+     * @param dir The DirEntry to write
      * @return this StyxBuffer (allows chaining of put commands)
      */
     public StyxBuffer putDirEntry(DirEntry dir)

@@ -45,13 +45,16 @@ import uk.ac.rdg.resc.jstyx.messages.*;
 /**
  * ProtocolHandler listener for a StyxServer (replaces StyxServerSessionListener
  * from Netty).
- * @todo: Should these methods be more thread-safe, i.e. should we make sure that
+ * @todo Should these methods be more thread-safe, i.e. should we make sure that
  * each method that affects a StyxFile is synchronized on that StyxFile?
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/12/01 08:21:56  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.12  2005/11/03 17:09:27  jonblower
  * Created more efficient RreadMessage that involves less copying of buffers (still reliable)
  *

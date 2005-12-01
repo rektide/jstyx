@@ -68,6 +68,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.25  2005/12/01 08:21:55  jonblower
+ * Fixed javadoc comments
+ *
  * Revision 1.24  2005/08/08 09:35:19  jonblower
  * Commented out thread pool filters
  *
@@ -361,7 +364,7 @@ public class StyxConnection implements ProtocolHandler
      * before the connection is open. TODO: what can we do about this?
      * The session is only definitively closed when the connectionClosed() event
      * is fired on the registered StyxConnectionListeners.
-     * @todo: rename this closeAsync() and implement a blocking close() method?
+     * @todo rename this closeAsync() and implement a blocking close() method?
      */
     public void close()
     {
@@ -810,7 +813,6 @@ public class StyxConnection implements ProtocolHandler
      * fit into a String - do not use for large files as not only will this 
      * method block until the file is read, you may run into memory problems.
      * @param path The path of the file relative to the server root.
-     * @see CStyxFile.readAll()
      */
     public String getContents(String path) throws StyxException
     {
