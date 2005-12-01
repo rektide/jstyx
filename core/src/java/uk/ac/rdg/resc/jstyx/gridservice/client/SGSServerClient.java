@@ -28,6 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
+import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.StyxException;
 
@@ -39,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2005/12/01 08:36:02  jonblower
+ * Changed constructor to accept hostname and port instead of CStyxFile
+ *
  * Revision 1.2  2005/10/14 18:07:06  jonblower
  * Added getSGSClient()
  *
@@ -52,12 +56,18 @@ public class SGSServerClient
     private CStyxFile serverRoot; // File representing the root of the server
     
     /**
-     * Creates a new instance of SGSServerClient.
-     * @param root CStyxFile representing the root directory of the SGS server
+     * Connects to the SGS server and sets up the client.  Blocks until the connection
+     * to the server is made.
+     * @param hostname The hostname or IP address of the SGS server
+     * @param port The port of the SGS server
+     * @throws StyxException if 
      */
-    public SGSServerClient(CStyxFile root)
+    public SGSServerClient(String hostname, int port) throws StyxException
     {
-        this.serverRoot = root;
+        // Connect to the server
+        StyxConnection conn = new StyxConnection(hostname, port);
+        conn.connect();
+        this.serverRoot = conn.getRootDirectory();
     }
     
     /**
