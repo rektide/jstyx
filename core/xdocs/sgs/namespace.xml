@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>Styx Grid Services: Namespace</title>
+  </properties>
+
+  <body>
+    
+    <section name="The SGS server namespace">
+    <p>
+    All resources on any kind of Styx server are represented as a set of files in
+    a hierarchical structure (see the <a href="../tutorial/index.html">JStyx tutorial</a>).
+    This file hierarchy is known as a <em>namespace</em>.
+    Styx Grid Services are no different.  When an executable is exposed as a Styx
+    Grid Service, a namespace is created.  Clients interact with the SGS by reading
+    from and writing to files in this namespace.
+    </p>
+    <p>
+    This page describes the namespace of a general Styx Grid Service.  This
+    information is intended for developers who want to know what is going
+    on behind the scenes in the SGS system, perhaps in order to develop custom
+    clients or add new features.  Knowledge of the SGS namespace is not
+    at all necessary for most users.
+    </p>
+    </section>
+    
+    <section name="Namespace description">
+    <p>
+    The diagram below shows the namespace of a general Styx Grid Services server.  The 
+    hyperlinks will take you to a detailed explanation of the purpose of each
+    file and directory.  Note that the structure of the namespace mirrors closely
+    the structure of the XML configuration file, which is described 
+    <a href="config.html">here</a>.
+    </p>
+    <source>
+    <a href="#The_root_directory">/</a>
+    |-- <a href="#Styx_Grid_Services">mySGS/</a>
+    |   |
+    |   |-- <a href="#The_clone_file">clone</a>
+    |   |-- <a href="#The_config_file">config</a>
+    |   |
+    |   |-- <a href="#The_docs_directory">docs/</a>
+    |   |   |-- description
+    |   |   `-- readme.txt
+    |   |
+    |   `-- <a href="#The_instances_directory">instances/</a>
+    |       |-- 0/
+    |       |    |-- <a href="#The_ctl_file">ctl</a>
+    |       |    |-- <a href="#The_command_line_file">commandline</a>
+    |       |    |-- <a href="#The_parameters_directory">params/</a>
+    |       |    |   |-- param1
+    |       |    |   `-- param2
+    |       |    |-- <a href="#The_inputs_directory">inputs/</a>
+    |       |    |   |-- stdin
+    |       |    |   `-- myinputfile
+    |       |    |-- <a href="#The_outputs_directory">outputs/</a>
+    |       |    |   |-- stdout
+    |       |    |   `-- myoutputfile
+    |       |    |-- <a href="#The_service_data_directory">serviceData/</a>
+    |       |    |   |-- status
+    |       |    |   |-- exitCode
+    |       |    |   `-- customSDE
+    |       |    `-- <a href="#The_steering_directory">steering/</a>
+    |       |        `-- steerable1
+    |       |
+    |       `-- 1/
+    |
+    `-- <a href="#Styx_Grid_Services">mySGS2/</a>
+    </source>
+    </section>
+    
+    <section name="Server files">
+    <p>
+    The files in this section belong to the server as a whole, rather than to a
+    particular Styx Grid Service.
+    </p>
+    
+    <subsection name="The root directory">
+    <p>
+    The slash represents the root directory of the namespace on the server.
+    </p>
+    </subsection>
+    
+    <subsection name="Styx Grid Services">
+    <p>
+    Directories immediately beneath the root of the server are the roots of
+    Styx Grid Services.  The name of the directory is the name of the Styx Grid
+    Service in the <a href="config.html">config file</a>.
+    </p>
+    </subsection>
+    </section>
+    
+    <section name="Styx Grid Service files">
+    <p>
+    The files in this section are &quot;global&quot; to a particular Styx Grid
+    Service: they do not belong to a specific instance of the Service.
+    </p>
+    <subsection name="The clone file">
+    <p>
+    The clone file is used to create a new SGS instance.  When a client reads from
+    this file, a new SGS instance is created and the URL to the root of this
+    instance is returned to the client.  Note that the instance might be created
+    on a different server for load-balancing reasons, which is why a full URL
+    is returned (however, in the current release, instances are always created on
+    the same server).  Writes to this file are not allowed.
+    </p>
+    </subsection>
+    
+    <subsection name="The config file">
+    <p>
+    When a client reads from this file, an XML string will be returned, representing
+    the configuration of the Styx Grid Service in question.  This XML
+    string is very close to the <a href="config.html">XML configuration</a>
+    of the Styx Grid Service,
+    except that the <code>&lt;docs&gt;</code> tag does not appear, nor does the
+    &quot;command&quot; attribute of the root <code>&lt;gridservice&gt;</code> tag.
+    Neither of these things are relevant to the client.
+    </p>
+    </subsection>
+    
+    <subsection name="The docs directory">
+    <p>
+    This directory contains all the documentation files that the server has 
+    chosen to expose for the benefit of the client.  These files can be in any 
+    format and they are here to provide more information to the client about the
+    use of the SGS in question.
+    </p>
+    <p>
+    The <code>description</code> file in this directory is present in all 
+    Styx Grid Services.  It is a short description of the purpose of the SGS, and
+    is gleaned from the &quot;description&quot; attribute of the
+    <a href="config.html">XML configuration file</a>.  The <code>readme.txt</code>
+    file shown in the above diagram is simply an example of a documentation file
+    and is not present in all SGSs.  Note that the <code>docs/</code> directory
+    can contain any number of files and subdirectories.
+    </p>
+    </subsection>
+    
+    <subsection name="The instances directory">
+    <p>
+    The <code>instances/</code> directory contains a set of directories, one
+    for each instance of this particular Styx Grid Service.  The name of the 
+    directory is the unique ID of the instance.  The diagram above shows two
+    instances for the <code>mySGS</code> service, with IDs <code>0</code>
+    and <code>1</code>.
+    </p>
+    </subsection>
+    </section>
+    
+    <section name="Styx Grid Service instance files">
+    <p>
+    The files in this section belong to a particular instance of a Styx Grid
+    Service.
+    </p>
+    <subsection name="The ctl file">
+    <p>
+    This is a very important file: it is used to control the Styx Grid Service
+    (&quot;ctl&quot; is short for &quot;control&quot;).  When all
+    <a href="#The_parameters_directory">parameters</a> have been set and all
+    <a href="#The_inputs_directory">input files</a> have been uploaded, the client
+    starts the service running by writing the string &quot;start&quot; into this file.
+    The service can be stopped at any time by writing the string &quot;stop&quot;
+    into this file.
+    </p>
+    </subsection>
+    
+    <subsection name="The command line file">
+    <p>
+    The <code>commandline</code> file can be used for two purposes.  It can be
+    read, in which case it will return the full command line that will be used
+    to invoke the underlying executable.  This is particularly useful for debugging
+    (e.g. to make sure the parameters have been set correctly).  Secondly,
+    clients can write a full command line to this file, in which case the command
+    line will be parsed and the values of all parameters will be set at once.
+    This latter feature is considered &quot;advanced&quot; and is rarely used
+    in practice.
+    </p>
+    </subsection>
+    
+    <subsection name="The parameters directory">
+    <p>
+    The <code>params/</code> directory contains a set of files, one for each
+    parameter that was specified in the <a href="config.html">configuration file</a>.
+    Clients set parameters by writing values into these files.  The paramters
+    are translated into command-line arguments to be passed to the underlying
+    executable.  With each write,
+    the server will check the validity of the input, returning an error if the
+    parameter value was not valid.  These files can be read to get the parameter
+    values.
+    </p>
+    </subsection>
+    
+    <subsection name="The inputs directory">
+    <p>
+    The <code>inputs/</code> directory contains files to which clients can write
+    input data.  If the &quot;stdin&quot; file is present then this means that 
+    the underlying executable is expecting data to be passed to its standard
+    input.  Clients can write data to this file while the service is running
+    in order to stream data to the standard input.
+    </p>
+    <p>
+    The other files in this directory represent input files that will be read
+    by the underlying executable.  These files <strong>must</strong> be uploaded before the service
+    is started.  Some input files have fixed names: these are always present in the
+    namespace.  Other input files are specified by the value of a certain parameter
+    (see the <a href="config.html">configuration instructions</a>).  In these cases,
+    the corresponding file will not appear in the namespace until the value of 
+    that parameter is set.  Note that several filenames can be written to the 
+    parameter (separated by spaces), in which case a file will appear in the namespace
+    for each filename that is written.
+    </p>
+    </subsection>
+    
+    <subsection name="The outputs directory">
+    <p>
+    The <code>outputs/</code> directory contains a file for each output file or
+    stream that is produced by the underlying executable.  The files called 
+    &quot;stdout&quot; and &quot;stderr&quot; are read to obtain data from the
+    standard output and standard error of the executable.  Other files represent
+    output files that are produced by the executable.
+    </p>
+    <p>
+    This directory is empty until the service is started, at which point it will
+    contain all the files that can be read to obtain output data.  (TODO: is this
+    the most helpful behaviour?)
+    </p>
+    </subsection>
+    
+    <subsection name="The service data directory">
+    <p>
+    The <code>serviceData/</code> directory contains files, one for each 
+    element of service data that the service exposes.  &quot;Service data&quot;
+    is data about the state of the service instance.
+    </p>
+    <p>
+    In the above diagram there are three elements of service data shown.  The
+    first two service data elements (SDEs) are present in all Styx Grid Services.
+    The &quot;status&quot; SDE can be read to find out the status (&quot;created&quot;,
+    &quot;running&quot;, &quot;finished&quot;, &quot;aborted&quot; or &quot;error&quot;)
+    of an SGS instance.  If a client reads from the &quot;exitCode&quot; file,
+    no data will be returned (i.e. the read will block) until the underlying executable
+    has finished running, at which point the exit code from the executable will
+    be returned.  The &quot;customSDE&quot; element is a user-specified service
+    data element (see <a href="config.html">here</a> for details of how this is done).
+    User-specified SDEs might be used, for example, to provide a way to monitor
+    the progress of an executable in a finer-grained way than is possible with
+    the &quot;status&quot; SDE.
+    </p>
+    <p>
+    Files that represent service data elements exhibit blocking behaviour.  When
+    a client reads from the file from the first time, the data are returned
+    immediately (except in the case of the <code>exitCode</code> file as described
+    above).  If the same client reads from the file again <em>without closing
+    the file</em>, the read request will block until the underlying data change,
+    at which point the data are returned to the client.  This is how clients can
+    receive asynchronous messages without the need for callbacks.
+    </p>
+    </subsection>
+    
+    <subsection name="The steering directory">
+    <p>
+    In some cases, programs permit some parameters to be adjusted while the
+    executable is running.  This is known as computational steering.  The
+    <code>steering/</code> directory contains the files that are used to do this,
+    but this is considered an advanced feature and will not be discussed here (yet).
+    </p>
+    </subsection>
+    </section>
+  </body>
+</document>
