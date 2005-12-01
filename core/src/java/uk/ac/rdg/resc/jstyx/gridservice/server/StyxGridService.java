@@ -58,6 +58,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.DocFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2005/12/01 08:37:23  jonblower
+ * Changed clone file behaviour to return URL to new service instance instead of just the ID
+ *
  * Revision 1.16  2005/11/09 17:50:45  jonblower
  * Added config file to namespace
  *
@@ -118,7 +121,7 @@ public class StyxGridService
     
     private static final Logger log = Logger.getLogger(StyxGridService.class);
     
-    private Vector instances; // The ID numbers of the current Grid Service instances
+    private int nextInstanceID; // The ID number of the next instance to be created
     private StyxDirectory root; // The root of the Grid Service
     private StyxDirectory instancesDir; // Directory to hold SGS instances
     private SGSConfig sgsConfig; // The configuration for the SGS and its instances
@@ -130,7 +133,7 @@ public class StyxGridService
     public StyxGridService(SGSConfig sgsConfig) throws StyxException
     {
         log.debug("Creating StyxGridService called " + sgsConfig.getName());
-        this.instances = new Vector();
+        this.nextInstanceID = 0;
         this.root = new StyxDirectory(sgsConfig.getName());
         this.root.addChild(new CloneFile());
         
@@ -149,7 +152,7 @@ public class StyxGridService
         
         // Add the XML that was used to create this SGS as a read-only InMemoryFile
         InMemoryFile configFile = new InMemoryFile("config", 0444);
-        configFile.setContents(sgsConfig.getConfigXML());
+        configFile.setContents(sgsConfig.getConfigXMLForClient());
         this.root.addChild(configFile);
         
         // Create documentation tree
@@ -185,45 +188,34 @@ public class StyxGridService
     /**
      * Returns the next available instance ID
      */
-    private int getNextInstanceID()
+    private synchronized String getInstanceID()
     {
-        synchronized(this.instances)
-        {
-            for (int i = 0; i < Integer.MAX_VALUE; i++)
-            {
-                if(!this.instances.contains(new Integer(i)))
-                {
-                    return i;
-                }
-            }
-        }
-        return -1; // This should never happen unless we have over 2 billion instances!
-    }
-    
-    /**
-     * Returns the given id to the pool of valid IDs
-     */
-    void returnInstanceID(int id)
-    {
-        synchronized(this.instances)
-        {
-            this.instances.remove(new Integer(id));
-        }
+        int nextID = this.nextInstanceID;
+        this.nextInstanceID++;
+        return "" + nextID;
     }
     
     /**
      * Creates a new StyxGridServiceInstance, adds it to the "instances"
-     * directory and returns its ID number
+     * directory and returns its URL.  In future this might create a new instance
+     * on another SGS server for purposes of load balancing.
      */
-    private int newInstance(int id) throws StyxException
+    private String newInstance(String id) throws StyxException
     {
-        synchronized (this.instances)
+        StyxDirectory newInstance = new StyxGridServiceInstance(this, id,
+            this.sgsConfig);
+        this.instancesDir.addChild(newInstance);
+        // Get the host name or IP address of this server
+        String hostname;
+        try
         {
-            this.instances.add(new Integer(id));
-            this.instancesDir.addChild(new StyxGridServiceInstance(this, id,
-                this.sgsConfig));
-            return id;
-        }        
+            hostname = java.net.InetAddress.getLocalHost().getHostAddress();
+        }
+        catch(java.net.UnknownHostException uhe)
+        {
+            hostname = "unknown";
+        }
+        return "styx://" + hostname + ":9092" + newInstance.getFullPath();
     }
     
     // The clone file - reading this file creates a new instance of the Grid Service
@@ -236,7 +228,7 @@ public class StyxGridService
         
         /**
          * Reading the clone file causes a new instance of the Grid Service to
-         * be created, and returns the ID of the service. The client must request
+         * be created, and returns the URL to the base of the new instance. The client must request
          * enough bytes to return the service ID, otherwise a StyxException will
          * be thrown.
          * @todo Could also create the SGS when this file is opened, and leave
@@ -248,16 +240,19 @@ public class StyxGridService
             if (offset == 0)
             {
                 // Create a new StyxGridServiceInstance and return its id
-                int id = getNextInstanceID();
+                String id = getInstanceID();
+                
                 // Construct the reply message
-                byte[] msgBytes = StyxUtils.strToUTF8("" + id);
+                String newInstanceURL = newInstance(id);
+                byte[] msgBytes = StyxUtils.strToUTF8(newInstanceURL);
                 // Check that the client has requested enough bytes for the reply
                 if (count < msgBytes.length)
                 {
-                    returnInstanceID(id);
+                    // TODO: delete the new instance, or perhaps just return
+                    // the requested number of bytes, storing the message bytes
+                    // for later
                     throw new StyxException("must request at least " + msgBytes.length + " bytes.");
                 }
-                newInstance(id);
                 replyRead(client, msgBytes, tag);
             }
             else
