@@ -66,19 +66,6 @@
 		</javadoc>
 	</target>
         
-        <taskdef name="java2html" classname="de.java2html.anttasks.Java2HtmlTask"/>
-        <target name="java2html">
-            <java2html
-                   srcdir="${src.dir}"
-                   destdir="${target.dir}/docs/sources"
-                   includes="**/*.java"
-                   style="eclipse"
-                   showLineNumbers="true"
-                   showFileName="true"
-                   showTableBorder="false"
-            />
-        </target>
-        
         <target name="dist" depends="jar" description="build distribution as a zip file">
             <mkdir dir="${dist.dir}"/>
             <zip destfile="${dist.dir}/jstyx-${version}.zip">
