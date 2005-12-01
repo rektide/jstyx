@@ -76,6 +76,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.41  2005/12/01 08:37:48  jonblower
+ * Changed ID from int to String
+ *
  * Revision 1.40  2005/11/14 21:31:54  jonblower
  * Got SGSRun working for SC2005 demo
  *
@@ -192,7 +195,7 @@ class StyxGridServiceInstance extends StyxDirectory
     private static final Runtime runtime = Runtime.getRuntime();
     
     private StyxGridService sgs; // The SGS to which this instance belongs
-    private int id; // The ID number of this instance
+    private String id; // The ID of this instance
     private SGSConfig sgsConfig; // The configuration object used to create this instance
     private File workDir; // The working directory of this instance
     private Process process = null; // The process object returned by runtime.exec()
@@ -218,10 +221,10 @@ class StyxGridServiceInstance extends StyxDirectory
      * Creates a new StyxGridService with the given configuration
      * @todo: sort out permissions and owners on all these files
      */
-    public StyxGridServiceInstance(StyxGridService sgs, int id,
+    public StyxGridServiceInstance(StyxGridService sgs, String id,
         SGSConfig sgsConfig) throws StyxException
     {
-        super("" + id);
+        super(id);
         this.sgs = sgs;
         this.id = id;
         this.sgsConfig = sgsConfig;
