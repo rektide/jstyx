@@ -75,6 +75,7 @@
     input files it consumes, the output files it creates, plus some other things.
     The structure of the <code>&lt;gridservice&gt;</code> tag and its sub-tags
     looks like this:
+    </p>
     <source>
     <![CDATA[<gridservice name="mysgs" command="C:\path\to\executable"
         description="A Styx Grid Service">
@@ -98,6 +99,7 @@
       </docs>
     </gridservice>]]>
     </source>
+    <p>
     The <code>&lt;gridservice&gt;</code> tag itself has three attributes.  The
     <code>name</code> attribute gives a short, unique name for the SGS that will
     be used to identify it.  This name cannot contain spaces.  The <code>command</code>
@@ -132,7 +134,8 @@
       <tr><td>paramType</td><td>&quot;switch&quot;, &quot;flaggedOption&quot; or &quot;unflaggedOption&quot;</td>
             <td>None</td><td>Type of the parameter.  See below.</td></tr>
       <tr><td>required</td><td>&quot;yes&quot; or &quot;no&quot;</td><td>&quot;no&quot;</td>
-            <td>Set to &quot;yes&quot; if a value for this parameter must be set.  This
+            <td>Set to &quot;yes&quot; if a value for this parameter must be set
+            before the service is started.  This
             is irrelevant when paramType=&quot;switch&quot;.</td></tr>
       <tr><td>flag</td><td>single character</td><td>None</td>
             <td>For switches and flaggedOptions, the short flag used to identify this parameter
@@ -187,6 +190,7 @@
     signified by the short flag &quot;-o&quot; or the long flag &quot;--outputfile&quot;.
     Both of these arguments are compulsory.
     The <code>&lt;params&gt;</code> tag in the configuration file would look like this:
+    </p>
     <source>
     <![CDATA[<params>
       <param name="inputfile" paramType="flaggedOption" required="yes" 
@@ -195,6 +199,7 @@
           flag="o" longFlag="outputfile"/>
     </params>]]>
     </source>
+    <p>
     The usage of this executable is <code>myprog -i &lt;inputfile&gt; -o &lt;outputfile&gt;.</code>
     </p>
     <p>
@@ -204,12 +209,14 @@
     line gives the name of the output file and the remaining arguments are the names
     of all the input files that must be read.
     The <code>&lt;params&gt;</code> tag in the configuration file would look like this:
+    </p>
     <source>
     <![CDATA[<params>
       <param name="outputfile" paramType="unflaggedOption" required="yes"/>
       <param name="inputfiles" paramType="unflaggedOption" required="yes" greedy="yes"/>
     </params>]]>
     </source>
+    <p>
     This time both parameters are unflaggedOptions (parameters whose value is found
     by looking at a certain position on the command line).  The first argument
     gives the name of the output file and the remaining arguments are consumed 
@@ -221,12 +228,16 @@
     with another string.  In addition, the user can tell the program to print
     verbose debug information by specifying the argument "-v".  Here is an example
     of running this executable from the command line:
+    </p>
     <source>
     replaceInFiles -i input.dat -o output.dat Hello Goodbye -v
     </source>
+    <p>
     This would replace all instances of &quot;Hello&quot; in the file <code>input.dat</code>
-    with the string &quot;Goodbye&quot; and write the result to <code>output.dat</code>.    
+    with the string &quot;Goodbye&quot; and write the result to <code>output.dat</code>,
+    whilst printing verbose debug messages.
     The <code>&lt;params&gt;</code> tag in the configuration file would look like this:
+    </p>
     <source>
     <![CDATA[<params>
       <param name="verbose" paramType="switch" flag="v"/>
@@ -236,6 +247,7 @@
       <param name="stringToReplace" paramType="unflaggedOption" required="yes"/>
     </params>]]>
     </source>
+    <p>
     Not that only the order of the unflaggedOptions is important.  Switches
     and flaggedOptions can be placed anywhere on the command line and can be
     specified anywhere between the <code>&lt;params&gt;</code> tags.
@@ -371,13 +383,13 @@
     description of the executable that is called "description.txt" in real life,
     but we want to expose it with the name "README".  The documentation part of
     the configuration file would look like this:
+    </p>
     <source>
     <![CDATA[<docs>
       <doc location="c:\myprog\docs\">
       <doc location="c:\myprog\description.txt" name="README">
     </docs>]]>
     </source>
-    </p>
     </subsection>
     
     </section>
@@ -406,9 +418,15 @@
     </p>
     <p>
     The entire configuration file that is required to expose the <code>md5sum</code>
-    program as a Styx Grid Service is as follows:
+    program as a Styx Grid Service is as follows (the first two lines just 
+    declare that this is an XML file and that it conforms to the specification
+    given in <code>SGSconfig.dtd</code>):
+    </p>
     <source>
-    <![CDATA[<sgs>
+    <![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE sgs SYSTEM "SGSconfig.dtd">
+      
+      <sgs>
     
       <server port="9092"/>
       
@@ -432,6 +450,7 @@
       
     </sgs>]]>
     </source>
+    <p>
     Working down this file: we specify that we want the SGS server to listen on
     port 9092 and we say that we want to use the <code>/home/jon/StyxGridServices</code>
     directory to hold persistent information about all the service instances.
@@ -444,13 +463,14 @@
     
     <subsection name="Example 2: replaceInFiles">
     <p>
-    In the &quot;Parameters&quot; section above we specified the parameters taken
+    In the &quot;Parameters&quot; section <a href="#Parameters">above</a> we specified the parameters taken
     by an executable that reads an input file, replaces all instances of one string
     with another, then writes the resulting output file.  We've actually already done
     the hardest bit of creating the configuration file in this case: all we need
     to do now is to specify the input and output file in the configuration 
     document.  The information below must be placed within the <code>&lt;gridservices&gt;</code>
     tag in a complete configuration file such as that given in example 1 above:
+    </p>
     <source>
     <![CDATA[<gridservice name="replaceInFiles" command="C:\path\to\replaceInFiles.exe"
         description="Finds and replaces a string in a file">
@@ -473,7 +493,9 @@
           
     </gridservice>]]>
     </source>
-    We've already described the parameters above.  All we have done is to state
+    <p>
+    We've already described the parameters <a href="#Parameters">above</a>.
+    All we have done here is to state
     that the executable expects one input file, whose name will be given by the
     value of the parameter called &quot;inputfile&quot;.  Furthermore, we state
     that the executable writes a single output file, whose name is given by the 
