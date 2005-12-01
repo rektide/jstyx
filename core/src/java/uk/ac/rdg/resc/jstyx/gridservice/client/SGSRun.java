@@ -34,16 +34,11 @@ import java.io.PrintWriter;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
-import java.io.StringReader;
 import java.io.File;
 
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
-
-import org.dom4j.io.SAXReader;
-import org.dom4j.Document;
-import org.dom4j.DocumentException;
 
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
@@ -63,7 +58,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
-import uk.ac.rdg.resc.jstyx.gridservice.config.*;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSParam;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
 
 /**
  * Simple program that logs on to an SGS server, creates a new service instance,
@@ -73,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2005/12/01 08:29:47  jonblower
+ * Refactored XML config handling to simplify clients
+ *
  * Revision 1.8  2005/11/28 17:20:18  jonblower
  * Fixed bug with not exiting cleanly when error occurs
  *
@@ -100,7 +100,7 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  */
 public class SGSRun extends CStyxFileChangeAdapter
 {
-    private static final String OUTPUT_REFS = "output-refs";
+    private static final String OUTPUT_REFS = "sgs-output-refs";
     private static final String HELP = "sgs-help";
     private static final String VERBOSE_HELP = "sgs-verbose-help";
     private static final String DEBUG = "sgs-debug";
@@ -133,10 +133,9 @@ public class SGSRun extends CStyxFileChangeAdapter
      * @param port The port of the SGS server
      * @param serviceName The name of the SGS to invoke
      * @throws StyxException if there was an error connecting to the server
-     * or creating a new service instance
+     * or getting the configuration of the SGS 
      */
-    public SGSRun(String hostname, int port, String serviceName)
-        throws StyxException
+    public SGSRun(String hostname, int port, String serviceName) throws StyxException
     {
         this.usingStdin = false;
         this.debug = false;
@@ -144,46 +143,14 @@ public class SGSRun extends CStyxFileChangeAdapter
         this.exitCode = null;
         this.serviceStarted = false;
         
-        // Connect to the server
-        this.conn = new StyxConnection(hostname, port);
-        this.conn.connect();
-        
         // Get a client for this server
-        SGSServerClient serverClient = new SGSServerClient(this.conn.getRootDirectory());
+        SGSServerClient serverClient = new SGSServerClient(hostname, port);
         
         // Get a handle to the required Styx Grid Service
         this.sgsClient = serverClient.getSGSClient(serviceName);
         
         // Get the configuration of this SGS
-        this.getConfig();
-    }
-    
-    /**
-     * Reads the configuration file from the server so that we know how to parse
-     * parameters, deal with input files etc.  This information cannot be gleaned
-     * simply from interpreting the namespace itself.
-     */
-    private void getConfig() throws StyxException
-    {
-        // Parse the xml document using dom4j (without validation, since we
-        // don't have the DTD.  This is OK because the server should have validated
-        // the XML anyway)
-        SAXReader reader = new SAXReader(false);
-        try
-        {
-            Document doc = reader.read(new StringReader(this.sgsClient.getConfigXML()));
-            this.config = new SGSConfig(doc.getRootElement());
-        }
-        catch(DocumentException de)
-        {
-            // TODO: log full stack trace
-            throw new StyxException("Error parsing config XML: " + de.getMessage());
-        }
-        catch(SGSConfigException sce)
-        {
-            // TODO: log full stack trace
-            throw new StyxException("Error creating SGSConfig object: " + sce.getMessage());
-        }
+        this.config = this.sgsClient.getConfig();
     }
     
     /**
@@ -293,22 +260,18 @@ public class SGSRun extends CStyxFileChangeAdapter
         try
         {
             // Add a switch to allow the user to print out a help message for this SGS
-            Switch help = new Switch(HELP, JSAP.NO_SHORTFLAG, HELP,
-                "Set this switch to print out a short help message");
-            jsap.registerParameter(help);
+            jsap.registerParameter(new Switch(HELP, JSAP.NO_SHORTFLAG, HELP,
+                "Set this switch to print out a short help message"));
             // Add a switch to allow the user to print out a verbose help message for this SGS
-            Switch verboseHelp = new Switch(VERBOSE_HELP, JSAP.NO_SHORTFLAG, VERBOSE_HELP,
-                "Set this switch to print out a long help message");
-            jsap.registerParameter(verboseHelp);
+            jsap.registerParameter(new Switch(VERBOSE_HELP, JSAP.NO_SHORTFLAG, VERBOSE_HELP,
+                "Set this switch to print out a long help message"));
             // Add a switch to enable debugging messages to be printed to stdout
-            Switch debug = new Switch(DEBUG, JSAP.NO_SHORTFLAG, DEBUG,
-                "Set this switch in order to enable printing of debug messages");
-            jsap.registerParameter(debug);
+            jsap.registerParameter(new Switch(DEBUG, JSAP.NO_SHORTFLAG, DEBUG,
+                "Set this switch in order to enable printing of debug messages"));
             // Add a switch to allow outputting of references to files instead of
             // the actual files themselves
-            Switch outputUrls = new Switch(OUTPUT_REFS, JSAP.NO_SHORTFLAG, OUTPUT_REFS,
-                "Set this switch in order to get URLs to output files rather than actual files");
-            jsap.registerParameter(outputUrls);
+            jsap.registerParameter(new Switch(OUTPUT_REFS, JSAP.NO_SHORTFLAG, OUTPUT_REFS,
+                "Set this switch in order to get URLs to all output files rather than actual files"));
             // Add a parameter for each fixed input file so that the user can set the
             // URL with an argument like --input.txt-ref=
             Vector inputs = this.config.getInputs();
@@ -704,7 +667,6 @@ public class SGSRun extends CStyxFileChangeAdapter
             if (this.debug)
             {
                 System.out.println("Exiting with code " + ec);
-                System.out.flush();
             }
             System.exit(ec);
         }

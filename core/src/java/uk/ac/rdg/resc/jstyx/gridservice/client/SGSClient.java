@@ -40,6 +40,8 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeAdapter;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfigException;
 
 /**
  * Client for a Styx Grid Service.
@@ -48,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/12/01 08:29:47  jonblower
+ * Refactored XML config handling to simplify clients
+ *
  * Revision 1.11  2005/11/07 21:03:22  jonblower
  * Added getConfigXML() method
  *
@@ -104,7 +109,7 @@ public class SGSClient extends CStyxFileChangeAdapter
     
     /**
      * Creates a new instance of SGSClient.
-     * @param root The CStyxFile representing the root of the SGS
+     * @param sgsRoot The CStyxFile representing the root of the SGS
      */
     public SGSClient(CStyxFile sgsRoot)
     {
@@ -144,15 +149,24 @@ public class SGSClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Gets the XML configuration for this Styx Grid Service.  This XML snippet
-     * (returned as a String) will contain all the information a client needs
-     * to know about the SGS instances that will be created for this service.
-     * Clients can interrogate the XML to find out how to parse command-line 
-     * parameters, deal with input files and so forth.
+     * Reads the configuration file from the server so that we know how to parse
+     * parameters, deal with input files etc.  This information cannot be gleaned
+     * simply from interpreting the namespace itself.
+     * @throws StyxException if there was an error reading the configuration
+     * from the server
      */
-    public String getConfigXML() throws StyxException
+    public SGSConfig getConfig() throws StyxException
     {
-        return this.sgsRoot.getFile("config").getContents();
+        try
+        {
+            return new SGSConfig(this.sgsRoot.getFile("config").getContents());
+        }
+        catch (SGSConfigException sce)
+        {
+            // This is unlikely to happen: the server should return valid
+            // configuration XML
+            throw new StyxException(sce.getMessage());
+        }
     }
     
     /**
@@ -311,8 +325,8 @@ public class SGSClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Fires the newInstanceCreated() event in all registered change listeners
-     * @param id the ID of the new instance that has been created
+     * Fires the error() event in all registered change listeners
+     * @param message the error message
      */
     private void fireError(String message)
     {

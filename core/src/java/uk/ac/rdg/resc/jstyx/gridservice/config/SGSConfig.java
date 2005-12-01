@@ -30,8 +30,12 @@ package uk.ac.rdg.resc.jstyx.gridservice.config;
 
 import java.util.Vector;
 import java.util.Iterator;
+import java.io.StringReader;
 
 import org.dom4j.Node;
+import org.dom4j.io.SAXReader;
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
 
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
@@ -48,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/12/01 08:29:47  jonblower
+ * Refactored XML config handling to simplify clients
+ *
  * Revision 1.4  2005/11/10 19:50:43  jonblower
  * Added code to handle output files
  *
@@ -105,11 +112,13 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.*;
  */
 public class SGSConfig
 {
+    private Node rootNode;      // The Node in the XML config file that is at the
+                                // root of this Styx Grid Service
     private String name;        // The name of this SGS
     private String command;     // The command that is run by this SGS
     private String workDir;     // The working directory of this SGS
     private String description; // Short description of this SGS
-    private String configXML;   // XML snippet used to create this config
+    private String configXMLForClient;   // XML snippet used to create this config in a form suitable for clients
     
     private Vector inputs;      // The inputs (files and streams) expected by this service
                                 // Instance of SGSInputFile
@@ -125,15 +134,16 @@ public class SGSConfig
      * object from the XML config file.
      * @param gridService The Node in the XML config file that is at the
      * root of this Styx Grid Service
-     * @param sgsRootDir The root of the working directory of this SGS
+     * @param sgsRootDir The root of the working directory of this SGS server
      * @throws IllegalArgumentException if the name of the SGS contains
      * a space.
      */
     public SGSConfig(Node gridService, String sgsRootDir) throws SGSConfigException
     {
-        this(gridService);
+        this.init(gridService);
         this.workDir = sgsRootDir + StyxUtils.SYSTEM_FILE_SEPARATOR + name;
-        this.configXML = readConfigXML(gridService);
+        this.rootNode = gridService;
+        this.setConfigXMLForClient();
         
         // Create the documentation files
         this.docFiles = new Vector();
@@ -154,9 +164,30 @@ public class SGSConfig
      * (e.g. the working directory).  After calling this constructor, clients 
      * will have access to all the fields that relate to <b>instances</b> of 
      * this SGS.
-     * @param gridService Node in the XML snippet representing this SGS
+     * @param configXML XML snippet representing the Styx Grid Service
      */
-    public SGSConfig(Node gridService) throws SGSConfigException
+    public SGSConfig(String configXML) throws SGSConfigException
+    {
+        // Parse the xml document using dom4j (without validation, since we
+        // don't have the DTD.  This is OK because the server should have validated
+        // the XML anyway)
+        SAXReader reader = new SAXReader(false);
+        try
+        {
+            Document doc = reader.read(new StringReader(configXML));
+            this.init(doc.getRootElement());
+        }
+        catch(DocumentException de)
+        {
+            // TODO: log full stack trace
+            throw new SGSConfigException("Error parsing config XML: " + de.getMessage());
+        }
+    }
+    
+    /**
+     * Initializes class variables from the given Node in an XML document
+     */
+    private void init(Node gridService) throws SGSConfigException
     {
         this.name = gridService.valueOf("@name");
         // Check that the name is valid
@@ -301,7 +332,9 @@ public class SGSConfig
 
     /**
      * @return the command string that is run when the SGS is started.  This
-     * is the string that is passed to Runtime.exec().
+     * is the string that is passed to Runtime.exec().  This
+     * is only meaningful for server-side code (if a client calls this method it
+     * will return null).
      */ 
     public String getCommand()
     {
@@ -318,7 +351,9 @@ public class SGSConfig
 
     /**
      * @return the working directory of this SGS. Each instance of the SGS
-     * will use a subdirectory of this directory as its working directory.
+     * will use a subdirectory of this directory as its working directory.  This
+     * is only meaningful for server-side code (if a client calls this method it
+     * will return null).
      */
     public String getWorkingDirectory()
     {
@@ -326,22 +361,45 @@ public class SGSConfig
     }
     
     /**
-     * @return the XML that was used to create this config object
-     * @todo omit documentation section, this isn't needed
+     * Sets the XML that was used to create this config object in a form
+     * suitable for clients to read.  This is the same as the XML that was used
+     * to create the config object except that the command attribute of the root
+     * element and the documentation section are missing.
      */
-    public static String readConfigXML(Node gridService)
+    private void setConfigXMLForClient()
     {
-        // TODO: this still includes the documentation section
-        return gridService.asXML();
+        // We will have to construct some of the XML by hand
+        StringBuffer buf = new StringBuffer("<gridservice name=\"");
+        buf.append(this.name);
+        buf.append("\" description=\"");
+        buf.append(this.description);
+        buf.append("\">");
+        
+        // Loop over all the child elements and add to the XML unless the child
+        // element is the documentation element
+        Iterator it = this.rootNode.selectNodes("*").iterator();
+        while (it.hasNext())
+        {
+            Node node = (Node)it.next();
+            if (!node.getName().equals("docs"))
+            {
+                buf.append(node.asXML());
+            }
+        }
+            
+        buf.append("</gridservice>");
+        this.configXMLForClient = buf.toString();
     }
     
     /**
-     * @return the XML that was used to create this config object
-     * @todo omit documentation section, this isn't needed
+     * @return the XML that was used to create this config object in a form
+     * suitable for clients to read.  This is the same as the XML that was used
+     * to create the config object except that the command attribute of the root
+     * element and the documentation section are missing.
      */
-    public String getConfigXML()
+    public String getConfigXMLForClient()
     {
-        return this.configXML;
+        return this.configXMLForClient;
     }
     
     /**
