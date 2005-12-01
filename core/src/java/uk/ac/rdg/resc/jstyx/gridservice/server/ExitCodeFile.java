@@ -38,12 +38,15 @@ import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
  * File that is read in order to get the exit code from the service instance.
  * If the exit code has not yet been set, read requests will be queued and replied
  * to when the exit code is set.
- * @ todo This class might be more generally useful - refactor?
+ * @todo This class might be more generally useful - refactor?
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/12/01 08:26:45  jonblower
+ * Fixed javadoc comment
+ *
  * Revision 1.1  2005/11/14 21:31:54  jonblower
  * Got SGSRun working for SC2005 demo
  *
