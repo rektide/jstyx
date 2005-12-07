@@ -30,11 +30,14 @@ package uk.ac.rdg.resc.jstyx.gridservice.client;
 
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
 import java.awt.Component;
+
+import uk.ac.rdg.resc.jstyx.StyxException;
 
 /**
  * A popup menu which appears when the user right-clicks on a node in the tree
@@ -45,6 +48,9 @@ import java.awt.Component;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2005/12/07 08:54:06  jonblower
+ * Changes due to SGSInstanceGUI.getGUI() throwing StyxException
+ *
  * Revision 1.6  2005/07/08 12:19:58  jonblower
  * Continuing to implement automatic updates of service instances
  *
@@ -131,7 +137,19 @@ class StyxExplorerPopupMenu extends JPopupMenu implements ActionListener
         }
         else if (source == this.showGUI)
         {
-            SGSInstanceGUI.getGUI(this.activeNode.getFile()).setVisible(true);
+            try
+            {
+                SGSInstanceGUI gui = SGSInstanceGUI.getGUI(this.activeNode.getSGSClient(),
+                    this.activeNode.getFile());
+                gui.setVisible(true);
+            }
+            catch(StyxException se)
+            {
+                // Called if there is an error creating the SGS instance client
+                // object (unlikely)
+                JOptionPane.showMessageDialog(null, "Error creating SGS instance" +
+                    " client: " + se.getMessage());
+            }
         }
         else if (source == this.refresh)
         {
