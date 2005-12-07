@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2005/12/07 08:51:14  jonblower
+ * Added option to readAsync() to open file for reading and writing with truncation
+ *
  * Revision 1.1  2005/08/05 13:46:40  jonblower
  * Factored out all callback objects from CStyxFile into separate classes
  *
@@ -56,17 +59,19 @@ public class ReadCallback extends MessageCallback
 {
     private long offset;
     private int bytesRequired;
+    private boolean openForWriting;
     private MessageCallback callback;
     private CStyxFile file;
     private StyxConnection conn;
 
     public ReadCallback(CStyxFile file, long offset, int bytesRequired,
-        MessageCallback callback)
+        boolean openForWriting, MessageCallback callback)
     {
         this.file = file;
         this.conn = this.file.getConnection();
         this.offset = offset;
         this.bytesRequired = bytesRequired;
+        this.openForWriting = openForWriting;
         this.callback = callback;
     }
 
@@ -93,7 +98,16 @@ public class ReadCallback extends MessageCallback
         else
         {
             // We need to open the file
-            this.file.openAsync(StyxUtils.OREAD, this);
+            if (this.openForWriting)
+            {
+                // We need to open the file for reading and writing with truncation
+                this.file.openAsync(StyxUtils.ORDWR | StyxUtils.OTRUNC, this);
+            }
+            else
+            {
+                // Open the file read-only
+                this.file.openAsync(StyxUtils.OREAD, this);
+            }
         }
     }
 

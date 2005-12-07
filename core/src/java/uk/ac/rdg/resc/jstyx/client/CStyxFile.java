@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.44  2005/12/07 08:51:13  jonblower
+ * Added option to readAsync() to open file for reading and writing with truncation
+ *
  * Revision 1.43  2005/12/01 08:21:55  jonblower
  * Fixed javadoc comments
  *
@@ -679,12 +682,33 @@ public class CStyxFile
      */
     public void readAsync(long offset)
     {
-        this.readAsync(offset, -1, null);
+        this.readAsync(offset, false);
+    }
+    
+    /**
+     * Reads a chunk of data from the file. Reads the maximum amount of data
+     * allowed in a single message, starting at the given file offset.  If the
+     * file was not open before this method is called, the file will be opened
+     * (but the fileOpen() event will not be fired).
+     * Returns immediately; the dataArrived() events of registered
+     * CStyxFileChangeListeners will be called when the data arrive, and the
+     * error() events of registered CStyxFileChangeListeners will be called if
+     * an error occurs.
+     * @param offset The index of the first byte of data in the file to read
+     * @param openForWriting If this is true, the file will be opened for reading
+     * <em>and</em> writing with truncation, <em>provided that the file is not open already</em>.
+     * If this is false, the file will be opened for reading only
+     */
+    public void readAsync(long offset, boolean openForWriting)
+    {
+        this.readAsync(offset, -1, openForWriting, null);
     }
     
     /**
      * Reads a chunk of data from the file.  Reads the maximum number of bytes
-     * allowed in a single message, starting at the given file offset. 
+     * allowed in a single message, starting at the given file offset. If the
+     * file was not open before this method is called, the file will be opened
+     * for reading only (but the fileOpen() event will not be fired).
      * Returns immediately; the replyArrived() events of the provided callback
      * will be called when the data arrive, and the error() method of the
      * callback will be called if an error occurs.  When the reply arrives,
@@ -694,7 +718,29 @@ public class CStyxFile
      */
     public void readAsync(long offset, MessageCallback callback)
     {
-        this.readAsync(offset, -1, callback);
+        this.readAsync(offset, -1, false, callback);
+    }
+    
+    /**
+     * Reads a chunk of data from the file.  Sends request to read the given
+     * number of bytes, starting at the given file offset. If bytesRequired < 0,
+     * the maximum number of bytes allowed in a single message will be read. If the
+     * file was not open before this method is called, the file will be opened
+     * for reading (but the fileOpen() event will not be fired).
+     * Returns immediately; the replyArrived() events of the provided callback
+     * will be called when the data arrive, and the error() method of the
+     * callback will be called if an error occurs.  When the reply arrives,
+     * the data will be contained in a ByteBuffer that is part of the RreadMessage:
+     * use RreadMessage.getData() to get the buffer.  After you have finished with 
+     * the buffer, call release() on the buffer to return it to the pool.
+     * @param offset The index of the first byte of data in the file to read
+     * @param bytesRequired The maximum number of bytes required
+     * @param callback The class that will be notified if the read was successful,
+     * or if there was an error
+     */
+    public void readAsync(long offset, int bytesRequired, MessageCallback callback)
+    {
+        this.readAsync(offset, bytesRequired, false, callback);
     }
     
     /**
@@ -707,10 +753,18 @@ public class CStyxFile
      * the data will be contained in a ByteBuffer that is part of the RreadMessage:
      * use RreadMessage.getData() to get the buffer.  After you have finished with 
      * the buffer, call release() on the buffer to return it to the pool.
+     * @param offset The index of the first byte of data in the file to read
+     * @param bytesRequired The maximum number of bytes required
+     * @param openForWriting If this is true, the file will be opened for reading
+     * <em>and</em> writing with truncation, <em>provided that the file is not open already</em>.
+     * If this is false, the file will be opened for reading only
+     * @param callback The class that will be notified if the read was successful,
+     * or if there was an error
      */
-    public void readAsync(long offset, int bytesRequired, MessageCallback callback)
+    public void readAsync(long offset, int bytesRequired, boolean openForWriting,
+        MessageCallback callback)
     {
-        new ReadCallback(this, offset, bytesRequired, callback).nextStage();
+        new ReadCallback(this, offset, bytesRequired, openForWriting, callback).nextStage();
     }
     
     /**
