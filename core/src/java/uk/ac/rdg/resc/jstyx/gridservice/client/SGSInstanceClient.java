@@ -41,6 +41,8 @@ import java.io.IOException;
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
 
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSParam;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
@@ -58,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.43  2005/12/07 17:51:32  jonblower
+ * Changed "commandline" file to "args"
+ *
  * Revision 1.42  2005/12/07 08:56:32  jonblower
  * Refactoring SGS client code
  *
@@ -133,9 +138,6 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * Revision 1.17  2005/05/23 16:48:23  jonblower
  * Overhauled CStyxFile (esp. asynchronous methods) and StyxConnection (added cache of CStyxFiles)
  *
- * Revision 1.16  2005/05/20 16:28:49  jonblower
- * Continuing to implement GUI app
- *
  * Revision 1.15  2005/05/20 07:45:27  jonblower
  * Implemented getInputFiles() to find the input files required by the service
  *
@@ -187,6 +189,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private static final Logger log = Logger.getLogger(SGSInstanceClient.class);
     
     private SGSClient client;       // Client of the Styx Grid Service
+    private SGSConfig config;       // Full configuration information
     private CStyxFile instanceRoot; // The file at the root of the instance
     private CStyxFile ctlFile;      // The file that we use to stop, start and
                                     // destroy the instance
@@ -219,8 +222,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     // Steerable parameters
     private CStyxFile[] steeringFiles;
     
-    // Command line file: used to read command line for debugging
-    private CStyxFile cmdLineFile;
+    // Used to read command line arguments for debugging
+    private CStyxFile argsFile;
     
     // SGSInstanceClientChangeListeners that are listening for changes to this SGS instance
     private Vector changeListeners;
@@ -255,14 +258,17 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // Get the directory that holds the steerable parameters
         this.steeringFiles = this.instanceRoot.getFile("steering").getChildren();
         
-        // We will read this file to get the command line
-        this.cmdLineFile = this.instanceRoot.getFile("commandline");
+        // We will read this file to get the command line arguments
+        this.argsFile = this.instanceRoot.getFile("args");
         
         // Get the files we use to read service data
         this.serviceDataFiles = this.instanceRoot.getFile("serviceData").getChildren();
         this.sdeValues = new Hashtable();
         this.sdeValuesVersion = 0;
         this.sdeValuesVersionLastRead = 0;
+        
+        // Get the full configuration information from the server
+        this.config = this.client.getConfig();
         
         this.bufs = new Hashtable();
         this.changeListeners = new Vector();
@@ -274,6 +280,15 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public CStyxFile getInstanceRoot()
     {
         return this.instanceRoot;
+    }
+    
+    /**
+     * @return the name of this Styx Grid Service (note: not the name of this
+     * particular instance
+     */
+    public String getName()
+    {
+        return this.client.getName();
     }
     
     /**
@@ -347,11 +362,12 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * @return Array of Strings, one for each input parameter that can be set
+     * @return Vector of SGSParam objects, one for each input parameter that
+     * can be set.
      */
-    public String[] getParameterNames()
+    public Vector getParameters()
     {
-        return getFileNamesAsArray(this.paramFiles);
+        return this.config.getParams();
     }
     
     /**
@@ -396,25 +412,25 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Sends a message to get the command line that will be executed.  Note that
-     * clients only need to call this once: the gotCommandLine() event on 
+     * Sends a message to get the command line arguments that will be executed.  Note that
+     * clients only need to call this once: the gotArguments() event on 
      * all registered change listeners will be called automatically whenever
      * the command line changes.
      */
-    public void getCommandLineAsync()
+    public void getArgumentsAsync()
     {
-        this.readDataAsync(this.cmdLineFile, true);
+        this.readDataAsync(this.argsFile, true);
     }
     
     /**
-     * Gets the command line that will be executed.  This method blocks until
-     * the command line is returned.
-     * @return the command line that will be executed.
+     * Gets the command line arguments that will be executed.  This method
+     * blocks until the data are returned.
+     * @return the command line arguments that will be executed.
      * @throws StyxException if there was an error getting the contents
      */
-    public String getCommandLine() throws StyxException
+    public String getArguments() throws StyxException
     {
-        return this.cmdLineFile.getContents();
+        return this.argsFile.getContents();
     }
     
     /**
@@ -754,10 +770,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 // TODO: should use constants rather than strings here.
                 boolean readAgain = true;
                 boolean found = false;
-                if (file == this.cmdLineFile)
+                if (file == this.argsFile)
                 {
                     found = true;
-                    this.fireGotCommandLine(strBuf.toString());
+                    this.fireGotArguments(strBuf.toString());
                 }
                 // Check to see if this is a service data file
                 for (int i = 0; !found && i < this.serviceDataFiles.length; i++)
@@ -995,9 +1011,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Fires the gotCommandLine() event on all registered change listeners
+     * Fires the gotArguments() event on all registered change listeners
      */
-    private void fireGotCommandLine(String newCmdLine)
+    private void fireGotArguments(String newArgs)
     {
         synchronized(this.changeListeners)
         {
@@ -1005,7 +1021,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
                 listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
-                listener.gotCommandLine(newCmdLine);
+                listener.gotArguments(newArgs);
             }
         }
     }
