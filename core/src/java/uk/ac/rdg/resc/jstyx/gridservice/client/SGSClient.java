@@ -50,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfigException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/12/07 17:50:48  jonblower
+ * Fixed bug and comments for getConfig()
+ *
  * Revision 1.13  2005/12/07 08:53:08  jonblower
  * Improved getConfig() and changed in line with change to SGSInstanceClient constructor
  *
@@ -153,22 +156,23 @@ public class SGSClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Reads the configuration file from the server so that we know how to parse
-     * parameters, deal with input files etc.  This information cannot be gleaned
-     * simply from interpreting the namespace itself.
+     * <p>Reads the configuration file from the server so that we know how to parse
+     * parameters, deal with input files etc.  Some of this information cannot be
+     * gleaned simply from interpreting the namespace itself.</p>
+     * <p>The first time this is called, the server will be queried for the 
+     * config information.  This information will be cached so that further
+     * calls to this method will not lead to the server being queried again,
+     * but will return the cached object.</p>
      * @throws StyxException if there was an error reading the configuration
      * from the server
      */
-    public SGSConfig getConfig() throws StyxException
+    public synchronized SGSConfig getConfig() throws StyxException
     {
         try
         {
-            synchronized(this.config)
+            if (this.config == null)
             {
-                if (this.config == null)
-                {
-                    this.config = new SGSConfig(this.sgsRoot.getFile("config").getContents());
-                }
+                this.config = new SGSConfig(this.sgsRoot.getFile("config").getContents());
             }
             return this.config;
         }
