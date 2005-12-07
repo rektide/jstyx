@@ -70,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2005/12/07 17:53:31  jonblower
+ * Added type to SGSParam (STRING, INPUT_FILE and OUTPUT_FILE)
+ *
  * Revision 1.11  2005/12/07 08:56:32  jonblower
  * Refactoring SGS client code
  *
@@ -378,8 +381,6 @@ public class SGSRun extends CStyxFileChangeAdapter
         else
         {
             // This is an Option
-            // See if this parameter represents an input file
-            boolean paramIsInputFile = (param.getInputFile() != null);                            
             String[] arr = this.result.getStringArray(param.getName());
             if (arr != null && arr.length > 0)
             {
@@ -387,8 +388,9 @@ public class SGSRun extends CStyxFileChangeAdapter
                 for (int j = 0; j < arr.length; j++)
                 {
                     String val = arr[j];
-                    if (paramIsInputFile)
+                    if (param.getType() == SGSParam.INPUT_FILE)
                     {
+                        // This parameter represents an input file
                         if (val.startsWith("readfrom:"))
                         {
                             // We are setting a URL to a file. Do nothing.

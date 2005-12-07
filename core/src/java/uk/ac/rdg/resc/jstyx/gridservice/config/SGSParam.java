@@ -45,6 +45,9 @@ import com.martiansoftware.jsap.UnflaggedOption;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/12/07 17:53:34  jonblower
+ * Added type to SGSParam (STRING, INPUT_FILE and OUTPUT_FILE)
+ *
  * Revision 1.3  2005/11/10 08:56:41  jonblower
  * Added link to output file
  *
@@ -58,16 +61,22 @@ import com.martiansoftware.jsap.UnflaggedOption;
 
 public class SGSParam
 {
+    // Integer constants representing the type of the parameter
+    public static final int STRING = 0;
+    public static final int INPUT_FILE = 1;
+    public static final int OUTPUT_FILE = 2;
     
     private Parameter param;  // The JSAP parameter object
     private SGSInput inputFile;   // The input file (if any) linked to this parameter
     private SGSOutput outputFile; // The output file (if any) linked to this parameter
+    private int type; // The type of the parameter
     
     SGSParam(Node paramNode) throws SGSConfigException
     {
         this.param = createParameter(paramNode);
         this.inputFile = null;
         this.outputFile = null;
+        this.type = STRING;
     }
     
     /**
@@ -87,19 +96,40 @@ public class SGSParam
     }
     
     /**
+     * Gets the type of this parameter:
+     * <table><tbody><tr><th>Type</th><th>Meaning</th></tr>
+     * <tr><td>STRING</td><td>Plain string</td></tr>
+     * <tr><td>INPUT_FILE</td><td>File that the executable will read: must be uploaded</td></tr>
+     * <tr><td>OUTPUT_FILE</td><td>File that the executable will write: can be downloaded</td></tr>
+     * </tbody></table>
+     * @return The parameter type as an integer
+     */
+    public int getType()
+    {
+        return this.type;
+    }
+    
+    /**
      * Sets the input file that is linked to this parameter
-     * @throws SGSConfigException if this parameter is not an Option
+     * @throws NullPointerException if <code>inputFile</code> is null
+     * @throws SGSConfigException if this parameter is not an Option, or if the
+     * parameter is already linked to an output file
      */
     public void setInputFile(SGSInput inputFile) throws SGSConfigException
     {
+        if (inputFile == null)
+        {
+            throw new NullPointerException("inputFile cannot be null");
+        }
         if (this.outputFile != null)
         {
-            throw new SGSConfigException("Paramter " + this.getName() + 
+            throw new SGSConfigException("Parameter " + this.getName() + 
                 " is already linked to an output file");
         }
         if (this.param instanceof Option)
         {
             this.inputFile = inputFile;
+            this.type = INPUT_FILE;
         }
         else
         {
@@ -109,18 +139,25 @@ public class SGSParam
     
     /**
      * Sets the output file that is linked to this parameter
-     * @throws SGSConfigException if this parameter is not an Option
+     * @throws NullPointerException if <code>outputFile</code> is null
+     * @throws SGSConfigException if this parameter is not an Option, or if the
+     * parameter is already linked to an input file
      */
     public void setOutputFile(SGSOutput outputFile) throws SGSConfigException
     {
+        if (outputFile == null)
+        {
+            throw new NullPointerException("outputFile cannot be null");
+        }
         if (this.inputFile != null)
         {
-            throw new SGSConfigException("Paramter " + this.getName() + 
+            throw new SGSConfigException("Parameter " + this.getName() + 
                 " is already linked to an input file");
         }
         if (this.param instanceof Option)
         {
             this.outputFile = outputFile;
+            this.type = OUTPUT_FILE;
         }
         else
         {
@@ -135,6 +172,15 @@ public class SGSParam
     public SGSInput getInputFile()
     {
         return this.inputFile;
+    }
+    
+    /**
+     * @return the output file that is linked to this parameter, or null if 
+     * this parameter is not linked to an output file
+     */
+    public SGSOutput getOutputFile()
+    {
+        return this.outputFile;
     }
     
     /**
