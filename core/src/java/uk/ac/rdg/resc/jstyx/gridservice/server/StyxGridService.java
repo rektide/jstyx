@@ -58,6 +58,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.DocFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2005/12/07 08:55:04  jonblower
+ * Temporarily changed clone file behaviour to return ID rather than full URL to new service instances
+ *
  * Revision 1.17  2005/12/01 08:37:23  jonblower
  * Changed clone file behaviour to return URL to new service instance instead of just the ID
  *
@@ -215,7 +218,8 @@ public class StyxGridService
         {
             hostname = "unknown";
         }
-        return "styx://" + hostname + ":9092" + newInstance.getFullPath();
+        // TODO for the moment, just return the ID - later we'll return the full URL
+        return id;// "styx://" + hostname + ":9092" + newInstance.getFullPath();
     }
     
     // The clone file - reading this file creates a new instance of the Grid Service
