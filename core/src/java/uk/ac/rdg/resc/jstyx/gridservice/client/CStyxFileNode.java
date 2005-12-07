@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2005/12/07 08:51:48  jonblower
+ * Added getSGSClient() method
+ *
  * Revision 1.13  2005/09/14 07:26:46  jonblower
  * Added error() method (from SGSChangeListener interface)
  *
@@ -136,6 +139,15 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
     public String toString()
     {
         return this.name;
+    }
+    
+    /**
+     * @return the SGSClient object associated with this node.  Only relevant
+     * for SERVICE nodes (will return null otherwise)
+     */
+    public SGSClient getSGSClient()
+    {
+        return this.sgsClient;
     }
     
     /**
