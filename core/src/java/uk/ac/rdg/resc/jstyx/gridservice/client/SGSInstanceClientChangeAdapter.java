@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2005/12/07 17:50:01  jonblower
+ * Changed gotCommandLine() to gotArguments()
+ *
  * Revision 1.3  2005/12/01 17:17:07  jonblower
  * Simplifying client interface to SGS instances
  *
@@ -82,10 +85,10 @@ public class SGSInstanceClientChangeAdapter implements SGSInstanceClientChangeLi
     public void gotSteerableParameterValue(String name, String value) {}
     
     /**
-     * Called when we have a new command line string (for debug purposes)
-     * @param newCmdLine The new command line
+     * Called when we have a new string of command line arguments (for debug purposes)
+     * @param newArgs The new arguments
      */
-    public void gotCommandLine(String newCmdLine) {}
+    public void gotArguments(String newArgs) {}
     
     /**
      * Called when the input files have been successfully uploaded

@@ -55,6 +55,7 @@ import java.awt.Dimension;
 import java.awt.BorderLayout;
 
 import java.util.Vector;
+import java.util.Iterator;
 import java.util.Enumeration;
 
 import info.clearthought.layout.TableLayout;
@@ -67,6 +68,7 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeListener;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSParam;
 
 /**
  * GUI for interacting with an SGS instance
@@ -75,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.28  2005/12/07 17:50:01  jonblower
+ * Changed gotCommandLine() to gotArguments()
+ *
  * Revision 1.27  2005/12/07 08:56:32  jonblower
  * Refactoring SGS client code
  *
@@ -145,7 +150,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
     private static final int ROW_HEIGHT = 20;
     private static final int BORDER = 10;
     
-    // Contains the GUI for each instance, indexed by CStyxFile
+    // Contains the GUI for each instance, indexed by SGSInstanceClient
     private static final Hashtable guis = new Hashtable();
     
     private SGSInstanceClient client; // Class that we use to interact with the service
@@ -199,7 +204,26 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         //this.masterPanel.add(this.inputFilesPanel, "1, 3");
         
         // Add the panel for setting parameters for the SGS
-        this.paramsPanel = new ParamsPanel(client.getParameterNames());
+        Vector params = client.getParameters();
+        Vector paramNames = new Vector();
+        for (Iterator it = params.iterator(); it.hasNext(); )
+        {
+            SGSParam param = (SGSParam)it.next();
+            if (param.getType() == SGSParam.INPUT_FILE)
+            {
+                // TODO Add to list of input files to be uploaded
+            }
+            else if (param.getType() == SGSParam.OUTPUT_FILE)
+            {
+                // TODO Add to list of output files that can be downloaded
+            }
+            else
+            {
+                // Just add the name to the list of parameters
+                paramNames.add(param.getName());
+            }
+        }
+        this.paramsPanel = new ParamsPanel((String[])paramNames.toArray(new String[0]));
         this.masterPanel.add(this.paramsPanel, "1, 5");
         
         // Add the panel for steering the SGS
@@ -226,25 +250,20 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         this.repaintGUI();
     }
     
-    public static SGSInstanceGUI getGUI(SGSClient sgsClient, CStyxFile instanceRoot)
-        throws StyxException
+    public static SGSInstanceGUI getGUI(SGSInstanceClient client)
     {
         // Looks for the GUI in the cache, then returns it if it exists.
         // If it does not exist then create it.
         synchronized(guis)
         {
-            if (guis.containsKey(instanceRoot))
+            if (guis.containsKey(client))
             {
-                return (SGSInstanceGUI)guis.get(instanceRoot);
+                return (SGSInstanceGUI)guis.get(client);
             }
             else
             {
-                // TODO: we might want to share the instance client with another
-                // window (e.g. properties window) so we might not want to
-                // create it here
-                SGSInstanceClient client = new SGSInstanceClient(sgsClient, instanceRoot);
                 SGSInstanceGUI gui = new SGSInstanceGUI(client);
-                guis.put(instanceRoot, gui);
+                guis.put(client, gui);
                 return gui;
             }
         }
@@ -269,12 +288,12 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
     }
     
     /**
-     * Called when we have a new command line string
-     * @param newCmdLine The new command line
+     * Called when we have a new set of command line arguments
+     * @param newArgs The new command line arguments
      */
-    public void gotCommandLine(String newCmdLine)
+    public void gotArguments(String newArgs)
     {
-        this.paramsPanel.setCommandLine(newCmdLine);
+        this.paramsPanel.setArguments(newArgs);
     }
     
     /**
@@ -569,11 +588,11 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         private JTable table;
         private TableLayout layout;
         private ParamsTableModel model;
-        private JLabel cmdLineLabel;
+        private JLabel argsLabel;
         
         public ParamsPanel(String[] paramNames)
         {
-            this.cmdLineLabel = new JLabel("Command line: ");
+            this.argsLabel = new JLabel("");
             // We won't bother displaying the panel if the SGS doesn't expect
             // any parameters
             if (paramNames.length > 0)
@@ -590,7 +609,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
                 this.model = new ParamsTableModel(paramNames, false);
                 this.table = new JTable(this.model);
                 this.add(new JScrollPane(this.table), "0, 0");
-                this.add(this.cmdLineLabel, "0, 2");
+                this.add(this.argsLabel, "0, 2");
 
                 for (int i = 0; i < paramNames.length; i++)
                 {
@@ -602,7 +621,9 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
                 Dimension d = new Dimension();
                 d.setSize(width, height);
                 this.table.setPreferredScrollableViewportSize(d);
-                this.repaint();
+                // We read all the parameter values so that we are notified when
+                // other clients change the parameter values
+                client.readAllParameterValuesAsync();
             }
             else
             {
@@ -614,14 +635,11 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
                 this.layout = new TableLayout(size);
                 this.setLayout(this.layout);
                 this.setBorder(BorderFactory.createTitledBorder("Parameters"));
-                this.add(this.cmdLineLabel, "0, 0");
+                this.add(this.argsLabel, "0, 0");
             }
             this.layout.layoutContainer(this);
             repaintGUI();
-            // We read all the parameter values so that we are notified when
-            // other clients change the parameter values
-            client.readAllParameterValuesAsync();
-            client.getCommandLineAsync();
+            client.getArgumentsAsync();
         }
         
         public void gotParameterValue(String name, String value)
@@ -629,9 +647,9 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
             this.model.setParameterValue(name, value);
         }
         
-        public void setCommandLine(String newCmdLine)
+        public void setArguments(String newArgs)
         {
-            this.cmdLineLabel.setText("Command line: " + newCmdLine);
+            this.argsLabel.setText(client.getName() + " " + newArgs);
             this.repaint();
         }
     }
