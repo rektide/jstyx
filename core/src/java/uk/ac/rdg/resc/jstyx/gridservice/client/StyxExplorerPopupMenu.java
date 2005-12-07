@@ -48,6 +48,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2005/12/07 17:49:05  jonblower
+ * Added getInstanceClient() method to CStyxFileNode
+ *
  * Revision 1.7  2005/12/07 08:54:06  jonblower
  * Changes due to SGSInstanceGUI.getGUI() throwing StyxException
  *
@@ -139,8 +142,8 @@ class StyxExplorerPopupMenu extends JPopupMenu implements ActionListener
         {
             try
             {
-                SGSInstanceGUI gui = SGSInstanceGUI.getGUI(this.activeNode.getSGSClient(),
-                    this.activeNode.getFile());
+                SGSInstanceClient client = this.activeNode.getInstanceClient();
+                SGSInstanceGUI gui = SGSInstanceGUI.getGUI(client);
                 gui.setVisible(true);
             }
             catch(StyxException se)

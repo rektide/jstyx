@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2005/12/07 17:49:05  jonblower
+ * Added getInstanceClient() method to CStyxFileNode
+ *
  * Revision 1.14  2005/12/07 08:51:48  jonblower
  * Added getSGSClient() method
  *
@@ -79,9 +82,6 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  *
  * Revision 1.5  2005/05/25 16:58:41  jonblower
  * Added fileCreated()
- *
- * Revision 1.4  2005/05/25 15:39:02  jonblower
- * Bug fixes
  *
  * Revision 1.3  2005/05/18 17:13:51  jonblower
  * Created SGSInstanceGUI
@@ -110,6 +110,7 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
     private SGSExplorerTreeModel dataModel;
 
     private SGSClient sgsClient; // For Service nodes only, the client class
+    private SGSInstanceClient instanceClient; // For Instance nodes only, the client class
     
     public CStyxFileNode(SGSExplorerTreeModel dataModel, CStyxFile file, String name)
     {
@@ -244,6 +245,28 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
         {
             log.error("Can't create new instance from this type of node");
         }
+    }
+    
+    /**
+     * Gets an SGSInstanceClient for this node.
+     * @throws IllegalStateException if this node does not represent a service
+     * instance
+     * @throws StyxException if there was an error creating the client
+     */
+    public SGSInstanceClient getInstanceClient() throws StyxException
+    {
+        if (this.instanceClient == null)
+        {
+            if (this.getType() != INSTANCE)
+            {
+                throw new IllegalStateException("Can only call getInstanceClient "
+                    + "on a service instance");
+            }
+            // Get the parent of this node: this will be a SERVICE
+            CStyxFileNode parent = (CStyxFileNode)this.getParent();
+            this.instanceClient = new SGSInstanceClient(parent.getSGSClient(), this.file);
+        }
+        return this.instanceClient;
     }
     
     
