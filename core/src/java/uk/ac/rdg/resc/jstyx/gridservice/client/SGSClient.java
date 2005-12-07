@@ -50,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfigException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/12/07 08:53:08  jonblower
+ * Improved getConfig() and changed in line with change to SGSInstanceClient constructor
+ *
  * Revision 1.12  2005/12/01 08:29:47  jonblower
  * Refactored XML config handling to simplify clients
  *
@@ -101,7 +104,8 @@ public class SGSClient extends CStyxFileChangeAdapter
     private CStyxFile instancesFile; // The special file (behaves like a directory)
                                  // that is read to give the instances of the
                                  // services
-    public String description;   // The short description of this SGS
+    private String description;  // The short description of this SGS
+    private SGSConfig config;    // Object describing how each instance is configured
     private Vector instances;    // Vector of CStyxFiles representing the root of
                                  // each instance
     private boolean gettingInstances;
@@ -159,7 +163,14 @@ public class SGSClient extends CStyxFileChangeAdapter
     {
         try
         {
-            return new SGSConfig(this.sgsRoot.getFile("config").getContents());
+            synchronized(this.config)
+            {
+                if (this.config == null)
+                {
+                    this.config = new SGSConfig(this.sgsRoot.getFile("config").getContents());
+                }
+            }
+            return this.config;
         }
         catch (SGSConfigException sce)
         {
@@ -193,10 +204,11 @@ public class SGSClient extends CStyxFileChangeAdapter
     /**
      * Gets an SGSInstanceClient for the given instance id. This does not create
      * a new instance.
+     * @throws StyxException if there was an error creating the client object
      */
-    public SGSInstanceClient getClientForInstance(String id)
+    public SGSInstanceClient getClientForInstance(String id) throws StyxException
     {
-        return new SGSInstanceClient(this.sgsRoot.getFile("instances/" + id));
+        return new SGSInstanceClient(this, this.sgsRoot.getFile("instances/" + id));
     }
     
     /**
