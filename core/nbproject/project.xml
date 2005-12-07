@@ -12,12 +12,15 @@
         
     
         
+    
+        
     <general-data xmlns="http://www.netbeans.org/ns/freeform-project/1">
             <!--Do not use Project Properties customizer when editing this file manually.-->
             <name>JStyx</name>
             <properties/>
             <folders>
                 
+            
             
             
             
@@ -69,8 +72,14 @@
                     </context>
                 </action>
             </ide-actions>
+            <export>
+                <type>jar</type>
+                <location>target/jstyx-0.1.0-SNAPSHOT.jar</location>
+                <build-target>jar</build-target>
+            </export>
             <view>
                 <items>
+                    
                     
                     
                     
@@ -89,10 +98,7 @@
                     <ide-action name="clean"/>
                     <ide-action name="javadoc"/>
                     <ide-action name="rebuild"/>
-                    <action>
-                        <label>Build installer</label>
-                        <target>installer</target>
-                    </action>
+                    
                 </context-menu>
             </view>
             
@@ -100,17 +106,15 @@
         
         
         
+        
         <subprojects/>
         </general-data>
-        <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/1">
-            
-        
-        
-        
-        
-        <compilation-unit>
+        <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/2">
+            <compilation-unit>
                 <package-root>src/java</package-root>
                 <classpath mode="compile">lib/mina-0.8.0.jar;lib/dom4j-1.6.jar;lib/jaxen-1.1-beta-5.jar;lib/log4j-1.2.8.jar;lib/TableLayout.jar;lib/JSAP-2.0b.jar</classpath>
+                <built-to>target/jstyx-0.1.0-SNAPSHOT.jar</built-to>
+                <javadoc-built-to>target/docs/apidocs</javadoc-built-to>
                 <source-level>1.4</source-level>
             </compilation-unit>
         </java-data>
