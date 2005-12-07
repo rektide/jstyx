@@ -12,6 +12,7 @@
 
 	<property name="version" value="0.1.0-SNAPSHOT"/>
 	<property name="src.dir" value="./src/java"/>
+	<property name="conf.dir" value="./conf"/>
 	<property name="target.dir" value="./target"/>
 	<property name="classes.dir" value="${target.dir}/classes"/>
 	<property name="javadoc.dir" value="${target.dir}/docs/apidocs"/>
@@ -72,8 +73,8 @@
                 <zipfileset dir="./bin" prefix="bin"/>
                 <zipfileset dir="${lib.dir}" prefix="lib"/>
                 <zipfileset dir="${src.dir}" prefix="src/java"/>
-                <zipfileset dir="./conf" prefix="conf" includes="log4j.properties, SGSconfig.dtd"/>
-                <zipfileset dir="./conf" includes="SGSconfig_example.xml" fullpath="conf/SGSconfig.xml"/>
+                <zipfileset dir="${conf.dir}" prefix="conf" includes="log4j.properties, SGSconfig.dtd"/>
+                <zipfileset dir="${conf.dir}" includes="SGSconfig_example.xml" fullpath="conf/SGSconfig.xml"/>
                 <zipfileset dir="./xdocs" prefix="xdocs"/>
                 <zipfileset dir="." includes="*.txt, build.xml, project.properties, project.xml"/>
                 <zipfileset dir="${javadoc.dir}" prefix="docs/apidocs"/>
