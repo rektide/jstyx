@@ -76,6 +76,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.42  2005/12/07 17:47:58  jonblower
+ * Changed "commandline" file to "args" - now just contains arguments, not program name
+ *
  * Revision 1.41  2005/12/01 08:37:48  jonblower
  * Changed ID from int to String
  *
@@ -210,7 +213,7 @@ class StyxGridServiceInstance extends StyxDirectory
     private SGSInputFile.StdinFile stdin;  // The standard input to the program
     private JSAP jsap; // JSAP object for parsing the command-line parameters
     private StyxDirectory paramDir; // Contains the command-line parameters to pass to the executable
-    private StyxFile commandLineFile; // The file containing the command line
+    private StyxFile argsFile; // The file containing the command line arguments
     private String command; // The command to run (i.e. the string that is passed to System.exec)
     private long startTime;
     
@@ -375,12 +378,12 @@ class StyxGridServiceInstance extends StyxDirectory
         }
         this.addChild(serviceDataDir);
         
-        // Add a file that, when read, reveals that command line that will
-        // be executed through Runtime.exec(). This is an AsyncStyxFile so
+        // Add a file that, when read, reveals the arguments that will be passed
+        // to Runtime.exec(). This is an AsyncStyxFile so
         // that clients can be notified asynchronously of changes to the 
         // command line if they wish
-        this.commandLineFile = new CommandLineFile();
-        this.addChild(new AsyncStyxFile(this.commandLineFile));
+        this.argsFile = new ArgsFile();
+        this.addChild(new AsyncStyxFile(this.argsFile));
         
         this.statusCode = StatusCode.CREATED;
     }
@@ -619,7 +622,8 @@ class StyxGridServiceInstance extends StyxDirectory
                     setBytesConsumed(0);
                     startTime = System.currentTimeMillis();
                     // Start the process running in the correct working directory
-                    process = runtime.exec(getCommandLine(), null, workDir);
+                    process = runtime.exec(command + " " + getArguments(),
+                        null, workDir);
                     setStatus(StatusCode.RUNNING);
                     new Waiter().start(); // Thread that waits for the process
                                           // to finish, then sets status
@@ -640,7 +644,7 @@ class StyxGridServiceInstance extends StyxDirectory
                     {
                         // We didn't even start the process
                         throw new StyxException("Internal error: could not create process "
-                            + getCommandLine());
+                            + sgs.getRoot().getName() + " " + getArguments());
                     }
                     else
                     {
@@ -700,27 +704,26 @@ class StyxGridServiceInstance extends StyxDirectory
     }
     
     /**
-     * File that, when read, reveals the command line that will be executed
-     * when the SGS instance is started.  Clients can write the whole command line
-     * to this file and hence set all the parameters at once.
+     * File that, when read, reveals the argument list that will be passed
+     * to the executable when the SGS instance is started.  Clients can write
+     * the whole argument list to this file and hence set all the parameters
+     * at once.
      */
-    private class CommandLineFile extends StyxFile
+    private class ArgsFile extends StyxFile
     {
-        public CommandLineFile() throws StyxException
+        public ArgsFile() throws StyxException
         {
-            super("commandline", 0666);
+            super("args", 0666);
         }
         
         public void read(StyxFileClient client, long offset, int count, int tag)
             throws StyxException
         {
-            // TODO: a bit inefficient to create the command line from scratch
-            // each time, but this won't be called much anyway
-            this.processAndReplyRead(getCommandLine(), client, offset, count, tag);
+            this.processAndReplyRead(getArguments(), client, offset, count, tag);
         }
         
         /**
-         * Write the command line all in one go (not including the name of the
+         * Write the arguments all in one go (not including the name of the
          * executable itself).  This will set the values of
          * all the parameters in the params/ directory. At the moment the command
          * line must be written in a single Styx message.
@@ -731,11 +734,11 @@ class StyxGridServiceInstance extends StyxDirectory
         {
             if (offset != 0)
             {
-                throw new StyxException("Must write to the start of the command line file");
+                throw new StyxException("Must write to the start of the args file");
             }
             if (!truncate)
             {
-                throw new StyxException("Must write to the command line file with truncation");
+                throw new StyxException("Must write to the args file with truncation");
             }
             // Set the limit of the input data buffer correctly
             data.limit(data.position() + count);
@@ -803,7 +806,7 @@ class StyxGridServiceInstance extends StyxDirectory
             
             // Notify waiting clients that the command line has changed
             // TODO: should this just be an AsyncStyxFile instead?
-            commandLineChanged();
+            argumentsChanged();
             
             this.replyWrite(client, count, tag);
         }
@@ -811,11 +814,11 @@ class StyxGridServiceInstance extends StyxDirectory
     
     /**
      * This is called when something changes to change the command line arguments
-     * (e.g. a parameter value changes
+     * (e.g. a parameter value changes)
      */
-    public void commandLineChanged()
+    public void argumentsChanged()
     {
-        this.commandLineFile.contentsChanged();
+        this.argsFile.contentsChanged();
     }
     
     // Thread that waits for the executable to finish, then sets the status
@@ -941,24 +944,20 @@ class StyxGridServiceInstance extends StyxDirectory
     }
     
     /**
-     * Gets the command line that will be executed
+     * Gets the argument list that will be passed to the executable as a String
      */
-    private String getCommandLine()
+    private String getArguments()
     {
-        StringBuffer buf = new StringBuffer(this.command);
-        if (this.paramDir != null)
+        StringBuffer buf = new StringBuffer();
+        StyxFile[] paramFiles = this.paramDir.getChildren();
+        for (int i = 0; i < paramFiles.length; i++)
         {
-            buf.append(" ");
-            StyxFile[] paramFiles = this.paramDir.getChildren();
-            for (int i = 0; i < paramFiles.length; i++)
+            // We can be pretty confident that this cast is safe
+            SGSParamFile paramFile = (SGSParamFile)paramFiles[i];
+            String frag = paramFile.getCommandLineFragment();
+            if (!frag.trim().equals(""))
             {
-                // We can be pretty confident that this cast is safe
-                SGSParamFile paramFile = (SGSParamFile)paramFiles[i];
-                buf.append(paramFile.getCommandLineFragment());
-                if (i < paramFiles.length - 1)
-                {
-                    buf.append(" ");
-                }
+                buf.append(frag + " ");
             }
         }
         return buf.toString();

@@ -47,7 +47,7 @@
     |   `-- <a href="#The_instances_directory">instances/</a>
     |       |-- 0/
     |       |    |-- <a href="#The_ctl_file">ctl</a>
-    |       |    |-- <a href="#The_command_line_file">commandline</a>
+    |       |    |-- <a href="#The_arguments_file">args</a>
     |       |    |-- <a href="#The_parameters_directory">params/</a>
     |       |    |   |-- param1
     |       |    |   `-- param2
@@ -165,16 +165,17 @@
     </p>
     </subsection>
     
-    <subsection name="The command line file">
+    <subsection name="The arguments file">
     <p>
-    The <code>commandline</code> file can be used for two purposes.  It can be
-    read, in which case it will return the full command line that will be used
-    to invoke the underlying executable.  This is particularly useful for debugging
-    (e.g. to make sure the parameters have been set correctly).  Secondly,
-    clients can write a full command line to this file, in which case the command
-    line will be parsed and the values of all parameters will be set at once.
-    This latter feature is considered &quot;advanced&quot; and is rarely used
-    in practice.
+    The <code>args</code> file is used to read and write the full set of 
+    command-line arguments that will be passed to the underlying executable.
+    Reading this file is very useful for debugging purposes.  In some cases,
+    clients may wish to write the command-line arguments as one long string 
+    (e.g. &quot;<code>-i input.dat -o output.dat -v</code>&quot;): when such
+    a string is written to this file it is parsed and the relevant parameter
+    values are set.  This saves the client from setting the parameter values
+    individually using the files in the <a href="#The_parameters_directory">parameters</a>
+    directory.
     </p>
     </subsection>
     

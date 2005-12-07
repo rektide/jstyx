@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.20  2005/12/07 17:47:58  jonblower
+ * Changed "commandline" file to "args" - now just contains arguments, not program name
+ *
  * Revision 1.19  2005/11/14 21:31:54  jonblower
  * Got SGSRun working for SC2005 demo
  *
@@ -162,7 +165,7 @@ public class SGSParamFile extends AsyncStyxFile
         // If we've got this far the value must have been OK.
         super.write(client, offset, count, data, truncate, tag);
         
-        this.instance.commandLineChanged();
+        this.instance.argumentsChanged();
     }
     
     /**
