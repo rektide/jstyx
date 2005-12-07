@@ -75,8 +75,8 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.26  2005/12/01 08:21:56  jonblower
- * Fixed javadoc comments
+ * Revision 1.27  2005/12/07 08:56:32  jonblower
+ * Refactoring SGS client code
  *
  * Revision 1.25  2005/11/10 19:49:28  jonblower
  * Renamed SGSInstanceChangeListener to SGSInstanceClientChangeListener
@@ -86,9 +86,6 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  *
  * Revision 1.23  2005/10/14 18:09:40  jonblower
  * Changed getInputMethods() to getInputStreams() and added synchronous and async versions
- *
- * Revision 1.22  2005/09/23 09:18:38  jonblower
- * Removed LBGui stuff and hence dependence on VTK libs
  *
  * Revision 1.21  2005/09/11 19:30:40  jonblower
  * Changed call to readAllSteeringParams() to readAllSteeringParamsAsync()
@@ -194,7 +191,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         // Add the input panel
         this.inputPanel = new InputPanel();
         this.inputPanel.populatePanel();
-        this.masterPanel.add(this.inputPanel, "1, 1");
+        //this.masterPanel.add(this.inputPanel, "1, 1");
         
         // Add the panel for uploading input files
         this.inputFilesPanel = new InputFilesPanel();
@@ -202,13 +199,11 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         //this.masterPanel.add(this.inputFilesPanel, "1, 3");
         
         // Add the panel for setting parameters for the SGS
-        this.paramsPanel = new ParamsPanel();
-        this.paramsPanel.populatePanel();
+        this.paramsPanel = new ParamsPanel(client.getParameterNames());
         this.masterPanel.add(this.paramsPanel, "1, 5");
         
         // Add the panel for steering the SGS
-        this.steeringPanel = new SteeringPanel();
-        this.steeringPanel.populatePanel();
+        this.steeringPanel = new SteeringPanel(client.getSteerableParameterNames());
         this.masterPanel.add(this.steeringPanel, "1, 7");
         
         // Add the control panel
@@ -216,14 +211,13 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         this.masterPanel.add(this.ctlPanel, "1, 9");
         
         // Add the service data panel
-        this.sdPanel = new ServiceDataPanel();
-        this.sdPanel.populatePanel();
+        this.sdPanel = new ServiceDataPanel(client.getServiceDataNames());
         this.masterPanel.add(this.sdPanel, "1, 11");
         
         // Add the output streams panel
         this.osPanel = new OutputStreamsPanel();
         this.osPanel.populatePanel();
-        this.masterPanel.add(this.osPanel, "1, 13");
+        //this.masterPanel.add(this.osPanel, "1, 13");
         
         this.statusBar = new JLabel("Status bar");
         this.add(this.statusBar, BorderLayout.SOUTH);
@@ -232,7 +226,8 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         this.repaintGUI();
     }
     
-    public static SGSInstanceGUI getGUI(CStyxFile instanceRoot)
+    public static SGSInstanceGUI getGUI(SGSClient sgsClient, CStyxFile instanceRoot)
+        throws StyxException
     {
         // Looks for the GUI in the cache, then returns it if it exists.
         // If it does not exist then create it.
@@ -247,7 +242,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
                 // TODO: we might want to share the instance client with another
                 // window (e.g. properties window) so we might not want to
                 // create it here
-                SGSInstanceClient client = new SGSInstanceClient(instanceRoot);
+                SGSInstanceClient client = new SGSInstanceClient(sgsClient, instanceRoot);
                 SGSInstanceGUI gui = new SGSInstanceGUI(client);
                 guis.put(instanceRoot, gui);
                 return gui;
@@ -256,72 +251,21 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
     }
     
     /**
-     * Called when we have got the files representing the service data elements
-     * @param sdeFiles Array of files representing the SDEs
+     * Called when the value of a service data element changes
      */
-    public void gotServiceDataElements(CStyxFile[] sdeFiles)
-    {
-        this.sdPanel.setServiceDataNames(sdeFiles);
-    }
-    
-    /**
-     * Called when the given service data element changes
-     */
-    public void serviceDataChanged(String sdName, String newData)
+    public void gotServiceDataValue(String sdName, String newData)
     {
         this.sdPanel.setSDEValue(sdName, newData);
     }
     
     /**
-     * Called when we have got the names of the input streams
-     * @param inputStreams the input streams (stdin and any other input files)
-     */
-    public void gotInputStreams(CStyxFile[] inputStreams)
-    {
-        this.inputPanel.setInputStreams(inputStreams);
-    }
-    
-    /**
-     * Called when we have discovered the input files that the service instance
-     * expects.
-     * @param inputFiles Array of CStyxFiles representing all the compulsory
-     * input files that must be uploaded to the service
-     * @param allowOtherInputFiles If true, we will have the option of uploading
-     * other input files to the service instance
-     */
-    public void gotInputFiles(CStyxFile[] inputFiles, boolean allowOtherInputFiles)
-    {
-        // Just pass this on to the input files panel
-        this.inputFilesPanel.gotInputFiles(inputFiles, allowOtherInputFiles);
-    }
-    
-    /**
-     * Called when we have got the output streams that can be viewed
-     * @param outputStreams Array of CStyxFiles representing the output streams
-     */
-    public void gotOutputStreams(CStyxFile[] outputStreams)
-    {
-        this.osPanel.gotOutputStreams(outputStreams);
-    }
-    
-    /**
-     * Called when we have got the list of parameters expected by the SGS
-     * @param paramFiles CStyxFiles representing the parameters
-     */
-    public void gotParameters(CStyxFile[] paramFiles)
-    {
-        this.paramsPanel.gotParameters(paramFiles);
-    }
-    
-    /**
      * Called when we have a new value for a parameter
-     * @param index Index of the parameter in the array of parameters previously
-     * returned by the gotParameters() event
+     * @param name Name of the parameter
      * @param value The new value of the parameter
      */
-    public void gotParameterValue(int index, String value)
+    public void gotParameterValue(String name, String value)
     {
-        this.paramsPanel.gotParameterValue(index, value);
+        this.paramsPanel.gotParameterValue(name, value);
     }
     
     /**
@@ -334,23 +278,13 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
     }
     
     /**
-     * Called when we have got the list of steerable parameters
-     * @param steerableFiles CStyxFiles representing the parameters
-     */
-    public void gotSteerableParameters(CStyxFile[] steerableFiles)
-    {
-        this.steeringPanel.gotSteerableParameters(steerableFiles);
-    }
-    
-    /**
      * Called when we have a new value for a steerable parameter
-     * @param index Index of the parameter in the array of parameters previously
-     * returned by the gotParameters() event
+     * @param name Name of the steerable parameter
      * @param value The new value of the parameter
      */
-    public void gotSteerableParameterValue(int index, String value)
+    public void gotSteerableParameterValue(String name, String value)
     {
-        this.steeringPanel.gotSteeringParameterValue(index, value);
+        this.steeringPanel.gotSteeringParameterValue(name, value);
     }
     
     /**
@@ -377,18 +311,6 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
     {
         // Disable the start button here?  How do we know when the service
         // has finished so that we can enable it again?
-    }
-    
-    /**
-     * Called when we have successfully set the input URL of the SGS.
-     */
-    public void inputURLSet()
-    {
-        // Upload the necessary input files. When these are uploaded
-        // we will start the service
-        File[] srcFiles = inputFilesPanel.getSourceFiles();
-        String[] targetNames = inputFilesPanel.getTargetFileNames();
-        //client.uploadInputFiles(srcFiles, targetNames);
     }
     
     /**
@@ -421,7 +343,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
             // When the reply arrives, the setInputMethods() method of this
             // class will be called and the GUI will be set up.  If there are
             // no input methods this panel will not appear
-            client.getInputStreamsAsync();
+            //client.getInputStreamsAsync();
         }
         
         public void setInputStreams(CStyxFile[] inputStreams)
@@ -649,22 +571,12 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         private ParamsTableModel model;
         private JLabel cmdLineLabel;
         
-        public ParamsPanel()
+        public ParamsPanel(String[] paramNames)
         {
             this.cmdLineLabel = new JLabel("Command line: ");
-        }
-        
-        public void populatePanel()
-        {
-            client.readAllParametersAsync();
-            client.getCommandLineAsync();
-        }
-        
-        public void gotParameters(CStyxFile[] paramFiles)
-        {
             // We won't bother displaying the panel if the SGS doesn't expect
             // any parameters
-            if (paramFiles.length > 0)
+            if (paramNames.length > 0)
             {
                 double[][] size = 
                 {
@@ -675,18 +587,18 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
                 this.setLayout(this.layout);
                 this.setBorder(BorderFactory.createTitledBorder("Parameters"));
 
-                this.model = new ParamsTableModel(paramFiles);
+                this.model = new ParamsTableModel(paramNames, false);
                 this.table = new JTable(this.model);
                 this.add(new JScrollPane(this.table), "0, 0");
                 this.add(this.cmdLineLabel, "0, 2");
 
-                for (int i = 0; i < paramFiles.length; i++)
+                for (int i = 0; i < paramNames.length; i++)
                 {
-                    this.table.getModel().setValueAt(paramFiles[i].getName(), i, 0);
+                    this.table.getModel().setValueAt(paramNames[i], i, 0);
                 }
 
                 double width = this.table.getPreferredScrollableViewportSize().getWidth();
-                double height = this.table.getRowHeight() * paramFiles.length;
+                double height = this.table.getRowHeight() * paramNames.length;
                 Dimension d = new Dimension();
                 d.setSize(width, height);
                 this.table.setPreferredScrollableViewportSize(d);
@@ -706,11 +618,15 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
             }
             this.layout.layoutContainer(this);
             repaintGUI();
+            // We read all the parameter values so that we are notified when
+            // other clients change the parameter values
+            client.readAllParameterValuesAsync();
+            client.getCommandLineAsync();
         }
         
-        public void gotParameterValue(int index, String value)
+        public void gotParameterValue(String name, String value)
         {
-            this.model.setParameterValue(index, value);
+            this.model.setParameterValue(name, value);
         }
         
         public void setCommandLine(String newCmdLine)
@@ -725,25 +641,34 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
      */
     private class ParamsTableModel extends DefaultTableModel
     {
-        private CStyxFile[] paramFiles;
+        private String[] paramNames;
+        private boolean steering; // True if this is for steering parameters
 
-        public ParamsTableModel(CStyxFile[] paramFiles)
+        public ParamsTableModel(String[] paramNames, boolean steering)
         {
-            this.paramFiles = paramFiles;
+            this.paramNames = paramNames;
+            this.steering = steering;
 
             // Set the column names
             this.setColumnIdentifiers(new String[]{"Parameter", "Value"});
 
             // Add the row data
-            for (int i = 0; i < paramFiles.length; i++)
+            for (int i = 0; i < paramNames.length; i++)
             {
                 this.addRow(new String[]{"", ""});
             }
         }
 
-        public void setParameterValue(int index, String value)
+        public void setParameterValue(String name, String value)
         {
-            super.setValueAt(value, index, 1);
+            for (int i = 0; i < this.paramNames.length; i++)
+            {
+                if (paramNames[i].equals(name))
+                {
+                    super.setValueAt(value, i, 1);
+                    return;
+                }
+            }
         }
 
         /**
@@ -759,12 +684,17 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
             }
             else
             {
-                // We're setting a parameter value. Send a message with the
-                // new value of the parameter. If the write is successful,
-                // the gotParameterValue() method will be called automatically
-                // TODO: should be setContentsAsync() in case the value spans
-                // multiple messages (very unlikely!)
-                this.paramFiles[row].writeAsync((String)value, 0);
+                // Set the value of the parameter: when confirmation arrives that
+                // the setting was successful, the value will be updated in the
+                // table.
+                if (this.steering)
+                {
+                    client.setSteerableParameterValueAsync(this.paramNames[row], (String)value);
+                }
+                else
+                {
+                    client.setParameterValueAsync(this.paramNames[row], (String)value);
+                }
             }
         }
 
@@ -788,16 +718,11 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         private TableLayout layout;
         private ParamsTableModel model;
     
-        public void populatePanel()
-        {
-            client.readAllSteeringParamsAsync();
-        }
-        
-        public void gotSteerableParameters(CStyxFile[] steeringFiles)
+        private SteeringPanel(String[] steerableNames)
         {
             // We won't bother displaying the panel if the SGS doesn't expect
             // any parameters
-            if (steeringFiles.length > 0)
+            if (steerableNames.length > 0)
             {
                 double[][] size = 
                 {
@@ -808,27 +733,28 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
                 this.setLayout(this.layout);
                 this.setBorder(BorderFactory.createTitledBorder("Steering"));
 
-                this.model = new ParamsTableModel(steeringFiles);
+                this.model = new ParamsTableModel(steerableNames, true);
                 this.table = new JTable(this.model);
                 this.add(new JScrollPane(this.table), "0, 0");
 
-                for (int i = 0; i < steeringFiles.length; i++)
+                for (int i = 0; i < steerableNames.length; i++)
                 {
-                    this.table.getModel().setValueAt(steeringFiles[i].getName(), i, 0);
+                    this.table.getModel().setValueAt(steerableNames[i], i, 0);
                 }
 
                 double width = this.table.getPreferredScrollableViewportSize().getWidth();
-                double height = this.table.getRowHeight() * steeringFiles.length;
+                double height = this.table.getRowHeight() * steerableNames.length;
                 Dimension d = new Dimension();
                 d.setSize(width, height);
                 this.table.setPreferredScrollableViewportSize(d);
                 this.repaint();
+                client.readAllSteerableParameterValuesAsync();
             }
         }
         
-        public void gotSteeringParameterValue(int index, String value)
+        public void gotSteeringParameterValue(String name, String value)
         {
-            this.model.setParameterValue(index, value);
+            this.model.setParameterValue(name, value);
         }
     }
     
@@ -866,29 +792,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         {
             if (e.getSource() == this.btnStart)
             {
-                // Send the input URL to the SGS, or start reading from the
-                // local file
-                String inputURL = inputPanel.getInputURL();
-                if (inputURL == null)
-                {
-                    // We haven't set an input URL.  Just go straight to uploading
-                    // the input files (normally we do this when confirmation that
-                    // the input URL has been set arrives
-                    inputURLSet();
-                }
-                else if (inputPanel.getInputURL().startsWith("file:/"))
-                {
-                    // TODO: implement reading from local file
-                    JOptionPane.showMessageDialog(null,
-                        "Uploading from local file not yet supported",
-                        "Not supported", JOptionPane.ERROR_MESSAGE);
-                }
-                else
-                {
-                    // Set the input URL for the service.  When we get confirmation
-                    // that this has been set, the input files will be uploaded.
-                    //client.setInputURL(inputPanel.getInputURL());
-                }
+                client.startServiceAsync();
             }
             else if (e.getSource() == this.btnStop)
             {
@@ -905,33 +809,24 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         private JTable table;
         private SDTableModel model;
         
-        public void populatePanel()
+        public ServiceDataPanel(String[] sdeNames)
         {
-            // Send message to find the service data elements
-            client.getServiceDataNames();
-        }
-
-        /**
-         * This is called when we have found the children of the service data
-         * directory
-         */
-        public void setServiceDataNames(CStyxFile[] sdeFiles)
-        {
-            if (sdeFiles.length > 0)
+            if (sdeNames.length > 0)
             {
                 this.setBorder(BorderFactory.createTitledBorder("Service data"));
                 
                 this.model = new SDTableModel();
                 this.table = new JTable(this.model);
                 this.add(new JScrollPane(this.table));
-                this.model.setSDENames(sdeFiles);
+                this.model.setSDENames(sdeNames);
 
                 // Set the dimensions of the table
                 double width = this.table.getPreferredScrollableViewportSize().getWidth();
-                double height = this.table.getRowHeight() * sdeFiles.length;
+                double height = this.table.getRowHeight() * sdeNames.length;
                 Dimension d = new Dimension();
                 d.setSize(width, height);
                 this.table.setPreferredScrollableViewportSize(d);
+                client.readAllServiceDataValuesAsync();
             }
         }
         
@@ -951,13 +846,9 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
             private String[] sdeNames;
             private String[] sdeValues;
             
-            public void setSDENames(CStyxFile[] sdeFiles)
+            public void setSDENames(String[] sdeNames)
             {
-                this.sdeNames = new String[sdeFiles.length];
-                for (int i = 0; i < sdeFiles.length; i++)
-                {
-                    this.sdeNames[i] = sdeFiles[i].getName();
-                }
+                this.sdeNames = sdeNames;
                 this.sdeValues = new String[this.sdeNames.length];
                 this.fireTableDataChanged();
             }
@@ -1054,7 +945,7 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
         public void populatePanel()
         {
             // Send a message to get the possible output streams
-            client.getOutputStreamsAsync();
+            //client.getOutputStreamsAsync();
         }
         
         private JComboBox makeComboBox()

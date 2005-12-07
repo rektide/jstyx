@@ -70,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2005/12/07 08:56:32  jonblower
+ * Refactoring SGS client code
+ *
  * Revision 1.10  2005/12/01 17:17:07  jonblower
  * Simplifying client interface to SGS instances
  *
@@ -319,7 +322,7 @@ public class SGSRun extends CStyxFileChangeAdapter
     /**
      * Sets the values of all the parameters
      */
-    public void setParameters() throws StyxException
+    /*public void setParameters() throws StyxException
     {
         // Set the parameters one by one.  We do it this way because in the
         // case of a parameter that specifies an input file, we do not
@@ -351,7 +354,7 @@ public class SGSRun extends CStyxFileChangeAdapter
                     "configuration.");
             }
         }
-    }
+    }*/
     
     /**
      * Gets the value for the given parameter from the command line, taking into
@@ -423,7 +426,7 @@ public class SGSRun extends CStyxFileChangeAdapter
     /**
      * Uploads the necessary input files to the server
      */
-    public void uploadInputFiles() throws StyxException
+    /*public void uploadInputFiles() throws StyxException
     {
         // Get handle to the inputs directory
         CStyxFile inputsDir = this.instanceClient.getInputStreamsDir();
@@ -442,7 +445,7 @@ public class SGSRun extends CStyxFileChangeAdapter
                 System.out.println(" complete");
             }
         }
-    }
+    }*/
     
     /**
      * Starts the service and begins reading from the output streams
@@ -539,7 +542,7 @@ public class SGSRun extends CStyxFileChangeAdapter
             try
             {
                 stdin = new
-                    CStyxFileOutputStream(instanceClient.getInputStream("stdin"));
+                    CStyxFileOutputStream(instanceClient.getStdin());
                 byte[] b = new byte[1024]; // Read 1KB at a time
                 int n = 0;
                 do
@@ -704,21 +707,22 @@ public class SGSRun extends CStyxFileChangeAdapter
             runner.createNewServiceInstance();
             
             // Set the parameters of the service instance
-            runner.setParameters();
+            //runner.setParameters();
             
             // Upload the input files to the server
-            runner.uploadInputFiles();
+            //runner.uploadInputFiles();
             
             // Start the service
             runner.start();
+            
+            // Check to see if we can finish now
+            runner.checkEnd();
+            // Note that the program will carry on running until all the streams
+            // are closed
         }
         catch(NumberFormatException nfe)
         {
             System.err.println("Invalid port number");
-            if (runner != null)
-            {
-                runner.disconnect();
-            }
             // TODO: what is an appropriate error code here?
             System.exit(1);
         }
@@ -732,12 +736,6 @@ public class SGSRun extends CStyxFileChangeAdapter
             // TODO: what is an appropriate error code here?
             System.exit(1);
         }
-        finally
-        {
-            runner.checkEnd();
-        }
-        // Note that the program will carry on running until all the streams
-        // are closed
     }
     
 }
