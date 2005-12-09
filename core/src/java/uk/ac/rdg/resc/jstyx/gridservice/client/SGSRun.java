@@ -39,6 +39,7 @@ import java.io.File;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
+import java.util.Enumeration;
 
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
@@ -70,6 +71,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2005/12/09 18:41:56  jonblower
+ * Continuing to simplify client interface to SGS instances
+ *
  * Revision 1.12  2005/12/07 17:53:31  jonblower
  * Added type to SGSParam (STRING, INPUT_FILE and OUTPUT_FILE)
  *
@@ -125,16 +129,14 @@ public class SGSRun extends CStyxFileChangeAdapter
     
     private boolean debug;  // If set true we will print debug messages to stdout
     
-    // The files we're going to upload to the service
-    private Vector/*<File>*/ filesToUpload; 
-    
     private CStyxFile[] osFiles;
     private Hashtable/*<CStyxFile, PrintStream>*/ outputStreams; // The streams from which we can read output data
     
     private SGSConfig config;  // Config info for this SGS, read from the server
     
-    private boolean usingStdin;
     private int openStreams; // Keeps a count of the number of open streams
+    private Hashtable/*<SGSInput, File>*/ filesToUpload; // The fixed files that we will upload
+                                  // (not the ones that are set through parameters)
     
     /**
      * Creates a new SGSRun object
@@ -146,7 +148,6 @@ public class SGSRun extends CStyxFileChangeAdapter
      */
     public SGSRun(String hostname, int port, String serviceName) throws StyxException
     {
-        this.usingStdin = false;
         this.debug = false;
         this.openStreams = 0;
         this.exitCode = null;
@@ -160,6 +161,8 @@ public class SGSRun extends CStyxFileChangeAdapter
         
         // Get the configuration of this SGS
         this.config = this.sgsClient.getConfig();
+        
+        this.filesToUpload = new Hashtable();
     }
     
     /**
@@ -243,8 +246,7 @@ public class SGSRun extends CStyxFileChangeAdapter
         {
             // Parsing was successful
             this.debug = this.result.getBoolean(DEBUG);
-            // Now we can check that the input files exist
-            this.filesToUpload = new Vector();
+            // Now we can check that the required input files exist
             Vector inputs = this.config.getInputs();
             for (int i = 0; i < inputs.size(); i++)
             {
@@ -253,25 +255,31 @@ public class SGSRun extends CStyxFileChangeAdapter
                 String url = this.result.getString(input.getName() + "-url");
                 if (url != null && !url.trim().equals(""))
                 {
+                    // We have a URL for this input (stdin or fixed file)
                     if (this.debug)
                     {
                         System.out.println("Set URL for " + input.getName() +
                             ": " + url);
                     }
+                    if (url.startsWith("readfrom:"))
+                    {
+                        this.filesToUpload.put(input, url);
+                    }
+                    else
+                    {
+                        // We assume that this is just a URL
+                        this.filesToUpload.put(input, "readfrom:" + url);
+                    }
                 }
                 else
                 {
                     // No URL has been set for this input file
-                    if (input.getType() == SGSInput.STREAM)
-                    {
-                        this.usingStdin = true;
-                    }
-                    else if (input.getType() == SGSInput.FILE)
+                    if (input.getType() == SGSInput.FILE)
                     {
                         File f = new File(input.getName());
                         if (f.exists())
                         {
-                            this.filesToUpload.add(f);
+                            this.filesToUpload.put(input, f);
                         }
                         else
                         {
@@ -279,10 +287,6 @@ public class SGSRun extends CStyxFileChangeAdapter
                             throw new StyxException("File " + input.getName() +
                                 " does not exist");
                         }
-                    }
-                    else if (input.getType() == SGSInput.FILE_FROM_PARAM)
-                    {
-                        // This is dealt with in getParameterValue()
                     }
                 }
             }
@@ -294,14 +298,7 @@ public class SGSRun extends CStyxFileChangeAdapter
                 parser.getUsage());
             Iterator errIt = this.result.getErrorMessageIterator();
             String errMsg = "Error occurred parsing command line: ";
-            if (errIt.hasNext())
-            {
-                errMsg += (String)errIt.next();
-            }
-            else
-            {
-                errMsg += "no details";
-            }
+            errMsg += errIt.hasNext() ? (String)errIt.next() : "no details";
             throw new StyxException(errMsg);
         }
     }
@@ -313,141 +310,78 @@ public class SGSRun extends CStyxFileChangeAdapter
     {
         String id = this.sgsClient.createNewInstance();
         this.instanceClient = this.sgsClient.getClientForInstance(id);
-        // Start reading the exit code
-        CStyxFile instanceRoot = this.instanceClient.getInstanceRoot();
-        // TODO: should get the file through SGSInstanceClient interface
-        this.exitCodeFile = instanceRoot.getFile("serviceData/exitCode");
-        this.exitCodeFile.addChangeListener(this);
-        // Start reading from the exit code file
-        this.exitCodeFile.readAsync(0);
+        // Read the exit code: when the exit code has arrived, the
+        // gotServiceDataValue() event
+        // TODO make this class an SGSInstanceClientChangeListener
+        this.instanceClient.addChangeListener(new SListener());
+        this.instanceClient.readServiceDataValueAsync("exitCode");
+    }
+    
+    /**
+     * Listens for the exit code appearing (signals that service is complete)
+     */
+    private class SListener extends SGSInstanceClientChangeAdapter
+    {
+        public void gotServiceDataValue(String sdName, String newData)
+        {
+            if (sdName.equals("exitCode"))
+            {
+                exitCode = newData;
+                checkEnd();
+            }
+        }
     }
     
     /**
      * Sets the values of all the parameters
      */
-    /*public void setParameters() throws StyxException
+    public void setParameters() throws StyxException, FileNotFoundException
     {
-        // Set the parameters one by one.  We do it this way because in the
-        // case of a parameter that specifies an input file, we do not
-        // send the full path of the input file, just its name.
-        CStyxFile[] paramFiles = this.instanceClient.getParameterFiles();
-        for (int i = 0; i < paramFiles.length; i++)
+        // Run through each of the parameter values in the configuration
+        Vector params = this.config.getParams();
+        for (Iterator it = params.iterator(); it.hasNext(); )
         {
-            // Search for this parameter in the configuration
-            boolean found = false;
-            Vector params = this.config.getParams();
-            for (int j = 0; j < params.size() && !found; j++)
-            {
-                SGSParam param = (SGSParam)params.get(j);
-                if (param.getName().equals(paramFiles[i].getName()))
-                {
-                    found = true;
-                    String paramValue = this.getParameterValue(param);
-                    if (!paramValue.equals(""))
-                    {
-                        paramFiles[i].setContents(paramValue);
-                    }
-                }
-            }
-            if (!found)
-            {
-                // This should never be reached.
-                throw new StyxException("Internal error: could not find" +
-                    " parameter " + paramFiles[i].getName() + " in the " +
-                    "configuration.");
-            }
-        }
-    }*/
-    
-    /**
-     * Gets the value for the given parameter from the command line, taking into
-     * account whether or not it represents an input file
-     * @param param The SGSParam object representing this parameter
-     * @param the value as read from the command line, ready to write to the
-     * remote parameter file on the Styx server
-     * @return the value for the parameter or the empty string if the parameter
-     * value has not been set
-     * @throws StyxException if it is an input file and the file does not exist
-     */
-    private String getParameterValue(SGSParam param) throws StyxException
-    {
-        // The following is very similar to code in
-        // StyxGridServiceInstance.CommandLineFile.write()
-        if (param.getParameter() instanceof Switch)
-        {
-            boolean switchSet = this.result.getBoolean(param.getName());
-            return switchSet ? "true" : "false";
-        }
-        else
-        {
-            // This is an Option
-            String[] arr = this.result.getStringArray(param.getName());
-            if (arr != null && arr.length > 0)
-            {
-                StringBuffer str = new StringBuffer();
-                for (int j = 0; j < arr.length; j++)
-                {
-                    String val = arr[j];
-                    if (param.getType() == SGSParam.INPUT_FILE)
-                    {
-                        // This parameter represents an input file
-                        if (val.startsWith("readfrom:"))
-                        {
-                            // We are setting a URL to a file. Do nothing.
-                        }
-                        else
-                        {
-                            File file = new File(val);
-                            if (file.exists())
-                            {
-                                // Schedule the file for upload
-                                this.filesToUpload.add(file);
-                            }
-                            else
-                            {
-                                throw new StyxException(val + " does not exist");
-                            }
-                            val = file.getName();
-                        }
-                    }
-                    str.append(val);
-                    if (j < arr.length - 1)
-                    {
-                        str.append(" ");
-                    }
-                }
-                return str.toString();
-            }
-            else
-            {
-                return "";
-            }
+            SGSParam param = (SGSParam)it.next();
+            // Set the parameter value
+            // TODO need to check that getStringArray() also works for 
+            // switches (we hope it returns "true" or "false")
+            this.instanceClient.setParameterValue(param,
+                this.result.getStringArray(param.getName()));
         }
     }
     
     /**
-     * Uploads the necessary input files to the server
+     * Upload the input files to the server.
      */
-    /*public void uploadInputFiles() throws StyxException
+    public void uploadInputFiles() throws StyxException
     {
-        // Get handle to the inputs directory
-        CStyxFile inputsDir = this.instanceClient.getInputStreamsDir();
-        for (int i = 0; i < this.filesToUpload.size(); i++)
+        // First schedule the fixed input files (inc. stdin) for upload
+        for (Enumeration en = this.filesToUpload.keys(); en.hasMoreElements(); )
         {
-            File file = (File)this.filesToUpload.get(i);
-            CStyxFile targetFile = inputsDir.getFile(file.getName());
-            if (this.debug)
+            SGSInput inputFile = (SGSInput)en.nextElement();
+            Object dataSrc = this.filesToUpload.get(inputFile);
+            try
             {
-                System.out.print("Uploading " + file.getName() + " to "
-                    + targetFile.getPath() + "...");
+                if (dataSrc instanceof String)
+                {
+                    this.instanceClient.setInputSource(inputFile, (String)dataSrc);
+                }
+                else
+                {
+                    // We assume this must be a file
+                    this.instanceClient.setInputSource(inputFile, (File)dataSrc);
+                }
             }
-            targetFile.upload(file);
-            if (this.debug)
+            catch(FileNotFoundException fnfe)
             {
-                System.out.println(" complete");
+                // This should not happen as we have already checked that
+                // the file exists in checkArguments()
+                throw new StyxException("Internal error: " + fnfe.getMessage());
             }
         }
-    }*/
+        // Now we actually upload the input files
+        this.instanceClient.uploadInputFiles();
+    }
     
     /**
      * Starts the service and begins reading from the output streams
@@ -455,13 +389,8 @@ public class SGSRun extends CStyxFileChangeAdapter
      */
     public void start() throws StyxException
     {
-        // Start the service
+        // Start the service.
         this.instanceClient.startService();
-        if (this.usingStdin)
-        {
-            // Start writing to the input stream
-            new StdinReader().start();
-        }
         this.readOutputStreams();
         this.serviceStarted = true;
     }
@@ -528,60 +457,6 @@ public class SGSRun extends CStyxFileChangeAdapter
         if (this.conn != null)
         {
             this.conn.close();
-        }
-    }
-    
-    /**
-     * Reads from standard input and redirects to the SGS
-     * @todo recreates code in StyxGridServiceInstance.RedirectStream: refactor
-     */
-    private class StdinReader extends Thread
-    {
-        public void run()
-        {
-            openStreams++;
-            OutputStream stdin = null;
-            try
-            {
-                stdin = new
-                    CStyxFileOutputStream(instanceClient.getStdin());
-                byte[] b = new byte[1024]; // Read 1KB at a time
-                int n = 0;
-                do
-                {
-                    n = System.in.read(b);
-                    if (n >= 0)
-                    {
-                        stdin.write(b, 0, n);
-                        stdin.flush();
-                    }
-                } while (n >= 0);
-            }
-            catch (StyxException se)
-            {
-                System.err.println("Error opening stream to standard input");
-            }
-            catch (IOException ioe)
-            {
-                ioe.printStackTrace();
-            }
-            finally
-            {
-                try
-                {
-                    if (stdin != null)
-                    {
-                        // This will write a zero-byte message to confirm EOF
-                        stdin.close();
-                    }
-                }
-                catch (IOException ex)
-                {
-                    // Ignore errors here
-                }
-                openStreams--;
-                checkEnd();
-            }
         }
     }
     
@@ -709,10 +584,10 @@ public class SGSRun extends CStyxFileChangeAdapter
             runner.createNewServiceInstance();
             
             // Set the parameters of the service instance
-            //runner.setParameters();
+            runner.setParameters();
             
-            // Upload the input files to the server
-            //runner.uploadInputFiles();
+            // Upload the input files
+            runner.uploadInputFiles();
             
             // Start the service
             runner.start();
@@ -728,9 +603,9 @@ public class SGSRun extends CStyxFileChangeAdapter
             // TODO: what is an appropriate error code here?
             System.exit(1);
         }
-        catch(StyxException se)
+        catch(Exception e)
         {
-            System.err.println("Error running Styx Grid Service: " + se.getMessage());
+            System.err.println("Error running Styx Grid Service: " + e.getMessage());
             if (runner != null)
             {
                 runner.disconnect();

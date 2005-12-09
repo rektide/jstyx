@@ -35,19 +35,22 @@ import java.util.Enumeration;
 
 import java.io.File;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
+import java.io.OutputStream;
 import java.io.IOException;
+import java.io.FileNotFoundException;
 
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSParam;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeAdapter;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileOutputStream;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
@@ -60,6 +63,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.44  2005/12/09 18:41:56  jonblower
+ * Continuing to simplify client interface to SGS instances
+ *
  * Revision 1.43  2005/12/07 17:51:32  jonblower
  * Changed "commandline" file to "args"
  *
@@ -208,8 +214,13 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     
     // Input files and streams
     private CStyxFile inputsDir;
-    private CStyxFile[] inputFiles;
     private CStyxFile stdin;
+    private boolean usingStdin;
+    Object stdinSrc; // Source of data to stream to stdin: null if we're using System.in
+    // The files we're going to upload to the service
+    // This hashtable allows multiple files or URLs to be associated with
+    // an SGSInput object
+    private Hashtable/*<SGSInput, Vector<String or File>*/ filesToUpload; 
     
     // Output streams
     private CStyxFile outputsDir;
@@ -247,6 +258,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // Get the directory that holds the input files
         this.inputsDir = this.instanceRoot.getFile("inputs");
         this.stdin = this.inputsDir.getFile("stdin");
+        // TODO get this from config file
+        this.usingStdin = this.stdin.exists();
         
         // Get the directory that holds the output files
         this.outputsDir = this.instanceRoot.getFile("outputs");
@@ -272,6 +285,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         
         this.bufs = new Hashtable();
         this.changeListeners = new Vector();
+        this.filesToUpload = new Hashtable();
     }
     
     /**
@@ -329,16 +343,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * @return handle to the file we shall use to write data to the standard
-     * input of the SGS instance.  Note that this method does not check to see
-     * if the stdin file exists.
-     */
-    public CStyxFile getStdin()
-    {
-        return this.stdin;
-    }
-    
-    /**
      * @return Array of Strings containing the names of the files in the input
      * array.
      */
@@ -379,36 +383,12 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * @return Array of CStyxFiles, one for each input stream or file to which data
-     * can be written.  The first time this method is called it will request
-     * the data from the server with a blocking read.  Subsequent calls will 
-     * just return the data without blocking.
-     * @throws StyxException if there was an error retrieving the data from the
-     * server
+     * @return Vector of SGSInput objects, one for each input file that can be
+     * uploaded
      */
-    public CStyxFile[] getInputs() throws StyxException
+    public Vector getInputs() throws StyxException
     {
-        return this.getInputs(false);
-    }
-    
-    /**
-     * Gets the files to which input data can be written.
-     * @param force Force a fresh query of the server (in case input files have
-     * changed, which can happen if a parameter value has been updated).
-     * @return Array of CStyxFiles, one for each input stream or file to which data
-     * can be written.  If force==false, the first time this method is called it will request
-     * the data from the server with a blocking read.  Subsequent calls will 
-     * just return the data without blocking.
-     * @throws StyxException if there was an error retrieving the data from the
-     * server
-     */
-    public CStyxFile[] getInputs(boolean force) throws StyxException
-    {
-        if (this.inputFiles == null || force)
-        {
-            this.inputFiles = this.inputsDir.getChildren();
-        }
-        return this.inputFiles;
+        return this.config.getInputs();
     }
     
     /**
@@ -484,7 +464,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     /**
      * Sends messages to get the current value of all parameters.
      * When the parameter value is returned, the gotParameterValue()
-     * event will be fired on all registered change listeners.
+     * event will be fired on all registered change listeners.  You only need
+     * to call this method once: every time the parameter value changes, the
+     * gotParameterValue() method will be fired.
      */
     public void readAllParameterValuesAsync()
     {
@@ -502,25 +484,164 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * Sets the file or URL from which an input file will get its data.  Note
+     * that many filenames or URLs can be associated with a single SGSInput
+     * object: this method adds, not replaces, a new one.
+     * @param inputFile SGSInput object representing the input file, as
+     * read using getInputs()
+     * @param filenameOrUrl If this String starts with the string "readfrom:", 
+     * this will be interpreted as a URL from which the server will read 
+     * the input file.  If not, this will be interpreted as the name of a local
+     * file.
+     * @throws IllegalStateException if there is an attempt to set more than
+     * one file or URL for a fixed input file or the standard input
+     * @throws FileNotFoundException if <code>filenameOrUrl</code> represents
+     * the name of a file that does not exist.
+     */
+    public void setInputSource(SGSInput inputFile, String filenameOrUrl)
+        throws FileNotFoundException
+    {
+        this.checkAllowMoreDataSources(inputFile);
+        Vector v = (Vector)this.filesToUpload.get(inputFile);
+        if (filenameOrUrl.startsWith("readfrom:"))
+        {
+            // This is a URL.  Just add it as a String
+            v.add(filenameOrUrl);
+            return;
+        }
+        else
+        {
+            // We interpret this to be a filename
+            File f = new File(filenameOrUrl);
+            if (!f.exists())
+            {
+                throw new FileNotFoundException(filenameOrUrl + " does not exist");
+            }
+            v.add(f);
+        }
+    }
+    
+    /**
+     * Sets the local file from which an input file will get its data.  Note
+     * that many filenames or URLs can be associated with a single SGSInput
+     * object: this method adds, not replaces, a new one.
+     * @param inputFile SGSInput object representing the input file, as
+     * read using getInputs()
+     * @param file The file from which this input file will get its data
+     * @throws FileNotFoundException if <code>file</code> does not exist
+     * @throws IllegalStateException if there is an attempt to set more than
+     * one file or URL for a fixed input file or the standard input
+     */
+    public void setInputSource(SGSInput inputFile, File file)
+        throws FileNotFoundException
+    {
+        this.checkAllowMoreDataSources(inputFile);
+        if (!file.exists())
+        {
+            throw new FileNotFoundException(file.getName() + " does not exist");
+        }
+        Vector v = (Vector)this.filesToUpload.get(inputFile);
+        v.add(file);
+    }
+    
+    /**
+     * Checks to see if we are allowed to add more data sources to the given
+     * SGSInput object, throwing an IllegalStateException if we are not.  Has the
+     * side-effect of creating an empty Vector to contain the data sources, so
+     * after calling this method it is safe to call
+     * <code>Vector v = (Vector)this.filesToUpload.get(inputFile);</code>
+     * in the knowledge that <code>v</code> will not be null.
+     * @param inputFile the SGSInput object
+     * @throws IllegalStateException if <code>inputFile</code> is a stream
+     * or a fixed input file and we have already set an input source for this
+     * file. 
+     */
+    private void checkAllowMoreDataSources(SGSInput inputFile)
+    {
+        // First check to see if we have already set a data source for this SGSInput
+        if (this.filesToUpload.containsKey(inputFile))
+        {
+            if (inputFile.getType() != SGSInput.FILE_FROM_PARAM)
+            {
+                throw new IllegalStateException("Cannot set more than one data source for "
+                    + inputFile.getName());
+            }
+        }
+        else
+        {
+            this.filesToUpload.put(inputFile, new Vector());
+        }
+    }
+    
+    /**
      * Sets the value of the parameter with the given name to the given value.
      * This method blocks until the server responds with confirmation that the
      * write is successful - this is not expected to take long.
-     * @throws IllegalArgumentException if a parameter with the given name
-     * does not exist.
+     * @param param The SGSParam object representing this parameter (as returned
+     * by this.getParameters()
+     * @param value The value of this parameter.
+     * @throws FileNotFoundException if the parameter represents an input file
+     * and the value represents a file that does not exist
      * @throws StyxException if there was an error writing to the parameter file,
      * or if the new value was invalid
      */
-    public void setParameterValue(String name, String value) throws StyxException
+    public void setParameterValue(SGSParam param, String value)
+        throws FileNotFoundException, StyxException
     {
-        for (int i = 0; i < this.paramFiles.length; i++)
+        this.setParameterValue(param, new String[]{value});
+    }
+    
+    /**
+     * Sets the value of the parameter with the given name to the given value.
+     * The input array is turned into a space-delimited String before being
+     * written to the server.
+     * This method blocks until the server responds with confirmation that the
+     * write is successful - this is not expected to take long.
+     * @param param The SGSParam object representing this parameter (as returned
+     * by this.getParameters()
+     * @param vals String array representing all the values for this parameter
+     * @throws FileNotFoundException if the parameter represents an input file
+     * and the value represents a file that does not exist
+     * @throws StyxException if there was an error writing to the parameter file,
+     * or if the new value was invalid
+     */
+    public void setParameterValue(SGSParam param, String[] vals)
+        throws FileNotFoundException, StyxException
+    {
+        CStyxFile paramFile = this.getParamFile(param);
+        paramFile.setContents(getParameterValue(param, vals));
+    }
+    
+    /**
+     * @return a String containing the value of the parameter exactly as it 
+     * will be written to the server, taking into account whether the parameter
+     * is an input file.
+     * @throws FileNotFoundException if the parameter represents an input file
+     * and the parameter value represents a file that does not exist
+     */
+    private String getParameterValue(SGSParam param, String[] vals)
+        throws FileNotFoundException
+    {
+        StringBuffer str = new StringBuffer();
+        if (vals != null && vals.length > 0)
         {
-            if (this.paramFiles[i].getName().equals(name))
+            for (int i = 0; i < vals.length; i++)
             {
-                this.paramFiles[i].setContents(value);
-                return;
+                if (param.getType() == SGSParam.INPUT_FILE)
+                {
+                    // This parameter represents an input file
+                    this.setInputSource(param.getInputFile(), vals[i]);
+                    if (!vals[i].startsWith("readfrom:"))
+                    {
+                        // This is a file.  Replace the full path of the file
+                        // with just its name
+                        vals[i] = new File(vals[i]).getName();
+                    }
+                }
+                str.append(vals[i] + " ");
             }
         }
-        throw new IllegalArgumentException("Parameter " + name + " does not exist");
+        return str.toString();
     }
     
     /**
@@ -531,22 +652,30 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * the gotParameterValue() method will be fired on all registered change
      * listeners.  If the write was unsuccessful, the error() event will be
      * fired on all registered change listeners.
-     * @throws IllegalArgumentException if a parameter with the given name
-     * does not exist.
+     * @throws FileNotFoundException if the parameter represents an input file
+     * and the value represents a file that does not exist
      */
-    public void setParameterValueAsync(String name, String value)
+    public void setParameterValueAsync(SGSParam param, String value)
+        throws FileNotFoundException
+    {
+        CStyxFile paramFile = this.getParamFile(param);
+        paramFile.writeAsync(this.getParameterValue(param, new String[]{value}), 0);
+    }
+    
+    /**
+     * @return the CStyxFile representing the given parameter, or
+     * null if this file does not exist
+     */
+    private CStyxFile getParamFile(SGSParam param)
     {
         for (int i = 0; i < this.paramFiles.length; i++)
         {
-            if (this.paramFiles[i].getName().equals(name))
+            if (this.paramFiles[i].getName().equals(param.getName()))
             {
-                // TODO this assumes (reasonably) that the new parameter value
-                // can be written in a single Styx message.
-                this.paramFiles[i].writeAsync(value, 0);
-                return;
+                return this.paramFiles[i];
             }
         }
-        throw new IllegalArgumentException("Parameter " + name + " does not exist");
+        return null;
     }
     
     /**
@@ -573,6 +702,63 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             }
         }
         throw new IllegalArgumentException("Steerable parameter " + name + " does not exist");
+    }
+    
+    /**
+     * Uploads the input files to the server.  This method blocks until the
+     * upload is complete.
+     * @todo Add some progress information to this (e.g. a callback)
+     */
+    public void uploadInputFiles() throws StyxException
+    {
+        // Cycle through each input file
+        for (Enumeration en = this.filesToUpload.keys(); en.hasMoreElements(); )
+        {
+            SGSInput inputFile = (SGSInput)en.nextElement();
+            // Look for all the files and URLs associated with this input file
+            Vector filesAndUrls = (Vector)this.filesToUpload.get(inputFile);
+            for (Iterator it = filesAndUrls.iterator(); it.hasNext(); )
+            {
+                Object fileOrUrl = it.next();
+                if (fileOrUrl instanceof File)
+                {
+                    File f = (File)fileOrUrl;
+                    if (inputFile.getType() == SGSInput.STREAM)
+                    {
+                        // Don't upload any data: wait for the service to start,
+                        // then upload in a separate thread (TODO)
+                        break;
+                    }
+                    CStyxFile targetFile;
+                    if (inputFile.getType() == SGSInput.FILE)
+                    {
+                        // The name of the target file is fixed
+                        targetFile = this.inputsDir.getFile(inputFile.getName());
+                    }
+                    else
+                    {
+                        // This must be a file whose name is given by a parameter
+                        targetFile = this.inputsDir.getFile(f.getName());
+                    }
+                    log.debug("Uploading " + fileOrUrl + " to " + targetFile.getPath() + "...");
+                    targetFile.upload(f);
+                    log.debug("Upload of " + fileOrUrl + " complete.");
+                }
+                else
+                {
+                    // This is a URL to a file.  We do not set this for an input
+                    // file that is set by a parameter: this is handled separately
+                    // by the server
+                    if (inputFile.getType() != SGSInput.FILE_FROM_PARAM)
+                    {
+                        CStyxFile targetFile = this.inputsDir.getFile(inputFile.getName());
+                        log.debug("Setting URL (" + fileOrUrl + ") for " + targetFile.getPath());
+                        targetFile.setContents((String)fileOrUrl);
+                        log.debug("URL for " + targetFile.getPath() + " set.");
+                    }
+                }
+            }
+        }
     }
     
     /**
@@ -731,6 +917,67 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 // TODO: do something more useful here
                 ioe.printStackTrace();
                 return null;
+            }
+        }
+    }
+    
+    /**
+     * Thread to redirect input from a given input stream to the standard
+     * input of the SGS instance
+     * @todo recreates code in StyxGridServiceInstance.RedirectStream: refactor
+     */
+    private class StdinReader extends Thread
+    {
+        private InputStream in;
+        public StdinReader(InputStream in)
+        {
+            this.in = in;
+        }
+        public void run()
+        {
+            OutputStream os = null;
+            try
+            {
+                os = new CStyxFileOutputStream(stdin);
+                byte[] b = new byte[1024]; // Read 1KB at a time
+                int n = 0;
+                do
+                {
+                    n = in.read(b);
+                    if (n >= 0)
+                    {
+                        os.write(b, 0, n);
+                        os.flush();
+                    }
+                } while (n >= 0);
+            }
+            catch (StyxException se)
+            {
+                log.error("Error opening stream to standard input");
+            }
+            catch (IOException ioe)
+            {
+                log.error("IOException when writing to standard input: "
+                    + ioe.getMessage());
+                if (log.isDebugEnabled())
+                {
+                    ioe.printStackTrace();
+                }
+            }
+            finally
+            {
+                try
+                {
+                    if (os != null)
+                    {
+                        // This will write a zero-byte message to confirm EOF
+                        os.close();
+                    }
+                }
+                catch (IOException ex)
+                {
+                    // Ignore errors here
+                }
             }
         }
     }
@@ -896,7 +1143,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             this.sdeValues.put(sdName, newData);
             // Update the version and notify any waiting clients
             this.sdeValuesVersion++;
-            log.debug("Updated service data " + sdName + ": notifying");
             this.sdeValues.notifyAll();
         }
         synchronized(this.changeListeners)

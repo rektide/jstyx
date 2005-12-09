@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSParam;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.29  2005/12/09 18:41:56  jonblower
+ * Continuing to simplify client interface to SGS instances
+ *
  * Revision 1.28  2005/12/07 17:50:01  jonblower
  * Changed gotCommandLine() to gotArguments()
  *
@@ -711,7 +714,8 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
                 }
                 else
                 {
-                    client.setParameterValueAsync(this.paramNames[row], (String)value);
+                    // TODO do this properly
+                    //client.setParameterValueAsync(this.paramNames[row], (String)value);
                 }
             }
         }
