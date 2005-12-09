@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2005/12/09 18:42:41  jonblower
+ * Changed access privileges to write2() to protected
+ *
  * Revision 1.4  2005/11/11 21:57:21  jonblower
  * Implemented passing of URLs to input files
  *
@@ -94,7 +97,7 @@ public abstract class SGSInputFile extends StyxFile
     /**
      * This method does the job of checking for URLs being written to the file.
      */
-    public void write2(StyxFileClient client, long offset, int count,
+    protected void write2(StyxFileClient client, long offset, int count,
         ByteBuffer data, boolean truncate, int tag)
         throws StyxException
     {
