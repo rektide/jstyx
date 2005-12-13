@@ -35,6 +35,7 @@ import java.util.Enumeration;
 
 import java.io.File;
 import java.io.InputStream;
+import java.io.FileInputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.io.FileNotFoundException;
@@ -63,6 +64,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.45  2005/12/13 09:04:21  jonblower
+ * Implemented correct handling of stdin
+ *
  * Revision 1.44  2005/12/09 18:41:56  jonblower
  * Continuing to simplify client interface to SGS instances
  *
@@ -214,9 +218,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     
     // Input files and streams
     private CStyxFile inputsDir;
-    private CStyxFile stdin;
-    private boolean usingStdin;
     Object stdinSrc; // Source of data to stream to stdin: null if we're using System.in
+    
     // The files we're going to upload to the service
     // This hashtable allows multiple files or URLs to be associated with
     // an SGSInput object
@@ -257,9 +260,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         
         // Get the directory that holds the input files
         this.inputsDir = this.instanceRoot.getFile("inputs");
-        this.stdin = this.inputsDir.getFile("stdin");
-        // TODO get this from config file
-        this.usingStdin = this.stdin.exists();
         
         // Get the directory that holds the output files
         this.outputsDir = this.instanceRoot.getFile("outputs");
@@ -322,6 +322,51 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public void startService() throws StyxException
     {
         this.ctlFile.setContents("start");
+        this.uploadToStdin();
+    }
+    
+    /**
+     * Checks to see if we need to upload any data to the standard input, then
+     * starts a thread to do so if necessary
+     */
+    private void uploadToStdin()
+    {
+        // Search to see if we need to upload data to stdin
+        boolean gotStdin = false;
+        for (Iterator it = this.getInputs().iterator(); !gotStdin && it.hasNext(); )
+        {
+            SGSInput input = (SGSInput)it.next();
+            if (input.getName().equals("stdin"))
+            {
+                gotStdin = true;
+            }
+        }
+        if (gotStdin)
+        {
+            if (this.stdinSrc == null)
+            {
+                // No input source has been set, so we read from System.in
+                new StdinReader(System.in).start();
+            }
+            else if (this.stdinSrc instanceof File)
+            {
+                // We're reading from a local file
+                try
+                {
+                    FileInputStream fin = new FileInputStream((File)this.stdinSrc);
+                    new StdinReader(fin).start();
+                }
+                catch (FileNotFoundException fnfe)
+                {
+                    // Should not happen because we have already checked to see 
+                    // if the file exists
+                    log.error("Internal error: " + ((File)this.stdinSrc).getPath()
+                        + " not found");
+                }
+            }
+            // If neither of those conditions are true, we have already set a 
+            // URL for stdin
+        }
     }
     
     /**
@@ -386,7 +431,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * @return Vector of SGSInput objects, one for each input file that can be
      * uploaded
      */
-    public Vector getInputs() throws StyxException
+    public Vector getInputs()
     {
         return this.config.getInputs();
     }
@@ -547,8 +592,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     /**
      * Checks to see if we are allowed to add more data sources to the given
      * SGSInput object, throwing an IllegalStateException if we are not.  Has the
-     * side-effect of creating an empty Vector to contain the data sources, so
-     * after calling this method it is safe to call
+     * side-effect of creating an empty Vector to contain the data sources if one
+     * does not already exist, so after calling this method it is safe to call
      * <code>Vector v = (Vector)this.filesToUpload.get(inputFile);</code>
      * in the knowledge that <code>v</code> will not be null.
      * @param inputFile the SGSInput object
@@ -708,6 +753,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * Uploads the input files to the server.  This method blocks until the
      * upload is complete.
      * @todo Add some progress information to this (e.g. a callback)
+     * @todo Shouldn't have to call this explicitly: should be done when we
+     * start the service.
      */
     public void uploadInputFiles() throws StyxException
     {
@@ -727,22 +774,25 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                     {
                         // Don't upload any data: wait for the service to start,
                         // then upload in a separate thread (TODO)
-                        break;
-                    }
-                    CStyxFile targetFile;
-                    if (inputFile.getType() == SGSInput.FILE)
-                    {
-                        // The name of the target file is fixed
-                        targetFile = this.inputsDir.getFile(inputFile.getName());
+                        this.stdinSrc = f;
                     }
                     else
                     {
-                        // This must be a file whose name is given by a parameter
-                        targetFile = this.inputsDir.getFile(f.getName());
+                        CStyxFile targetFile;
+                        if (inputFile.getType() == SGSInput.FILE)
+                        {
+                            // The name of the target file is fixed
+                            targetFile = this.inputsDir.getFile(inputFile.getName());
+                        }
+                        else
+                        {
+                            // This must be a file whose name is given by a parameter
+                            targetFile = this.inputsDir.getFile(f.getName());
+                        }
+                        log.debug("Uploading " + fileOrUrl + " to " + targetFile.getPath() + "...");
+                        targetFile.upload(f);
+                        log.debug("Upload of " + fileOrUrl + " complete.");
                     }
-                    log.debug("Uploading " + fileOrUrl + " to " + targetFile.getPath() + "...");
-                    targetFile.upload(f);
-                    log.debug("Upload of " + fileOrUrl + " complete.");
                 }
                 else
                 {
@@ -755,6 +805,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                         log.debug("Setting URL (" + fileOrUrl + ") for " + targetFile.getPath());
                         targetFile.setContents((String)fileOrUrl);
                         log.debug("URL for " + targetFile.getPath() + " set.");
+                        if (inputFile.getType() == SGSInput.STREAM)
+                        {
+                            this.stdinSrc = (String)fileOrUrl;
+                        }
                     }
                 }
             }
@@ -938,7 +992,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             OutputStream os = null;
             try
             {
-                os = new CStyxFileOutputStream(stdin);
+                os = new CStyxFileOutputStream(inputsDir.getFile("stdin"));
                 byte[] b = new byte[1024]; // Read 1KB at a time
                 int n = 0;
                 do
@@ -1077,6 +1131,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             String message = StyxUtils.dataToString(tWriteMsg.getData());
             if (message.equalsIgnoreCase("start"))
             {
+                // Start writing data to standard input if necessary
+                this.uploadToStdin();
                 this.fireServiceStarted();
             }
             else if (message.equalsIgnoreCase("stop"))
