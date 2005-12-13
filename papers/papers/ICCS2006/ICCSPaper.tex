@@ -1,0 +1,85 @@
+% Lecture Notes in Computer Science Latex2e Style file,
+% ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
+\documentclass{llncs}
+%
+\begin{document}
+%
+\title{Styx Grid Services: Lightweight, easy-to-use middleware for e-Science workflows}
+%
+\titlerunning{Styx Grid Services}  % abbreviated title (for running head)
+%                                     also used for the TOC unless
+%                                     \toctitle is used
+%
+\author{Jon Blower\inst{1} \and Andrew Harrison\inst{2}
+\and Keith Haines\inst{1} \and Ed Llewellin\inst{3}}
+%
+\authorrunning{J. Blower et al.}   % abbreviated author list (for running head)
+%
+%%%% modified list of authors for the TOC (add the affiliations)
+\tocauthor{Jon Blower (University of Reading),
+Andrew Harrison (University of Cardiff),
+Keith Haines (University of Reading),
+Ed Llewellin (University of Cambridge)}
+%
+\institute{Reading e-Science Centre, Environmental Systems Science Centre,
+University of Reading, Reading RG6 6AL, UK\\
+\email{jdb@mail.nerc-essc.ac.uk},\\
+\and
+University of Cardiff, Cardiff, UK
+\and
+University of Cambridge, Cambridge UK}
+
+\maketitle              % typeset the title of the contribution
+
+\begin{abstract}
+(70-150 words)
+\end{abstract}
+%
+\section{Introduction}
+There is much current interest in the use of Service-Oriented Architectures (SOAs) in scientific computing.  A key tenet of the SOA paradigm is that one can expose resources such as data stores, computing resources, sensors and computer programs as {\em services} that are available for access through the Internet.  Each service is independent from all other services and, indeed, the services can be managed by any number of {\em service providers}.  The end user (e.g.\ the scientist) can perform complex, distributed tasks by composing these services into {\em workflows}.  In this paper we shall focus on the issue of exposing existing computer programs as services and creating workflows from these services.  However, many of the methods we discuss could be applied to other types of resource.
+
+In many scientific fields, the community in question has produced useful pieces of code that have been tried and tested over a substantial period of time (these programs are often termed ``legacy'' codes).  It is often not practical for the code to be re-written and so a common task, addressed by many e-Science projects (e.g.\ REFs) is to create middleware that ``wraps'' an existing piece of code as some kind of Internet service, for example a Web Service (e.g.\ Soaplab, REF), OGSI Grid Service (e.g.\ GEMLCA, REF) or WS-Resource (e.g.\ WEDS, REF).  These systems are not just useful for legacy codes: newly-written code can also be be exposed as a service.  In this way, the writing of the code can be divorced from the procedure of creating the service.  There are many reasons for wishing to expose a program as a service:
+\begin{itemize}
+	\item The code must run on a powerful resource (e.g.\ a compute cluster) but users want to access the code from a more modest machine, such as a laptop.
+	\item The code is tied to a particular platform (e.g. 64-bit Solaris) but users want to access the code from other platforms.
+	\item The code has many dependencies (on particular versions of libraries for example) and the exposure of the code as a service removed the need for users to install all these dependencies.
+	\item The code depends on data from a large data archive and so should run on a machine that is close to the archive.  However, users want to run the code from anywhere on the Internet.
+	\item The code is useful to a wide community and the provision of the code as a service removes the need for multiple users to install it locally.
+\end{itemize}
+
+Despite these many benefits, in many scientific fields there are still few examples of genuinely useful, widely-available Internet services that scientists can access.  (In this paper we use the term ``Internet services'' as an umbrella term to cover Web Services, Grid Services, WS-Resources and other services that are accessible over the Internet.)  
+%
+\subsection{The Styx protocol}
+%
+\section{Styx Grid Service specification}
+\subsection{The SGS namespace}
+\subsection{Resource lifecycle}
+%
+\section{Wrapping programs as SGSs}
+%
+\section{SGS Clients 1: The command line}
+\subsection{Create workflows with shell scripts}
+%
+\section{SGS Clients 2: Graphical workflow engines}
+%
+\section{Security}
+%
+\section{Compatibility with other service types}
+\subsection{Wrapping SGSs as WS-Resources}
+%
+\section{Interactivity}
+Something on computational steering...
+%
+% ---- Bibliography ----
+%
+\begin{thebibliography}{refs}
+%\bibliography{refs}
+%
+\bibitem[1980]{2clar:eke}
+Clarke, F., Ekeland, I.:
+Nonlinear oscillations and
+boundary-value problems for Hamiltonian systems.
+Arch. Rat. Mech. Anal. {\bf 78} (1982) 315--333
+
+\end{thebibliography}
+\end{document}
