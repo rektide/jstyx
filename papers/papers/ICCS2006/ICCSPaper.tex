@@ -1,9 +1,12 @@
-% Lecture Notes in Computer Science Latex2e Style file,
+	% Lecture Notes in Computer Science Latex2e Style file,
 % ftp://ftp.springer.de/pub/tex/latex/llncs/latex2e/llncs2e.zip
 %
 % $Revision$
 % $Date$
 % $Log$
+% Revision 1.5  2005/12/14 10:13:32  abharrison
+% intro bit the web services section
+%
 % Revision 1.4  2005/12/14 09:17:20  jonblower
 % Continued development
 %
@@ -56,7 +59,7 @@ In many scientific fields, the community in question has produced useful pieces 
 \begin{itemize}
 	\item The code must run on a powerful resource (e.g.\ a compute cluster) but users want to access the code from a more modest machine, such as a laptop.
 	\item The code is tied to a particular platform (e.g. 64-bit Solaris) but users want to access the code from other platforms.
-	\item The code has many dependencies (on particular versions of libraries for example) and the exposure of the code as a service removed the need for users to install all these dependencies.
+	\item The code has many dependencies (on particular versions of libraries for example) and the exposure of the code as a service removes the need for users to install all these dependencies.
 	\item The code depends on data from a large data archive and so should run on a machine that is close to the archive.  However, users want to run the code from anywhere on the Internet.
 	\item The code is useful to a wide community and the provision of the code as a service removes the need for multiple users to install it locally.
 \end{itemize}
@@ -174,13 +177,25 @@ The above sections (WHICH SHOULD BE MUCH SHORTER!) described why we have chosen 
 %
 \section{Security}
 %
-\section{Compatibility with other service types}
+
+\section{Web Service Integration}
+\label{sec:webservices}
+
+A compelling argument for employing Web services is that through the use of open standards of service description and message exchange such as WSDL and SOAP, diverse underlying resources and codes can interact. While SOAP, WSDL and the plethora of WS-* specifications are useful for describing service entry points and constraints such as security and policy, they are not necessarily ideal for data intensive, or long-running interactions as are often required in Grid computing. In situations such as these, it can be useful to view these Web service standards as comprising a service level which sits above and specifies an underlying execution layer. This execution layer may use different mechanisms for transferring data such GridFTP or, in the case of SGSs, the Styx protocol. The following two sub-sections describe applications of the SGS framework to make use of Web service standards while still maintaining the integral strengths of the Styx protocol within the context of workflow.
+
 \subsection{Wrapping SGSs as Web Services}
 AHM 2004 paper...
+Triana/gridMonSteer/Web serivce/firewall stuff?
+
 \subsection{Wrapping SGSs as WS-Resources}
-Andrew's bit...
+
+
+
+
 %
+
 \section{Interactivity} \label{sec:interactivity}
+
 Something on computational steering...
 %
 % ---- Bibliography ----
