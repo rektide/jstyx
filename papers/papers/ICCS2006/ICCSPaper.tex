@@ -4,6 +4,9 @@
 % $Revision$
 % $Date$
 % $Log$
+% Revision 1.6  2005/12/14 14:01:29  jonblower
+% Added stuff on command-line clients
+%
 % Revision 1.5  2005/12/14 10:13:32  abharrison
 % intro bit the web services section
 %
@@ -64,12 +67,12 @@ In many scientific fields, the community in question has produced useful pieces 
 	\item The code is useful to a wide community and the provision of the code as a service removes the need for multiple users to install it locally.
 \end{itemize}
 
-Despite these benefits, in many scientific fields there are still few examples of genuinely useful, widely-available Internet services that scientists can access.  (In this paper we use the term ``Internet services'' as an umbrella term to cover Web Services, Grid Services, WS-Resources and other services that are accessible over the Internet.)  As noted in (WEDS and MOAN), this is partly due to the technical difficulty in creating many types of service, which is why the aforementioned wrapper systems have been developed.  A ``critical mass'' of useful services is required to exist before other potential service providers perceive that it is worth their time and effort to add services of their own.
+Despite these benefits, in many scientific fields there are still few examples of genuinely useful, widely-available Internet services that scientists can access.  (In this paper we use the term ``Internet services'' as an umbrella term to cover Web Services, Grid Services, WS-Resources and other services that are accessible over the Internet.)  As noted in (WEDS and MOAN), this is partly due to the technical difficulty in creating many types of service, which is why the aforementioned wrapper systems have been developed.  A ``critical mass'' of useful services is required to exist before other potential service providers perceive that it is worth their time and effort to add services of their own; this is a chicken-and-egg situation.
 
 \subsection{Problems with Web Services-based distributed systems}
-Although the above wrapper systems undoubtedly make the job of creating services much easier than would otherwise be the case, we believe that further progress can be made towards increasing the ease of both creating and using Internet services.  One key issue is the nature of the services themselves.  Most e-Science projects employ Web Services (or some variant) as the core service type.  While this certainly brings many benefits, it also brings problems in some cases.  A common problem is that of data transfer: Web Services produce and consume XML documents, but it is undesirable to encode anything but a trivial amount of data in XML due to the time and resource required to perform this encoding and the resulting increase in the data volumes (REF).  When creating Web Services that deal with moderate or large data volumes, it is common to use a different transport mechanism for the data inputs and outputs, using the exchange of XML documents simply as a control mechanism (e.g.\ REF).  The need to use two different server systems (the Web Services server and the data server) increases the complexity of the system.
+Although the above wrapper systems undoubtedly make the job of creating services much easier than would otherwise be the case, we believe that further progress can be made towards increasing the ease of both creating and using Internet services.  One key issue is the nature of the services themselves.  Most e-Science projects employ Web Services (or some variant) as the core service type.  While this certainly brings many benefits (see Sect.~\ref{sec:webservices}), it also brings problems in some cases.  A common problem is that of data transfer: Web Services produce and consume XML documents, but it is undesirable to encode anything but a trivial amount of data in XML due to the time and resource required to perform this encoding and the resulting increase in the data volumes (REF).  When creating Web Services that deal with moderate or large data volumes, it is common to use a different transport mechanism for the data inputs and outputs, using the exchange of XML documents simply as a control mechanism (e.g.\ REF).  The need to use two different server systems (the Web Services server and the data server) increases the complexity of the system.
 
-Another common issue arises when creating services that represent long-running programs.  In these cases it is desirable to incorporate a mechanism for notifying clients of the progress of the program and when it has completed.  The Web Services Resource Framework (WS-RF, REF) specifies a method for achieving this (WS-Notification, REF), but it, like other preceding notification mechanisms (e.g. OGSI), suffers from a serious problem.  In order to receive notifications of progress, status etc., the client usually has to run a server process that listens for incoming progress messages (``callbacks'').  However, if the client is behind a firewall that blocks incoming connections on the port(s) in question, these messages will never be received and, what is worse, the client may never know why.  Similar problems are faced with clients that are behind Network Address Translation (NAT) routers.  In many situations the user has no control over the firewall or NAT settings and so these notification mechanisms are often defeated.
+Another common issue arises when creating services that represent long-running programs.  In these cases it is desirable to incorporate a mechanism for notifying clients of the progress of the program and when it has completed.  The Web Services Resource Framework (WS-RF, REF) specifies a method for achieving this (WS-Notification, REF), but it, like other preceding notification mechanisms (e.g.\ OGSI), suffers from a serious problem.  In order to receive notifications of progress, status etc., the client usually has to run a server process that listens for incoming progress messages (``callbacks'').  However, if the client is behind a firewall that blocks incoming connections on the port(s) in question, these messages will never be received and, what is worse, the client may never know why.  Similar problems are faced with clients that are behind Network Address Translation (NAT) routers.  In many situations the user has no control over the firewall or NAT settings and so these notification mechanisms are often defeated.
 
 Something about problems with modelling programs as RPCs?
 
@@ -78,7 +81,7 @@ In this paper we shall describe a new type of Internet service called the {\em S
 %
 \section{The Styx Grid Services system}
 \subsection{Background}
-The key aims of the Styx Grid Services system are to make the use of remotely-deployed programs as easy as using local programs and to allow them to be composed easily into efficient workflows.  The design of the system is heavily influenced by that of the Inferno (REF) and Plan~9 (REF) operating systems, in which local and remote resources are treated {\em identically\/}.  This is achieved because of the following two facts: (1) All resources are virtualized as a file or set of files (just as Unix variants often represent the mouse as the file {\tt /dev/mouse}); (2) all communication is performed using a file-sharing protocol.  Applications do not know whether they are operating on local or remote resources: the routing of messages is handled by the underlying operating system.
+The key aims of the Styx Grid Services system are to create services that are as easy as using local programs and to allow these services to be composed easily into efficient workflows.  The design of the system is heavily influenced by that of the Inferno (REF) and Plan~9 (REF) operating systems, in which local and remote resources are treated {\em identically\/}.  This is achieved because of the following two facts: (1) All resources are virtualized as a file or set of files (just as Unix variants often represent the mouse as the file {\tt /dev/mouse}); (2) all communication is performed using a file-sharing protocol.  Applications do not know whether they are operating on local or remote resources: the routing of messages is handled by the underlying operating system.
 
 The file-sharing protocol used in Inferno is called {\em Styx\/}; Plan~9 uses an identical protocol called {\em 9P\/} (the latest version of Styx is also known as 9P2000).  Styx has a long history and was invented by the original developers of Unix (REF).  It has several major advantages.  Styx only needs to operate on files and so it has a very small command set (13 commands) with well-defined semantics, many of which will be familiar to most users (e.g.\ ``open'', ``close'', ``read'' and ``write'').  This small command set means that the protocol is {\em lightweight\/}, adding very little overhead to the transfer of data.  This may be contrasted with the bloating effect of XML encoding.  A single Styx server can handle many tasks (e.g.\ control, asynchronous messaging and data transfer), removing the need to set up and maintain multiple servers to manage a distributed system.
 
@@ -98,7 +101,7 @@ In a Styx system, all resources are represented as a set of files that are organ
 	\item When the service has finished, the instance can be destroyed by writing ``{\tt destroy}'' into the {\tt ctl} file.
 \end{enumerate}
 
-All files can be represented as URLs...
+Every file and directory on a Styx server can be represented very naturally as a URL.  For example, the file that represents the standard output stream of instance 1 of the the {\tt mySGS} service can be represented by the URL {\tt styx://<server>:<port>/mySGS/instances/1/outputs/stdout}.  This is very important in the context of workflows: these URLs are {\em references to resources\/} and may be passed between services in a workflow to enable direct transfer of data between services (see Sect.~\ref{sec:datastreaming}).
 
 \begin{figure}
 \begin{verbatim}
@@ -138,14 +141,11 @@ All files can be represented as URLs...
 \end{verbatim}
 \caption{The namespace (virtual filesystem) of a typical Styx Grid Service server.}\label{fig:sgsnamespace}
 \end{figure}
-
-\subsection{Resource lifecycle}
-Should we bother with this section?
 %
 \section{Wrapping programs as SGSs}
 It is critically important that the process of creating Styx Grid Services from existing programs be as simple as possible.  It is intended that the process is sufficiently simple to allow scientists to expose their programs as services without intervention from dedicated technical staff.  The service provider does not need to know any of the details of the Styx protocol or the SGS namespace.
 
-In order to create a Styx Grid Service from a command-line executable, the service provider must provide a description of the executable (the {\em configuration file\/}).  This description is an XML document that conforms to a Document Type Definition (DTD), and thus can be automatically validated.  In the current version of the system, this configuration file must be created by hand but we anticipate creating automated tools to simplify this task.  There are many examples of configuration files on the project website (REF) that the service provider can draw upon.  The configuration file is passed to a general-purpose program that parses the file and creates the SGS server.
+In order to create a Styx Grid Service from a command-line executable, the service provider must provide a description of the executable (the {\em configuration file\/}).  This description is an XML document that conforms to a Document Type Definition (DTD), and thus can be automatically validated.  In the current version of the system, this configuration file must be created by hand but we anticipate creating automated tools to simplify this task.  There is a complete description of the configuration file format, plus many worked examples, on the project website (REF).  The configuration file is passed to a general-purpose program that parses the file and creates the SGS server.
 
 A sample configuration file is given in Fig.~\ref{fig:configfile}.  The hierarchical structure of the configuration file closely resembles the namespace of the resulting Styx Grid Service (Fig.~\ref{fig:sgsnamespace}).  The file specifies:
 \begin{itemize}
@@ -156,7 +156,7 @@ A sample configuration file is given in Fig.~\ref{fig:configfile}.  The hierarch
 	\item The output files that the program produces (including the standard output and standard error streams).
 	\item Any user-specified pieces of service data (i.e. state data about the service such as progress).
 	\item Any steerable parameters (see Sect.~\ref{sec:interactivity}).
-	\item Any documentatation files associated with the program, to provide help to users.
+	\item Any documentation files associated with the program, to provide help to users.
 \end{itemize}
 Several Styx Grid Services can be specified in one configuration file.  All these SGSs will be exposed under the same server program (which is a {\em container\/} for any number of SGSs).  The section of the configuration file that pertains to a particular SGS is made available for clients to read through the {\tt config} file in the namespace of that SGS.  This {\tt config} file performs an analogous role to that of a Web Services Definition Language (WSDL) document, in that it provides a machine-readable specification of the service that can be used to automatically generate client programs.
 
@@ -165,15 +165,103 @@ Several Styx Grid Services can be specified in one configuration file.  All thes
 \end{figure}
 %
 \section{Creating workflows with Styx Grid Services}
-The above sections (WHICH SHOULD BE MUCH SHORTER!) described why we have chosen to create a new service type and some of the technical details of how the SGS model works.
+The above sections (WHICH SHOULD BE MUCH SHORTER!) described why we have chosen to create a new service type and some of the technical details of how the SGS model works.  This model gives several advantages...
 
-\subsection{Direct data streaming between service instances}
+\subsection{Passing data directly between service instances}\label{sec:datastreaming}
+One common issue in scientific workflows is how data should be passed from service to service.  Let us consider the case of Web Service-based workflows for the moment.  If data volumes are very small the data can be passed between services as part of the SOAP messages.  It does not matter that the data have been encoded into XML, or that the data are passing through the workflow enactor (i.e.\ the client's machine).  However, with moderate or large data volumes it is not desirable to encode the data in XML, or for the data to pass through the enactor.  In this case it is much more efficient for the data to be passed directly from service to service in their raw form, with the SOAP messages being reserved for marshalling the workflow (Fig.~\ref{fig:datastreaming}).  This feature is often referred to as ``third-party data transfer''.
 
-\subsection{SGSs look just like local programs}
+\begin{figure}
+\caption{Illustration of direct data passing.  The black arrows represent control messages (e.g.\ SOAP messages in a Web Services system).  These messages are sent by the enactor to create service instances and marshal the workflow.  The red arrows represent the ideal path for data to follow, i.e.\ direct streaming from service to service.}\label{fig:datastreaming}
+\end{figure}
+
+Furthermore, in some cases data can be {\em streamed\/} between services: in other words, the data can be passed from one service to the other {\em as soon as they are produced\/}, without waiting for the producing service to proceed to completion.  This is particularly useful when dealing, for example, with sensor data that is produced in a continuous fashion.  This is analogous to the use of filters and pipes on the command line (e.g.\ {\tt prog1 $|$ prog2}) and, indeed, the SGS system allows workflows to be constructed with precisely this syntax (Sect.~\ref{sec:pipes}).
+
+In the SGS system, the direct passing of data between service instances is achieved very simply.  The workflow enactor (whether it be a graphical or command-line tool) passes {\em references\/} (i.e.\ URLs) to the data sources from one service to the next.  As an illustration of this, consider a simple workflow involving two services, A and B, in which the output of service A is passed as an input to service B:
+\begin{enumerate}
+	\item The workflow enactor creates a new instance of service A and starts it running.
+	\item {\em Without waiting for service A to finish\/}, the enactor creates a new instance of service B.
+	\item The enactor passes a reference (URL) to the output of service A to the appropriate input of service B.
+	\item The enactor starts service B.  Service B then downloads the output data from service A as it runs.
+\end{enumerate}
+
+\subsection{SGSs can be used just like local programs}
+The SGS system is a ``close'' wrapper around a non-graphical executable program.  It does not attempt to abstract away the details of the command-line parameters of the program or the input and output files involved: rather it explicitly describes them.  This is therefore an alternative approach to that taken by some systems, which provide access to a program through a remote procedure call (RPC).  However, it is sometimes very difficult to adequately model a scientific program (which may incorporate a number of command-line parameters and input/output files) as an RPC.
+
+Many scientists perform most of their work in command-line environments, rather than using graphical tools.  Many command-line environments provide a very sophisticated, customizable and usable interface to the user.  For these reasons, Styx Grid Services can be run using simple shell commands.  The fact that an SGS contains a complete description of the executable it wraps means that we can execute remote Styx Grid Services {\em exactly as we would execute local programs\/}.  The {\tt SGSRun} program (provided with the SGS software) is a command-line client that can be used to execute any Styx Grid Service in exactly the same way as the executable it wraps.
+
+For example, consider a simple command-line program, called {\tt myprog}, that reads an input file, processes it, then writes out an output file.  The command line syntax for running this program is:
+
+\begin{verbatim}
+myprog -i <inputfile> -o <outputfile>
+\end{verbatim}
+
+The relevant section of the configuration file to create a Styx Grid Service from this program would be:
+
+\begin{verbatim}
+<gridservice name='myprog' command='/path/to/myprog'>
+  <params>
+    <param name='inputfile' paramType='flaggedOption' flag='i'/>
+    <param name='outputfile' paramType='flaggedOption' flag='o'/>
+  </params>
+  <inputs>
+    <input type='fileFromParam' name='inputfile'/>
+  </inputs>
+  <outputs>
+    <output type='fileFromParam' name='outputfile'/>
+  </outputs>
+</gridservice>
+\end{verbatim}
+
+This specifies that the program reads one input file that is given by the flag ``-i'' and produces one output file that is given by the flag ``-o''.  Once wrapped as a Styx Grid Service, the program can be invoked from anywhere on the Internet using the command:
+
+\begin{verbatim}
+SGSRun <hostname> <port> myprog -i <inputfile> -o <outputfile>
+\end{verbatim}
+
+The {\tt SGSRun} program downloads the configuration information from the server and uses it to parse the command line arguments.  It then knows that it must upload the input file to the server before running the service.  It downloads the output data from the server and places it in {\tt <outputfile>}.  The user can create a simple shell script that runs {\tt SGSRun} and that contains the hostname and port of the SGS server.  In this way, the command line to execute the SGS is {\em identical\/} to that used to run the program locally.
 
 \subsection{Create workflows with shell scripts}
+Given that remote services can be executed just like local programs, a natural extension is to create workflows by writing simple shell scripts that invoke several services.  Let us consider a simple workflow of two Styx Grid Services.  The first, called {\tt calc\_mean}, reads a set of input files, calculates their mean and outputs the result.  These input files might be the result of a set of individual experiments.  The second SGS, called {\tt make\_pic} takes a single input file and turns it into a picture.
+
+Imagine that the user has a set of input files (called {\tt input1.dat}, {\tt input2.dat} etc.) and wants to calculate their mean, then produce a picture of the result.  The shell script that he or she would use would be:
+
+\begin{verbatim}
+calc_mean -i input*.dat -o means.dat
+make_pic -i means.dat -o means.gif
+\end{verbatim}
+
+Note that this is {\em exactly the same script\/} as would be used to invoke the programs if they were installed locally.  (This assumes that the user has created shell scripts called {\tt calc\_mean} and {\tt make\_gif} that invoke the {\tt SGSRun} program as described above.)
+
+This ``workflow'' (shell script) is very simple but not optimally efficient.  The intermediate file {\tt means.dat} is not really required by the user: it is simply uploaded to the {\tt make\_pic} service as soon as it is downloaded.  As discussed in Sect.~\ref{sec:datastreaming}, this intermediate file can be passed directly between the services, without being downloaded to the client's machine.  This is achieved with only a minor change to the script:
+
+\begin{verbatim}
+calc_mean -i input*.dat -o means.dat.sgsref
+make_pic -i means.dat.sgsref -o means.gif
+\end{verbatim}
+
+The {\tt .sgsref} extension is a signal to the system to download a {\em reference\/} (URL) to the output file.  This reference is then passed to the {\tt make\_pic} service, which downloads the real {\tt means.dat} file directly from the {\tt calc\_mean} service.
+
+Figure to illustrate this?
+
+\subsubsection{Using the pipe operator.}\label{sec:pipes}
+Continuing with the above example, let us imagine that the {\tt calc\_mean} program that is wrapped by the SGS outputs data on its standard output, instead of to an output file.  Similarly, imagine that the {\tt make\_pic} program reads data on its standard input and outputs the picture on its standard output.  The script to execute this simple workflow (with both local programs {\em and\/} Styx Grid Services) is:
+
+\begin{verbatim}
+calc_mean -i input*.dat | make_pic > means.gif
+\end{verbatim}
+
+Here, the intermediate data is being streamed to the local client, then streamed back out to the {\tt make\_pic} service.  Again, we can make sure that the intermediate data is streamed directly between the services with a minor change to the script:
+
+\begin{verbatim}
+calc_mean -i input*.dat --sgs-output-stdout-ref | make_pic > means.gif
+\end{verbatim}
+
+The flag {\tt --sgs-output-stdout-ref} is a signal to output a reference (URL) to the standard output of the {\tt calc\_mean} service on the local machine's standard output.  It is this reference that is passed to the {\tt make\_pic} service.  In this way the intermediate data are streamed across the Internet, directly between the services.
 %
 \subsection{Using graphical workflow engines}
+
+%
+\section{Asynchronous notification in the SGS system}
 %
 \section{Security}
 %
@@ -197,6 +285,9 @@ Triana/gridMonSteer/Web serivce/firewall stuff?
 \section{Interactivity} \label{sec:interactivity}
 
 Something on computational steering...
+
+\section*{Acknowledgements}
+Tom Oinn, Inferno guys, Trustin Lee ...
 %
 % ---- Bibliography ----
 %
