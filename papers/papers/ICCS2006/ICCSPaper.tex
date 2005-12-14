@@ -4,6 +4,9 @@
 % $Revision$
 % $Date$
 % $Log$
+% Revision 1.4  2005/12/14 09:17:20  jonblower
+% Continued development
+%
 % Revision 1.3  2005/12/13 17:59:24  jonblower
 % Added introductory material and the SGS namespace
 %
@@ -61,23 +64,25 @@ In many scientific fields, the community in question has produced useful pieces 
 Despite these benefits, in many scientific fields there are still few examples of genuinely useful, widely-available Internet services that scientists can access.  (In this paper we use the term ``Internet services'' as an umbrella term to cover Web Services, Grid Services, WS-Resources and other services that are accessible over the Internet.)  As noted in (WEDS and MOAN), this is partly due to the technical difficulty in creating many types of service, which is why the aforementioned wrapper systems have been developed.  A ``critical mass'' of useful services is required to exist before other potential service providers perceive that it is worth their time and effort to add services of their own.
 
 \subsection{Problems with Web Services-based distributed systems}
-Although the above wrapper systems undoubtedly make the job of creating services much easier than would otherwise be the case, we believe that further progress can be made towards increasing the ease of both creating and using Internet services.  One key issue, we believe, is the nature of the services themselves.  Most e-Science projects employ Web Services (or some variant) as the core service type.  While this certainly brings many benefits, it also brings problems in some cases.  A common problem is that of data transfer: Web Services produce and consume XML documents, but it is undesirable to encode anything but a trivial amount of data in XML due to the time and resource required to perform this encoding and the resulting increase in the data volumes (REF).  When creating Web Services that deal with moderate or large data volumes, it is common to use a different transport mechanism for the data inputs and outputs, using the exchange of XML documents simply as a control mechanism (e.g.\ REF).  The need to use two different server systems (the Web Services server and the data server) increases the complexity of the system.
+Although the above wrapper systems undoubtedly make the job of creating services much easier than would otherwise be the case, we believe that further progress can be made towards increasing the ease of both creating and using Internet services.  One key issue is the nature of the services themselves.  Most e-Science projects employ Web Services (or some variant) as the core service type.  While this certainly brings many benefits, it also brings problems in some cases.  A common problem is that of data transfer: Web Services produce and consume XML documents, but it is undesirable to encode anything but a trivial amount of data in XML due to the time and resource required to perform this encoding and the resulting increase in the data volumes (REF).  When creating Web Services that deal with moderate or large data volumes, it is common to use a different transport mechanism for the data inputs and outputs, using the exchange of XML documents simply as a control mechanism (e.g.\ REF).  The need to use two different server systems (the Web Services server and the data server) increases the complexity of the system.
 
-Another common issue arises when creating services that represent long-running programs.  In these cases it is desirable to incorporate a mechanism for notifying clients of the progress of the program and when it has completed.  The Web Services Resource Framework (WS-RF, REF) specifies a method for achieving this (WS-Notification, REF), but it, like other preceding notification mechanisms (e.g. OGSI) suffer from a serious problem.  In order to receive notifications of progress, status etc., the client usually has to run a server process that listens for incoming progress messages (``callbacks'').  However, if the client is behind a firewall that blocks incoming connections on the port(s) in question, these messages will never be received and, what is worse, the client may never know why.  Similar problems are faced with clients that are behind Network Address Translation (NAT) routers.  In many situations the user has no control over the firewall or NAT settings and so these notification mechanisms are often defeated.
+Another common issue arises when creating services that represent long-running programs.  In these cases it is desirable to incorporate a mechanism for notifying clients of the progress of the program and when it has completed.  The Web Services Resource Framework (WS-RF, REF) specifies a method for achieving this (WS-Notification, REF), but it, like other preceding notification mechanisms (e.g. OGSI), suffers from a serious problem.  In order to receive notifications of progress, status etc., the client usually has to run a server process that listens for incoming progress messages (``callbacks'').  However, if the client is behind a firewall that blocks incoming connections on the port(s) in question, these messages will never be received and, what is worse, the client may never know why.  Similar problems are faced with clients that are behind Network Address Translation (NAT) routers.  In many situations the user has no control over the firewall or NAT settings and so these notification mechanisms are often defeated.
+
+Something about problems with modelling programs as RPCs?
 
 In this paper we shall describe a new type of Internet service called the {\em Styx Grid Service\/} or SGS.  The SGS architecture addresses the above problems, as well as providing other benefits.  A key feature is that it is very easy to create Styx Grid Services that wrap existing programs: we believe that it is significantly easier than using any of the above wrapper systems.  It is also very easy to use Styx Grid Services: the architecture is designed so that any SGS can be run from the command line {\em exactly as if it were a local program\/}.  Workflows can therefore be created using simple shell scripts (or batch files in Windows).  Alternatively, the SGS API allows the creation of custom client programs and integration with many different workflow systems.  We shall demonstrate how Styx Grid Services can interoperate with other types of Internet services such as Web Services and WS-Resources.
 
 %
 \section{The Styx Grid Services system}
 \subsection{Background}
-The key aims of the Styx Grid Services system are to make the use of remotely-deployed programs as easy as using local programs and to allow them to be composed into efficient workflows.  The design of the system is heavily influenced by the Inferno (REF) and Plan~9 (REF) operating systems, in which local and remote resources are treated {\em identically\/}.  This is achieved because of the following two facts: (1) All resources are virtualized as a file or set of files (just as Unix variants often represent the mouse as the file {\tt /dev/mouse}); (2) all communication is performed using a file-sharing protocol.  Applications do not know whether they are operating on local or remote files: the routing of messages is handled by the underlying operating system.
+The key aims of the Styx Grid Services system are to make the use of remotely-deployed programs as easy as using local programs and to allow them to be composed easily into efficient workflows.  The design of the system is heavily influenced by that of the Inferno (REF) and Plan~9 (REF) operating systems, in which local and remote resources are treated {\em identically\/}.  This is achieved because of the following two facts: (1) All resources are virtualized as a file or set of files (just as Unix variants often represent the mouse as the file {\tt /dev/mouse}); (2) all communication is performed using a file-sharing protocol.  Applications do not know whether they are operating on local or remote resources: the routing of messages is handled by the underlying operating system.
 
-The file-sharing protocol used in Inferno is called {\em Styx\/}; Plan~9 uses an identical protocol called {\em 9P\/} (the latest version of Styx is also known as 9P2000).  Styx has a long history and was invented by the original developers of Unix (REF).  It has several major advantages.  Styx only needs to operate on files and so it has a very small command set (13 commands) with well-defined semantics, many of which will be familiar to most users (e.g.\ ``open'', ``close'', ``read'' and ``write'').  This small command set means that the protocol is {\em lightweight\/} adding very little overhead to the transfer of data, which may be contrasted with the bloating effect of XML encoding.  A single Styx server can handle many tasks (e.g.\ control, asynchronous messaging and data transfer), removing the need to set up and maintain several servers to manage a distributed system.
+The file-sharing protocol used in Inferno is called {\em Styx\/}; Plan~9 uses an identical protocol called {\em 9P\/} (the latest version of Styx is also known as 9P2000).  Styx has a long history and was invented by the original developers of Unix (REF).  It has several major advantages.  Styx only needs to operate on files and so it has a very small command set (13 commands) with well-defined semantics, many of which will be familiar to most users (e.g.\ ``open'', ``close'', ``read'' and ``write'').  This small command set means that the protocol is {\em lightweight\/}, adding very little overhead to the transfer of data.  This may be contrasted with the bloating effect of XML encoding.  A single Styx server can handle many tasks (e.g.\ control, asynchronous messaging and data transfer), removing the need to set up and maintain multiple servers to manage a distributed system.
 
-The Styx Grid Services system defines a Styx server that represents a program, i.e.\ a binary executable.  Clients (i.e.\ users) interact with the remote executable by reading from and writing to special files on this Styx server across the Internet.  This is therefore very different from the Web Services model, in which communication is achieved through the exchange of XML documents.  The details of the SGS system are completely hidden from the user: neither service providers nor end-users need to know any of the technical details that follow in the next few paragraphs.
+The Styx Grid Services system defines a Styx server that represents one or more programs, i.e.\ command-line binary executables.  Clients interact with these remote executables by reading from and writing to the files on this Styx server across the Internet.  This is therefore very different from the Web Services model, in which communication is achieved through the exchange of XML documents.  The details of the SGS system are completely hidden from the user: neither service providers nor end-users need to know any of the technical information that follows in the next few sections.
 
 \subsection{The SGS namespace}
-In a Styx system, all resources are represented as a set of files that are organized in a hierarchical manner known as a {\em namespace\/}.  A namespace can be thought of as a filesystem of virtual files.  The namespace exposed by a typical Styx Grid Service server is shown in Fig.~\ref{fig:sgsnamespace}.  Briefly, clients perform the following steps to run a Styx Grid Service:
+In a Styx system, all resources are represented as a set of files that are organized in a hierarchical manner known as a {\em namespace\/}.  A namespace can be thought of as a filesystem of virtual files.  The namespace exposed by a typical Styx Grid Service server is shown in Fig.~\ref{fig:sgsnamespace}.  Briefly, clients typically perform the following steps to run a Styx Grid Service:
 \begin{enumerate}
 	\item Connect to the server.
 	\item Download the configuration of the SGS in question from the {\tt config} file.  This information can be used to help the client to automatically generate a GUI for the SGS or parse a set of command-line arguments.
@@ -90,58 +95,92 @@ In a Styx system, all resources are represented as a set of files that are organ
 	\item When the service has finished, the instance can be destroyed by writing ``{\tt destroy}'' into the {\tt ctl} file.
 \end{enumerate}
 
+All files can be represented as URLs...
+
 \begin{figure}
-{\tt /  {\em The root directory of the server}\\
-|-- mySGS/\\
-|   |-- clone\\
-|   |-- config\\
-|   |-- docs/\\
-|   |   |-- description\\
-|   |   `-- readme.txt\\
-|   `-- instances/\\
-|       |-- 0/\\
-|       |    |-- ctl\\
-|       |    |-- args\\
-|       |    |-- params/\\
-|       |    |   |-- param1\\
-|       |    |   `-- param2\\
-|       |    |-- inputs/\\
-|       |    |   |-- stdin\\
-|       |    |   `-- myinputfile\\
-|       |    |-- outputs/\\
-|       |    |   |-- stdout\\
-|       |    |   |-- stderr\\
-|       |    |   `-- myoutputfile\\
-|       |    |-- serviceData/\\
-|       |    |   |-- status\\
-|       |    |   |-- exitCode\\
-|       |    |   `-- customSDE\\
-|       |    |-- steering/\\
-|       |    |   `-- steerable1\\
-|       |    `-- time/\\
-|       |        |-- currentTime\\
-|       |        |-- creationTime\\
-|       |        `-- terminationTime\\
-|       `-- 1/\\
-`-- mySGS2/}
-\caption{The namespace of a typical Styx Grid Service server.}\label{fig:sgsnamespace}
+\begin{verbatim}
+/
+|-- mySGS/
+|   |-- clone
+|   |-- config
+|   |-- docs/
+|   |   |-- description
+|   |   `-- readme.txt
+|   `-- instances/
+|       |-- 0/
+|       |    |-- ctl
+|       |    |-- args
+|       |    |-- params/
+|       |    |   |-- param1
+|       |    |   `-- param2
+|       |    |-- inputs/
+|       |    |   |-- stdin
+|       |    |   `-- myinputfile
+|       |    |-- outputs/
+|       |    |   |-- stdout
+|       |    |   |-- stderr
+|       |    |   `-- myoutputfile
+|       |    |-- serviceData/
+|       |    |   |-- status
+|       |    |   |-- exitCode
+|       |    |   `-- customSDE
+|       |    |-- steering/
+|       |    |   `-- steerable1
+|       |    `-- time/
+|       |        |-- currentTime
+|       |        |-- creationTime
+|       |        `-- terminationTime
+|       `-- 1/
+`-- mySGS2/
+\end{verbatim}
+\caption{The namespace (virtual filesystem) of a typical Styx Grid Service server.}\label{fig:sgsnamespace}
 \end{figure}
 
 \subsection{Resource lifecycle}
+Should we bother with this section?
 %
 \section{Wrapping programs as SGSs}
+It is critically important that the process of creating Styx Grid Services from existing programs be as simple as possible.  It is intended that the process is sufficiently simple to allow scientists to expose their programs as services without intervention from dedicated technical staff.  The service provider does not need to know any of the details of the Styx protocol or the SGS namespace.
+
+In order to create a Styx Grid Service from a command-line executable, the service provider must provide a description of the executable (the {\em configuration file\/}).  This description is an XML document that conforms to a Document Type Definition (DTD), and thus can be automatically validated.  In the current version of the system, this configuration file must be created by hand but we anticipate creating automated tools to simplify this task.  There are many examples of configuration files on the project website (REF) that the service provider can draw upon.  The configuration file is passed to a general-purpose program that parses the file and creates the SGS server.
+
+A sample configuration file is given in Fig.~\ref{fig:configfile}.  The hierarchical structure of the configuration file closely resembles the namespace of the resulting Styx Grid Service (Fig.~\ref{fig:sgsnamespace}).  The file specifies:
+\begin{itemize}
+	\item The details of the server itself: the port it will listen on and details of the SSL authentication and encryption (if used).
+	\item The name of the Styx Grid Service, the path to the program it is wrapping and a short description.
+	\item The command-line parameters that the program expects.
+	\item The input files that the program expects (including the standard input stream).
+	\item The output files that the program produces (including the standard output and standard error streams).
+	\item Any user-specified pieces of service data (i.e. state data about the service such as progress).
+	\item Any steerable parameters (see Sect.~\ref{sec:interactivity}).
+	\item Any documentatation files associated with the program, to provide help to users.
+\end{itemize}
+Several Styx Grid Services can be specified in one configuration file.  All these SGSs will be exposed under the same server program (which is a {\em container\/} for any number of SGSs).  The section of the configuration file that pertains to a particular SGS is made available for clients to read through the {\tt config} file in the namespace of that SGS.  This {\tt config} file performs an analogous role to that of a Web Services Definition Language (WSDL) document, in that it provides a machine-readable specification of the service that can be used to automatically generate client programs.
+
+\begin{figure}
+\caption{A sample configuration file for a Styx Grid Services server.}\label{fig:configfile}
+\end{figure}
 %
-\section{SGS Clients 1: The command line}
+\section{Creating workflows with Styx Grid Services}
+The above sections (WHICH SHOULD BE MUCH SHORTER!) described why we have chosen to create a new service type and some of the technical details of how the SGS model works.
+
+\subsection{Direct data streaming between service instances}
+
+\subsection{SGSs look just like local programs}
+
 \subsection{Create workflows with shell scripts}
 %
-\section{SGS Clients 2: Graphical workflow engines}
+\subsection{Using graphical workflow engines}
 %
 \section{Security}
 %
 \section{Compatibility with other service types}
+\subsection{Wrapping SGSs as Web Services}
+AHM 2004 paper...
 \subsection{Wrapping SGSs as WS-Resources}
+Andrew's bit...
 %
-\section{Interactivity}
+\section{Interactivity} \label{sec:interactivity}
 Something on computational steering...
 %
 % ---- Bibliography ----
