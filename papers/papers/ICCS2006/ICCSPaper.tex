@@ -4,6 +4,9 @@
 % $Revision$
 % $Date$
 % $Log$
+% Revision 1.7  2005/12/14 14:50:52  abharrison
+% first stab a web service sections
+%
 % Revision 1.6  2005/12/14 14:01:29  jonblower
 % Added stuff on command-line clients
 %
@@ -269,18 +272,34 @@ The flag {\tt --sgs-output-stdout-ref} is a signal to output a reference (URL) t
 \section{Web Service Integration}
 \label{sec:webservices}
 
-A compelling argument for employing Web services is that through the use of open standards of service description and message exchange such as WSDL and SOAP, diverse underlying resources and codes can interact. While SOAP, WSDL and the plethora of WS-* specifications are useful for describing service entry points and constraints such as security and policy, they are not necessarily ideal for data intensive, or long-running interactions as are often required in Grid computing. In situations such as these, it can be useful to view these Web service standards as comprising a service level which sits above and specifies an underlying execution layer. This execution layer may use different mechanisms for transferring data such GridFTP or, in the case of SGSs, the Styx protocol. The following two sub-sections describe applications of the SGS framework to make use of Web service standards while still maintaining the integral strengths of the Styx protocol within the context of workflow.
+A compelling argument for employing Web services is that through the use of open standards of service description and message exchange such as WSDL and SOAP, diverse underlying resources and codes can interact. While SOAP, WSDL and the plethora of WS-* specifications are useful for describing service entry points and constraints such as security and policy, they are not necessarily ideal for data intensive, or long-running interactions as are often required in Grid computing. In situations such as these, it can be useful to view these Web service standards as comprising a service level which sits above and specifies an underlying execution layer. This execution layer may use different mechanisms for transferring data such GridFTP or, in the case of SGSs, the Styx protocol. The following two sub-sections describe applications of the SGS framework that make use of Web service standards while still maintaining the integral strengths of the Styx protocol within the context of workflow.
 
 \subsection{Wrapping SGSs as Web Services}
 AHM 2004 paper...
-Triana/gridMonSteer/Web serivce/firewall stuff?
+
+Another approach to wrapping SGSs as Web services has been implemented by WSPeer~\cite{wspeer}. WSPeer is a Peer-to-Peer oriented API for hosting and invoking Web services which has a binding to the jstyx libraries allowing SOAP messaging to take place using the Styx protocol. In this scenario WSPeer launches as `SOAP capable' Styx service, that is, the service is conceptually an XML document. The SGS namespace is not externally accessible. Instead the client has access to a WSDL file which defines service operations that encapsulate the messages and data to be written to the namespace files. So for example, to write to the \texttt{stdout} file of an SGS, the client invokes the \texttt{setStdout(String uri)} operation defined in the WSDL. The service endpoint contained in the WSDL is the URI of a file to which these messages can be written. The client invocation triggers WSPeer to write the XML to the service file. The service file processes the SOAP message and reads/writes from its parameter files, setting its own file content accordingly. If WSPeer is expecting a response from the service file it has just written to, it subsequently performs a read operation on the file.
 
 \subsection{Wrapping SGSs as WS-Resources}
+\label{subsec:ws-resources}
+
+The Web Services Resource Framework (WS-RF) is a recent specification which addresses the need to handle resources that maintain state across service invocations. These resources, called WS-Resources, can be anything from a database entry, to a subscription, to a job running on a Grid. SGSs fit naturally into this class of network entity because they maintain state which can be retrieved and modified. We have explored wrapping SGSs as WS-Resources using WSPeer which supports WS-RF~\cite{wsrf}.
+
+\sloppypar A WS-Resource is defined as a series of \emph{ResourceProperties}, essentially QName/value pairs of a specified data type. These properties are exposed in the WSDL of a service (a WS-RF service) capable of handling certain WS-Resources. ResourceProperties are common to types of resources and therefore a WS-RF service can manage any number of instances of a type of resource. The reference to an instance of a resource which the service acts upon is sent by the client in the header part of the SOAP message. A WS-RF service may also define operations that act on WS-Resources.
+
+The process of exposing an SGS as a WS-Resource involves parsing the \texttt{config} file in the SGS namespace and transforming the configuration data into ResourceProperties. This is not difficult because the configuration file is machine processable. Furthermore SGS defines certain properties which map directly onto WS-RF related specifications. An example of this is the \texttt{time} directory in the SGS namespace which houses files containing data pertinent to the lifetime of the service. These are reflected in properties defined in the WS-ResourceLifetime~\cite{wsrf-lifetime} specification.
+
+There are two types of WS-RF service that can expose a WS-Resource wrapped SGS using WSPeer:
+
+\begin{enumerate}
+\item A SOAP capable WS-RF Styx service using the styx protocol to send and receive XML.
+\item A broker WS-RF service. In this case the service uses HTTP.
+\end{enumerate}
+
+An important specification related to WS-RF is WS-Notification~\cite{wsrf-notification}. WS-Notification allows clients to be notified of events fired by topics that they have previously subscribed to. In terms of SGS, a number of files are suitable candidates for being exposed as topics in the WSDL of the WS-RF service, particularly the \texttt{serviceData} files. When the WS-Peer generated WS-RF service is using the Styx protocol, these notifications can take the form of pseudo-notifications as described in Section [IS IT DESCRIBED?] allowing clients behind firewalls and Network Address Translation systems to receive notifications. When the server is running over HTTP, the standard notification exchange occurs.
+
+The \texttt{stdout} file of an SGS is important in terms of workflow because it allows data to flow directly between applications rather than via a workflow editor or controller. In terms of wrapping an SGS as a WS-Resource, it is worth noting that this file is not a good candidate for being exposed as a topic  because the notification messages defined by WS-Notification are verbose and designed for discreet events. Attempting to stream voluminous amounts of data using this mechanism would be disastrous. Instead the wrapping should understood in terms of a service and execution level. The URI that the \texttt{stdout} file contains can be set using standard WS-RF message exchanges. The actual data transfer however, should remain in the styx domain which is less self-decribing but more efficient.
 
 
-
-
-%
 
 \section{Interactivity} \label{sec:interactivity}
 
@@ -292,13 +311,34 @@ Tom Oinn, Inferno guys, Trustin Lee ...
 % ---- Bibliography ----
 %
 \begin{thebibliography}{refs}
-%\bibliography{refs}
+
+\bibitem{wspeer}
+Harrison, A., Taylor, I.:
+\newblock {WSPeer - An Interface to Web Service Hosting and Invocation}.
+\newblock In: {HIPS Joint Workshop on High-Performance Grid Computing and
+  High-Level Parallel Programming Models}. (2005)
+
+\bibitem{wsrf}
+{Karl Czajkowski et al}:
+\newblock The {WS-Resource Framework} (2004) \\ {\tt
+  http://www.globus.org/wsrf/specs/ws-wsrf.pdf}.
+
+\bibitem{wsrf-notification}
+{OASIS}:
+\newblock {WS-BaseNotification} (2004) {\tt
+  http://docs.oasis-open.org/wsn/2004/06/\\wsn-WS-BaseNotification-1.2-draft-0%
+3.pdf}.
+
+\bibitem{wsrf-lifetime}
+{OASIS}:
+\newblock {WS-ResourceLifetime} (2005) {\tt http://docs.oasis-open.org/wsrf/\
+  wsrf-ws\_resource\_lifetime-1.2-spec-pr-02.pdf}.
 %
-\bibitem[1980]{2clar:eke}
-Clarke, F., Ekeland, I.:
-Nonlinear oscillations and
-boundary-value problems for Hamiltonian systems.
-Arch. Rat. Mech. Anal. {\bf 78} (1982) 315--333
+%\bibitem[1980]{2clar:eke}
+%Clarke, F., Ekeland, I.:
+%Nonlinear oscillations and
+%boundary-value problems for Hamiltonian systems.
+%Arch. Rat. Mech. Anal. {\bf 78} (1982) 315--333
 
 \end{thebibliography}
 \end{document}
