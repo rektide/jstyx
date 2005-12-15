@@ -4,6 +4,9 @@
 % $Revision$
 % $Date$
 % $Log$
+% Revision 1.9  2005/12/15 09:14:23  jonblower
+% Starting to re-write introduction
+%
 % Revision 1.8  2005/12/14 17:19:31  jonblower
 % Near-complete first draft, plus references
 %
@@ -62,6 +65,19 @@ University of Cambridge, Cambridge UK}
 \end{abstract}
 %
 \section{Introduction}
+The concept of ``workflow'' in e-Science termnology refers to the composition of Internet-based services in order to create a distributed application.  For example, a scientist might wish to extract datasets from a number of data archives in different physical locations, perform some analysis on these datasets on a high-performance computing (HPC) resource in another location, then produce some visualization of the end result on his or her local machine.  All the services in this workflow are mutually independent (``loosely coupled'') and may be hosted by a number of different service providers.  A workflow is therefore rather like a computer program that brings together a number of high-level components.
+
+In theory, this approach should allow scientists with little technical knowledge to create powerful distributed applications.  In practice, however, there are -- at the time of writing -- very few examples of scientific communities that have started to work in this way on a routine basis.  In order for this approach to be successful, the following conditions should be met:
+
+\begin{enumerate}
+	\item Scientists must be able to work without routinely requiring help from dedicated technical staff.
+	\item The perceived benefits of adopting this approach must outweigh the perceived costs of changing the scientists' current method of working.
+	\item The process of creating new services must be made as easy as possible.
+	\item The process of creating workflows must be made as easy as possible, fitting in with the way the scientists in question like to work.
+\end{enumerate}
+
+
+
 There is much current interest in the use of Service-Oriented Architectures (SOAs) in scientific computing.  A key tenet of the SOA paradigm is that one can expose resources such as data stores, computing resources, sensors and computer programs as {\em services\/} that are available for access through the Internet.  Each service is independent from all other services and, indeed, the services can be managed by any number of {\em service providers\/}.  The end user (e.g.\ the scientist) can perform complex, distributed tasks by composing these services into {\em workflows\/}.  In this paper we shall focus on the issue of exposing existing computer programs as services and creating workflows from these services.  However, many of the methods we discuss could be applied to other types of resource.
 
 In many scientific fields, the community in question has produced useful pieces of code that have been tried and tested over a substantial period of time (these programs are often termed ``legacy'' codes).  It is usually not practical for the code to be re-written and so a common task, addressed by many e-Science projects (e.g.\ REFs) is to create software that ``wraps'' an existing piece of code as some kind of Internet service, for example a Web Service (e.g.\ Soaplab, REF), OGSI Grid Service (e.g.\ GEMLCA, REF) or WS-Resource (e.g.\ WEDS, REF).  These systems are not just useful for legacy codes: newly-written code can also be be exposed as a service.  In this way, the writing of the code is divorced from the procedure of creating the service.  There are many reasons for wishing to expose a program as a service:
@@ -193,15 +209,15 @@ In the SGS system, the direct passing of data between service instances is achie
 \subsection{SGSs can be used just like local programs}
 The SGS system is a ``close'' wrapper around a non-graphical executable program.  It does not attempt to abstract away the details of the command-line parameters of the program or the input and output files involved: rather, it explicitly describes them.  This is therefore an alternative approach to that taken by some systems, which provide access to a program through a remote procedure call (RPC).  However, it is sometimes very difficult to adequately model a scientific program (which may incorporate a number of command-line parameters and input/output files) as an RPC.
 
-Many scientists perform most of their work in command-line environments.  Many command-line environments provide a very sophisticated, customizable and usable interface to the user.  In order to serve this community, Styx Grid Services can be run using simple shell commands.  The fact that an SGS contains a complete description of the executable it wraps means that we can execute remote Styx Grid Services {\em exactly as we would execute local programs\/}.  The {\tt SGSRun} program (provided with the SGS software) is a command-line client that can be used to execute any Styx Grid Service in exactly the same way as the executable it wraps.
+Many scientists perform most of their work in command-line environments (e.g.\ the Unix shell) and are often reluctant to change their method of working to use new, graphical tools.  In order to serve this community, Styx Grid Services can be run using simple shell commands.  Recalling that an SGS contains a complete description of the executable it wraps, we can execute remote Styx Grid Services {\em exactly as we would execute local programs\/}.  The {\tt SGSRun} program (provided with the SGS software) is a command-line client that can be used to execute {\em any} Styx Grid Service in exactly the same way as the executable it wraps.
 
-For example, consider a simple command-line program, called {\tt myprog}, that reads an input file, processes it, then writes out an output file.  The command line syntax for running this program is:
+For example, consider a simple command-line program (called {\tt myprog}) that reads an input file, processes it, then writes out an output file.  The command line syntax for running this program is:
 
 \begin{verbatim}
 myprog -i <inputfile> -o <outputfile>
 \end{verbatim}
 
-The relevant section of the configuration file to create a Styx Grid Service from this program would be:
+The configuration information for creating a Styx Grid Service from this program would be:
 
 \begin{verbatim}
 <gridservice name='myprog' command='/path/to/myprog'>
@@ -224,19 +240,19 @@ This specifies that the program reads one input file that is given by the flag `
 SGSRun <hostname> <port> myprog -i <inputfile> -o <outputfile>
 \end{verbatim}
 
-The {\tt SGSRun} program downloads the configuration information from the server and uses it to parse the command line arguments.  It then knows that it must upload the input file to the server before running the service.  It downloads the output data from the server and places it in {\tt <outputfile>}.  The user can create a simple shell script that runs {\tt SGSRun} and that contains the hostname and port of the SGS server.  In this way, the command line to execute the SGS is {\em identical\/} to that used to run the program locally.
+The {\tt SGSRun} program downloads the configuration information from the server and uses it to parse the command line arguments.  It then knows that it must upload the input file to the server before running the service and that it must download the output file from the server.  The user can create a simple shell script (called {\tt myprog}) that runs {\tt SGSRun} and that contains the hostname and port of the SGS server.  In this way, the command line to execute the SGS is {\em identical\/} to that used to run the program locally.
 
 \subsection{Create workflows with shell scripts}
-Given that remote services can be executed just like local programs, a natural extension is to create workflows by writing simple shell scripts.  Workflows, like shell scripts, are themselves programs that are composed of other programs and high-level components.  Let us consider a simple workflow of two Styx Grid Services.  The first, called {\tt calc\_mean}, reads a set of input files, calculates their mean and outputs the result.  These input files might be the result of a set of individual experiments.  The second SGS, called {\tt make\_pic} takes a single input file and turns it into a picture.
+Given that remote services can be executed just like local programs, a natural extension is to create workflows by writing simple shell scripts.  Workflows are simply programs that are composed high-level components and so it is natural to use a scripting environment to create the (REF Geodise).  Let us consider a simple workflow of two Styx Grid Services.  The first, called {\tt calc\_mean}, reads a set of input files (e.g.\ the results of a set of experiments), calculates their mean and outputs the result.  The second SGS, called {\tt make\_pic} takes a single input file and turns it into a picture.
 
-Imagine that the user has a set of input files (called {\tt input1.dat}, {\tt input2.dat} etc.) and wants to calculate their mean, then produce a picture of the result.  The shell script that he or she would use would be:
+Imagine that the user has a set of input files (called {\tt input1.dat}, {\tt input2.dat} etc.) and wants to calculate their mean, then produce a picture of the result.  The shell script that he or she would use to create the SGS workflow would be:
 
 \begin{verbatim}
 calc_mean -i input*.dat -o means.dat
 make_pic -i means.dat -o means.gif
 \end{verbatim}
 
-Note that this is {\em exactly the same script\/} as would be used to invoke the programs if they were installed locally.  (This assumes that the user has created shell scripts called {\tt calc\_mean} and {\tt make\_gif} that invoke the {\tt SGSRun} program as described above.)
+Note that this is {\em exactly the same script\/} as would be used to invoke the programs if they were installed locally.  (This assumes that the user has created simple shell scripts called {\tt calc\_mean} and {\tt make\_gif} that invoke the {\tt SGSRun} program as described above.)
 
 This ``workflow'' (shell script) is very simple but not optimally efficient.  The intermediate file {\tt means.dat} is not required by the user: it is simply uploaded to the {\tt make\_pic} service as soon as it is downloaded.  This wastes time and bandwidth.  As discussed in Sect.~\ref{sec:datastreaming}, this intermediate file can be passed directly between the services.  This is achieved with only a minor change to the script:
 
@@ -245,12 +261,12 @@ calc_mean -i input*.dat -o means.dat.sgsref
 make_pic -i means.dat.sgsref -o means.gif
 \end{verbatim}
 
-The {\tt .sgsref} extension is a signal to the system to download a {\em reference\/} (URL) to the output file.  This reference is then passed to the {\tt make\_pic} service, which downloads the real {\tt means.dat} file directly from the {\tt calc\_mean} service.
+The {\tt .sgsref} extension is a signal to the system to download a {\em reference\/} (URL) to the output file and place it in the file {\tt means.dat.sgsref}.  This reference is then passed to the {\tt make\_pic} service, which downloads the real {\tt means.dat} file directly from the {\tt calc\_mean} service.  Hence this intermediate file is not being passed through the workflow enactor (i.e.\ the client's machine).
 
 Figure to illustrate this?
 
 \subsubsection{Using the pipe operator.}\label{sec:pipes}
-Continuing with the above example, let us imagine that the {\tt calc\_mean} program outputs data on its standard output, instead of to an output file.  Similarly, imagine that the {\tt make\_pic} program reads data on its standard input and outputs the picture on its standard output.  The script to execute this simple workflow (with both local programs {\em and\/} Styx Grid Services) is:
+As a modification to the above example, let us imagine that the {\tt calc\_mean} program outputs data on its standard output, instead of to an output file.  Similarly, imagine that the {\tt make\_pic} program reads data on its standard input and outputs the picture on its standard output.  The script required to execute this simple workflow (with both local programs {\em and\/} Styx Grid Services) is:
 
 \begin{verbatim}
 calc_mean -i input*.dat | make_pic > means.gif
@@ -263,14 +279,14 @@ calc_mean -i input*.dat --sgs-output-stdout-ref ...
        ... | make_pic > means.gif
 \end{verbatim}
 
-The flag {\tt --sgs-output-stdout-ref} is a signal to print a reference (URL) to the standard output of the {\tt calc\_mean} service to the local machine's standard output, instead of the actual data.  It is this reference that is passed to the standard input of the {\tt make\_pic} service.  In this way the intermediate data are streamed directly between the services, across the Internet.
+The flag {\tt --sgs-output-stdout-ref} is a signal to send a reference (URL) to the standard output of the {\tt calc\_mean} service to the standard input of the {\tt make\_pic} service.  In this way the intermediate data are streamed directly between the services, across the Internet.
 %
 \subsection{Using graphical workflow engines}
-The command line interface to the SGS system that is described above is perhaps the simplest way of using Styx Grid Services from the client side.  In many cases, however, there are significant advantages in using more sophisticated graphical tools to interact with services and create workflows.  In particular, graphical interfaces can provide richer interactivity with the SGS server, e.g.: progress and status can be monitored graphically, input parameters can be set using graphical controls and the service can be steered.
+The command line scripting interface to the SGS system that is described above is perhaps the simplest way of creating SGS workflows.  In some cases, however, there are significant advantages in using more sophisticated graphical tools to interact with services and create workflows.  In particular, graphical interfaces can provide richer interactivity with the SGS server: progress and status can be monitored graphically, input parameters can be set using graphical controls and the service can be steered.  Some users prefer to use graphical tools to creating their own scripts.
 
-The Taverna workbench ({\tt http://taverna.sf.net}) is a graphical workflow system that was designed for performing {\it in silico} experiments in the field of bioinformatics, although it can also be used by other communities.  Using Taverna, the user can build workflows from diverse service types, including Styx Grid Services, Web Services and XXX.
+The Taverna workbench ({\tt http://taverna.sf.net}) is a graphical workflow system that was designed for performing {\it in silico} experiments in the field of bioinformatics and it is also useful to other communities.  Using Taverna, the user can build workflows from diverse service types, including Styx Grid Services, Web Services and XXX.  (Screenshot of Taverna executing an SGS workflow?)
 
-The Triana workflow system ({\tt http://trianacode.org}) is another graphical workflow environment that can interface with many different service types.  Although direct support for Styx Grid Services is not built in at the time of writing, a previous paper~\cite{blower:2005} showed that Styx Grid Services can be wrapped as Web Services, then Triana can be used to run workflows in which data are streamed directly from service to service.
+The Triana workflow system ({\tt http://trianacode.org}) is another graphical workflow environment that can interface with many different service types.  Although direct support for Styx Grid Services is not built in to Triana at the time of writing, a previous paper~\cite{blower:2005} showed that Styx Grid Services can be wrapped as Web Services, then Triana can be used to run workflows in which data are streamed directly from service to service.
 %
 \section{Asynchronous notification in the SGS system}
 We have discussed (Sect.~\ref{sec:wsproblems}) the problems faced when implementing asynchronous notification systems in Web Services environments: the notification replies to the clients are often blocked by firewalls or NAT.  
