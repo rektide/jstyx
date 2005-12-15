@@ -4,6 +4,9 @@
 % $Revision$
 % $Date$
 % $Log$
+% Revision 1.12  2005/12/15 17:29:57  abharrison
+% done some hacking on WS sections
+%
 % Revision 1.11  2005/12/15 16:30:45  jonblower
 % Further edits
 %
@@ -77,7 +80,7 @@ Web Services are perhaps the most common type of Internet-based service used by 
 
 \begin{itemize}
 	\item {\bf Data transfer:} It is impractical to encode anything but a trivial amount of data in XML due to the processing time required and the inflating effect of doing so.  Other channels (e.g.\ GridFTP, REF) must be employed to transfer moderate or large amounts of data between Web Services.
-	\item {\bf Firewall problems:} Scientific services are often long-running and so it is highly desirable to be able to monitor the progress and status of the service as it runs.  One approach is to have the client continuously poll the service for its state but this is not a scalable solution.  Frameworks such as OGSI (REF) and WS-RF use an asynchronous notification mechanism~\cite{wsrf-notification} in which clients run a server process that listens for notification messages.  However, if the client is behind a firewall or a Network Address Translation (NAT) router (a very common situation), these messages will never arrive and, worse, the client will not know why.
+	\item {\bf Firewall problems:} Scientific services are often long-running and so it is highly desirable to be able to monitor the progress and status of the service as it runs.  One approach is to have the client continuously poll the service for its state but this is not a scalable solution.  Frameworks such as OGSI (REF) and the Web Services Resource Framework (WS-RF)~\cite{wsrf} use an asynchronous notification mechanism in which clients run a server process that listens for notification messages.  However, if the client is behind a firewall or a Network Address Translation (NAT) router (a very common situation), these messages will never arrive and, worse, the client will not know why.
 	\item {\bf Modelling as RPC:} SOAP Web Services can be either RPC (remote procedure call)-style or document-style.  It is easier for workflow engines to integrate with RPC-style services but it is often difficult to model the complexities of a realistic scientific application as a remote procedure call.
 \end{itemize}
 
@@ -198,45 +201,29 @@ The {\tt --sgs-ref-stdout} flag is a signal to send a reference (URL) to the sta
 Something about fact that service B has to connect securely to service A with privileges of user.
 
 \subsection{Using graphical workflow tools}
+\label{subsec:graphical-workflow}
 The command line scripting interface to the SGS system that is described above is perhaps the simplest way of creating SGS workflows.  In some cases, however, there are significant advantages in using more sophisticated graphical tools to interact with services and create workflows.  In particular, graphical interfaces can provide richer interactivity with the SGS server: progress and status can be monitored graphically, input parameters can be set using graphical controls and the service can be steered.  Some users prefer to use graphical tools to creating their own scripts.
 
 The Taverna workbench ({\tt http://taverna.sf.net}) is a graphical workflow system that was designed for performing {\it in silico} experiments in the field of bioinformatics and it is also useful to other communities.  Using Taverna, the user can build workflows from diverse service types, including Styx Grid Services, Web Services and XXX.  (Screenshot of Taverna executing an SGS workflow?)
 
-The Triana workflow system ({\tt http://trianacode.org}) is another graphical workflow environment that can interface with many different service types.  Although direct support for Styx Grid Services is not built in to Triana at the time of writing, a previous paper~\cite{blower:2005} showed that Styx Grid Services can be wrapped as Web Services, then Triana can be used to run workflows in which data are streamed directly from service to service.
+The Triana workflow system ({\tt http://trianacode.org}) is another graphical workflow environment that can interface with many different service types.  Although direct support for Styx Grid Services is not built in to Triana at the time of writing, The Web service framework used by Triana, called WSPeer~\cite{wspeer} has a binding to the jstyx library allowing SOAP messages to be passed over the Styx protocol. WSPeer is a Peer-to-Peer oriented API for hosting and invoking Web services which does not require the usual Web server and container infrastructure. To deploy an SGS, WSPeer launches as `SOAP capable' Styx service, that is, the service is conceptually an XML document. The service requester has access to a WSDL file which defines service operations that encapsulate the messages and data to be written to the namespace files. So for example, to write to the \texttt{stdout} file of an SGS, the client invokes the \texttt{setStdout(String uri)} operation defined in the WSDL. The service endpoint contained in the WSDL is the URI of a file to which these messages can be written and from which responses can be read.
 
 \subsubsection{Asynchronous notification in the SGS system.}
-We have discussed (Sect.~\ref{sec:webservices}) the problems faced when implementing asynchronous notification systems in Web Services environments: the notification replies to the clients are often blocked by firewalls or NAT.  BLAH...
-
-
-\section{Styx Grid Services, Web Services and WS-RF}\label{sec:wsrf}
-
-A compelling argument for employing Web services is that through the use of open standards of service description and message exchange such as WSDL and SOAP, diverse underlying resources and codes can interact. While SOAP, WSDL and the plethora of WS-* specifications are useful for describing service entry points and constraints such as security and policy, they are not necessarily ideal for data intensive, or long-running interactions as are often required in Grid computing. In situations such as these, it can be useful to view these Web service standards as comprising a service level which sits above and specifies an underlying execution layer. This execution layer may use different mechanisms for transferring data such GridFTP or, in the case of SGSs, the Styx protocol. The following two sub-sections describe applications of the SGS framework that make use of Web service standards while still maintaining the integral strengths of the Styx protocol within the context of workflow.
-
-\subsection{Wrapping SGSs as Web Services}
-AHM 2005 paper~\cite{blower:2005} ...
-
-Another approach to wrapping SGSs as Web services has been implemented by WSPeer~\cite{wspeer}. WSPeer is a Peer-to-Peer oriented API for hosting and invoking Web services which has a binding to the jstyx libraries allowing SOAP messaging to take place using the Styx protocol. In this scenario WSPeer launches as `SOAP capable' Styx service, that is, the service is conceptually an XML document. The SGS namespace is not externally accessible. Instead the client has access to a WSDL file which defines service operations that encapsulate the messages and data to be written to the namespace files. So for example, to write to the \texttt{stdout} file of an SGS, the client invokes the \texttt{setStdout(String uri)} operation defined in the WSDL. The service endpoint contained in the WSDL is the URI of a file to which these messages can be written. The client invocation triggers WSPeer to write the XML to the service file. The service file processes the SOAP message and reads/writes from its parameter files, setting its own file content accordingly. If WSPeer is expecting a response from the service file it has just written to, it subsequently performs a read operation on the file.
+\label{subsec:async-notification}
+We have discussed (Sect.~\ref{sec:webservices}) the problems faced when implementing asynchronous notification systems in Web Services environments: the notification replies to the clients are often blocked by firewalls or NAT. In the case of WS-RF, for example, which uses a specifaction called WS-Notification~\cite{wsrf-notification}, the client is required to launch its own Web service to receive notifications. BLAH...
 
 \subsection{Wrapping SGSs as WS-Resources}
 \label{subsec:ws-resources}
 
-The Web Services Resource Framework (WS-RF) is a recent specification which addresses the need to handle resources that maintain state across service invocations. These resources, called WS-Resources, can be anything from a database entry, to a subscription, to a job running on a Grid. SGSs fit naturally into this class of network entity because they maintain state which can be retrieved and modified. We have explored wrapping SGSs as WS-Resources using WSPeer which supports WS-RF~\cite{wsrf}.
+WS-RF is a recent specification which addresses the need to handle resources (WS-Resources in WS-RF speak) that maintain state across service invocations. SGSs fit naturally into this class of entity because they maintain state which can be retrieved and modified. WSPeer, which supports WS-RF along with the styx protocol (see Section~\ref{subsec:graphical-workflow}) is capable of wrapping an SGS as a WS-Resource.
 
-\sloppypar A WS-Resource is defined as a series of \emph{ResourceProperties}, essentially QName/value pairs of a specified data type. These properties are exposed in the WSDL of a service (a WS-RF service) capable of handling certain WS-Resources. ResourceProperties are common to types of resources and therefore a WS-RF service can manage any number of instances of a type of resource. The reference to an instance of a resource which the service acts upon is sent by the client in the header part of the SOAP message. A WS-RF service may also define operations that act on WS-Resources.
+The process of exposing an SGS as a WS-Resource involves parsing the \texttt{config} file in the SGS namespace and transforming the configuration data into \emph{ResourceProperties}, QName/value pairs of a specified data type used to describe a WS-Resource in WSDL. This is not difficult because the configuration file is machine processable. Furthermore SGS defines certain properties which map directly onto WS-RF related specifications. An example of this is the \texttt{time} directory in the SGS namespace which houses files containing data pertinent to the lifetime of the service. These are reflected in properties defined in the WS-ResourceLifetime~\cite{wsrf-lifetime} specification.
 
-The process of exposing an SGS as a WS-Resource involves parsing the \texttt{config} file in the SGS namespace and transforming the configuration data into ResourceProperties. This is not difficult because the configuration file is machine processable. Furthermore SGS defines certain properties which map directly onto WS-RF related specifications. An example of this is the \texttt{time} directory in the SGS namespace which houses files containing data pertinent to the lifetime of the service. These are reflected in properties defined in the WS-ResourceLifetime~\cite{wsrf-lifetime} specification.
+The WS-RF service generated by WSPeer that exposes SGS instances wrapped as WS-Resources can be of two types. The first is a SOAP capable Styx service using the styx protocol to send and receive XML as described in Section~\ref{subsec:graphical-workflow}. The second is a separate broker service which uses HTTP.
 
-There are two types of WS-RF service that can expose a WS-Resource wrapped SGS using WSPeer:
+A number of files in the SGS namespace are suitable candidates for being exposed as WS-Notification topics in the WSDL of the WS-RF service, particularly the \texttt{serviceData} files. The ability of WSPeer to use the Styx protocol means these notifications can take the form of pseudo-notifications as described in Section~\ref{subsec:async-notification} if required, allowing clients behind firewalls and Network Address Translation systems to receive callbacks.
 
-\begin{enumerate}
-\item A SOAP capable WS-RF Styx service using the styx protocol to send and receive XML.
-\item A broker WS-RF service. In this case the service uses HTTP.
-\end{enumerate}
-
-An important specification related to WS-RF is WS-Notification~\cite{wsrf-notification}. WS-Notification allows clients to be notified of events fired by topics that they have previously subscribed to. In terms of SGS, a number of files are suitable candidates for being exposed as topics in the WSDL of the WS-RF service, particularly the \texttt{serviceData} files. When the WS-Peer generated WS-RF service is using the Styx protocol, these notifications can take the form of pseudo-notifications as described in Section [IS IT DESCRIBED?] allowing clients behind firewalls and Network Address Translation systems to receive notifications. When the server is running over HTTP, the standard notification exchange occurs.
-
-The \texttt{stdout} file of an SGS is important in terms of workflow because it allows data to flow directly between applications rather than via a workflow editor or controller. In terms of wrapping an SGS as a WS-Resource, it is worth noting that this file is not a good candidate for being exposed as a topic  because the notification messages defined by WS-Notification are verbose and designed for discreet events. Attempting to stream voluminous amounts of data using this mechanism would be disastrous. Instead the wrapping should understood in terms of a service and execution level. The URI that the \texttt{stdout} file contains can be set using standard WS-RF message exchanges. The actual data transfer however, should remain in the styx domain which is less self-decribing but more efficient.
-
+The \texttt{stdout} file of an SGS is important in terms of workflow because it allows data to flow directly between applications rather than via a workflow editor or controller. In terms of wrapping an SGS as a WS-Resource, it is worth noting that this file is not a good candidate for being exposed as a topic  because the notification messages defined by WS-Notification are verbose and designed for discreet events. While the URI that the \texttt{stdout} file contains can be set using standard WS-RF message exchanges, we leave the actual data transfer to the styx protocol which is less self-decribing but more efficient.
 
 \section{Conclusions}
 
