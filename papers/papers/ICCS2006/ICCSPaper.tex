@@ -4,6 +4,9 @@
 % $Revision$
 % $Date$
 % $Log$
+% Revision 1.11  2005/12/15 16:30:45  jonblower
+% Further edits
+%
 % Revision 1.10  2005/12/15 15:29:20  jonblower
 % After significant reworking, esp. of introduction
 %
@@ -43,23 +46,20 @@
 %                                     \toctitle is used
 %
 \author{Jon Blower\inst{1} \and Andrew Harrison\inst{2}
-\and Keith Haines\inst{1} \and Ed Llewellin\inst{3}}
+\and Keith Haines\inst{1}}
 %
 \authorrunning{J. Blower et al.}   % abbreviated author list (for running head)
 %
 %%%% modified list of authors for the TOC (add the affiliations)
 \tocauthor{Jon Blower (University of Reading),
 Andrew Harrison (University of Cardiff),
-Keith Haines (University of Reading),
-Ed Llewellin (University of Cambridge)}
+Keith Haines (University of Reading)}
 %
 \institute{Reading e-Science Centre, Environmental Systems Science Centre,
 University of Reading, Reading RG6 6AL, UK\\
 \email{jdb@mail.nerc-essc.ac.uk},\\
 \and
-University of Cardiff, Cardiff, UK
-\and
-University of Cambridge, Cambridge UK}
+University of Cardiff, Cardiff, UK}
 
 \maketitle              % typeset the title of the contribution
 
@@ -192,7 +192,10 @@ Here, the intermediate data is being streamed to the local client, then streamed
 calc_mean -i input*.dat --sgs-ref-stdout | make_pic > means.gif
 \end{verbatim}
 
-The {\tt ---sgs-ref-stdout} flag is a signal to send a reference (URL) to the standard output of the {\tt calc\_mean} service to the standard input of the {\tt make\_pic} service.  In this way the intermediate data are streamed directly between the services, across the Internet.
+The {\tt --sgs-ref-stdout} flag is a signal to send a reference (URL) to the standard output of the {\tt calc\_mean} service to the standard input of the {\tt make\_pic} service.  In this way the intermediate data are streamed directly between the services, across the Internet.
+
+\subsubsection{Third-party transfers and security.}
+Something about fact that service B has to connect securely to service A with privileges of user.
 
 \subsection{Using graphical workflow tools}
 The command line scripting interface to the SGS system that is described above is perhaps the simplest way of creating SGS workflows.  In some cases, however, there are significant advantages in using more sophisticated graphical tools to interact with services and create workflows.  In particular, graphical interfaces can provide richer interactivity with the SGS server: progress and status can be monitored graphically, input parameters can be set using graphical controls and the service can be steered.  Some users prefer to use graphical tools to creating their own scripts.
@@ -210,7 +213,7 @@ We have discussed (Sect.~\ref{sec:webservices}) the problems faced when implemen
 A compelling argument for employing Web services is that through the use of open standards of service description and message exchange such as WSDL and SOAP, diverse underlying resources and codes can interact. While SOAP, WSDL and the plethora of WS-* specifications are useful for describing service entry points and constraints such as security and policy, they are not necessarily ideal for data intensive, or long-running interactions as are often required in Grid computing. In situations such as these, it can be useful to view these Web service standards as comprising a service level which sits above and specifies an underlying execution layer. This execution layer may use different mechanisms for transferring data such GridFTP or, in the case of SGSs, the Styx protocol. The following two sub-sections describe applications of the SGS framework that make use of Web service standards while still maintaining the integral strengths of the Styx protocol within the context of workflow.
 
 \subsection{Wrapping SGSs as Web Services}
-AHM 2004 paper~\cite{blower:2004} ...
+AHM 2005 paper~\cite{blower:2005} ...
 
 Another approach to wrapping SGSs as Web services has been implemented by WSPeer~\cite{wspeer}. WSPeer is a Peer-to-Peer oriented API for hosting and invoking Web services which has a binding to the jstyx libraries allowing SOAP messaging to take place using the Styx protocol. In this scenario WSPeer launches as `SOAP capable' Styx service, that is, the service is conceptually an XML document. The SGS namespace is not externally accessible. Instead the client has access to a WSDL file which defines service operations that encapsulate the messages and data to be written to the namespace files. So for example, to write to the \texttt{stdout} file of an SGS, the client invokes the \texttt{setStdout(String uri)} operation defined in the WSDL. The service endpoint contained in the WSDL is the URI of a file to which these messages can be written. The client invocation triggers WSPeer to write the XML to the service file. The service file processes the SOAP message and reads/writes from its parameter files, setting its own file content accordingly. If WSPeer is expecting a response from the service file it has just written to, it subsequently performs a read operation on the file.
 
@@ -265,7 +268,7 @@ Something on computational steering...
 
 
 \section*{Acknowledgements}
-Tom Oinn, Inferno guys, Trustin Lee ...
+Tom Oinn, Inferno guys, Trustin Lee, EPSRC grant...
 %
 % ---- Bibliography ----
 %
