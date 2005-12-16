@@ -4,6 +4,9 @@
 % $Revision$
 % $Date$
 % $Log$
+% Revision 1.15  2005/12/16 16:12:06  jonblower
+% Getting close... Still a bit too long (but could chop the figure)
+%
 % Revision 1.14  2005/12/16 13:58:19  abharrison
 % some tiny changes
 %
@@ -46,6 +49,7 @@
 
 \documentclass{llncs}
 \usepackage{graphicx}
+\usepackage{wrapfig}
 %
 \begin{document}
 %
@@ -78,21 +82,23 @@ The service-oriented approach to performing scientific research is potentially v
 \end{abstract}
 %
 \section{Introduction}
-The concept of ``workflow'' in e-Science terminology refers to the composition of Internet-based services (such as Web Services) in order to create a distributed application.  For example, a scientist might wish to extract data from a number of data archives in different physical locations, perform some analysis on these data on a high-performance computing (HPC) resource in another location, then produce some visualization of the end result on his or her local machine.  All the services in this workflow are mutually independent (``loosely coupled'') and may be hosted by a number of different service providers.  A workflow is therefore rather like a computer program that brings together a number of high-level components.
+The concept of ``workflow'' in e-Science terminology refers to the composition of Internet-based services (such as Web Services) in order to create a distributed application.  For example, a scientist might wish to extract data from a number of data archives in different physical locations, perform some analysis on these data on a high-performance resource in another location, then produce some visualization of the end result on his or her local machine.  All the services in this workflow are mutually independent (``loosely coupled'') and may be hosted by a number of different service providers.  A workflow is rather like a computer program that brings together a number of high-level, distributed components.
 
-In theory, this approach should allow scientists with little technical knowledge to create powerful distributed applications.  In practice, however, there are -- at the time of writing -- very few examples of scientific communities that have started to work in this way on a routine basis.  A large part of the reason for this is the paucity of services that are available for scientists to use: for example, in the environmental sciences community there are Web Services available for accessing environmental data (e.g.\ \cite{Woolf:2003}) but very few services exist for processing or visualizing data.
+In theory, this approach should allow scientists with little technical knowledge to create powerful distributed applications.  In practice, however, there are -- at the time of writing -- very few examples of scientific communities that have started to work in this way on a routine basis.  A large part of the reason for this is the paucity of services that are available for scientists to use: for example, in the environmental sciences community there are Web Services available for accessing environmental data
+(e.g.\ \cite{Woolf:2003})
+but very few services exist for processing or visualizing data.
 
-In this paper we concentrate on constructing workflows from services that wrap command-line programs.  There are many reasons for wishing to expose a program as a service: (1) the code must run on a powerful resource (e.g.\ a compute cluster) but users want to access the code from a more modest machine, such as a laptop; (2) the code is tied to a particular platform (e.g. 64-bit Solaris) but users want to access the code from other platforms; (3) the code has many dependencies (on particular versions of libraries for example) and the exposure of the code as a service removes the need for users to install all these dependencies; (4) The code depends on data from a large data archive and so should run on a machine that is close to the archive,  however, users want to run the code from anywhere on the Internet; (5) the code is useful to a wide community and the provision of the code as a service removes the need for multiple users to install it locally.
+%In this paper we concentrate on constructing workflows from services that wrap command-line programs.  There are many reasons for wishing to expose a program as a service: (1) the code must run on a powerful resource (e.g.\ a compute cluster) but users want to access the code from a more modest machine, such as a laptop; (2) the code is tied to a particular platform (e.g. 64-bit Solaris) but users want to access the code from other platforms; (3) the code has many dependencies (on particular versions of libraries for example) and the exposure of the code as a service removes the need for users to install all these dependencies; (4) The code depends on data from a large data archive and so should run on a machine that is close to the archive,  however, users want to run the code from anywhere on the Internet; (5) the code is useful to a wide community and the provision of the code as a service removes the need for multiple users to install it locally.
 
 \subsection{Web Services and workflows}\label{sec:webservices}
 Web Services are perhaps the most common type of Internet-based service used by e-Science projects.  They provide very significant advantages for creating loosely-coupled, interoperable services: they are accessed through XML messaging and are thus inherently cross-platform, they are self-describing (through Web Services Definition Language -- WSDL -- documents) and are a widely-accepted standard for distributed computing.  However, Web Services have some important limitations in the context of scientific workflows:
 
 \begin{itemize}
-	\item {\bf Data transfer:} It is impractical to encode anything but a trivial amount of data in XML due to the processing time required and the inflating effect of doing so.  furthermore, the data should not have to pass through the workflow enactor.  Other channels (e.g.\ GridFTP, REF) must be employed to transfer moderate or large amounts of data directly between Web Services.
-	\item {\bf Firewall/NAT problems:} Scientific services are often long-running and so it is highly desirable to be able to monitor the progress and status of the service as it runs.  One approach is to have the client continuously poll the service for its state but this is not a scalable solution.  Frameworks such as OGSI~\cite{ogsi} and the Web Services Resource Framework (WS-RF~\cite{wsrf}) use an asynchronous notification mechanism in which clients run a server process that listens for notification messages.  However, if the client is behind a firewall or a Network Address Translation (NAT) router (both very common situations), these messages will never arrive and, worse, the client will not know why.
+	\item {\bf Data transfer:} It is impractical to encode anything but a trivial amount of data in XML due to the processing time required and the inflating effect of doing so.  Furthermore, the data should not have to pass through the workflow enactor.  Other channels (e.g.\ GridFTP) must be employed to transfer moderate or large amounts of data directly between Web Services.
+	\item {\bf Firewall/NAT problems:} Scientific services are often long-running and so it is highly desirable to be able to monitor the progress and status of the service as it runs.  One approach is to have the client continuously poll the service for its state but this is not a scalable solution.  Frameworks such as OGSI~\cite{ogsi} and the Web Services Resource Framework (WSRF, {\tt http://www.globus.org/wsrf/}) use an asynchronous notification mechanism in which clients run a server process that listens for notification messages.  However, if the client is behind a firewall or a Network Address Translation (NAT) router (both very common situations), these messages will never arrive and, worse, the client will not know why.
 \end{itemize}
 
-If scientists are to adopt the workflow approach in their work, there must exist a set of useful services from which these workflows can be constructed.  In order to create such a ``critical mass'' of services, it must be possible for the {\em scientist\/} to be able to create such services with minimal or no help from dedicated technical staff.  Several systems exist to make the task of creating Web and Grid Services easier (e.g.\ Soaplab, GEMLCA, XXX).  However, these systems are still typically difficult for scientists to use, either because they are not familiar with the Web or Grid Services model or because the systems are based on complex, heavyweight toolkits such as Globus~\cite{globusalliance}, which are designed for application builders, not end users.  Therefore, technical support is needed to create these services and the critical mass of useful services is never reached.  Once created, it is important that the services be as easy as possible to use.
+If scientists are to adopt the workflow approach in their work, there must exist a set of useful services from which these workflows can be constructed.  In order to achieve such a ``critical mass'' of services, it must be possible for the {\em scientist\/} to be able to create such services with minimal or no help from dedicated technical staff.  Several systems exist to make the task of creating Web and Grid Services easier (e.g.\ Soaplab~\cite{soaplab}, GEMLCA~\cite{gemlca}).  However, these systems are still typically difficult for scientists to use, either because they are not familiar with the Web or Grid Services model or because the systems are based on complex, heavyweight toolkits such as Globus~\cite{globustoolkit}, which are designed for application builders, not end users.  Therefore, technical support is needed to create these services and the critical mass of useful services is never reached.  Once created, it is important that the services be as easy as possible to use.
 
 \subsection{A new approach: Styx Grid Services}
 The purpose of this paper is to present a solution that addresses all of the above issues.  We focus on the process of creating services that are based on command-line programs (which may be tried-and-tested ``legacy'' codes) but the principles we describe could be extended to other service types, such as those that represent databases, sensors et cetera.  The solution we present deliberately moves away from the Web Services model but, as we shall demonstrate, we can still maintain a high level of interoperability.
@@ -109,65 +115,75 @@ We introduce the Styx Grid Services (SGS) system, a framework for wrapping comma
 
 
 \section{Styx Grid Services: background}\label{sec:sgsoverview}
-The goal of the Styx Grid Services system is to create remote services that are just as easy to us as local programs.  The system is heavily influenced by the Inferno operating system~\cite{Inferno}, which is designed from the ground up for distributed computing.  Applications in Inferno treat local and remote resources {\em identically\/}, in fact they know nothing about the physical location of the resources on which they operate.
+The goal of the Styx Grid Services system is to create remote services that are just as easy to us as local programs.  The basis of the system is the Styx protocol~\cite{Pike:1999} for distributed systems.  In all Styx-based systems {\em all\/} resources (including physical devices, databases and program entry points) are represented as files (analogous to the representation of the mouse as the file {\tt /dev/mouse} in Unix variants).  Styx itself is a file-sharing protocol that can operate over a large number of transports.  Styx forms the core of the Inferno~\cite{Inferno} operating system, in which applications communicate with all resources using Styx, without knowing whether these resources are local or remote.  The basis of the SGS software is a pure-Java implementation of Styx ({\tt http://jstyx.sf.net}).
 
-This is achieved through two mechanisms: Firstly, in Inferno, {\em all\/} resources are represented as a file or set of files (analogous to the representation of the mouse as the file {\tt /dev/mouse} in Unix variants).  Secondly, there is a mechanism for sharing files across networks: this is the Styx protocol.  Applications do not know whether they are operating on local or remote files: they simply produce and consume Styx messages, which are routed by the underlying operating system (Inferno) to their destination.
-
-The key to this behaviour is the Styx protocol itself~\cite{Pike:1999} (Styx is also used in the Plan~9 operating system~\cite{Plan9}, in which it is known as ``9P'').  The basis of the Styx Grid Services system is a pure-Java implementation of Styx, known as JStyx ({\tt http://jstyx.sf.net}).  Styx is a very small, lightweight and efficient protocol that only contains 13 commands, which include ``open'', ``close'', ``read'' and ``write''.
-
-All resources in Styx systems are represented as a file hierarchy, which is known as a {\em namespace\/}.  The Styx Grid Services system specifies a namespace that represents a command-line program.  Clients interact with this program by reading from and writing to the files in this namespace.  For example, the namespace contains an {\tt inputs/} directory, into which clients write the input files that the program will consume.  For more details of the SGS namespace see the project website ({\tt http://jstyx.sf.net/sgs}) and~\cite{blower:2005}.
-
-Due to this filesystem-like structure, every resource on a Styx server can be represented very naturally as a URL.  For example, the file that represents the standard output stream of instance {\tt 1} of the the {\tt mySGS} service can be represented by the URL {\tt styx://<server>:<port>/mySGS/instances/1/outputs/stdout}.  This is very important in the context of workflows: these URLs are passed between services in a workflow to enable direct transfer of data between services (see Sect.~\ref{sec:datapassing}).
+All resources in Styx systems are represented as a file hierarchy, which is known as a {\em namespace\/}.  The Styx Grid Services system specifies a namespace that represents a command-line program~\cite{blower:2005}.  Clients interact with this program by reading from and writing to the files in this namespace over the network.  For example, the SGS namespace contains an {\tt inputs/} directory, into which clients write the input files that the program will consume.  Due to this filesystem-like structure, every resource on a Styx server can be represented very naturally as a URL.  For example, the file that represents the standard output stream of instance {\tt 1} of the the {\tt mySGS} service can be represented by the URL {\tt styx://<server>:<port>/mySGS/instances/1/outputs/stdout}.  This is very important in the context of workflows: these URLs are passed between services in a workflow to enable direct transfer of data between services (see Sect.~\ref{sec:datapassing}).
 
 The Styx protocol itself deliberately does not mandate any particular security mechanism.  Transport-layer security (TLS) fits very naturally with the Styx model, with client and server being mutually authenticated through public-key certificates.  All Styx traffic can then be encrypted transparently.
+
+
+
+%The system is heavily influenced by the Inferno operating system ({\tt http://www.vitanuova.com/inferno}), which is designed from the ground up for distributed computing.  Applications in Inferno treat local and remote resources {\em identically\/}, in fact they know nothing about the physical location of the resources on which they operate.
+
+%This is achieved through two mechanisms: Firstly, in Inferno, {\em all\/} resources are represented as a file or set of files (analogous to the representation of the mouse as the file {\tt /dev/mouse} in Unix variants).  Secondly, there is a mechanism for sharing files across networks: this is the Styx protocol.  Applications do not know whether they are operating on local or remote files: they simply produce and consume Styx messages, which are routed by the underlying operating system (Inferno) to their destination.
+
+%The key to this behaviour is the Styx protocol itself~\cite{Pike:1999}.  Styx is also used in the Plan~9 operating system ({\tt http://www.cs.bell-labs.com/plan9dist/}), in which it is known as ``9P''.  The basis of the Styx Grid Services system is a pure-Java implementation of Styx, known as JStyx ({\tt http://jstyx.sf.net}).  Styx is a very small, lightweight and efficient protocol that only contains 13 commands, which include ``open'', ``close'', ``read'' and ``write''.
+
+%All resources in Styx systems are represented as a file hierarchy, which is known as a {\em namespace\/}.  The Styx Grid Services system specifies a namespace that represents a command-line program.  Clients interact with this program by reading from and writing to the files in this namespace.  For example, the namespace contains an {\tt inputs/} directory, into which clients write the input files that the program will consume.  For more details of the SGS namespace see the project website ({\tt http://jstyx.sf.net/sgs}) and~\cite{blower:2005}.
+
+%Due to this filesystem-like structure, every resource on a Styx server can be represented very naturally as a URL.  For example, the file that represents the standard output stream of instance {\tt 1} of the the {\tt mySGS} service can be represented by the URL {\tt styx://<server>:<port>/mySGS/instances/1/outputs/stdout}.  This is very important in the context of workflows: these URLs are passed between services in a workflow to enable direct transfer of data between services (see Sect.~\ref{sec:datapassing}).
+
+%The Styx protocol itself deliberately does not mandate any particular security mechanism.  Transport-layer security (TLS) fits very naturally with the Styx model, with client and server being mutually authenticated through public-key certificates.  All Styx traffic can then be encrypted transparently.
 
 \subsection{Styx and firewalls}\label{sec:styx-firewalls}
 When Styx clients and servers interact they typically use {\em persistent connections\/}: the client connects to the server and leaves the connection open for as long as it needs.  This means that the client can receive asynchronous messages from the server without requiring any incoming ports to be open through its firewall.  Also, the client does not need a public IP address so it does not matter if the client is behind a NAT router.  This solves the problem of asynchronous notification that was discussed in Sect.~\ref{sec:webservices} above.  A single Styx server can handle multiple tasks (messaging, file transfer etc.) and so servers only need to have a single incoming port open through the firewall.  This helps to make the deployment and use of Styx systems very easy.
 
 
 \section{Wrapping programs as Styx Grid Services}\label{sec:wrapping}
-Neither service providers nor end-users need to know anything about the details discussed in Sect.~\ref{sec:sgsoverview} above.  The process of wrapping a command-line program as a Styx Grid Service is very simple.  An XML description of the program in question must be constructed.  This description is a complete specification of the program, specifying the command-line parameters and input files that the program expects and the output files that the program produces.  (There is other optional information that can be added, but that is beyond the scope of this paper.)  A server program is then run that parses the XML file and sets up the SGS namespace.  A single server can contain many Styx Grid Services and handles all control messages, file transfers and asynchronous notification messages.
+Neither service providers nor end-users need to know anything about the technical details discussed in Sect.~\ref{sec:sgsoverview} above.  The process of wrapping a command-line program as a Styx Grid Service is very simple.  A short XML description of the program in question must be constructed.  This description is a complete specification of the program, specifying the command-line parameters and input files that the program expects and the output files that the program produces.  (There is other optional information that can be added, but that is beyond the scope of this paper.)  A server program is then run that parses the XML file and sets up the SGS namespace.  A single server can contain many Styx Grid Services and handles all control messages, file transfers and asynchronous notification messages.
 
-For example, consider a program called {\tt calc\_mean} that reads a set of input files (perhaps from a set of scientific experiments), calculates their mean and writes the mean data to an output file.  The command line syntax for running this program is:
+%For example, consider a program called {\tt calc\_mean} that reads a set of input files (perhaps from a set %of scientific experiments), calculates their mean and writes the mean data to an output file.  The command %line syntax for running this program is:
 
-\begin{verbatim}
-calc_mean <infile1> [infile2] ... [infileN] -o <outfile>
-\end{verbatim}
+%\begin{verbatim}
+%calc_mean <infile1> [infile2] ... [infileN] -o <outfile>
+%\end{verbatim}
 
-This program can be exposed as a Styx Grid Service with the following configuration file:
+%A few lines of simple XML are all that is required to describe this program and create the service.
 
-\begin{verbatim}
-<gridservice name='calc_mean' command='/path/to/calc_mean'>
- <params>
-  <param name='outfile' paramType='flaggedOption' flag='o'/>
-  <param name='infiles' paramType='unflaggedOption' greedy='yes'/>
- </params>
- <inputs>
-  <input type='fileFromParam' name='infiles'/>
- </inputs>
- <outputs>
-  <output type='fileFromParam' name='outfile'/>
- </outputs>
-</gridservice>
-\end{verbatim}
+%This program can be exposed as a Styx Grid Service with the following configuration file:
+
+%\begin{verbatim}
+%<gridservice name='calc_mean' command='/path/to/calc_mean'>
+% <params>
+%  <param name='outfile' paramType='flaggedOption' flag='o'/>
+%  <param name='infiles' paramType='unflaggedOption' greedy='yes'/>
+% </params>
+% <inputs>
+%  <input type='fileFromParam' name='infiles'/>
+% </inputs>
+% <outputs>
+%  <output type='fileFromParam' name='outfile'/>
+% </outputs>
+%</gridservice>
+%\end{verbatim}
 
 \subsection{Executing SGSs just like local programs}
 
-Once the program is deployed as a Styx Grid Service, it can be run from anywhere on the Internet.  A key feature of the system is that the SGS can be run {\em exactly as if it were a local program\/}.  The {\tt SGSRun} program is a general-purpose command-line client for any Styx Grid Service.  If the {\tt calc\_mean} service were deployed on the server {\tt remotehost.com}, listening on port 9092, and the user has a set of input files (called {\tt input1.dat}, {\tt input2.dat} etc.) the user would run the service by entering the following command:
+Once the program is deployed as a Styx Grid Service, it can be run from anywhere on the Internet, {\em exactly as if it were a local program\/}.  For example, consider a program called {\tt calc\_mean} that reads a set of input files (perhaps from a set of scientific experiments), calculates their mean and writes the result to an output file.  If this service were deployed on the server {\tt remotehost.com}, listening on port 9092, and the user has a set of input files (called {\tt input1.dat}, {\tt input2.dat} etc.) the user would run the service by entering the following command:
 
 \begin{verbatim}
 SGSRun remotehost.com 9092 calc_mean input*.dat -o mean.dat
 \end{verbatim}
 
-The {\tt SGSRun} program performs the following tasks:  It connects to the server and downloads the XML description of the Styx Grid Service that it is being asked to run.  It uses this description to parse the command-line arguments that the user has provided.  If these are valid, it creates a new instance of the service and sets its parameters, based on these command-line arguments.  It then uploads the necessary input files, starts the service running and downloads the output data as soon as they are produced.  If the SGS uses the standard streams (stdout, stderr and stdin) these are redirected to and from the console as appropriate.
+The {\tt SGSRun} program is a general-purpose command-line client for any Styx Grid Service and it performs the following tasks:  It connects to the server and downloads the XML description of the Styx Grid Service that it is being asked to run.  It uses this description to parse the command-line arguments that the user has provided.  If these are valid, it creates a new instance of the service and sets its parameters, based on these command-line arguments.  It then uploads the necessary input files, starts the service running and downloads the output data as soon as they are produced.  If the SGS uses the standard streams (stdout, stderr and stdin) these are redirected to and from the console as appropriate.
 
-It is then an easy task to create a simple wrapper script called {\tt calc\_mean} on the client.  This wraps the {\tt SGSRun} program and contains the location and port of the remote server.  Then this wrapper script can then be treated exactly as if it were the {\tt calc\_mean} program itself.
+It is an easy task to create a simple wrapper script called {\tt calc\_mean} on the client.  This wraps the {\tt SGSRun} program and contains the location and port of the remote server.  Then this wrapper script can then be treated {\em exactly\/} as if it were the {\tt calc\_mean} program itself.
 
 
 \section{Creating workflows from Styx Grid Services}
 
 \subsection{Using shell scripts as workflows}\label{sec:shellscripts}
-Given that remote SGSs can be executed exactly like local programs, workflows can be created with simple shell scripts.  Workflows are simply high-level programs and so it is natural to use a scripting environment to create them (REF Geodise).  This allows SGSs to be combined easily with local programs.  Let us consider a simple workflow of two Styx Grid Services.  The first is the {\tt calc\_mean} service from the above example.  The second SGS, called {\tt plot}, takes a single input file and turns it into a graph.  The shell script that would be used to execute the necessary workflow in the SGS system would be:
+Given that remote SGSs can be executed exactly like local programs, workflows can be created with simple shell scripts.  Workflows are simply high-level programs and so it is natural to use a scripting environment to create them.  This allows SGSs to be combined easily with local programs.  Let us consider a simple workflow of two Styx Grid Services.  The first is the {\tt calc\_mean} service from the above example.  The second SGS, called {\tt plot}, takes a single input file and turns it into a graph.  The shell script that would be used to execute the necessary workflow in the SGS system would be:
 
 \begin{verbatim}
 calc_mean input*.dat -o mean.dat
@@ -177,6 +193,7 @@ plot -i mean.dat -o graph.gif
 Note that this is {\em exactly the same script\/} as would be used to invoke the programs if they were installed locally.  (This assumes that the user has created wrapper scripts called {\tt calc\_mean} and {\tt plot} that invoke the {\tt SGSRun} program as described above.)
 
 \subsubsection{Direct data passing.}\label{sec:datapassing}
+
 The above ``workflow'' (shell script) is very simple but not optimally efficient.  The intermediate file {\tt mean.dat} is not required by the user: it is simply uploaded to the {\tt plot} service as soon as it is downloaded.  This wastes time and bandwidth.  The intermediate file can be {\em passed directly between the services\/} with only a minor change to the script:
 
 \begin{verbatim}
@@ -184,14 +201,22 @@ calc_mean input*.dat -o mean.dat.sgsref
 plot -i mean.dat.sgsref -o graph.gif
 \end{verbatim}
 
-The {\tt .sgsref} extension is a signal to the system to download a {\em reference\/} (URL) to the output file and place it in the file {\tt mean.dat.sgsref}.  This reference is then passed to the {\tt plot} service, which downloads the real file directly from the {\tt calc\_mean} service.  Hence this intermediate file does not pass through the workflow enactor (i.e.\ the client's machine).  See Fig.~\ref{fig:datapassing}.
+The {\tt .sgsref} extension is a signal to the system to download a {\em reference\/} (URL) to the output file and place it in the file {\tt mean.dat.sgsref}.  This reference is then passed to the {\tt plot} service, which downloads the real file directly from the {\tt calc\_mean} service.  Hence this intermediate file does not pass through the workflow enactor (i.e.\ the client's machine).  %See Fig.~\ref{fig:datapassing}.
 
 \begin{figure}
 \begin{center}
-\includegraphics{datapassing.eps}
+\includegraphics[height=5cm]{datapassing.eps}
 \end{center}
 \caption{Illustration of direct data passing between Styx Grid Services.  The yellow ellipses are Styx Grid Services and the dashed box contains files that exist on the client's machine.  The red arrows represents data transfers that result from the workflow in the first script in section~\ref{sec:shellscripts}.  The intermediate file {\tt mean.dat} is not required by the client and so the workflow can be arranged (second script in section~\ref{sec:shellscripts}) so that this file is passed directly between the SGSs (black arrows).}\label{fig:datapassing}
 \end{figure}
+
+%\begin{wrapfigure}{r}{50mm}
+%\centering
+%\includegraphics[width=5cm]{datapassing.eps}
+%\caption{Direct data passing between Styx Grid Services}\label{fig:datapassing}
+%\end{wrapfigure}
+
+
 
 \subsubsection{Data streaming using the pipe operator.}\label{sec:pipes}
 Let us imagine that the {\tt calc\_mean} program outputs data on its standard output, instead of to an output file.  Similarly, imagine that the {\tt plot} program reads data on its standard input and outputs the picture on its standard output.  The command required to execute this simple workflow (with both local programs {\em and\/} Styx Grid Services) is:
@@ -221,7 +246,7 @@ The Triana workflow system ({\tt http://trianacode.org}) is a graphical workflow
 
 \subsection{Wrapping SGSs as WS-Resources}\label{subsec:ws-resources}
 
-The Web Services Resource Framework (WSRF~\cite{wsrf}) is a recent specification which addresses the need to handle resources (WS-Resources) that maintain state across service invocations.  SGSs fit naturally into this class of entity because they maintain state that can be retrieved and modified.  WSPeer is capable of wrapping an SGS as a WS-Resource.
+The Web Services Resource Framework (WSRF) is a recent specification which addresses the need to handle resources (WS-Resources) that maintain state across service invocations.  SGSs fit naturally into this class of entity because they maintain state that can be retrieved and modified.  WSPeer is capable of wrapping an SGS as a WS-Resource.
 
 The process of exposing an SGS as a WS-Resource involves transforming the SGS's configuration information (Sect.~\ref{sec:wrapping}) into {\em ResourceProperties\/}, which are QName/value pairs of a specified data type that are used to describe a WS-Resource in WSDL.  Styx Grid Services define certain properties which map directly onto WSRF specifications.  An example of this is the {\tt time/} directory in the SGS namespace, which houses files containing data pertinent to the lifetime of the service.  These can be mapped directly onto the properties defined in the WS-ResourceLifetime~\cite{wsrf-lifetime} specification.  Similarly, the {\tt serviceData/} directory of the SGS namespace contains state data; clients may wish to subscribe to receive notifications of changes to these data.  These can be exposed as WS-Notification~\cite{wsrf-notification} topics.  The ability of WSPeer to use the Styx protocol allows clients that are behind firewalls and NAT systems to receive these messages (see Sect.~\ref{sec:styx-firewalls} above).
 
