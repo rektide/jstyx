@@ -4,6 +4,9 @@
 % $Revision$
 % $Date$
 % $Log$
+% Revision 1.21  2005/12/19 15:27:20  jonblower
+% Final version that really was submitted to workshop, pre-review
+%
 % Revision 1.20  2005/12/19 15:05:00  jonblower
 % Version for submission to workshop (pre-review)
 %
@@ -135,7 +138,7 @@ When Styx clients and servers interact they typically use {\em persistent connec
 
 
 \section{Wrapping programs as Styx Grid Services}\label{sec:wrapping}
-Neither service providers nor end-users need to know anything about the technical details discussed in Sect.~\ref{sec:sgsoverview} above.  The process of wrapping a command-line program as a Styx Grid Service is very simple.  A short XML description of the program in question is constructed.  This description is a complete specification of the program, specifying the command-line parameters and input files that the program expects and the output files that the program produces.  (There is other optional information that can be added, but that is beyond the scope of this paper.)  A server program is then run that parses the XML file and sets up the SGS namespace.  A single server is a container for many Styx Grid Services.
+Neither service providers nor end-users need to know anything about the technical details discussed in Sect.~\ref{sec:sgsoverview} above.  The process of wrapping a command-line program as a Styx Grid Service is very simple.  A short XML description of the program in question is constructed.  This description is a complete specification of the program, specifying the command-line parameters and input files that the program expects and the output files that the program produces.  (There is other optional information that can be added, but that is beyond the scope of this paper.)  A server program is then run that parses the XML file and sets up the SGS namespace.  A single server can host many Styx Grid Services.
 
 \subsection{Executing SGSs just like local programs}
 
@@ -201,19 +204,20 @@ The command line scripting interface to the SGS system that is described above i
 
 The Taverna workbench ({\tt http://taverna.sf.net}) is a graphical workflow system that was designed for performing {\it in silico} experiments in the field of bioinformatics, but it is sufficiently general to be useful to other communities.  We have worked with the Taverna developers to incorporate support for Styx Grid Services into the software.  Using Taverna, the user can build workflows by mixing diverse service types, including Web Services and SGSs.
 
-The Triana workflow system ({\tt http://trianacode.org}) is a graphical workflow environment that can interface with many different service types (including Web Services), but cannot currently interface directly with Styx Grid Services.  There are two ways in which this can be achieved:
+The Triana workflow system ({\tt http://trianacode.org}) is a graphical workflow environment that can interface with many different service types (including Web Services), but cannot currently interface directly with Styx Grid Services.  We have developed two ways for achieving this:
+
 \begin{enumerate}
 	\item {\bf Brokering:} A separate Web Service is created that accepts SOAP messages and uses the information therein to communicate with an SGS server~\cite{blower:2005}.
-	\item {\bf ``SOAP over Styx'':} The Styx Grid Service itself is modified to accept SOAP messages that are written directly to it using the Styx protocol (the message is written to a special file in the SGS namespace).  The SGS describes itself using a WSDL document that is also readable via a special file.  This WSDL document defines service operations that encapsulate the messages and data to be written to the files in the SGS namespace.  So for example, to tell the SGS to read its input data from a certain URL, the client invokes the {\tt setStdin(String url)} operation that is defined in the WSDL.  Support for this is built into WSPeer~\cite{wspeer}, the Peer-to-Peer oriented Web Service framework that is used by Triana.
+	\item {\bf ``SOAP over Styx'':} The Styx Grid Service itself is modified to accept SOAP messages that are written directly to it using the Styx protocol (the message is written to a special file in the SGS namespace).  The SGS describes itself using a WSDL document that is also readable via a special file.  This WSDL document defines service operations that encapsulate the messages and data to be written to the files in the SGS namespace.  So for example, to tell the SGS to read its input data from a certain URL, the client invokes the {\tt setStdin(String url)} operation that is defined in the WSDL.  We have built support for this into WSPeer~\cite{wspeer}, the Peer-to-Peer oriented Web Service framework that is used by Triana.
 \end{enumerate}
 
 \subsection{Wrapping SGSs as WS-Resources}\label{subsec:ws-resources}
 
-The Web Services Resource Framework (WSRF) is a recent specification which addresses the need to handle resources (``WS-Resources'') that maintain state across service invocations.  SGSs fit naturally into this class of entity because they maintain state that can be retrieved and modified.  WSPeer is capable of wrapping an SGS as a WS-Resource.
+The Web Services Resource Framework (WSRF) is a recent specification which addresses the need to handle resources (``WS-Resources'') that maintain state across service invocations.  SGSs fit naturally into this class of entity because they maintain state that can be retrieved and modified.
 
 The process of exposing an SGS as a WS-Resource involves transforming the SGS's configuration information (Sect.~\ref{sec:wrapping}) into {\em ResourceProperties\/}, which are QName/value pairs of a specified data type that are used to describe a WS-Resource in WSDL.  Styx Grid Services define certain properties which map directly onto WSRF specifications.  An example of this is the {\tt time/} directory in the SGS namespace, which houses files containing data pertinent to the lifetime of the service.  These can be mapped directly onto the properties defined in the WS-ResourceLifetime~\cite{wsrf-lifetime} specification.  Similarly, the {\tt serviceData/} directory of the SGS namespace contains state data; clients can subscribe to receive notifications of changes to these data.  These can be exposed as WS-Notification~\cite{wsrf-notification} topics.  The ability of WSPeer to use the Styx protocol allows clients that are behind firewalls and NAT systems to receive these messages (see Sect.~\ref{sec:styx-firewalls} above).
 
-WSPeer can expose Styx Grid Services as WS-Resources in two ways.  The first way (brokering) is to create a WSRF server that receives SOAP messages over HTTP and translates the information therein into Styx messages, which it sends to a separate SGS server.  The second is to use the Styx protocol itself to send and receive XML, as described in Section~\ref{subsec:graphical-workflow}.
+We have modified WSPeer so that it is capable of wrapping an SGS as a WS-Resource in two ways.  The first way (brokering) is to create a WSRF server that receives SOAP messages over HTTP and translates the information therein into Styx messages, which it sends to a separate SGS server.  The second is to use the Styx protocol itself to send and receive XML, as described in Section~\ref{subsec:graphical-workflow}.
 
 
 \section{Conclusions}
