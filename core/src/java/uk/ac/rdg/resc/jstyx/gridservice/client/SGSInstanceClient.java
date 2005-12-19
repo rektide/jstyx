@@ -37,6 +37,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.FileInputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 
@@ -46,6 +47,7 @@ import org.apache.log4j.Logger;
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSParam;
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
@@ -64,6 +66,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.46  2005/12/19 17:21:01  jonblower
+ * Preparing for including automatic download of output files in this class
+ *
  * Revision 1.45  2005/12/13 09:04:21  jonblower
  * Implemented correct handling of stdin
  *
@@ -223,7 +228,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     // The files we're going to upload to the service
     // This hashtable allows multiple files or URLs to be associated with
     // an SGSInput object
-    private Hashtable/*<SGSInput, Vector<String or File>*/ filesToUpload; 
+    private Hashtable/*<SGSInput, Vector<String or File>*/ filesToUpload;
+    
+    // The destinations for files that we shall download from the service
+    private Hashtable/*<SGSOutput, PrintStream>*/ filesToDownload;
     
     // Output streams
     private CStyxFile outputsDir;
@@ -286,6 +294,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.bufs = new Hashtable();
         this.changeListeners = new Vector();
         this.filesToUpload = new Hashtable();
+        this.filesToDownload = new Hashtable();
     }
     
     /**
@@ -616,6 +625,30 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         {
             this.filesToUpload.put(inputFile, new Vector());
         }
+    }
+    
+    /**
+     * Sets the destination for an output file
+     * @param output the SGSOutput object representing the output file or stream
+     * @param dest The PrintStream (e.g. System.out) to which the data will be
+     * written.
+     */
+    public void setOutputDestination(SGSOutput output, PrintStream dest)
+    {
+        this.filesToDownload.put(output, dest);
+    }
+    
+    /**
+     * Sets the destination for an output file
+     * @param output the SGSOutput object representing the output file or stream
+     * @param file the local file to which the data will be written.
+     * @throws FileNotFoundException if the local target file could not be
+     * created.
+     */
+    public void setOutputDestination(SGSOutput output, File file)
+        throws FileNotFoundException
+    {
+        this.setOutputDestination(output, new PrintStream(file));
     }
     
     /**
