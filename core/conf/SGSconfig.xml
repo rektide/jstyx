@@ -97,6 +97,7 @@
             </inputs>
             <outputs>
                 <output type="stream" name="stdout"/>
+                <output type="stream" name="stderr"/>
             </outputs>
         </gridservice>
         
@@ -112,6 +113,7 @@
             </inputs>
             <outputs>
                 <output type="fileFromParam" name="outputfile"/>
+                <output type="stream" name="stderr"/>
             </outputs>
         </gridservice>
         
