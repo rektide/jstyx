@@ -66,6 +66,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.47  2005/12/20 09:50:54  jonblower
+ * Continuing to implement reading of output streams
+ *
  * Revision 1.46  2005/12/19 17:21:01  jonblower
  * Preparing for including automatic download of output files in this class
  *
@@ -231,10 +234,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private Hashtable/*<SGSInput, Vector<String or File>*/ filesToUpload;
     
     // The destinations for files that we shall download from the service
-    private Hashtable/*<SGSOutput, PrintStream>*/ filesToDownload;
+    private Hashtable/*<CStyxFile, PrintStream>*/ filesToDownload;
     
     // Output streams
-    private CStyxFile outputsDir;
     private CStyxFile[] outputFiles;
     private Hashtable activeStreams;
     
@@ -270,7 +272,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.inputsDir = this.instanceRoot.getFile("inputs");
         
         // Get the directory that holds the output files
-        this.outputsDir = this.instanceRoot.getFile("outputs");
+        this.outputFiles = this.instanceRoot.getFile("outputs").getChildren();
         this.activeStreams = new Hashtable();
         
         // Get the files we use to set parameter values
@@ -332,6 +334,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         this.ctlFile.setContents("start");
         this.uploadToStdin();
+        this.readOutputFiles();
     }
     
     /**
@@ -375,6 +378,21 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             }
             // If neither of those conditions are true, we have already set a 
             // URL for stdin
+        }
+    }
+    
+    /**
+     * Starts reading from the output files for which we have set an output
+     * destination.  When output data arrive from these files, the dataArrived()
+     * method will be called on this class
+     */
+    private void readOutputFiles()
+    {
+        for (Enumeration en = this.filesToDownload.keys(); en.hasMoreElements(); )
+        {
+            CStyxFile output = (CStyxFile)en.nextElement();
+            output.addChangeListener(this);
+            output.readAsync(0);
         }
     }
     
@@ -443,6 +461,15 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public Vector getInputs()
     {
         return this.config.getInputs();
+    }
+    
+    /**
+     * @return Array of Strings, one for each output stream or file from which data
+     * can be read.
+     */
+    public String[] getOutputFileNames() throws StyxException
+    {
+        return getFileNamesAsArray(this.outputFiles);
     }
     
     /**
@@ -629,26 +656,40 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     
     /**
      * Sets the destination for an output file
-     * @param output the SGSOutput object representing the output file or stream
+     * @param outputFileName Name of the output file (as returned by
+     * getOutputFileNames())
      * @param dest The PrintStream (e.g. System.out) to which the data will be
      * written.
+     * @throws IllegalArgumentException if there is no output file with the
+     * given name
      */
-    public void setOutputDestination(SGSOutput output, PrintStream dest)
+    public void setOutputDestination(String outputFileName, PrintStream dest)
     {
-        this.filesToDownload.put(output, dest);
+        for (int i = 0; i < this.outputFiles.length; i++)
+        {
+            if (outputFileName.equals(this.outputFiles[i].getName()))
+            {
+                this.filesToDownload.put(this.outputFiles[i], dest);
+                return;
+            }
+        }
+        throw new IllegalArgumentException(outputFileName + " is not a valid output file");
     }
     
     /**
      * Sets the destination for an output file
-     * @param output the SGSOutput object representing the output file or stream
+     * @param outputFileName Name of the output file (as returned by
+     * getOutputFileNames())
      * @param file the local file to which the data will be written.
      * @throws FileNotFoundException if the local target file could not be
      * created.
+     * @throws IllegalArgumentException if there is no output file with the
+     * given name
      */
-    public void setOutputDestination(SGSOutput output, File file)
+    public void setOutputDestination(String outputFileName, File file)
         throws FileNotFoundException
     {
-        this.setOutputDestination(output, new PrintStream(file));
+        this.setOutputDestination(outputFileName, new PrintStream(file));
     }
     
     /**
@@ -846,21 +887,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 }
             }
         }
-    }
-    
-    /**
-     * @return Array of CStyxFiles, one for each output stream or file from which data
-     * can be read.  The first time this method is called it will request
-     * the data from the server with a blocking read.  Subsequent calls will 
-     * just return the data without blocking.
-     */
-    public CStyxFile[] getOutputs() throws StyxException
-    {
-        if (this.outputFiles == null)
-        {
-            this.outputFiles = this.outputsDir.getChildren();
-        }
-        return this.outputFiles;
     }
     
     /**
@@ -1075,22 +1101,39 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public synchronized void dataArrived(CStyxFile file, TreadMessage tReadMsg,
         ByteBuffer data)
     {
-        // Get the StringBuffer that belongs to this file
-        Object objBuf = this.bufs.get(file);
-        if (objBuf == null || !(objBuf instanceof StringBuffer))
+        // Get the PrintStream that belongs to this file.  This will only give
+        // a PrintStream if the file is an output file
+        PrintStream prtStr = (PrintStream)this.filesToDownload.get(file);
+        StringBuffer strBuf = null;
+        if (prtStr == null)
         {
-            // This should never happen
-            log.warn("Internal error: objBuf = null or is not a StringBuffer");
+            // This is not an output file.  Get the StringBuffer that belongs to
+            // this file (which is service data, a parameter file, etc)
+            strBuf = (StringBuffer)this.bufs.get(file);
+            if (strBuf == null)
+            {
+                // This should never happen
+                log.warn("Internal error: strBuf and prtStr are both null");
+            }
         }
         else
         {
-            StringBuffer strBuf = (StringBuffer)objBuf;
             if (data.remaining() > 0)
             {
                 // Calculate the offset of the next read
                 long offset = tReadMsg.getOffset().asLong() + data.remaining();
-                // Add the new data to the buffer
-                strBuf.append(StyxUtils.dataToString(data));
+                if (prtStr == null)
+                {
+                    // This is not an output file. Add the new data to the buffer.
+                    strBuf.append(StyxUtils.dataToString(data));
+                }
+                else
+                {
+                    // This is an output file.  Write the data to the stream
+                    byte[] buf = new byte[data.remaining()];
+                    data.get(buf);
+                    prtStr.write(buf, 0, buf.length);
+                }
                 // Read the next chunk of data from the file, whatever it was
                 file.readAsync(offset);
             }
@@ -1099,12 +1142,21 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 // We have zero bytes from the file (i.e. EOF), so we know we have
                 // the complete data for the file.
                 // We now need to know what sort of file this is
-                // TODO: this logic is fragile: if the namespace
-                // changes we will have to change this logic
-                // TODO: should use constants rather than strings here.
                 boolean readAgain = true;
                 boolean found = false;
-                if (file == this.argsFile)
+                // If this is an output file, close the stream
+                if (prtStr != null)
+                {
+                    found = true;
+                    readAgain = false;
+                    // We don't close the standard streams
+                    if (prtStr != System.out && prtStr != System.err)
+                    {
+                        prtStr.close();
+                    }
+                }
+                // See if this is the arguments file
+                if (!found && file == this.argsFile)
                 {
                     found = true;
                     this.fireGotArguments(strBuf.toString());
@@ -1143,7 +1195,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                     }
                 }
                 // Clear the buffer and start reading again from the file
-                strBuf.setLength(0);
+                if (strBuf != null)
+                {
+                    strBuf.setLength(0);
+                }
                 if (readAgain)
                 {
                     file.readAsync(0);
@@ -1166,6 +1221,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 // Start writing data to standard input if necessary
                 this.uploadToStdin();
+                // Start reading from the output files
+                this.readOutputFiles();
                 this.fireServiceStarted();
             }
             else if (message.equalsIgnoreCase("stop"))
