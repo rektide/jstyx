@@ -14,12 +14,15 @@
         
     
         
+    
+        
     <general-data xmlns="http://www.netbeans.org/ns/freeform-project/1">
             <!--Do not use Project Properties customizer when editing this file manually.-->
             <name>JStyx</name>
             <properties/>
             <folders>
                 
+            
             
             
             
@@ -72,6 +75,7 @@
                     </context>
                 </action>
             </ide-actions>
+            
             <export>
                 <type>jar</type>
                 <location>target/jstyx-0.1.0-SNAPSHOT.jar</location>
@@ -79,6 +83,7 @@
             </export>
             <view>
                 <items>
+                    
                     
                     
                     
@@ -107,12 +112,14 @@
         
         
         
+        
         <subprojects/>
         </general-data>
         <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/2">
-            <compilation-unit>
+            
+        <compilation-unit>
                 <package-root>src/java</package-root>
-                <classpath mode="compile">lib/mina-0.8.0.jar;lib/dom4j-1.6.jar;lib/jaxen-1.1-beta-5.jar;lib/log4j-1.2.8.jar;lib/TableLayout.jar;lib/JSAP-2.0b.jar</classpath>
+                <classpath mode="compile">lib/mina-0.8.0.jar;lib/dom4j-1.6.jar;lib/jaxen-1.1-beta-5.jar;lib/log4j-1.2.8.jar;lib/TableLayout.jar;lib/JSAP-2.0b.jar;lib/quartz-1.5.1.jar;lib/commons-logging.jar</classpath>
                 <built-to>target/jstyx-0.1.0-SNAPSHOT.jar</built-to>
                 <javadoc-built-to>target/docs/apidocs</javadoc-built-to>
                 <source-level>1.4</source-level>

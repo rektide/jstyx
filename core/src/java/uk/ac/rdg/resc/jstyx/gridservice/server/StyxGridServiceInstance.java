@@ -43,7 +43,6 @@ import java.io.FileNotFoundException;
 import java.util.Vector;
 import java.util.Iterator;
 import java.util.Date;
-import java.util.Calendar;
 
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
@@ -78,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.44  2006/01/04 16:45:29  jonblower
+ * Implemented automatic termination of SGS instances using Quartz scheduler
+ *
  * Revision 1.43  2006/01/04 11:24:58  jonblower
  * Implemented time directory in the SGS instance namespace
  *
@@ -236,17 +238,14 @@ class StyxGridServiceInstance extends StyxDirectory
         SGSConfig sgsConfig) throws StyxException
     {
         super(id);
-        
-        // Set the creation time and the termination time.  By default, the 
-        // termination time is one hour after the creation time.
-        Calendar now = Calendar.getInstance();
-        this.creationTime = now.getTime();
-        now.add(Calendar.HOUR, 1);
-        this.setTerminationTime(now.getTime());
-        
         this.sgs = sgs;
         this.id = id;
         this.sgsConfig = sgsConfig;
+        
+        // Set the creation time and the termination time.  By default, the 
+        // termination time is null, i.e. the instance will last forever
+        this.creationTime = new Date();
+        this.terminationTime = null;
         
         this.command = sgsConfig.getCommand();
         this.workDir = new File(sgsConfig.getWorkingDirectory() +
@@ -597,11 +596,23 @@ class StyxGridServiceInstance extends StyxDirectory
     }
     
     /**
-     * Sets the time at which this instance will be terminated
+     * Sets the time at which this instance will be terminated.
+     * @param termTime The termination time.  This must be in the future.  This
+     * can be null, which means that the instance will never be terminated
+     * automatically.
+     * @throws StyxException if the termination time is in the past
      */
-    void setTerminationTime(Date termTime)
+    void setTerminationTime(Date termTime) throws StyxException
     {
-        // TODO Check that the date is valid (i.e. in the future)
+        if (termTime != null)
+        {
+            Date now = new Date();
+            if (!termTime.after(now))
+            {
+                throw new StyxException("Termination time must be in the future");
+            }
+        }
+        this.sgs.scheduleTermination(this, termTime);
         this.terminationTime = termTime;
     }
     
@@ -728,15 +739,7 @@ class StyxGridServiceInstance extends StyxDirectory
                 {
                     throw new StyxException("Cannot destroy a running service: stop it first");
                 }
-                // Remove all children of the root directory of this instance
-                this.instanceRoot.removeAllChildren();
-                // Now remove the root directory itself
-                this.instanceRoot.remove();
-                // Return this instance ID to the pool of valid IDs
-                // TODO: is this a good thing? If a service is destroyed, and
-                // a new one created with the same ID, could clients get confused?
-                // We'll comment this out for the moment.
-                //sgs.returnInstanceID(id);
+                destroy();
                 // TODO: should we remove the working directory too?
                 this.replyWrite(client, count, tag);              
             }
@@ -745,6 +748,27 @@ class StyxGridServiceInstance extends StyxDirectory
                 throw new StyxException("unknown command: " + cmdString);
             }
         }        
+    }
+    
+    /**
+     * Destroys this SGS instance
+     */
+    void destroy()
+    {
+        // Remove all the children of this directory
+        this.removeAllChildren();
+        // Now remove this directory
+        try
+        {
+            this.remove();
+        }
+        catch (StyxException se)
+        {
+            // This should never happen
+            log.error("Internal error: got StyxException when calling remove()" +
+                " on instance root directory");
+        }
+        log.debug("**** INSTANCE " + this.getName() + " DESTROYED ****");
     }
     
     /**

@@ -47,11 +47,11 @@ import org.apache.mina.common.ByteBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2006/01/04 16:45:29  jonblower
+ * Implemented automatic termination of SGS instances using Quartz scheduler
+ *
  * Revision 1.10  2006/01/04 11:24:56  jonblower
  * Implemented time directory in the SGS instance namespace
- *
- * Revision 1.9  2005/05/10 12:44:47  jonblower
- * Minor change
  *
  * Revision 1.8  2005/03/18 13:55:55  jonblower
  * Improved freeing of ByteBuffers, and bug fixes
@@ -130,6 +130,11 @@ public class StyxUtils
     public static String NEWLINE = "\n"; // Newline is character 10 on Inferno
     public static String SYSTEM_NEWLINE = System.getProperty("line.separator"); // The newline character on the host OS
     public static String SYSTEM_FILE_SEPARATOR = System.getProperty("file.separator");
+    
+    // Formatter for xsd:dateTime format: [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]
+    // We don't allow fractions of seconds
+    private static SimpleDateFormat XSD_DATE_TIME_FORMAT
+        = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
     
     /**
      * Converts a string to a byte array in UTF-8
@@ -275,6 +280,60 @@ public class StyxUtils
     {
         // TODO: use rounding instead of integer truncation? Does it really matter?
         return System.currentTimeMillis() / 1000;
+    }
+    
+    /**
+     * Returns a date formatted according to the xsd:dateTime data type
+     * @param date the date to format.
+     * @return the formatted date.
+     */
+    public static String formatAsXsdDateTime(Date date)
+    {
+        // Set time zone on formatter
+        XSD_DATE_TIME_FORMAT.setTimeZone(TimeZone.getDefault());
+        // Format the date
+        StringBuffer buffer = new StringBuffer(XSD_DATE_TIME_FORMAT.format(date));
+        // Add the colon into the time offset
+        buffer.insert(buffer.length() - 2, ':');
+
+        return buffer.toString();
+    }
+    
+    /**
+     * Parses a String that is formatted according to the xsd:dateTime data type
+     * and returns it as a Date
+     * @param date the String to format.
+     * @return the parse date.
+     */
+    public static Date parseXsdDateTime(String date) throws ParseException
+    {
+        // Trim any whitespace (e.g. a newline at the end of the string)
+        String newDate = date.trim();
+        if (newDate.endsWith("Z"))
+        {
+            // Remove the Z and replace with "+0000"
+            newDate = newDate.substring(0, newDate.length() - 1) + "+0000";
+        }
+        else
+        {
+            // Remove the last colon from the string (i.e. the time offset)
+            int colonPos = newDate.lastIndexOf(":");
+            newDate = newDate.substring(0, colonPos) +
+                newDate.substring(colonPos + 1, newDate.length());
+        }
+        return XSD_DATE_TIME_FORMAT.parse(newDate);
+    }
+    
+    /**
+     * Simple test routine for the date parsing routines
+     */
+    public static void main(String[] args) throws Exception
+    {
+        Date now = java.util.Calendar.getInstance().getTime();
+        System.out.println(now.toString());
+        String xsdStr = formatAsXsdDateTime(now);
+        System.out.println(xsdStr);
+        System.out.println(parseXsdDateTime(xsdStr));
     }
     
 }

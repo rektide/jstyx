@@ -29,9 +29,6 @@
 package uk.ac.rdg.resc.jstyx.gridservice.server;
 
 import java.util.Date;
-import java.util.TimeZone;
-import java.util.Calendar;
-import java.text.SimpleDateFormat;
 import java.text.ParseException;
 
 import org.apache.mina.common.ByteBuffer;
@@ -51,17 +48,16 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2006/01/04 16:45:29  jonblower
+ * Implemented automatic termination of SGS instances using Quartz scheduler
+ *
  * Revision 1.1  2006/01/04 11:24:58  jonblower
  * Implemented time directory in the SGS instance namespace
  *
  */
 
 public class TimeDirectory extends StyxDirectory
-{    
-    // Formatter for xsd:dateTime format: [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]
-    // We don't allow fractions of seconds
-    private static SimpleDateFormat XSD_DATE_TIME_FORMAT
-        = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+{
     
     private StyxGridServiceInstance instance;  // The instance to which this directory belongs
     
@@ -88,7 +84,7 @@ public class TimeDirectory extends StyxDirectory
         public void read(StyxFileClient client, long offset, int count, int tag)
             throws StyxException
         {
-            String formattedDate = formatAsXsdDateTime(Calendar.getInstance().getTime());
+            String formattedDate = StyxUtils.formatAsXsdDateTime(new Date());
             this.processAndReplyRead(formattedDate, client, offset, count, tag);
         }
     }
@@ -106,7 +102,7 @@ public class TimeDirectory extends StyxDirectory
         public void read(StyxFileClient client, long offset, int count, int tag)
             throws StyxException
         {
-            String formattedDate = formatAsXsdDateTime(instance.getCreationTime());
+            String formattedDate = StyxUtils.formatAsXsdDateTime(instance.getCreationTime());
             this.processAndReplyRead(formattedDate, client, offset, count, tag);
         }
     }
@@ -125,13 +121,23 @@ public class TimeDirectory extends StyxDirectory
         public void read(StyxFileClient client, long offset, int count, int tag)
             throws StyxException
         {
-            String formattedDate = formatAsXsdDateTime(instance.getTerminationTime());
+            Date termTime = instance.getTerminationTime();
+            String formattedDate;
+            if (termTime == null)
+            {
+                formattedDate = "";
+            }
+            else
+            {
+                formattedDate = StyxUtils.formatAsXsdDateTime(termTime);
+            }
             this.processAndReplyRead(formattedDate, client, offset, count, tag);
         }
         
         /**
          * Sets the termination time.  The incoming data must contain a complete
-         * time string formatted according to the xsd:dateTime format
+         * time string formatted according to the xsd:dateTime format, or the
+         * empty string.
          */
         public void write(StyxFileClient client, long offset, int count,
             ByteBuffer data, boolean truncate, int tag)
@@ -144,7 +150,11 @@ public class TimeDirectory extends StyxDirectory
             String dateString = StyxUtils.dataToString(data);
             try
             {
-                Date termTime = parseXsdDateTime(dateString);
+                Date termTime = null;
+                if (!dateString.trim().equals(""))
+                {
+                    termTime = StyxUtils.parseXsdDateTime(dateString);
+                }
                 instance.setTerminationTime(termTime);
                 this.replyWrite(client, count, tag);
             }
@@ -154,60 +164,6 @@ public class TimeDirectory extends StyxDirectory
                     ") is not a valid time in the xsd:dateTime format");
             }
         }
-    }
-    
-    /**
-     * Returns a date formatted according to the xsd:dateTime data type
-     * @param date the date to format.
-     * @return the formatted date.
-     */
-    private static String formatAsXsdDateTime(Date date)
-    {
-        // Set time zone on formatter
-        XSD_DATE_TIME_FORMAT.setTimeZone(TimeZone.getDefault());
-        // Format the date
-        StringBuffer buffer = new StringBuffer(XSD_DATE_TIME_FORMAT.format(date));
-        // Add the colon into the time offset
-        buffer.insert(buffer.length() - 2, ':');
-
-        return buffer.toString();
-    }
-    
-    /**
-     * Parses a String that is formatted according to the xsd:dateTime data type
-     * and returns it as a Date
-     * @param date the String to format.
-     * @return the parse date.
-     */
-    private static Date parseXsdDateTime(String date) throws ParseException
-    {
-        // Trim any whitespace (e.g. a newline at the end of the string)
-        String newDate = date.trim();
-        if (newDate.endsWith("Z"))
-        {
-            // Remove the Z and replace with "+0000"
-            newDate = newDate.substring(0, newDate.length() - 1) + "+0000";
-        }
-        else
-        {
-            // Remove the last colon from the string (i.e. the time offset)
-            int colonPos = newDate.lastIndexOf(":");
-            newDate = newDate.substring(0, colonPos) +
-                newDate.substring(colonPos + 1, newDate.length());
-        }
-        return XSD_DATE_TIME_FORMAT.parse(newDate);
-    }
-    
-    /**
-     * Simple test routine for the date parsing routines
-     */
-    public static void main(String[] args) throws Exception
-    {
-        Date now = java.util.Calendar.getInstance().getTime();
-        System.out.println(now.toString());
-        String xsdStr = formatAsXsdDateTime(now);
-        System.out.println(xsdStr);
-        System.out.println(parseXsdDateTime(xsdStr));
     }
     
 }

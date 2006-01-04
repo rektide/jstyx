@@ -138,6 +138,20 @@
             <url>http://jaxen.org/</url>
         </dependency>
         <dependency>
+            <groupId>quartz</groupId>
+            <artifactId>quartz</artifactId>
+            <version>1.5.1</version>
+            <type>jar</type>
+            <url>http://www.opensymphony.com/quartz/</url>
+        </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.0.4</version>
+            <type>jar</type>
+            <url>http://jakarta.apache.org/commons/logging/</url>
+        </dependency>
+        <dependency>
             <groupId>JSAP</groupId>
             <artifactId>JSAP</artifactId>
             <version>2.0b</version>

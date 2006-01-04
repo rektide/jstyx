@@ -30,10 +30,17 @@ package uk.ac.rdg.resc.jstyx.gridservice.server;
 
 import java.util.Vector;
 import java.util.Iterator;
+import java.util.Date;
 import javax.net.ssl.SSLContext;
 
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
+
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.impl.StdSchedulerFactory;
+import org.quartz.Trigger;
+import org.quartz.JobDetail;
 
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.AsyncStyxFile;
@@ -58,6 +65,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.DocFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2006/01/04 16:45:29  jonblower
+ * Implemented automatic termination of SGS instances using Quartz scheduler
+ *
  * Revision 1.18  2005/12/07 08:55:04  jonblower
  * Temporarily changed clone file behaviour to return ID rather than full URL to new service instances
  *
@@ -124,10 +134,29 @@ public class StyxGridService
     
     private static final Logger log = Logger.getLogger(StyxGridService.class);
     
+    // Quartz scheduler that is used to garbage-collect SGS instances
+    private static Scheduler sched = null;
+    
     private int nextInstanceID; // The ID number of the next instance to be created
     private StyxDirectory root; // The root of the Grid Service
     private StyxDirectory instancesDir; // Directory to hold SGS instances
     private SGSConfig sgsConfig; // The configuration for the SGS and its instances
+    
+    static
+    {
+        try
+        {
+            // Create and start the garbage-collector (Quartz scheduler) that
+            // automatically deletes SGS instances
+            sched = new StdSchedulerFactory().getScheduler();
+            sched.start();
+            log.info("Garbage-collector for SGS instances started");
+        }
+        catch(SchedulerException se)
+        {
+            log.error("Could not start garbage-collector for SGS instances");
+        }
+    }
     
     /**
      * Creates a new StyxGridService.
@@ -266,6 +295,36 @@ public class StyxGridService
         }        
     }
     
+    /**
+     * Schedules the termination of the given SGS instance at the given time.  If
+     * the scheduler has not been initialized (which is very unlikely to happen)
+     * this method will return silently without doing anything.
+     */
+    public void scheduleTermination(StyxGridServiceInstance instance,
+        Date terminationTime)
+    {
+        // Create a job ID that is unique to this instance
+        String jobID = this.root.getName() + "/" + instance.getName();
+        log.debug("jobID = " + jobID);
+        try
+        {
+            // Delete any previous instances of the job
+            if (sched.deleteJob(jobID, null))
+            {
+                log.debug("Deleted previous instance of job " + jobID);
+            }
+            // Create a new job
+            Trigger trigger = new InstanceTerminatorTrigger(instance, jobID, terminationTime);
+            JobDetail jobDetail = new JobDetail(jobID, null, InstanceTerminatorJob.class);
+            sched.scheduleJob(jobDetail, trigger);
+            log.debug("Scheduled " + jobID + " for termination at " + terminationTime);
+        }
+        catch (SchedulerException se)
+        {
+            log.error("Error scheduling instance for termination: " + se.getMessage());
+        }
+    }
+    
     public static void main (String[] args)
     {
         System.setProperty("java.protocol.handler.pkgs", "uk.ac.rdg.resc.jstyx.client.protocol");
@@ -274,10 +333,10 @@ public class StyxGridService
             System.err.println("Usage: StyxGridService <config file>");
             return;
         }
-        // Create the server configuration from the given XML config file
         try
         {
-            SGSServerConfig config = new SGSServerConfig(args[0]);
+            // Create the server configuration from the given XML config file
+            SGSServerConfig config = new SGSServerConfig(args[0]);            
             // Create the root directory
             StyxDirectory root = new StyxDirectory("/");
             // Add the SGSs to this directory
