@@ -56,14 +56,18 @@
     |       |    |   `-- myinputfile
     |       |    |-- <a href="#The_outputs_directory">outputs/</a>
     |       |    |   |-- stdout
+    |       |    |   |-- stderr
     |       |    |   `-- myoutputfile
     |       |    |-- <a href="#The_service_data_directory">serviceData/</a>
     |       |    |   |-- status
     |       |    |   |-- exitCode
     |       |    |   `-- customSDE
-    |       |    `-- <a href="#The_steering_directory">steering/</a>
-    |       |        `-- steerable1
-    |       |
+    |       |    |-- <a href="#The_steering_directory">steering/</a>
+    |       |    |   `-- steerable1
+    |       |    `-- <a href="#The_time_directory">time/</a>
+    |       |        |-- currentTime
+    |       |        |-- creationTime
+    |       |        `-- terminationTime
     |       `-- 1/
     |
     `-- <a href="#Styx_Grid_Services">mySGS2/</a>
@@ -161,7 +165,8 @@
     <a href="#The_inputs_directory">input files</a> have been uploaded, the client
     starts the service running by writing the string &quot;start&quot; into this file.
     The service can be stopped at any time by writing the string &quot;stop&quot;
-    into this file.
+    into this file.  The instance can be destroyed and its resources freed by
+    writing the string &quot;destroy&quot; into this file.
     </p>
     </subsection>
     
@@ -265,6 +270,28 @@
     executable is running.  This is known as computational steering.  The
     <code>steering/</code> directory contains the files that are used to do this,
     but this is considered an advanced feature and will not be discussed here (yet).
+    </p>
+    </subsection>
+    
+    <subsection name="The time directory">
+    <p>
+    The <code>time/</code> directory contains files that are pertinent to the
+    lifecycle of the SGS instance.  The <code>currentTime/</code> file can be
+    read to give the current time according to the SGS server.  The <code>creationTime</code>
+    file can be read to give the time at which the instance was created.
+    The <code>terminationTime</code> file contains the time at which the service
+    instance will be automatically terminated.  When the instance is first created
+    it is set to never terminate (the <code>terminationTime</code> file will be empty).
+    Clients can set a lifetime for the instance by writing a termination time
+    into this file.  In order to terminate the instance immediately, clients
+    should write the string &quot;destroy&quot; into the <a href="#The_ctl_file">ctl</a>
+    file (it is not legal to write a time in the past into the <code>terminationTime</code>
+    file).
+    </p>
+    <p>
+    All times are read and written in the
+    <a href="http://books.xmlschemata.org/relaxng/ch19-77049.html">xsd:dateTime</a>
+    format, for example "2006-01-23T17:34:56+00:00".
     </p>
     </subsection>
     </section>
