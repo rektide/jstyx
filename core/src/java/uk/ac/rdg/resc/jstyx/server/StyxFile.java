@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.22  2006/01/04 16:47:29  jonblower
+ * Reworked getName() and getFullPath()
+ *
  * Revision 1.21  2005/12/01 08:21:56  jonblower
  * Fixed javadoc comments
  *
@@ -167,18 +170,19 @@ public class StyxFile
      * it is the root directory, no spaces)
      * @todo according to the Manual, the parent of the root of the tree is itself
      * @throws StyxException if an attempt is made to create a file with the name
-     * "." or ".."
+     * "", "." or ".."
      */
     public StyxFile(String name, String owner, String group, int permissions,
         boolean isAppendOnly, boolean isExclusive, boolean isAuth)
         throws StyxException
     {
-        if (name.equals(".") || name.equals(".."))
+        name = name.trim();
+        if (name.equals("") || name.equals(".") || name.equals(".."))
         {
             throw new StyxException("illegal file name");
         }
         this.parent = null;
-        this.name = name.trim();
+        this.name = name;
         this.directory = false;
         this.permissions = permissions;
         this.appendOnly = isAppendOnly;
@@ -286,7 +290,7 @@ public class StyxFile
      */
     public String getFullPath()
     {
-        return this.parent.getFullPath() + "/" + this.getName();
+        return this.parent.getFullPath() + this.getName();
     }
     
     /**

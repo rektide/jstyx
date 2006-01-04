@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2006/01/04 16:47:29  jonblower
+ * Reworked getName() and getFullPath()
+ *
  * Revision 1.11  2005/09/08 07:08:59  jonblower
  * Removed "String user" from list of parameters to StyxFile.write()
  *
@@ -124,7 +127,7 @@ public class StyxDirectory extends StyxFile
     }
     
     /**
-     * @return true if this is the root directory (i.e. if the parent is null)
+     * @return true if this is the root directory (i.e. if it has no parent)
      */
     public boolean isRoot()
     {
@@ -132,27 +135,24 @@ public class StyxDirectory extends StyxFile
     }
     
     /**
-     * Gets the full path relative to the root of this file system.
+     * Gets the full path relative to the root of this file system, or
+     * a single slash if this is the root directory.  Since this is a directory,
+     * the full path will end in a slash
      */
     public String getFullPath()
     {
-        if (this.isRoot())
+        if (this.parent == null)
         {
-            return "";
+            return "/";
         }
-        return this.parent.getFullPath() + "/" + this.getName();
+        return this.parent.getFullPath() + this.getName() + "/";
     }
     
     /**
-     * @return the name of the file, or the empty string if this is the root
-     * directory
+     * @return the name of this file
      */
     public String getName()
     {
-        if (this.isRoot())
-        {
-            return "";
-        }
         return this.name;
     }
     
@@ -288,6 +288,7 @@ public class StyxDirectory extends StyxFile
      */
     public synchronized StyxDirectory addChild(StyxFile sf) throws FileExistsException
     {
+        // Check that the 
         // check that a file with this name does not already exist
         synchronized (this.children)
         {
