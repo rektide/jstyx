@@ -71,6 +71,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2006/01/04 11:24:57  jonblower
+ * Implemented time directory in the SGS instance namespace
+ *
  * Revision 1.13  2005/12/09 18:41:56  jonblower
  * Continuing to simplify client interface to SGS instances
  *
@@ -400,9 +403,9 @@ public class SGSRun extends CStyxFileChangeAdapter
      */
     private void readOutputStreams() throws StyxException
     {
-        // Get handles to the output streams and register this class as a listener
+        /*// Get handles to the output streams and register this class as a listener
         this.osFiles = this.instanceClient.getOutputs();
-        this.outputStreams = new Hashtable()/*<CStyxFile, PrintStream>*/;
+        this.outputStreams = new Hashtable();
         for (int i = 0; i < osFiles.length; i++)
         {
             this.osFiles[i].addChangeListener(this);
@@ -446,7 +449,7 @@ public class SGSRun extends CStyxFileChangeAdapter
                 }
                 this.osFiles[i].readAsync(0);
             }
-        }
+        }*/
     }
     
     /**

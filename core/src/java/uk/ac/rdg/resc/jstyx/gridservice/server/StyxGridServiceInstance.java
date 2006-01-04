@@ -42,6 +42,8 @@ import java.io.FileNotFoundException;
 
 import java.util.Vector;
 import java.util.Iterator;
+import java.util.Date;
+import java.util.Calendar;
 
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
@@ -76,6 +78,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.43  2006/01/04 11:24:58  jonblower
+ * Implemented time directory in the SGS instance namespace
+ *
  * Revision 1.42  2005/12/07 17:47:58  jonblower
  * Changed "commandline" file to "args" - now just contains arguments, not program name
  *
@@ -217,6 +222,9 @@ class StyxGridServiceInstance extends StyxDirectory
     private String command; // The command to run (i.e. the string that is passed to System.exec)
     private long startTime;
     
+    private Date creationTime;  // The time at which this instance was created
+    private Date terminationTime; // The time at which this instance will automatically be terminated
+    
     // SGSInstanceChangeListeners that are listening for changes to this SGS instance
     private Vector changeListeners;
     
@@ -228,6 +236,14 @@ class StyxGridServiceInstance extends StyxDirectory
         SGSConfig sgsConfig) throws StyxException
     {
         super(id);
+        
+        // Set the creation time and the termination time.  By default, the 
+        // termination time is one hour after the creation time.
+        Calendar now = Calendar.getInstance();
+        this.creationTime = now.getTime();
+        now.add(Calendar.HOUR, 1);
+        this.setTerminationTime(now.getTime());
+        
         this.sgs = sgs;
         this.id = id;
         this.sgsConfig = sgsConfig;
@@ -384,6 +400,9 @@ class StyxGridServiceInstance extends StyxDirectory
         // command line if they wish
         this.argsFile = new ArgsFile();
         this.addChild(new AsyncStyxFile(this.argsFile));
+        
+        // Add the files that are pertinent to the lifecycle of the SGS
+        this.addChild(new TimeDirectory(this));
         
         this.statusCode = StatusCode.CREATED;
     }
@@ -559,6 +578,31 @@ class StyxGridServiceInstance extends StyxDirectory
     public StatusCode getStatus()
     {
         return this.statusCode;
+    }
+    
+    /**
+     * Gets the time at which this instance was created
+     */
+    Date getCreationTime()
+    {
+        return this.creationTime;
+    }
+    
+    /**
+     * Gets the time at which this instance will be terminated
+     */
+    Date getTerminationTime()
+    {
+        return this.terminationTime;
+    }
+    
+    /**
+     * Sets the time at which this instance will be terminated
+     */
+    void setTerminationTime(Date termTime)
+    {
+        // TODO Check that the date is valid (i.e. in the future)
+        this.terminationTime = termTime;
     }
     
     /**

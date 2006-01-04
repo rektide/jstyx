@@ -28,11 +28,18 @@
 
 package uk.ac.rdg.resc.jstyx;
 
-import org.apache.mina.common.ByteBuffer;
-
 import java.io.UnsupportedEncodingException;
 import java.io.IOException;
+
 import java.nio.charset.Charset;
+
+import java.text.SimpleDateFormat;
+import java.text.ParseException;
+
+import java.util.Date;
+import java.util.TimeZone;
+
+import org.apache.mina.common.ByteBuffer;
 
 /**
  * Set of constants and useful static methods for the Styx protocol
@@ -40,6 +47,9 @@ import java.nio.charset.Charset;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2006/01/04 11:24:56  jonblower
+ * Implemented time directory in the SGS instance namespace
+ *
  * Revision 1.9  2005/05/10 12:44:47  jonblower
  * Minor change
  *
