@@ -50,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfigException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2006/01/05 16:06:34  jonblower
+ * SGS clients now deal with possibility that client could be created on a different server
+ *
  * Revision 1.14  2005/12/07 17:50:48  jonblower
  * Fixed bug and comments for getConfig()
  *
@@ -185,20 +188,12 @@ public class SGSClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Requests creation of a new instance of the SGS on the server.  When the instance
-     * has been created, the gotInstances() event will be fired on all registered
-     * change listeners, with the new list of instances for this SGS, and the
-     * error() event will be fired if an error occurs.
-     */
-    public void createNewInstanceAsync()
-    {
-        this.cloneFile.readAsync(0);
-    }
-    
-    /**
      * Requests creation of a new instance of the SGS on the server.  This method
-     * blocks until the instance has been created and the ID returned.
-     * @return The ID of the new instance
+     * blocks until the instance has been created.
+     * @return The full URL to the root of the new instance, e.g.
+     * <code>styx://thehost.com:9092/mySGS/instances/1234567890abcde</code>. 
+     * Note that the new instance may be created on a different server (for
+     * load balancing purposes, for example).
      */
     public String createNewInstance() throws StyxException
     {
@@ -206,13 +201,21 @@ public class SGSClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Gets an SGSInstanceClient for the given instance id. This does not create
-     * a new instance.
-     * @throws StyxException if there was an error creating the client object
+     * Gets a file that represents the root of the SGS instance with the given
+     * ID.  Makes a blocking read to the server to check to see if the instance
+     * exists.
+     * @return A CStyxFile representing the root of the instance
+     * @throws StyxException if the instance does not exist
      */
-    public SGSInstanceClient getClientForInstance(String id) throws StyxException
+    public CStyxFile getInstanceFile(String instanceID) throws StyxException
     {
-        return new SGSInstanceClient(this, this.sgsRoot.getFile("instances/" + id));
+        CStyxFile instanceFile = this.sgsRoot.getFile("instances/" + instanceID);
+        if (!instanceFile.exists())
+        {
+            throw new StyxException("There is no instance with ID " + instanceID
+                + " on this server.");
+        }
+        return instanceFile;
     }
     
     /**

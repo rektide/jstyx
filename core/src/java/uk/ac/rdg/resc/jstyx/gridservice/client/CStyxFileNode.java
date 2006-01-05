@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2006/01/05 16:06:34  jonblower
+ * SGS clients now deal with possibility that client could be created on a different server
+ *
  * Revision 1.15  2005/12/07 17:49:05  jonblower
  * Added getInstanceClient() method to CStyxFileNode
  *
@@ -239,7 +242,7 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
         {
             // When the new instance has been created, the gotInstances() method
             // will be called
-            this.sgsClient.createNewInstanceAsync();
+            //this.sgsClient.createNewInstanceAsync();
         }
         else
         {
@@ -268,7 +271,6 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
         }
         return this.instanceClient;
     }
-    
     
     /**
      * Required by SGSChangeListener interface: called when this is a Service

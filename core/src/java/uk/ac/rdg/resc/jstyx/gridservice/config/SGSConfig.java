@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.7  2006/01/05 16:06:35  jonblower
+ * SGS clients now deal with possibility that client could be created on a different server
+ *
  * Revision 1.6  2006/01/05 12:09:15  jonblower
  * Restructured configuration to give default values for server settings
  *
@@ -138,7 +141,6 @@ public class SGSConfig
      * object from the XML config file.
      * @param gridService The Node in the XML config file that is at the
      * root of this Styx Grid Service
-     * @param sgsRootDir The root of the working directory of this SGS server
      * @param serverConfig Configuration of the server
      * @throws IllegalArgumentException if the name of the SGS contains
      * a space.

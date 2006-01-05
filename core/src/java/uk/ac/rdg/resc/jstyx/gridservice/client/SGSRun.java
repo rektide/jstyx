@@ -41,6 +41,8 @@ import java.util.Iterator;
 import java.util.Vector;
 import java.util.Enumeration;
 
+import java.net.UnknownHostException;
+
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
 import com.martiansoftware.jsap.JSAPResult;
@@ -71,6 +73,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2006/01/05 16:06:34  jonblower
+ * SGS clients now deal with possibility that client could be created on a different server
+ *
  * Revision 1.14  2006/01/04 11:24:57  jonblower
  * Implemented time directory in the SGS instance namespace
  *
@@ -148,8 +153,10 @@ public class SGSRun extends CStyxFileChangeAdapter
      * @param serviceName The name of the SGS to invoke
      * @throws StyxException if there was an error connecting to the server
      * or getting the configuration of the SGS 
+     * @throws UnknownHostException if the remote host could not be found
      */
-    public SGSRun(String hostname, int port, String serviceName) throws StyxException
+    public SGSRun(String hostname, int port, String serviceName)
+        throws StyxException, UnknownHostException
     {
         this.debug = false;
         this.openStreams = 0;
@@ -157,7 +164,7 @@ public class SGSRun extends CStyxFileChangeAdapter
         this.serviceStarted = false;
         
         // Get a client for this server
-        SGSServerClient serverClient = new SGSServerClient(hostname, port);
+        SGSServerClient serverClient = SGSServerClient.getServerClient(hostname, port);
         
         // Get a handle to the required Styx Grid Service
         this.sgsClient = serverClient.getSGSClient(serviceName);
@@ -194,16 +201,16 @@ public class SGSRun extends CStyxFileChangeAdapter
                 "Set this switch in order to get URLs to all output files rather than actual files"));
             
             // Add a parameter for each fixed input file so that the user can set the
-            // URL with an argument like --input.txt-ref=
+            // URL with an argument like --sgs-input.txt-ref=
             Vector inputs = this.config.getInputs();
             for (int i = 0; i < inputs.size(); i++)
             {
                 SGSInput input = (SGSInput)inputs.get(i);
                 if (input.getType() == SGSInput.FILE)
                 {
-                    jsap.registerParameter(new FlaggedOption(input.getName() + "-ref",
+                    jsap.registerParameter(new FlaggedOption("sgs-" + input.getName() + "-ref",
                         JSAP.STRING_PARSER, null, false, JSAP.NO_SHORTFLAG,
-                        input.getName() + "-ref",
+                        "sgs-" + input.getName() + "-ref",
                         "If set, will cause the input file " + input.getName() +
                         " to be uploaded from the given URL"));
                 }
@@ -311,8 +318,8 @@ public class SGSRun extends CStyxFileChangeAdapter
      */
     public void createNewServiceInstance() throws StyxException
     {
-        String id = this.sgsClient.createNewInstance();
-        this.instanceClient = this.sgsClient.getClientForInstance(id);
+        String instanceUrl = this.sgsClient.createNewInstance();
+        this.instanceClient = new SGSInstanceClient(instanceUrl);
         // Read the exit code: when the exit code has arrived, the
         // gotServiceDataValue() event
         // TODO make this class an SGSInstanceClientChangeListener
@@ -566,6 +573,9 @@ public class SGSRun extends CStyxFileChangeAdapter
             System.err.println("Usage: SGSRun <hostname> <port> <servicename>");
             System.exit(1); // TODO: what is the best exit code here?
         }
+        
+        // Make sure we can understand styx:// URLs
+        System.setProperty("java.protocol.handler.pkgs", "uk.ac.rdg.resc.jstyx.client.protocol");
         
         SGSRun runner = null;
         try

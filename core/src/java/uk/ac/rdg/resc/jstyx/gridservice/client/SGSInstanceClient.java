@@ -41,6 +41,10 @@ import java.io.PrintStream;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 
+import java.net.URL;
+import java.net.MalformedURLException;
+import java.net.UnknownHostException;
+
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
 
@@ -66,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.48  2006/01/05 16:06:34  jonblower
+ * SGS clients now deal with possibility that client could be created on a different server
+ *
  * Revision 1.47  2005/12/20 09:50:54  jonblower
  * Continuing to implement reading of output streams
  *
@@ -257,11 +264,67 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * given CStyxFile.  Note that this constructor will make <b>blocking</b>
      * reads to the SGS server and therefore should not be called from within
      * a callback method.
+     * @param client The SGSClient to which this instance belongs
+     * @param instanceRoot The file representing the root of this instance
      * @throws StyxException if there was an error creating the client (for 
-     * example, an error reading the directory contents from the server)
+     * example, there is no instance with the given ID or there was an error
+     * reading the directory contents from the server)
      */
     public SGSInstanceClient(SGSClient client, CStyxFile instanceRoot)
         throws StyxException
+    {
+        this.init(client, instanceRoot);
+    }
+    
+    /**
+     * Gets an SGSInstanceClient, given the full URL to the root of the new
+     * instance, e.g.
+     * <code>styx://thehost.com:9092/mySGS/instances/1234567890abcde</code>
+     * @throws StyxException if there was an error creating the client object
+     */
+    public SGSInstanceClient(String instanceURL) throws StyxException
+    {
+        // Check to see if the new instance is on the same server and port
+        // as the current connection
+        URL url = null;
+        try
+        {
+            url = new URL(instanceURL);
+            // Get a client for the server.  If a client already exists (perhaps
+            // the current client) it will simply be returned
+            SGSServerClient serverClient =
+                SGSServerClient.getServerClient(url.getHost(), url.getPort());
+            String[] pathEls = url.getPath().split("/");
+            if (pathEls.length != 3)
+            {
+                throw new StyxException("URL format error");
+            }
+            SGSClient sgsClient = serverClient.getSGSClient(pathEls[0]);
+            this.init(sgsClient, pathEls[2]);
+        }
+        catch(MalformedURLException mue)
+        {
+            throw new StyxException(instanceURL + " is not recognised as a valid URL");
+        }
+        catch(UnknownHostException uhe)
+        {
+            throw new StyxException("The host at address " + url.getHost() +
+                " is unknown.");
+        }
+    }
+    
+    /**
+     * Sets up this instance
+     */
+    private void init(SGSClient client, String instanceID) throws StyxException
+    {
+        this.init(client, client.getInstanceFile(instanceID));
+    }
+    
+    /**
+     * Sets up this instance
+     */
+    private void init(SGSClient client, CStyxFile instanceRoot) throws StyxException
     {
         this.client = client;
         this.instanceRoot = instanceRoot;
@@ -309,7 +372,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     
     /**
      * @return the name of this Styx Grid Service (note: not the name of this
-     * particular instance
+     * particular instance)
      */
     public String getName()
     {

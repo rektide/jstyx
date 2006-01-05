@@ -28,18 +28,26 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.client;
 
+import java.util.Hashtable;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.StyxException;
 
 /**
  * A client of an SGS server.  Use this class to find the SGSs that are available
- * on a server.
+ * on a server.  To create an instance of this class, use the <code>getServerClient()</code>
+ * static factory method.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2006/01/05 16:06:34  jonblower
+ * SGS clients now deal with possibility that client could be created on a different server
+ *
  * Revision 1.3  2005/12/01 08:36:02  jonblower
  * Changed constructor to accept hostname and port instead of CStyxFile
  *
@@ -52,6 +60,11 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  */
 public class SGSServerClient
 {
+    // Contains the server clients that have already been created
+    private static Hashtable serverClients = new Hashtable();
+    
+    // Contains the SGS clients that have been created
+    private Hashtable sgsClients;
     
     private CStyxFile serverRoot; // File representing the root of the server
     
@@ -60,10 +73,11 @@ public class SGSServerClient
      * to the server is made.
      * @param hostname The hostname or IP address of the SGS server
      * @param port The port of the SGS server
-     * @throws StyxException if 
+     * @throws StyxException if there was an error connecting to the server
      */
-    public SGSServerClient(String hostname, int port) throws StyxException
+    private SGSServerClient(String hostname, int port) throws StyxException
     {
+        this.sgsClients = new Hashtable();
         // Connect to the server
         StyxConnection conn = new StyxConnection(hostname, port);
         conn.connect();
@@ -71,38 +85,56 @@ public class SGSServerClient
     }
     
     /**
+     * Static factory method for creating an SGSServerClient.  If a client
+     * already exists for the given server (and port number) it will be returned.
+     * If not, a new one will be created.
+     * @param hostname The hostname or IP address of the SGS server
+     * @param port The port of the SGS server
+     * @throws StyxException if there was an error connecting to the server.
+     * @throws UnknownHostException if the host could not be found
+     */
+    public static SGSServerClient getServerClient(String hostname, int port)
+        throws StyxException, UnknownHostException
+    {
+        // Look up the IP address of the server
+        InetAddress serverAddr = InetAddress.getByName(hostname);
+        // See if we already have a client for this server
+        String key = serverAddr.getHostAddress() + ":" + port;
+        SGSServerClient serverClient = (SGSServerClient)serverClients.get(key);
+        if (serverClient == null)
+        {
+            serverClient = new SGSServerClient(hostname, port);
+            serverClients.put(key, serverClient);
+        }
+        return serverClient;
+    }
+    
+    /**
      * Gets an SGSClient object for a given Styx Grid Service.  This method
-     * blocks until the SGS is found and proven to exist on the server
+     * blocks until the SGS is found and proven to exist on the server.  If a
+     * client for the given SGS has already been created, it is simply returned.
      * @param serviceName The name of the Styx Grid Service
      * @return an SGSClient object for the requested Styx Grid Service
      * @throws StyxException if there is no SGS with the given name on the server
      */
-    public SGSClient getSGSClient(String serviceName) throws StyxException
+    public synchronized SGSClient getSGSClient(String serviceName) throws StyxException
     {
-        CStyxFile sgsRoot = this.serverRoot.getFile(serviceName);
-        if (sgsRoot.exists())
+        SGSClient sgsClient = (SGSClient)this.sgsClients.get(serviceName);
+        if (sgsClient == null)
         {
-            return new SGSClient(sgsRoot);
+            // We need to create a new client
+            CStyxFile sgsRoot = this.serverRoot.getFile(serviceName);
+            if (sgsRoot.exists())
+            {
+                sgsClient = new SGSClient(sgsRoot);
+            }
+            else
+            {
+                throw new StyxException("There is no Styx Grid Service called " +
+                    serviceName + " on the server");
+            }
         }
-        else
-        {
-            throw new StyxException("There is no Styx Grid Service called " +
-                serviceName + " on the server");
-        }
-    }
-    
-    /**
-     * @return an SGSClient object for each Styx Grid Service on the server
-     */
-    public SGSClient[] getSGSClients() throws StyxException
-    {
-        CStyxFile[] services = this.serverRoot.getChildren();
-        SGSClient[] clients = new SGSClient[services.length];
-        for (int i = 0; i < clients.length; i++)
-        {
-            clients[i] = new SGSClient(services[i]);
-        }
-        return clients;
+        return sgsClient;
     }
     
 }
