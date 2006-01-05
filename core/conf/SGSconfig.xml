@@ -14,7 +14,7 @@
 
     <!-- Configuration of the server -->
     <!-- TODO: configure max message size here? -->
-    <server port="9092">
+    <server> <!-- address="myserver.com" port="9092" cacheLocation="C:\StyxGridServices"> -->
         <!-- TODO: will set SSL parameters in here (server cert location, cipher
              suites, client authentication, acceptable client certs, etc) -->
         <ssl activated="no">
@@ -24,7 +24,7 @@
     </server>
     
     <!-- The Styx Grid Services that will appear under this server -->
-    <gridservices root="C:\StyxGridServices">
+    <gridservices>
     
         <gridservice name="md5sum" command="python c:\md5lines.py"
             description="Calculates MD5 sum of each line of input">

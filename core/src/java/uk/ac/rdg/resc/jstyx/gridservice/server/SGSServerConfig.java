@@ -35,6 +35,9 @@ import java.util.Vector;
 import java.util.Iterator;
 import java.util.List;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import org.apache.log4j.Logger;
 
 import org.dom4j.io.SAXReader;
@@ -44,6 +47,7 @@ import org.dom4j.Node;
 
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfigException;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * Configuration of a Styx Grid Service server
@@ -52,6 +56,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfigException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2006/01/05 12:09:15  jonblower
+ * Restructured configuration to give default values for server settings
+ *
  * Revision 1.9  2005/11/28 17:21:17  jonblower
  * Allowed for <ssl> tag not existing in config file
  *
@@ -89,6 +96,8 @@ public class SGSServerConfig
     private static final Logger log = Logger.getLogger(SGSServerConfig.class);
     
     protected int port; // The port on which the server will listen
+    protected String host; // The hostname or IP address of this server
+    private String cacheLocation; // The root of all the cached files
     protected boolean useSSL; // True if the server is to be secured with SSL
     protected String keystore; // The location of the keystore
     protected Vector gridServices; // Information about all the SGSs
@@ -111,8 +120,16 @@ public class SGSServerConfig
             this.doc = reader.read(xmlFilename);
             // Get the base node of the server configuration
             Node serverNode = this.doc.selectSingleNode("/sgs/server");
-            // Get the port number
-            this.port = this.findPort(serverNode);
+            // Get the cache location
+            this.cacheLocation = serverNode.valueOf("@cacheLocation");
+            if (this.cacheLocation == null || this.cacheLocation.trim().equals(""))
+            {
+                // Create a default cache in the user's home directory
+                this.cacheLocation = System.getProperty("user.home") +
+                    StyxUtils.SYSTEM_FILE_SEPARATOR + "StyxGridServices";
+            }
+            // Get the server address and port number
+            this.getServerAddressAndPort(serverNode);
             // Get the SSL parameters
             this.getSSLConfig(serverNode);
             // Get the configuration for all Styx Grid Services
@@ -129,19 +146,34 @@ public class SGSServerConfig
     }
     
     /**
-     * Use XPath to find the port number on which the server will listen
+     * Get the address and port of the server
      */
-    private int findPort(Node serverNode) throws SGSConfigException
+    private void getServerAddressAndPort(Node serverNode) throws SGSConfigException
     {
         String portStr = serverNode.valueOf("@port");
         try
         {
-            return Integer.parseInt(portStr);
+            this.port = Integer.parseInt(portStr);
         }
         catch(NumberFormatException nfe)
         {
             throw new SGSConfigException("Invalid port number: " + portStr);
         }
+        this.host = serverNode.valueOf("@address");
+        if (this.host == null || this.host.trim().equals(""))
+        {
+            try
+            {
+                // The hostname has not been set: attempt to find it automatically
+                this.host = InetAddress.getLocalHost().getHostAddress();
+            }
+            catch(UnknownHostException uhe)
+            {
+                // Shouldn't happen
+                throw new SGSConfigException("Cannot get the address of this server");
+            }
+        }
+        System.out.println("Host address = " + this.host);
     }
     
     /**
@@ -167,14 +199,12 @@ public class SGSServerConfig
      */
     private void getSGSConfig() throws SGSConfigException
     {
-        Node gridServicesNode = this.doc.selectSingleNode("/sgs/gridservices");
-        String sgsRoot = gridServicesNode.valueOf("@root");
-        
+        Node gridServicesNode = this.doc.selectSingleNode("/sgs/gridservices");        
         List gridServicesList = gridServicesNode.selectNodes("gridservice");
         Iterator it = gridServicesList.iterator();
         while(it.hasNext())
         {
-            this.gridServices.add(new SGSConfig((Node)it.next(), sgsRoot));
+            this.gridServices.add(new SGSConfig((Node)it.next(), this));
         }
     }
     
@@ -184,6 +214,16 @@ public class SGSServerConfig
     public int getPort()
     {
         return this.port;
+    }
+    
+    /**
+     * @return The host address (hostname or IP address) of this server.  This
+     * is the address of the server from the point of view of clients (i.e. the
+     * public address)
+     */
+    public String getHostAddress()
+    {
+        return this.host;
     }
     
     /**
@@ -201,6 +241,15 @@ public class SGSServerConfig
     public String getKeystoreLocation()
     {
         return this.keystore;
+    }
+    
+    /**
+     * @return the location of the cache of files that will be created by
+     * the SGSs
+     */
+    public String getCacheLocation()
+    {
+        return this.cacheLocation;
     }
     
     /**

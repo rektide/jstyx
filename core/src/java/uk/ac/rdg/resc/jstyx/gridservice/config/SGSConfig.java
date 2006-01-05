@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2006/01/05 12:09:15  jonblower
+ * Restructured configuration to give default values for server settings
+ *
  * Revision 1.5  2005/12/01 08:29:47  jonblower
  * Refactored XML config handling to simplify clients
  *
@@ -112,6 +115,7 @@ import uk.ac.rdg.resc.jstyx.gridservice.server.*;
  */
 public class SGSConfig
 {
+    private SGSServerConfig serverConfig; // Configuration of the server (port, SSL details etc)
     private Node rootNode;      // The Node in the XML config file that is at the
                                 // root of this Styx Grid Service
     private String name;        // The name of this SGS
@@ -135,14 +139,18 @@ public class SGSConfig
      * @param gridService The Node in the XML config file that is at the
      * root of this Styx Grid Service
      * @param sgsRootDir The root of the working directory of this SGS server
+     * @param serverConfig Configuration of the server
      * @throws IllegalArgumentException if the name of the SGS contains
      * a space.
      */
-    public SGSConfig(Node gridService, String sgsRootDir) throws SGSConfigException
+    public SGSConfig(Node gridService, SGSServerConfig serverConfig)
+        throws SGSConfigException
     {
         this.init(gridService);
-        this.workDir = sgsRootDir + StyxUtils.SYSTEM_FILE_SEPARATOR + name;
+        this.serverConfig = serverConfig;
         this.rootNode = gridService;
+        this.workDir = this.serverConfig.getCacheLocation() +
+            StyxUtils.SYSTEM_FILE_SEPARATOR + name;
         this.setConfigXMLForClient();
         
         // Create the documentation files
@@ -320,6 +328,14 @@ public class SGSConfig
             }
             this.serviceData.add(sdeConf);
         }
+    }
+    
+    /**
+     * @return the configuration (port, SSL details etc) of the server
+     */
+    public SGSServerConfig getServerConfig()
+    {
+        return this.serverConfig;
     }
 
     /**

@@ -33,14 +33,15 @@
     </p>
     <p>
     The large-scale structure of the configuration file looks like this:
+    </p>
     <source>
     <![CDATA[<sgs>
     
-      <server port="9092">
+      <server address="sgs.myserver.com" port="9092" cacheLocation="C:\StyxGridServices">
          ...
       </server>
       
-      <gridservices root="C:\StyxGridServices">
+      <gridservices>
         <gridservice name="mysgs" ... ></gridservice>
         <gridservice name="anotherSGS" ...></gridservice>
         ...
@@ -48,20 +49,49 @@
       
     </sgs>]]>
     </source>
+    <p>
     Everything is contained between <code>&lt;sgs&gt;</code> and <code>&lt;/sgs&gt;</code>
     tags.  The information between the <code>&lt;server&gt;</code> tags specifies
-    the server settings.  In the current release, all that matters is the port
-    number (specified as 9092 in the above snippet).  In future releases this
-    section will contain information about security, such as encryption of network
-    traffic and the certificates that are trusted.
-    </p>
-    <p>
-    The <code>&lt;gridservices&gt;</code> tag contains an attribute called <code>root</code>.
-    The value of this attribute is the directory on the server that will be used
+    the server settings.  The <code>&lt;server&gt;</code> tag itself has three possible
+    attributes:
+
+    <table border="1">
+      <tbody>
+      <tr><th>Attribute</th><th>Possible values</th><th>Default value</th><th>Purpose</th></tr>
+      <tr><td>address</td><td>Hostname or IP address</td><td>Auto-detected</td>
+         <td>This atribute is used to specify the address (hostname or IP address)
+         of the server from the point of view of clients (i.e. the public
+         address).  It is an optional attribute: if it is omitted or left blank,
+         the system will attempt to detect the server's IP address using
+         Java's <code>InetAddress.getLocalHost().getHostAddress()</code> method.</td>
+      </tr>
+      <tr><td>port</td><td>Integer between 256 and 65535 inclusive</td><td>9092</td>
+         <td>This atribute is used to set the port on which the server will listen.
+         The port number must not be in use by any other process and the user running
+         the server must have permission to use this port (on many systems including Unix, only
+         the root user is allowed to use ports with numbers less than 1024).
+         If this attribute is omitted or left blank, port 9092 will be used by
+         default.</td>
+      </tr>
+      <tr><td>cacheLocation</td><td>Valid directory location</td><td><code>$HOME/StyxGridServices</code></td>
+         <td>The value of this attribute is the directory on the server that will be used
     to store information about all the services.  This directory is used for cached
     files, state data and other things.  This directory will be created when the server
     starts if it does not already exist.  You (i.e. the user running the server process)
-    must have write permissions in this directory.
+    must have write permissions in this directory.  If this attribute is omitted
+         or left blank, the system will use or create a directory called
+         <code>StyxGridServices</code> in the user's home directory.  (The user's
+         home directory is found using Java's <code>user.home</code> system property.)</td>
+      </tr>
+      </tbody>
+    </table>
+    Note that the <code>&lt;server&gt;</code> tag can be omitted from the config
+    file altogether.  In this case, default values will be chosen for all attributes
+    and the server will be unsecured.
+    </p>
+    <p>
+    The contents of the <code>&lt;gridservices&gt;</code> tag are explained in the following
+    sections.
     </p>
     </section>
     
@@ -101,8 +131,9 @@
     </source>
     <p>
     The <code>&lt;gridservice&gt;</code> tag itself has three attributes.  The
-    <code>name</code> attribute gives a short, unique name for the SGS that will
-    be used to identify it.  This name cannot contain spaces.  The <code>command</code>
+    <code>name</code> attribute gives a short name for the SGS that will
+    be used to identify it.  This name must be different from the names of all the
+    other SGSs on this server.  This name cannot contain spaces.  The <code>command</code>
     attribute specifies the full path to the executable that will be run.  A short,
     one-sentence description of the SGS can be placed in the optional
     <code>description</code> tag.
@@ -134,8 +165,7 @@
       <tr><td>paramType</td><td>&quot;switch&quot;, &quot;flaggedOption&quot; or &quot;unflaggedOption&quot;</td>
             <td>None</td><td>Type of the parameter.  See below.</td></tr>
       <tr><td>required</td><td>&quot;yes&quot; or &quot;no&quot;</td><td>&quot;no&quot;</td>
-            <td>Set to &quot;yes&quot; if a value for this parameter must be set
-            before the service is started.  This
+            <td>Set to &quot;yes&quot; if a value for this parameter must be set.  This
             is irrelevant when paramType=&quot;switch&quot;.</td></tr>
       <tr><td>flag</td><td>single character</td><td>None</td>
             <td>For switches and flaggedOptions, the short flag used to identify this parameter
@@ -424,13 +454,11 @@
     </p>
     <source>
     <![CDATA[<?xml version="1.0" encoding="UTF-8"?>
-      <!DOCTYPE sgs SYSTEM "SGSconfig.dtd">
+    <!DOCTYPE sgs SYSTEM "SGSconfig.dtd">
       
-      <sgs>
-    
-      <server port="9092"/>
+    <sgs>
       
-      <gridservices root="/home/jon/StyxGridServices">
+      <gridservices>
       
         <gridservice name="md5sum" command="/usr/bin/md5sum"
             description="Calculates the MD5 checksum of data that are read from standard input">
@@ -451,9 +479,9 @@
     </sgs>]]>
     </source>
     <p>
-    Working down this file: we specify that we want the SGS server to listen on
-    port 9092 and we say that we want to use the <code>/home/jon/StyxGridServices</code>
-    directory to hold persistent information about all the service instances.
+    Working down this file: The <code>&lt;server&gt;</code> tag is omitted
+    and so <a href="#Overall_structure">default values</a> are chosen for the
+    server settings.
     We specify a single Styx Grid Service called <code>md5sum</code> and specify
     the full path to the executable that we are wrapping.  The SGS takes no
     parameters, but reads data from its standard input and writes data to its

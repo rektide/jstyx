@@ -32,8 +32,6 @@ import java.util.Vector;
 import java.util.Iterator;
 import java.util.Date;
 import javax.net.ssl.SSLContext;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 import java.rmi.server.UID;
 import java.security.MessageDigest;
@@ -71,6 +69,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.DocFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.21  2006/01/05 12:09:15  jonblower
+ * Restructured configuration to give default values for server settings
+ *
  * Revision 1.20  2006/01/05 08:57:38  jonblower
  * Created instance IDs that are unique for all time
  *
@@ -144,7 +145,6 @@ public class StyxGridService
     private static final Logger log = Logger.getLogger(StyxGridService.class);
     
     private static MessageDigest sha = null;
-    private static String localhostIP = null;
     
     // Quartz scheduler that is used to garbage-collect SGS instances
     private static Scheduler sched = null;
@@ -164,8 +164,6 @@ public class StyxGridService
             log.info("Garbage-collector for SGS instances started");
             // Create an instance of the SHA-1 algorithm
             sha = MessageDigest.getInstance("SHA-1");
-            // Get the IP address of this server
-            localhostIP = InetAddress.getLocalHost().getHostAddress();
         }
         catch(SchedulerException se)
         {
@@ -175,11 +173,6 @@ public class StyxGridService
         {
             // Should never happen
             log.fatal("Could not get instance of SHA-1 algorithm");
-            // TODO: exit VM?
-        }
-        catch(UnknownHostException uhe)
-        {
-            log.fatal("Could not get IP address of localhost");
             // TODO: exit VM?
         }
     }
@@ -271,7 +264,7 @@ public class StyxGridService
     
     /**
      * Creates a new StyxGridServiceInstance, adds it to the "instances"
-     * directory and returns its URL.  In future this might create a new instance
+     * directory and returns its full URL.  In future this might create a new instance
      * on another SGS server for purposes of load balancing.
      */
     private String newInstance(String id) throws StyxException
@@ -280,7 +273,9 @@ public class StyxGridService
             this.sgsConfig);
         this.instancesDir.addChild(newInstance);
         // Return the full URL to the new service instance
-        return "styx://" + localhostIP + ":9092" + newInstance.getFullPath();
+        String hostAddress = this.sgsConfig.getServerConfig().getHostAddress();
+        int port = this.sgsConfig.getServerConfig().getPort();
+        return "styx://" + hostAddress + ":" + port + newInstance.getFullPath();
     }
     
     // The clone file - reading this file creates a new instance of the Grid Service
