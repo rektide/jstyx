@@ -32,6 +32,12 @@ import java.util.Vector;
 import java.util.Iterator;
 import java.util.Date;
 import javax.net.ssl.SSLContext;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+import java.rmi.server.UID;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
@@ -65,6 +71,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.DocFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.20  2006/01/05 08:57:38  jonblower
+ * Created instance IDs that are unique for all time
+ *
  * Revision 1.19  2006/01/04 16:45:29  jonblower
  * Implemented automatic termination of SGS instances using Quartz scheduler
  *
@@ -134,10 +143,12 @@ public class StyxGridService
     
     private static final Logger log = Logger.getLogger(StyxGridService.class);
     
+    private static MessageDigest sha = null;
+    private static String localhostIP = null;
+    
     // Quartz scheduler that is used to garbage-collect SGS instances
     private static Scheduler sched = null;
     
-    private int nextInstanceID; // The ID number of the next instance to be created
     private StyxDirectory root; // The root of the Grid Service
     private StyxDirectory instancesDir; // Directory to hold SGS instances
     private SGSConfig sgsConfig; // The configuration for the SGS and its instances
@@ -151,10 +162,25 @@ public class StyxGridService
             sched = new StdSchedulerFactory().getScheduler();
             sched.start();
             log.info("Garbage-collector for SGS instances started");
+            // Create an instance of the SHA-1 algorithm
+            sha = MessageDigest.getInstance("SHA-1");
+            // Get the IP address of this server
+            localhostIP = InetAddress.getLocalHost().getHostAddress();
         }
         catch(SchedulerException se)
         {
             log.error("Could not start garbage-collector for SGS instances");
+        }
+        catch(NoSuchAlgorithmException nsae)
+        {
+            // Should never happen
+            log.fatal("Could not get instance of SHA-1 algorithm");
+            // TODO: exit VM?
+        }
+        catch(UnknownHostException uhe)
+        {
+            log.fatal("Could not get IP address of localhost");
+            // TODO: exit VM?
         }
     }
     
@@ -165,7 +191,6 @@ public class StyxGridService
     public StyxGridService(SGSConfig sgsConfig) throws StyxException
     {
         log.debug("Creating StyxGridService called " + sgsConfig.getName());
-        this.nextInstanceID = 0;
         this.root = new StyxDirectory(sgsConfig.getName());
         this.root.addChild(new CloneFile());
         
@@ -218,13 +243,30 @@ public class StyxGridService
     }
     
     /**
-     * Returns the next available instance ID
+     * @return a unique ID for an instance.  This is the SHA-1 hash of a
+     * generated java.rmi.server.UID
      */
-    private synchronized String getInstanceID()
+    private static String getUniqueInstanceID()
     {
-        int nextID = this.nextInstanceID;
-        this.nextInstanceID++;
-        return "" + nextID;
+        String uid = new UID().toString();
+        byte[] digest = sha.digest(uid.getBytes());
+        return hexEncode(digest);
+    }
+    
+    /**
+     * @return the hex encoding of the given byte array
+     */
+    private static String hexEncode(byte[] aInput)
+    {
+        StringBuffer result = new StringBuffer();
+        char[] digits = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
+        for (int idx = 0; idx < aInput.length; idx++)
+        {
+            byte b = aInput[idx];
+            result.append( digits[ (b&0xf0) >> 4 ] );
+            result.append( digits[ b&0x0f] );
+        }
+        return result.toString();
     }
     
     /**
@@ -237,18 +279,8 @@ public class StyxGridService
         StyxDirectory newInstance = new StyxGridServiceInstance(this, id,
             this.sgsConfig);
         this.instancesDir.addChild(newInstance);
-        // Get the host name or IP address of this server
-        String hostname;
-        try
-        {
-            hostname = java.net.InetAddress.getLocalHost().getHostAddress();
-        }
-        catch(java.net.UnknownHostException uhe)
-        {
-            hostname = "unknown";
-        }
-        // TODO for the moment, just return the ID - later we'll return the full URL
-        return id;// "styx://" + hostname + ":9092" + newInstance.getFullPath();
+        // Return the full URL to the new service instance
+        return "styx://" + localhostIP + ":9092" + newInstance.getFullPath();
     }
     
     // The clone file - reading this file creates a new instance of the Grid Service
@@ -272,13 +304,15 @@ public class StyxGridService
         {
             if (offset == 0)
             {
-                // Create a new StyxGridServiceInstance and return its id
-                String id = getInstanceID();
+                // Generate a unique ID for this instance
+                String id = getUniqueInstanceID();
                 
-                // Construct the reply message
+                // Create a new StyxGridServiceInstance and return its URL
                 String newInstanceURL = newInstance(id);
                 byte[] msgBytes = StyxUtils.strToUTF8(newInstanceURL);
                 // Check that the client has requested enough bytes for the reply
+                // TODO: we can check this in advance, since we know how long the
+                // reply will be
                 if (count < msgBytes.length)
                 {
                     // TODO: delete the new instance, or perhaps just return
