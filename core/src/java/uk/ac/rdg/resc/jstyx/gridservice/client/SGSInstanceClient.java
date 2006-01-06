@@ -54,10 +54,12 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
+import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeAdapter;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.client.CStyxFileOutputStream;
+import uk.ac.rdg.resc.jstyx.client.MessageCallback;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
@@ -70,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.49  2006/01/06 10:15:36  jonblower
+ * Implemented uploadInputFilesAsync()
+ *
  * Revision 1.48  2006/01/05 16:06:34  jonblower
  * SGS clients now deal with possibility that client could be created on a different server
  *
@@ -944,11 +949,106 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                         log.debug("URL for " + targetFile.getPath() + " set.");
                         if (inputFile.getType() == SGSInput.STREAM)
                         {
+                            // Setting stdinSrc to a String is the signal that
+                            // we have already set the stdin URL and there is no
+                            // need to upload data from the local client
                             this.stdinSrc = (String)fileOrUrl;
                         }
                     }
                 }
             }
+        }
+    }
+    
+    /**
+     * Uploads the input files to the server.  This method returns immediately:
+     * the XXX method will be fired on all registered change listeners when 
+     * each input file is uploaded.
+     */
+    public void uploadInputFilesAsync()
+    {
+        new InputFilesUploader().nextStage();
+    }
+    
+    private class InputFilesUploader extends MessageCallback
+    {
+        Enumeration en = filesToUpload.keys();
+        SGSInput inputFile;
+        Iterator filesAndUrls;
+        
+        public void nextStage()
+        {
+            if (filesAndUrls == null || !filesAndUrls.hasNext())
+            {
+                // Need to move to the next input file
+                if (en.hasMoreElements())
+                {
+                    this.inputFile = (SGSInput)en.nextElement();
+                    filesAndUrls = ((Vector)filesToUpload.get(this.inputFile)).iterator();
+                }
+                else
+                {
+                    // There are no more files to upload
+                    // TODO move to the next stage
+                    return;
+                }
+            }
+            CStyxFile targetFile;
+            Object fileOrUrl = filesAndUrls.next();
+            if (fileOrUrl instanceof File)
+            {
+                File f = (File)fileOrUrl;
+                if (this.inputFile.getType() == SGSInput.STREAM)
+                {
+                    // Don't upload any data: wait for the service to start,
+                    // then upload in a separate thread (TODO)
+                    stdinSrc = f;
+                }
+                else
+                {
+                    if (this.inputFile.getType() == SGSInput.FILE)
+                    {
+                        // The name of the target file is fixed
+                        targetFile = inputsDir.getFile(this.inputFile.getName());
+                    }
+                    else
+                    {
+                        // This must be a file whose name is given by a parameter
+                        targetFile = inputsDir.getFile(f.getName());
+                    }
+                    targetFile.uploadAsync(f, this);
+                }
+            }
+            else
+            {
+                // This is a URL to a file.  We do not set this for an input
+                // file that is set by a parameter: this is handled separately
+                // by the server
+                if (this.inputFile.getType() != SGSInput.FILE_FROM_PARAM)
+                {
+                    targetFile = inputsDir.getFile(this.inputFile.getName());
+                    // TODO: do we now have to write EOF and close the file?
+                    targetFile.writeAsync((String)fileOrUrl, 0, this);
+                    if (inputFile.getType() == SGSInput.STREAM)
+                    {
+                        // Setting stdinSrc to a String is the signal that
+                        // we have already set the stdin URL and there is no
+                        // need to upload data from the local client
+                        stdinSrc = (String)fileOrUrl;
+                    }
+                }
+            }
+        }
+        
+        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
+        {
+            // TODO: notify clients that file has been uploaded
+            // Just move to the next file
+            this.nextStage();
+        }
+        
+        public void error(String message, StyxMessage tMessage)
+        {
         }
     }
     
