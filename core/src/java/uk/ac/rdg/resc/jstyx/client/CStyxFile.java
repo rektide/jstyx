@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.45  2006/01/06 10:14:22  jonblower
+ * Clarified comments
+ *
  * Revision 1.44  2005/12/07 08:51:13  jonblower
  * Added option to readAsync() to open file for reading and writing with truncation
  *
@@ -1026,8 +1029,9 @@ public class CStyxFile
     }
     
     /**
-     * Gets a file on the same connection as this CStyxFile, without opening 
-     * or creating it.
+     * Gets a reference to a file on the same connection as this CStyxFile.
+     * This does not open, create or check the existence of the file: no
+     * messages are sent to the server in this method so this will never block.
      * @param path The path of the file to be opened, <i>relative to this file</i>.
      * @throws InvalidPathException if the path is not valid
      */

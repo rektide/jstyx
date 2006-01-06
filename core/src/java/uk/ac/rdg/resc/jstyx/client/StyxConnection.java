@@ -68,6 +68,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.26  2006/01/06 10:14:22  jonblower
+ * Clarified comments
+ *
  * Revision 1.25  2005/12/01 08:21:55  jonblower
  * Fixed javadoc comments
  *
@@ -777,6 +780,8 @@ public class StyxConnection implements ProtocolHandler
     /**
      * Gets a CStyxFile with the given path.  Note that each call to this method
      * will return a new object, even if the path is identical.
+     * This does not open, create or check the existence of the file: no
+     * messages are sent to the server in this method so this will never block.
      * @throws InvalidPathException if the given path is not valid and absolute
      * (only catch this runtime exception if it is likely that the path could be
      * invalid, e.g. when the path is being input by a user)
