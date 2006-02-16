@@ -343,7 +343,7 @@
       <tbody>
       <tr><th>Attribute</th><th>Possible values</th><th>Default value</th><th>Purpose</th></tr>
       <tr><td>type</td><td>&quot;stream&quot;, &quot;file&quot; or &quot;fileFromParam&quot;</td>
-            <td>&quot;file&quot;</td><td>Type of the input.  If <code>type=&quot;stream&quot;</code> then
+            <td>&quot;file&quot;</td><td>Type of the output.  If <code>type=&quot;stream&quot;</code> then
             the <code>name</code> must be &quot;stdout&quot; or &quot;stderr&quot;.  If the name of the file is
             fixed then <code>type=&quot;file&quot;</code>.  If the name of the file is
             specified by a command-line argument, then <code>type=&quot;fileFromParam&quot;</code>.</td></tr>
