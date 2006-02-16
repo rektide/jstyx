@@ -64,6 +64,7 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSParam;
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
 
 /**
  * Simple program that logs on to an SGS server, creates a new service instance,
@@ -73,6 +74,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2006/02/16 17:34:16  jonblower
+ * Working towards handling output files and references thereto
+ *
  * Revision 1.15  2006/01/05 16:06:34  jonblower
  * SGS clients now deal with possibility that client could be created on a different server
  *
@@ -121,7 +125,7 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSInput;
  */
 public class SGSRun extends CStyxFileChangeAdapter
 {
-    private static final String OUTPUT_REFS = "sgs-output-refs";
+    private static final String OUTPUT_ALL_REFS = "sgs-ref-all";
     private static final String HELP = "sgs-help";
     private static final String VERBOSE_HELP = "sgs-verbose-help";
     private static final String DEBUG = "sgs-debug";
@@ -195,24 +199,42 @@ public class SGSRun extends CStyxFileChangeAdapter
             // Add a switch to enable debugging messages to be printed to stdout
             jsap.registerParameter(new Switch(DEBUG, JSAP.NO_SHORTFLAG, DEBUG,
                 "Set this switch in order to enable printing of debug messages"));
-            // Add a switch to allow outputting of references to files instead of
-            // the actual files themselves
-            jsap.registerParameter(new Switch(OUTPUT_REFS, JSAP.NO_SHORTFLAG, OUTPUT_REFS,
+            // Add a switch to allow outputting of references to all output files
+            // instead of the actual files themselves
+            jsap.registerParameter(new Switch(OUTPUT_ALL_REFS, JSAP.NO_SHORTFLAG, OUTPUT_ALL_REFS,
                 "Set this switch in order to get URLs to all output files rather than actual files"));
             
             // Add a parameter for each fixed input file so that the user can set the
-            // URL with an argument like --sgs-input.txt-ref=
+            // URL with an argument like --sgs-ref-input.txt=
             Vector inputs = this.config.getInputs();
             for (int i = 0; i < inputs.size(); i++)
             {
                 SGSInput input = (SGSInput)inputs.get(i);
                 if (input.getType() == SGSInput.FILE)
                 {
-                    jsap.registerParameter(new FlaggedOption("sgs-" + input.getName() + "-ref",
+                    jsap.registerParameter(new FlaggedOption("sgs-ref-" + input.getName(),
                         JSAP.STRING_PARSER, null, false, JSAP.NO_SHORTFLAG,
-                        "sgs-" + input.getName() + "-ref",
+                        "sgs-ref-" + input.getName(),
                         "If set, will cause the input file " + input.getName() +
                         " to be uploaded from the given URL"));
+                }
+            }
+            
+            // Add a parameter for each fixed output file so that the user can
+            // choose to receive a URL to the data instead of the data themselves,
+            // with the switch 
+            Vector outputs = this.config.getOutputs();
+            for (int i = 0; i < outputs.size(); i++)
+            {
+                SGSOutput output = (SGSOutput)outputs.get(i);
+                if (output.getType() == SGSOutput.FILE ||
+                    output.getType() == SGSOutput.STREAM)
+                {
+                    // This is a fixed output file, i.e. not specified by a parameter
+                    jsap.registerParameter(new Switch("sgs-ref-" + output.getName(),
+                        JSAP.NO_SHORTFLAG, "sgs-ref-" + output.getName(),
+                        "If set, will download a URL to " + output.getName() +
+                        " instead of the actual data"));
                 }
             }
         }
@@ -361,9 +383,9 @@ public class SGSRun extends CStyxFileChangeAdapter
     }
     
     /**
-     * Upload the input files to the server.
+     * Sets the input sources for the Styx Grid Service
      */
-    public void uploadInputFiles() throws StyxException
+    public void setInputSources() throws StyxException
     {
         // First schedule the fixed input files (inc. stdin) for upload
         for (Enumeration en = this.filesToUpload.keys(); en.hasMoreElements(); )
@@ -394,22 +416,37 @@ public class SGSRun extends CStyxFileChangeAdapter
     }
     
     /**
-     * Starts the service and begins reading from the output streams
-     * @throws StyxException if there was an error starting the service
+     * Sets default destinations for all the output streams, except those for 
+     * which th
      */
-    public void start() throws StyxException
+    public void setOutputDestinations() throws StyxException
     {
-        // Start the service.
-        this.instanceClient.startService();
-        this.readOutputStreams();
-        this.serviceStarted = true;
-    }
-    
-    /**
-     * Prepares the output streams and starts reading from them
-     */
-    private void readOutputStreams() throws StyxException
-    {
+        // If we've set --sgs-ref-all then we won't download any data at all
+        if (this.result.getBoolean(OUTPUT_ALL_REFS) == false)
+        {
+            String[] outputFiles = this.instanceClient.getOutputFileNames();
+            for (int i = 0; i < outputFiles.length; i++)
+            {
+                if (outputFiles[i].equals("stdout"))
+                {
+                    if (this.result.getBoolean("sgs-ref-stdout") == false)
+                    {
+                        this.instanceClient.setOutputDestination(outputFiles[i], System.out);
+                    }
+                }
+                else if (outputFiles[i].equals("stderr"))
+                {
+                    if (this.result.getBoolean("sgs-ref-stderr") == false)
+                    {
+                        this.instanceClient.setOutputDestination(outputFiles[i], System.err);
+                    }
+                }
+                else
+                {
+                    
+                }
+            }
+        }
         /*// Get handles to the output streams and register this class as a listener
         this.osFiles = this.instanceClient.getOutputs();
         this.outputStreams = new Hashtable();
@@ -457,6 +494,17 @@ public class SGSRun extends CStyxFileChangeAdapter
                 this.osFiles[i].readAsync(0);
             }
         }*/
+    }
+    
+    /**
+     * Starts the service and begins reading from the output streams
+     * @throws StyxException if there was an error starting the service
+     */
+    public void start() throws StyxException
+    {
+        // Start the service.
+        this.instanceClient.startService();
+        this.serviceStarted = true;
     }
     
     /**
@@ -599,8 +647,11 @@ public class SGSRun extends CStyxFileChangeAdapter
             // Set the parameters of the service instance
             runner.setParameters();
             
-            // Upload the input files
-            runner.uploadInputFiles();
+            // Set the input sources
+            runner.setInputSources();
+            
+            // Set the output destinations
+            runner.setOutputDestinations();
             
             // Start the service
             runner.start();
