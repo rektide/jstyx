@@ -57,6 +57,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2006/02/17 09:26:08  jonblower
+ * Removed reference to SGSParamFile
+ *
  * Revision 1.2  2005/11/11 21:57:21  jonblower
  * Implemented passing of URLs to input files
  *
@@ -70,7 +73,6 @@ public class SGSOutputFile extends StyxFile implements SGSInstanceChangeListener
     private static final Logger log = Logger.getLogger(SGSOutputFile.class);
     
     private File file; // The underlying file that is produced by the executable
-    private SGSParamFile paramFile;  // The parameter that is linked to this output file
     private Vector requestQueue; // Queue of DataRequests that have not yet been fulfilled
     private boolean serviceFinished;
     
