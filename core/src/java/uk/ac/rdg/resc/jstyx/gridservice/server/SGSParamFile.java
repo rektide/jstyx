@@ -59,6 +59,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.21  2006/02/17 09:24:55  jonblower
+ * Change to comments
+ *
  * Revision 1.20  2005/12/07 17:47:58  jonblower
  * Changed "commandline" file to "args" - now just contains arguments, not program name
  *
@@ -270,7 +273,7 @@ public class SGSParamFile extends AsyncStyxFile
             else if (this.param.getInputFile() != null)
             {
                 // This parameter represents an input file.
-                // For each value in this paramter, see if it is a "readfrom:<url>"
+                // For each value in this parameter, see if it is a "readfrom:<url>"
                 // If so, do nothing: if not, add an InputFile to allow clients
                 // to upload data to this file
                 String[] files = newValue.split(" ");
@@ -286,6 +289,7 @@ public class SGSParamFile extends AsyncStyxFile
                     }
                 }
             }
+            // Parameters representing output files don't show up in the namespace
         }
         // TODO: only set contents if the value has changed
         ((InMemoryFile)this.baseFile).setContents(newValue);
