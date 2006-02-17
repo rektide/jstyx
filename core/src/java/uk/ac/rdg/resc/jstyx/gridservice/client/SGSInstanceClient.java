@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.50  2006/02/17 09:26:59  jonblower
+ * Changes to comments
+ *
  * Revision 1.49  2006/01/06 10:15:36  jonblower
  * Implemented uploadInputFilesAsync()
  *
@@ -339,7 +342,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // Get the directory that holds the input files
         this.inputsDir = this.instanceRoot.getFile("inputs");
         
-        // Get the directory that holds the output files
+        // Get the list of output files
         this.outputFiles = this.instanceRoot.getFile("outputs").getChildren();
         this.activeStreams = new Hashtable();
         
@@ -532,6 +535,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * Gets the names of all the output files
      * @return Array of Strings, one for each output stream or file from which data
      * can be read.
      */
