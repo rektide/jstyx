@@ -77,8 +77,12 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.46  2006/02/17 17:34:12  jonblower
+ * Changes to comments
+ *
  * Revision 1.45  2006/02/17 09:24:02  jonblower
- * Changed so that output files are added to the namespace on initialization and parameters representing output files are not present in the namespace
+ * Changed so that output files are added to the namespace on initialization and 
+ * parameters representing output files are not present in the namespace
  *
  * Revision 1.44  2006/01/04 16:45:29  jonblower
  * Implemented automatic termination of SGS instances using Quartz scheduler
@@ -183,7 +187,8 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * Changed 'count' from long to int throughout for reading and writing
  *
  * Revision 1.4  2005/03/24 07:57:41  jonblower
- * Improved code for reading SSL info from SGSconfig file and included parameter information for the Grid Services in the config file
+ * Improved code for reading SSL info from SGSconfig file and included parameter
+ * information for the Grid Services in the config file
  *
  * Revision 1.3  2005/03/19 21:47:02  jonblower
  * Further fixes relating to releasing ByteBuffers
@@ -195,7 +200,8 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * Added Styx Grid Service classes to core module
  *
  * Revision 1.2  2005/03/16 17:59:35  jonblower
- * Changed following changes to core JStyx library (replacement of java.nio.ByteBuffers with MINA's ByteBuffers)
+ * Changed following changes to core JStyx library (replacement of
+ * java.nio.ByteBuffers with MINA's ByteBuffers)
  *
  * Revision 1.1  2005/02/16 19:22:32  jonblower
  * Commit adding of SGS files to CVS
