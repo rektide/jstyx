@@ -74,6 +74,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.17  2006/02/17 09:27:50  jonblower
+ * Working towards handling output files properly
+ *
  * Revision 1.16  2006/02/16 17:34:16  jonblower
  * Working towards handling output files and references thereto
  *
@@ -374,11 +377,18 @@ public class SGSRun extends CStyxFileChangeAdapter
         for (Iterator it = params.iterator(); it.hasNext(); )
         {
             SGSParam param = (SGSParam)it.next();
-            // Set the parameter value
-            // TODO need to check that getStringArray() also works for 
-            // switches (we hope it returns "true" or "false")
-            this.instanceClient.setParameterValue(param,
-                this.result.getStringArray(param.getName()));
+            if (param.getType() == SGSParam.OUTPUT_FILE)
+            {
+                // TODO Set the output destination and check for .sgsref
+            }
+            else
+            {
+                // Just set the parameter value
+                // TODO need to check that getStringArray() also works for 
+                // switches (we hope it returns "true" or "false")
+                this.instanceClient.setParameterValue(param,
+                    this.result.getStringArray(param.getName()));
+            }
         }
     }
     
@@ -416,8 +426,20 @@ public class SGSRun extends CStyxFileChangeAdapter
     }
     
     /**
-     * Sets default destinations for all the output streams, except those for 
-     * which th
+     * Starts the service and begins reading from the output streams
+     * @throws StyxException if there was an error starting the service
+     */
+    public void start() throws StyxException
+    {
+        // Start the service.
+        this.instanceClient.startService();
+        this.serviceStarted = true;
+    }
+    
+    /**
+     * Sets default destinations for all the output streams.  Note that we have
+     * already set the destinations for the outputs that are set via a parameter
+     * in the setParameters() method
      */
     public void setOutputDestinations() throws StyxException
     {
@@ -494,17 +516,6 @@ public class SGSRun extends CStyxFileChangeAdapter
                 this.osFiles[i].readAsync(0);
             }
         }*/
-    }
-    
-    /**
-     * Starts the service and begins reading from the output streams
-     * @throws StyxException if there was an error starting the service
-     */
-    public void start() throws StyxException
-    {
-        // Start the service.
-        this.instanceClient.startService();
-        this.serviceStarted = true;
     }
     
     /**
