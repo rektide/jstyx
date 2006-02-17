@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.45  2006/02/17 09:24:02  jonblower
+ * Changed so that output files are added to the namespace on initialization and parameters representing output files are not present in the namespace
+ *
  * Revision 1.44  2006/01/04 16:45:29  jonblower
  * Implemented automatic termination of SGS instances using Quartz scheduler
  *
@@ -274,9 +277,14 @@ class StyxGridServiceInstance extends StyxDirectory
         for (int i = 0; i < params.size(); i++)
         {
             SGSParam param = (SGSParam)params.get(i);
-            // Parameter files exhibit asynchronous behaviour so that other
-            // clients can be notified when a parameter value changes
-            this.paramDir.addChild(new SGSParamFile(param, this));
+            // We don't add parameters pertaining to output files to the namespace:
+            // the name of these files in the namespace is fixed
+            if (param.getType() != SGSParam.OUTPUT_FILE)
+            {
+                // Parameter files exhibit asynchronous behaviour so that other
+                // clients can be notified when a parameter value changes
+                this.paramDir.addChild(new SGSParamFile(param, this));
+            }
         }
         this.addChild(paramDir);
         
@@ -310,6 +318,9 @@ class StyxGridServiceInstance extends StyxDirectory
                     + input.getName());
             }
         }
+        
+        // Now add the output files
+        this.addOutputFiles();
         
         // We add the output files when the service is started
         this.addChild(this.inputsDir).addChild(this.outputsDir);
@@ -407,62 +418,34 @@ class StyxGridServiceInstance extends StyxDirectory
     }
     
     /**
-     * Adds the outputs to the outputs/ directory.  This is called after the
-     * service is started.
+     * Adds the output files to the namespace
      */
-    private void addOutputs() throws StyxException
+    private void addOutputFiles() throws StyxException
     {
         Vector outputs = this.sgsConfig.getOutputs();
         for (int i = 0; i < outputs.size(); i++)
         {
             SGSOutput output = (SGSOutput)outputs.get(i);
-            StyxFile fileToAdd = null;
             if (output.getType() == SGSOutput.STREAM)
             {
                 if (output.getName().equals("stdout"))
                 {
                     // Add the standard output file
-                    fileToAdd = this.stdout;
+                    this.outputsDir.addChild(this.stdout);
                 }
                 else if (output.getName().equals("stderr"))
                 {
                     // Add the standard error file
-                    fileToAdd = this.stderr;
+                    this.outputsDir.addChild(this.stderr);
                 }
             }
-            else if (output.getType() == SGSOutput.FILE)
+            else
             {
+                // For fixed-name files we create an SGSOutputFile named after the
+                // file name.  For files that get their name from a parameter,
+                // we name the SGSOutputFile after the parameter name
                 File file = new File(this.workDir, output.getName());
-                fileToAdd = new SGSOutputFile(file, this);
-            }
-            else if (output.getType() == SGSOutput.FILE_FROM_PARAM)
-            {
-                // Get the name of the file from the relevant parameter
-                boolean found = false;
-                StyxFile[] paramFiles = this.paramDir.getChildren();
-                for (int j = 0; j < paramFiles.length; j++)
-                {
-                    SGSParamFile paramFile = (SGSParamFile)paramFiles[j];
-                    if (paramFile.getName().equals(output.getName()))
-                    {
-                        found = true;
-                        String val = paramFile.getParameterValue();
-                        if (val != null && !val.equals(""))
-                        {
-                            File file = new File(this.workDir, val);
-                            fileToAdd = new SGSOutputFile(file, this);
-                        }
-                    }
-                }
-                if (!found)
-                {
-                    throw new StyxException("Internal error: couldn't find parameter file "
-                        + output.getName());
-                }
-            }
-            if (fileToAdd != null)
-            {
-                this.outputsDir.addChild(fileToAdd);
+                this.outputsDir.addChild(new SGSOutputFile(file, this));
             }
         }
     }
@@ -667,9 +650,6 @@ class StyxGridServiceInstance extends StyxDirectory
                 // any input files that have been specified by reference.
                 // TODO: this will block until all the data have been downloaded.
                 prepareInputFiles();
-                
-                // Add the output files to the namespace
-                addOutputs();
                 
                 // Start the executable
                 try
