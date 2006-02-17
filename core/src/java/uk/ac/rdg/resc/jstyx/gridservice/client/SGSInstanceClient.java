@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.51  2006/02/17 17:34:43  jonblower
+ * Implemented (but didn't test) proper handling of output files
+ *
  * Revision 1.50  2006/02/17 09:26:59  jonblower
  * Changes to comments
  *
@@ -405,7 +408,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         this.ctlFile.setContents("start");
         this.uploadToStdin();
-        this.readOutputFiles();
     }
     
     /**
@@ -449,21 +451,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             }
             // If neither of those conditions are true, we have already set a 
             // URL for stdin
-        }
-    }
-    
-    /**
-     * Starts reading from the output files for which we have set an output
-     * destination.  When output data arrive from these files, the dataArrived()
-     * method will be called on this class
-     */
-    private void readOutputFiles()
-    {
-        for (Enumeration en = this.filesToDownload.keys(); en.hasMoreElements(); )
-        {
-            CStyxFile output = (CStyxFile)en.nextElement();
-            output.addChangeListener(this);
-            output.readAsync(0);
         }
     }
     
@@ -542,6 +529,22 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public String[] getOutputFileNames() throws StyxException
     {
         return getFileNamesAsArray(this.outputFiles);
+    }
+    
+    /**
+     * @return the full URL to the output file with the given name
+     * @throws IllegalArgumentException if there is no file with the given name
+     */
+    public String getOutputFileURL(String filename)
+    {
+        for (int i = 0; i < this.outputFiles.length; i++)
+        {
+            if (this.outputFiles[i].getName().equals(filename))
+            {
+                return this.outputFiles[i].getURL();
+            }
+        }
+        throw new IllegalArgumentException("There is no output file called " + filename);
     }
     
     /**
@@ -699,11 +702,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     
     /**
      * Checks to see if we are allowed to add more data sources to the given
-     * SGSInput object, throwing an IllegalStateException if we are not.  Has the
-     * side-effect of creating an empty Vector to contain the data sources if one
-     * does not already exist, so after calling this method it is safe to call
-     * <code>Vector v = (Vector)this.filesToUpload.get(inputFile);</code>
-     * in the knowledge that <code>v</code> will not be null.
+     * SGSInput object, throwing an IllegalStateException if we are not.
      * @param inputFile the SGSInput object
      * @throws IllegalStateException if <code>inputFile</code> is a stream
      * or a fixed input file and we have already set an input source for this
@@ -727,7 +726,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Sets the destination for an output file
+     * Starts reading data from the given output file and redirects the data
+     * to the given PrintStream.  The same output cannot be redirected to multiple
+     * destinations (currently) so calling this method multiple times on the same
+     * output file name will have no effect.
      * @param outputFileName Name of the output file (as returned by
      * getOutputFileNames())
      * @param dest The PrintStream (e.g. System.out) to which the data will be
@@ -735,21 +737,30 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * @throws IllegalArgumentException if there is no output file with the
      * given name
      */
-    public void setOutputDestination(String outputFileName, PrintStream dest)
+    public void redirectOutput(String outputFileName, PrintStream dest)
     {
         for (int i = 0; i < this.outputFiles.length; i++)
         {
             if (outputFileName.equals(this.outputFiles[i].getName()))
             {
-                this.filesToDownload.put(this.outputFiles[i], dest);
+                // Don't do anything if we're already downloading from this file
+                if (!this.filesToDownload.containsKey(this.outputFiles[i]))
+                {
+                    this.filesToDownload.put(this.outputFiles[i], dest);
+                    this.outputFiles[i].addChangeListener(this);
+                    this.outputFiles[i].readAsync(0);
+                }
                 return;
             }
         }
         throw new IllegalArgumentException(outputFileName + " is not a valid output file");
     }
-    
+        
     /**
-     * Sets the destination for an output file
+     * Starts reading data from the given output file and redirects the data
+     * to the given local File.  The same output cannot be redirected to multiple
+     * destinations (currently) so calling this method multiple times on the same
+     * output file name will have no effect.
      * @param outputFileName Name of the output file (as returned by
      * getOutputFileNames())
      * @param file the local file to which the data will be written.
@@ -758,10 +769,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * @throws IllegalArgumentException if there is no output file with the
      * given name
      */
-    public void setOutputDestination(String outputFileName, File file)
+    public void redirectOutput(String outputFileName, File file)
         throws FileNotFoundException
     {
-        this.setOutputDestination(outputFileName, new PrintStream(file));
+        this.redirectOutput(outputFileName, new PrintStream(file));
     }
     
     /**
@@ -1388,8 +1399,6 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 // Start writing data to standard input if necessary
                 this.uploadToStdin();
-                // Start reading from the output files
-                this.readOutputFiles();
                 this.fireServiceStarted();
             }
             else if (message.equalsIgnoreCase("stop"))

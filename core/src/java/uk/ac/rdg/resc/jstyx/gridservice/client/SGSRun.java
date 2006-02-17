@@ -53,8 +53,6 @@ import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
-import uk.ac.rdg.resc.jstyx.client.CStyxFileOutputStream;
-import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeAdapter;
 
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 
@@ -74,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.18  2006/02/17 17:34:44  jonblower
+ * Implemented (but didn't test) proper handling of output files
+ *
  * Revision 1.17  2006/02/17 09:27:50  jonblower
  * Working towards handling output files properly
  *
@@ -126,9 +127,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
  * Added SGSRun and associated shell scripts
  *
  */
-public class SGSRun extends CStyxFileChangeAdapter
+public class SGSRun
 {
-    private static final String OUTPUT_ALL_REFS = "sgs-ref-all";
+    private static final String OUTPUT_ALL_REFS = "sgs-allrefs";
     private static final String HELP = "sgs-help";
     private static final String VERBOSE_HELP = "sgs-verbose-help";
     private static final String DEBUG = "sgs-debug";
@@ -143,9 +144,6 @@ public class SGSRun extends CStyxFileChangeAdapter
     private JSAPResult result; // Result of parsing command-line parameters
     
     private boolean debug;  // If set true we will print debug messages to stdout
-    
-    private CStyxFile[] osFiles;
-    private Hashtable/*<CStyxFile, PrintStream>*/ outputStreams; // The streams from which we can read output data
     
     private SGSConfig config;  // Config info for this SGS, read from the server
     
@@ -379,7 +377,7 @@ public class SGSRun extends CStyxFileChangeAdapter
             SGSParam param = (SGSParam)it.next();
             if (param.getType() == SGSParam.OUTPUT_FILE)
             {
-                // TODO Set the output destination and check for .sgsref
+                // We'll deal with this later, in readOutputFiles()
             }
             else
             {
@@ -437,85 +435,78 @@ public class SGSRun extends CStyxFileChangeAdapter
     }
     
     /**
-     * Sets default destinations for all the output streams.  Note that we have
+     * Starts reading from the output files.  Note that we have
      * already set the destinations for the outputs that are set via a parameter
      * in the setParameters() method
      */
-    public void setOutputDestinations() throws StyxException
+    public void readOutputFiles() throws StyxException, FileNotFoundException
     {
-        // If we've set --sgs-ref-all then we won't download any data at all
-        if (this.result.getBoolean(OUTPUT_ALL_REFS) == false)
+        // Go through all the output files in the config object.  Each of these
+        // will be represented by a file in the server's namespace
+        boolean allRefs = this.result.getBoolean(OUTPUT_ALL_REFS);
+        Vector outputFiles = this.config.getOutputs();
+        for (int i = 0; i < outputFiles.size(); i++)
         {
-            String[] outputFiles = this.instanceClient.getOutputFileNames();
-            for (int i = 0; i < outputFiles.length; i++)
+            SGSOutput output = (SGSOutput)outputFiles.get(i);
+            if (output.getType() == SGSOutput.FILE_FROM_PARAM)
             {
-                if (outputFiles[i].equals("stdout"))
+                // The name of this output file is specified by the value of the
+                // parameter with the same name
+                String filename = this.result.getStringArray(output.getName())[0].trim();
+                PrintStream prtStr = this.getPrintStream(filename);
+                if (allRefs || filename.endsWith(".sgsref"))
                 {
-                    if (this.result.getBoolean("sgs-ref-stdout") == false)
-                    {
-                        this.instanceClient.setOutputDestination(outputFiles[i], System.out);
-                    }
+                    // We output a reference to this file
+                    prtStr.print("readfrom:" +
+                        this.instanceClient.getOutputFileURL(output.getName()));
+                    prtStr.close();
                 }
-                else if (outputFiles[i].equals("stderr"))
+                else
                 {
-                    if (this.result.getBoolean("sgs-ref-stderr") == false)
+                    // We must redirect this output to the filename that was given
+                    // by the parameter value
+                    this.instanceClient.redirectOutput(output.getName(), prtStr);
+                }
+            }
+            else
+            {
+                // This is a fixed-name file or a standard stream
+                PrintStream prtStr = this.getPrintStream(output.getName());
+                if (allRefs || this.result.getBoolean("sgs-ref-" + output.getName()))
+                {
+                    prtStr.print("readfrom:" + this.instanceClient.getOutputFileURL(output.getName()));
+                    if (prtStr != System.out && prtStr != System.err)
                     {
-                        this.instanceClient.setOutputDestination(outputFiles[i], System.err);
+                        prtStr.close();
                     }
                 }
                 else
                 {
-                    
+                    this.instanceClient.redirectOutput(output.getName(), prtStr);
                 }
             }
         }
-        /*// Get handles to the output streams and register this class as a listener
-        this.osFiles = this.instanceClient.getOutputs();
-        this.outputStreams = new Hashtable();
-        for (int i = 0; i < osFiles.length; i++)
+    }
+    
+    /**
+     * @return a PrintStream for the given output file name.  If a file with the
+     * given name already exists, this truncates the file to zero length.
+     * @throws FileNotFoundException if the file exists but is a directory.
+     */
+    private PrintStream getPrintStream(String filename) throws FileNotFoundException
+    {
+        if (filename.equals("stdout"))
         {
-            this.osFiles[i].addChangeListener(this);
-            PrintStream prtStr = null;
-            if (this.osFiles[i].getName().equals("stdout"))
-            {
-                prtStr = System.out;
-            }
-            else if (this.osFiles[i].getName().equals("stderr"))
-            {
-                prtStr = System.err;
-            }
-            else
-            {
-                try
-                {
-                    FileOutputStream fout = new FileOutputStream(osFiles[i].getName());
-                    prtStr = new PrintStream(fout);
-                }
-                catch(FileNotFoundException fnfe)
-                {
-                    // Called by FileOutputStream constructor
-                    System.err.println("Couldn't create target file for "
-                        + osFiles[i].getName() + ": " + fnfe.getMessage());
-                }
-            }
-            if (this.result.getBoolean(OUTPUT_REFS))
-            {
-                // Just write the URL to the relevant PrintStream
-                PrintWriter writer = new PrintWriter(prtStr);
-                writer.write("readfrom:" + osFiles[i].getURL());
-                writer.close();
-            }
-            else
-            {
-                this.openStreams++;
-                this.outputStreams.put(osFiles[i], prtStr);
-                if (this.debug)
-                {
-                    System.out.println("Started reading from " + this.osFiles[i].getName());
-                }
-                this.osFiles[i].readAsync(0);
-            }
-        }*/
+            return System.out;
+        }
+        else if (filename.equals("stderr"))
+        {
+            return System.err;
+        }
+        else
+        {
+            return new PrintStream(filename);
+        }
     }
     
     /**
@@ -529,72 +520,6 @@ public class SGSRun extends CStyxFileChangeAdapter
         }
     }
     
-    /**
-     * This method is called when data arrive from one of the output streams
-     */
-    public void dataArrived(CStyxFile file, TreadMessage tReadMsg, ByteBuffer data)
-    {
-        if (file == this.exitCodeFile)
-        {
-            this.exitCode = StyxUtils.dataToString(data);
-            this.checkEnd();
-        }
-        else
-        {
-            // Get the stream associated with this file
-            PrintStream stream = (PrintStream)this.outputStreams.get(file);
-            if (stream == null)
-            {
-                // TODO: log error message (should never happen anyway)
-                System.err.println("stream is null");
-                return;
-            }
-
-            if (data.hasRemaining())
-            {
-                // Calculate the offset from which we need to read the next data chunk
-                long newOffset = tReadMsg.getOffset().asLong() + data.remaining();
-
-                // Get the data out of the buffer
-                byte[] buf = new byte[data.remaining()];
-                data.get(buf);
-
-                // Write the data to the stream
-                stream.write(buf, 0, buf.length);
-
-                // Read the next chunk of data from the file
-                file.readAsync(newOffset);
-            }
-            else
-            {
-                if (stream != System.out && stream != System.err)
-                {
-                    // Don't close the standard streams, we may need them for other
-                    // messages
-                    stream.close();
-                }
-                file.close();
-                this.openStreams--;
-                this.checkEnd();
-            }
-        }
-    }
-    
-    /**
-     * Called when an error occurs reading from one of the streams.  Could
-     * happen if the stream in question does not exist
-     */
-    public void error(CStyxFile file, String message)
-    {
-        // TODO: log the error message somewhere.
-        System.err.println("Error running Styx Grid Service: " + message);
-        file.close();
-        if (file != this.exitCodeFile)
-        {
-            this.openStreams--;
-        }
-        this.checkEnd();
-    }
     
     /**
      * Called when we think the program might have ended (when a stream is closed,
@@ -661,11 +586,11 @@ public class SGSRun extends CStyxFileChangeAdapter
             // Set the input sources
             runner.setInputSources();
             
-            // Set the output destinations
-            runner.setOutputDestinations();
-            
             // Start the service
             runner.start();
+            
+            // Start reading from the output files
+            runner.readOutputFiles();
             
             // Check to see if we can finish now
             runner.checkEnd();
