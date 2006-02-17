@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.23  2006/02/17 09:22:32  jonblower
+ * Added rename() method
+ *
  * Revision 1.22  2006/01/04 16:47:29  jonblower
  * Reworked getName() and getFullPath()
  *
@@ -470,6 +473,33 @@ public class StyxFile
     public void setLastAccessTime(long lastAccessTime)
     {
         this.lastAccessTime = lastAccessTime;
+    }
+    
+    /**
+     * Renames this file to the given name.  If a file with the given name already
+     * exists in the parent directory this method will throw a StyxException.
+     * Also throws a StyxException if this is the root directory.
+     */
+    public void rename(String newName) throws StyxException
+    {
+        if (this.getParent() == null && this.getParent() == this)
+        {
+            throw new StyxException("Cannot change the name of the root directory");
+        }
+        else
+        {
+            // This has a valid parent that is not itself (so this isn't the root
+            // directory)
+            if (this.getParent().childExists(newName))
+            {
+                throw new StyxException("A file with name " + newName + 
+                    " already exists in this directory");
+            }
+            else
+            {
+                this.name = newName;
+            }
+        }
     }
     
     /**
