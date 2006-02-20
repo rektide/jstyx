@@ -40,6 +40,9 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2006/02/20 08:37:32  jonblower
+ * Still working towards handling output data properly in SGSInstanceClient
+ *
  * Revision 1.4  2005/12/07 17:50:01  jonblower
  * Changed gotCommandLine() to gotArguments()
  *
@@ -153,6 +156,17 @@ public interface SGSInstanceClientChangeListener
      * Called when the service is stopped before it has finished
      */
     public void serviceAborted();
+    
+    /**
+     * Called when all the output data have been downloaded
+     */
+    public void allOutputDataDownloaded();
+    
+    /**
+     * Called when the exit code from the service is received: this signals that
+     * the remote executable has completed.
+     */
+    public void gotExitCode(int exitCode);
     
     /**
      * Called when an error occurs

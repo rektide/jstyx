@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.52  2006/02/20 08:37:32  jonblower
+ * Still working towards handling output data properly in SGSInstanceClient
+ *
  * Revision 1.51  2006/02/17 17:34:43  jonblower
  * Implemented (but didn't test) proper handling of output files
  *
@@ -267,6 +270,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     // Used to read command line arguments for debugging
     private CStyxFile argsFile;
     
+    // Vector of service data, parameter etc files that we are already reading
+    // (used by readDataAsync())
+    private Vector filesBeingRead;
+    
     // SGSInstanceClientChangeListeners that are listening for changes to this SGS instance
     private Vector changeListeners;
     
@@ -371,6 +378,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.changeListeners = new Vector();
         this.filesToUpload = new Hashtable();
         this.filesToDownload = new Hashtable();
+        this.filesBeingRead = new Vector();
     }
     
     /**
@@ -397,6 +405,12 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      */
     public void startServiceAsync()
     {
+        // Start reading from the exit code service data file.  When we get
+        // data from this file the service has finished
+        this.readServiceDataValueAsync("exitCode");
+        // Start reading from the status file.  This will confirm when the service
+        // is running, aborted, finished etc
+        this.readServiceDataValueAsync("status");
         this.ctlFile.writeAsync("start", 0);
     }
     
@@ -406,6 +420,12 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      */
     public void startService() throws StyxException
     {
+        // Start reading from the exit code service data file.  When we get
+        // data from this file the service has finished
+        this.readServiceDataValueAsync("exitCode");
+        // Start reading from the status file.  This will confirm when the service
+        // is running, aborted, finished etc
+        this.readServiceDataValueAsync("status");
         this.ctlFile.setContents("start");
         this.uploadToStdin();
     }
@@ -1153,6 +1173,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * reading from the file.  When the file has been completely
      * read, the appropriate event will be fired on all registered change listeners:
      * </p>
+     * <p>If we are already reading from the given file, this method will do
+     * nothing.</p>
      * <table><tbody><tr><th>File type</th><th>Event fired</th></tr>
      * <tr><td>Parameter</td><td>gotParameterValue()</td></tr>
      * <tr><td>Service data</td><td>gotServiceDataValue()</td></tr>
@@ -1169,11 +1191,16 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      */
     private void readDataAsync(CStyxFile file, boolean openForWriting)
     {
-        // Create a StringBuffer to hold the data from this file, then put it
-        // in the Hashtable, keyed by this file
-        this.bufs.put(file, new StringBuffer());
-        file.addChangeListener(this);
-        file.readAsync(0, openForWriting);
+        // Check to see if we are already reading from this file
+        if (!this.filesBeingRead.contains(file))
+        {
+            // Create a StringBuffer to hold the data from this file, then put it
+            // in the Hashtable, keyed by this file
+            this.filesBeingRead.add(file);
+            this.bufs.put(file, new StringBuffer());
+            file.addChangeListener(this);
+            file.readAsync(0, openForWriting);
+        }
     }
     
     /**
@@ -1291,96 +1318,109 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             if (strBuf == null)
             {
                 // This should never happen
-                log.warn("Internal error: strBuf and prtStr are both null");
+                throw new IllegalStateException("Internal error: strBuf and prtStr are both null");
             }
         }
-        else
+        if (data.remaining() > 0)
         {
-            if (data.remaining() > 0)
+            // Calculate the offset of the next read
+            long offset = tReadMsg.getOffset().asLong() + data.remaining();
+            if (prtStr == null)
             {
-                // Calculate the offset of the next read
-                long offset = tReadMsg.getOffset().asLong() + data.remaining();
-                if (prtStr == null)
-                {
-                    // This is not an output file. Add the new data to the buffer.
-                    strBuf.append(StyxUtils.dataToString(data));
-                }
-                else
-                {
-                    // This is an output file.  Write the data to the stream
-                    byte[] buf = new byte[data.remaining()];
-                    data.get(buf);
-                    prtStr.write(buf, 0, buf.length);
-                }
-                // Read the next chunk of data from the file, whatever it was
-                file.readAsync(offset);
+                // This is not an output file. Add the new data to the buffer.
+                strBuf.append(StyxUtils.dataToString(data));
             }
             else
             {
-                // We have zero bytes from the file (i.e. EOF), so we know we have
-                // the complete data for the file.
-                // We now need to know what sort of file this is
-                boolean readAgain = true;
-                boolean found = false;
-                // If this is an output file, close the stream
-                if (prtStr != null)
+                // This is an output file.  Write the data to the stream
+                byte[] buf = new byte[data.remaining()];
+                data.get(buf);
+                prtStr.write(buf, 0, buf.length);
+            }
+            // Read the next chunk of data from the file, whatever it was
+            file.readAsync(offset);
+        }
+        else
+        {
+            // We have zero bytes from the file (i.e. EOF), so we know we have
+            // the complete data for the file.
+            // We now need to know what sort of file this is
+            boolean readAgain = true;
+            boolean found = false;
+            // If this is an output file, close the stream
+            if (prtStr != null)
+            {
+                found = true;
+                readAgain = false;
+                // We don't close the standard streams
+                if (prtStr != System.out && prtStr != System.err)
+                {
+                    prtStr.close();
+                }
+                // See if we have downloaded all output data
+                this.filesToDownload.remove(file);
+                if (this.filesToDownload.size() == 0)
+                {
+                    this.fireAllOutputDataDownloaded();
+                }
+            }
+            // See if this is the arguments file
+            if (!found && file == this.argsFile)
+            {
+                found = true;
+                this.fireGotArguments(strBuf.toString());
+            }
+            // Check to see if this is a service data file
+            for (int i = 0; !found && i < this.serviceDataFiles.length; i++)
+            {
+                if (file == this.serviceDataFiles[i])
                 {
                     found = true;
-                    readAgain = false;
-                    // We don't close the standard streams
-                    if (prtStr != System.out && prtStr != System.err)
+                    if (file.getName().equals("exitCode"))
                     {
-                        prtStr.close();
-                    }
-                }
-                // See if this is the arguments file
-                if (!found && file == this.argsFile)
-                {
-                    found = true;
-                    this.fireGotArguments(strBuf.toString());
-                }
-                // Check to see if this is a service data file
-                for (int i = 0; !found && i < this.serviceDataFiles.length; i++)
-                {
-                    if (file == this.serviceDataFiles[i])
-                    {
-                        found = true;
-                        if (file.getName().equals("exitCode"))
+                        // We don't read the exit code file again because its
+                        // contents will never change once set
+                        readAgain = false;
+                        try
                         {
-                            // We don't read the exit code file again because its
-                            // contents will never change once set
-                            readAgain = false;
+                            int exitCode = Integer.parseInt(strBuf.toString());
+                            this.fireGotExitCode(exitCode);
                         }
-                        this.fireGotServiceDataValue(file.getName(), strBuf.toString());
+                        catch(NumberFormatException nfe)
+                        {
+                            this.fireError("Invalid exit code received (" +
+                                strBuf.toString() + ")");
+                        }
                     }
+                    this.fireGotServiceDataValue(file.getName(), strBuf.toString());
                 }
-                // Now check to see if this is a parameter file
-                for (int i = 0; !found && i < this.paramFiles.length; i++)
+            }
+            // Now check to see if this is a parameter file
+            for (int i = 0; !found && i < this.paramFiles.length; i++)
+            {
+                if (file == this.paramFiles[i])
                 {
-                    if (file == this.paramFiles[i])
-                    {
-                        found = true;
-                        this.fireGotParameterValue(file.getName(), strBuf.toString());
-                    }
+                    found = true;
+                    this.fireGotParameterValue(file.getName(), strBuf.toString());
                 }
-                // Now check to see if this is a steerable parameter file
-                for (int i = 0; !found && i < this.steeringFiles.length; i++)
+            }
+            // Now check to see if this is a steerable parameter file
+            for (int i = 0; !found && i < this.steeringFiles.length; i++)
+            {
+                if (file == this.steeringFiles[i])
                 {
-                    if (file == this.steeringFiles[i])
-                    {
-                        found = true;
-                        this.fireGotSteerableParameterValue(file.getName(), strBuf.toString());
-                    }
+                    found = true;
+                    this.fireGotSteerableParameterValue(file.getName(), strBuf.toString());
                 }
-                // Clear the buffer and start reading again from the file
-                if (strBuf != null)
-                {
-                    strBuf.setLength(0);
-                }
-                if (readAgain)
-                {
-                    file.readAsync(0);
-                }
+            }
+            // Clear the buffer and start reading again from the file
+            if (strBuf != null)
+            {
+                strBuf.setLength(0);
+            }
+            if (readAgain)
+            {
+                file.readAsync(0);
             }
         }
     }
@@ -1593,5 +1633,38 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             }
         }
     }
+    
+    /**
+     * Fires the gotExitCode() event on all registered change listeners
+     */
+    private void fireGotExitCode(int exitCode)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceClientChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
+                listener.gotExitCode(exitCode);
+            }
+        }
+    }
+    
+    /**
+     * Fires the allOutputDataDownloaded() event on all registered change listeners
+     */
+    private void fireAllOutputDataDownloaded()
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceClientChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
+                listener.allOutputDataDownloaded();
+            }
+        }
+    }
+    
     
 }
