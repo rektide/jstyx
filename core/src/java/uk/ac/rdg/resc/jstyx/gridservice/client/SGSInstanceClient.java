@@ -72,6 +72,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.53  2006/02/20 17:35:01  jonblower
+ * Implemented correct handling of output files/streams (not fully tested yet)
+ *
  * Revision 1.52  2006/02/20 08:37:32  jonblower
  * Still working towards handling output data properly in SGSInstanceClient
  *
@@ -313,12 +316,15 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             SGSServerClient serverClient =
                 SGSServerClient.getServerClient(url.getHost(), url.getPort());
             String[] pathEls = url.getPath().split("/");
-            if (pathEls.length != 3)
+            // For some reason the first element of pathEls[] is an empty string.
+            // The other three elements are the name of the SGS, the "instances"
+            // directory and the id of the SGS
+            if (pathEls.length != 4)
             {
                 throw new StyxException("URL format error");
             }
-            SGSClient sgsClient = serverClient.getSGSClient(pathEls[0]);
-            this.init(sgsClient, pathEls[2]);
+            SGSClient sgsClient = serverClient.getSGSClient(pathEls[1]);
+            this.init(sgsClient, pathEls[3]);
         }
         catch(MalformedURLException mue)
         {
@@ -428,6 +434,14 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.readServiceDataValueAsync("status");
         this.ctlFile.setContents("start");
         this.uploadToStdin();
+    }
+    
+    /**
+     * Gets the underlying connection object
+     */
+    public StyxConnection getConnection()
+    {
+        return this.instanceRoot.getConnection();
     }
     
     /**
@@ -1214,6 +1228,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     /**
      * Gets a CachedStreamReader that can be used to read from the given
      * stream
+     * This is not used in the current implementation of SGS but might be in
+     * the future, perhaps to support GUI applications
      */
     public CachedStreamReader getStreamReader(CStyxFile stream)
     {

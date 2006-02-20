@@ -71,12 +71,17 @@ import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSParam;
 
 /**
- * GUI for interacting with an SGS instance
+ * GUI for interacting with an SGS instance.  This class DOES NOT WORK at the
+ * moment!  It's based on an older version of the SGS software and has not yet
+ * been updated.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.30  2006/02/20 17:35:01  jonblower
+ * Implemented correct handling of output files/streams (not fully tested yet)
+ *
  * Revision 1.29  2005/12/09 18:41:56  jonblower
  * Continuing to simplify client interface to SGS instances
  *
@@ -1039,6 +1044,16 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
             }
         }
     }
+    
+    /**
+     * Called when all the output data have been downloaded
+     */
+    public void allOutputDataDownloaded() {}
+    /**
+     * Called when the exit code from the service is received: this signals that
+     * the remote executable has completed.
+     */
+    public void gotExitCode(int exitCode) {}
     
 }
 

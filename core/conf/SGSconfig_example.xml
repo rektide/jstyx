@@ -17,10 +17,10 @@
     <!-- Configuration of the Styx Grid Services -->
     <gridservices>
         
-        <gridservice name="dirlisting" command="dir c:\" description="Lists contents of C: drive">
+        <gridservice name="helloworld" command="JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.HelloWorld"
+                description="Prints Hello World to stdout">
             <outputs>
                 <output type="stream" name="stdout"/>
-                <output type="stream" name="stderr"/>
             </outputs>
         </gridservice>
         

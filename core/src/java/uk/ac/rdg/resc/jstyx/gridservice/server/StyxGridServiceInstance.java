@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.47  2006/02/20 17:35:01  jonblower
+ * Implemented correct handling of output files/streams (not fully tested yet)
+ *
  * Revision 1.46  2006/02/17 17:34:12  jonblower
  * Changes to comments
  *
@@ -229,6 +232,7 @@ class StyxGridServiceInstance extends StyxDirectory
     private SGSInputFile.StdinFile stdin;  // The standard input to the program
     private JSAP jsap; // JSAP object for parsing the command-line parameters
     private StyxDirectory paramDir; // Contains the command-line parameters to pass to the executable
+    private Vector paramFiles; // Contains the SGSParamFiles
     private StyxFile argsFile; // The file containing the command line arguments
     private String command; // The command to run (i.e. the string that is passed to System.exec)
     private long startTime;
@@ -278,18 +282,28 @@ class StyxGridServiceInstance extends StyxDirectory
         
         // Add the parameters as SGSParamFiles.
         this.paramDir = new StyxDirectory("params");
+        this.paramFiles = new Vector();
         this.jsap = sgsConfig.getParamParser();
         Vector params = sgsConfig.getParams();
         for (int i = 0; i < params.size(); i++)
         {
             SGSParam param = (SGSParam)params.get(i);
-            // We don't add parameters pertaining to output files to the namespace:
-            // the name of these files in the namespace is fixed
-            if (param.getType() != SGSParam.OUTPUT_FILE)
+            SGSParamFile paramFile = new SGSParamFile(param, this);
+            this.paramFiles.add(paramFile);
+            if (param.getType() == SGSParam.OUTPUT_FILE)
             {
-                // Parameter files exhibit asynchronous behaviour so that other
-                // clients can be notified when a parameter value changes
-                this.paramDir.addChild(new SGSParamFile(param, this));
+                // For parameters that represent output files, we don't allow
+                // their values to be changed: the output file is just named
+                // after the parameter.  The only reason for bothering to create
+                // an SGSParamFile is to make it easier to get the command-line
+                // arguments - see the getArguments() method
+                paramFile.setParameterValue(param.getName());
+            }
+            else
+            {
+                // We don't add parameters pertaining to output files to the namespace:
+                // the name of these files in the namespace is fixed
+                this.paramDir.addChild(paramFile);
             }
         }
         this.addChild(paramDir);
@@ -1003,11 +1017,10 @@ class StyxGridServiceInstance extends StyxDirectory
     private String getArguments()
     {
         StringBuffer buf = new StringBuffer();
-        StyxFile[] paramFiles = this.paramDir.getChildren();
-        for (int i = 0; i < paramFiles.length; i++)
+        for (int i = 0; i < this.paramFiles.size(); i++)
         {
             // We can be pretty confident that this cast is safe
-            SGSParamFile paramFile = (SGSParamFile)paramFiles[i];
+            SGSParamFile paramFile = (SGSParamFile)this.paramFiles.get(i);
             String frag = paramFile.getCommandLineFragment();
             if (!frag.trim().equals(""))
             {

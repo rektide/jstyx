@@ -52,6 +52,7 @@ import com.martiansoftware.jsap.FlaggedOption;
 import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
+import uk.ac.rdg.resc.jstyx.client.StyxConnectionListener;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
@@ -72,6 +73,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.19  2006/02/20 17:35:01  jonblower
+ * Implemented correct handling of output files/streams (not fully tested yet)
+ *
  * Revision 1.18  2006/02/17 17:34:44  jonblower
  * Implemented (but didn't test) proper handling of output files
  *
@@ -127,19 +131,18 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
  * Added SGSRun and associated shell scripts
  *
  */
-public class SGSRun
+public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnectionListener
 {
     private static final String OUTPUT_ALL_REFS = "sgs-allrefs";
     private static final String HELP = "sgs-help";
     private static final String VERBOSE_HELP = "sgs-verbose-help";
     private static final String DEBUG = "sgs-debug";
     
-    private StyxConnection conn;
+    private SGSServerClient serverClient;
     private SGSClient sgsClient;
     private SGSInstanceClient instanceClient;
-    private CStyxFile exitCodeFile;
-    private String exitCode;
-    private boolean serviceStarted;
+    private int exitCode;
+    private boolean allDataDownloaded;
     
     private JSAPResult result; // Result of parsing command-line parameters
     
@@ -147,7 +150,6 @@ public class SGSRun
     
     private SGSConfig config;  // Config info for this SGS, read from the server
     
-    private int openStreams; // Keeps a count of the number of open streams
     private Hashtable/*<SGSInput, File>*/ filesToUpload; // The fixed files that we will upload
                                   // (not the ones that are set through parameters)
     
@@ -157,27 +159,25 @@ public class SGSRun
      * @param port The port of the SGS server
      * @param serviceName The name of the SGS to invoke
      * @throws StyxException if there was an error connecting to the server
-     * or getting the configuration of the SGS 
-     * @throws UnknownHostException if the remote host could not be found
+     * or getting the configuration of the SGS
+     * @throws UnknownHostException (from SGSServerClient.getSGSClient())
      */
     public SGSRun(String hostname, int port, String serviceName)
         throws StyxException, UnknownHostException
     {
         this.debug = false;
-        this.openStreams = 0;
-        this.exitCode = null;
-        this.serviceStarted = false;
+        this.allDataDownloaded = false;
+        this.exitCode = Integer.MIN_VALUE;
+        this.filesToUpload = new Hashtable();
         
         // Get a client for this server
-        SGSServerClient serverClient = SGSServerClient.getServerClient(hostname, port);
-        
+        this.serverClient = SGSServerClient.getServerClient(hostname, port);
+
         // Get a handle to the required Styx Grid Service
         this.sgsClient = serverClient.getSGSClient(serviceName);
-        
+
         // Get the configuration of this SGS
         this.config = this.sgsClient.getConfig();
-        
-        this.filesToUpload = new Hashtable();
     }
     
     /**
@@ -234,7 +234,7 @@ public class SGSRun
                     // This is a fixed output file, i.e. not specified by a parameter
                     jsap.registerParameter(new Switch("sgs-ref-" + output.getName(),
                         JSAP.NO_SHORTFLAG, "sgs-ref-" + output.getName(),
-                        "If set, will download a URL to " + output.getName() +
+                        "If set, will output a URL to " + output.getName() +
                         " instead of the actual data"));
                 }
             }
@@ -342,27 +342,18 @@ public class SGSRun
     public void createNewServiceInstance() throws StyxException
     {
         String instanceUrl = this.sgsClient.createNewInstance();
+        // Create a client object for this instance.  Note that this instance
+        // might be on a different server and so the constructor might create
+        // a new connection.
         this.instanceClient = new SGSInstanceClient(instanceUrl);
-        // Read the exit code: when the exit code has arrived, the
-        // gotServiceDataValue() event
-        // TODO make this class an SGSInstanceClientChangeListener
-        this.instanceClient.addChangeListener(new SListener());
-        this.instanceClient.readServiceDataValueAsync("exitCode");
-    }
-    
-    /**
-     * Listens for the exit code appearing (signals that service is complete)
-     */
-    private class SListener extends SGSInstanceClientChangeAdapter
-    {
-        public void gotServiceDataValue(String sdName, String newData)
+        this.instanceClient.addChangeListener(this);
+        // Close the connection to the SGS client if it's different from the
+        // connection to the SGS instance
+        if (this.serverClient.getConnection() != this.instanceClient.getConnection())
         {
-            if (sdName.equals("exitCode"))
-            {
-                exitCode = newData;
-                checkEnd();
-            }
+            this.serverClient.getConnection().close();
         }
+        this.instanceClient.getConnection().addListener(this);
     }
     
     /**
@@ -431,7 +422,6 @@ public class SGSRun
     {
         // Start the service.
         this.instanceClient.startService();
-        this.serviceStarted = true;
     }
     
     /**
@@ -445,6 +435,7 @@ public class SGSRun
         // will be represented by a file in the server's namespace
         boolean allRefs = this.result.getBoolean(OUTPUT_ALL_REFS);
         Vector outputFiles = this.config.getOutputs();
+        boolean downloading = false; // This will be set true if we start downloading any data
         for (int i = 0; i < outputFiles.size(); i++)
         {
             SGSOutput output = (SGSOutput)outputFiles.get(i);
@@ -466,6 +457,7 @@ public class SGSRun
                     // We must redirect this output to the filename that was given
                     // by the parameter value
                     this.instanceClient.redirectOutput(output.getName(), prtStr);
+                    downloading = true;
                 }
             }
             else
@@ -483,8 +475,13 @@ public class SGSRun
                 else
                 {
                     this.instanceClient.redirectOutput(output.getName(), prtStr);
+                    downloading = true;
                 }
             }
+        }
+        if (!downloading)
+        {
+            this.allOutputDataDownloaded();
         }
     }
     
@@ -510,45 +507,51 @@ public class SGSRun
     }
     
     /**
-     * Disconnects cleanly from the server
+     * Called when the exit code from the service is received: this signals that
+     * the remote executable has completed.
      */
-    public void disconnect()
+    public void gotExitCode(int exitCode)
     {
-        if (this.conn != null)
+        this.exitCode = exitCode;
+        if (this.allDataDownloaded)
         {
-            this.conn.close();
+            this.instanceClient.close();
         }
     }
-    
     
     /**
-     * Called when we think the program might have ended (when a stream is closed,
-     * when the exit code is received or when the main() method ends).
+     * Called when all the output data have been downloaded
      */
-    public void checkEnd()
+    public void allOutputDataDownloaded()
     {
-        if (this.openStreams == 0 && this.exitCode != null && this.serviceStarted)
+        this.allDataDownloaded = true;
+        if (this.exitCode != Integer.MIN_VALUE)
         {
-            // No more open streams, so we can close the connection
             this.instanceClient.close();
-            int ec = Integer.MIN_VALUE;
-            try
-            {
-                ec = Integer.parseInt(this.exitCode);
-            }
-            catch(NumberFormatException nfe)
-            {
-                System.err.println("Error parsing exit code: " + this.exitCode
-                    + " is not a valid integer");
-            }
-            if (this.debug)
-            {
-                System.out.println("Exiting with code " + ec);
-            }
-            System.exit(ec);
         }
     }
     
+    /**
+     * Called when the connection to the SGS instance has been closed
+     */
+    public void connectionClosed(StyxConnection conn)
+    {
+        System.exit(this.exitCode);
+    }
+    
+    /**
+     * Called when the relevant handshaking has been performed and the connection
+     * is ready for Styx messages to be sent.  Required by StyxConnectionListener
+     * interface.
+     */
+    public void connectionReady(StyxConnection conn) {}
+    
+    /**
+     * Called when an error has occurred when connecting.  Required by
+     * StyxConnectionListener interface.
+     * @param message String describing the problem
+     */
+    public void connectionError(StyxConnection conn, String message) {}
     
     public static void main(String[] args)
     {
@@ -592,8 +595,6 @@ public class SGSRun
             // Start reading from the output files
             runner.readOutputFiles();
             
-            // Check to see if we can finish now
-            runner.checkEnd();
             // Note that the program will carry on running until all the streams
             // are closed
         }
@@ -606,12 +607,21 @@ public class SGSRun
         catch(Exception e)
         {
             System.err.println("Error running Styx Grid Service: " + e.getMessage());
+            // TODO: what is an appropriate error code here?
             if (runner != null)
             {
-                runner.disconnect();
+                runner.exitCode = 1;
+                if (runner.serverClient != null)
+                {
+                    runner.serverClient.getConnection().close();
+                }
+                if (runner.instanceClient != null)
+                {
+                    // System.exit(exitCode) will be called when the connection
+                    // is closed
+                    runner.instanceClient.getConnection().close();
+                }
             }
-            // TODO: what is an appropriate error code here?
-            System.exit(1);
         }
     }
     

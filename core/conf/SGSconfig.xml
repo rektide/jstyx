@@ -25,73 +25,22 @@
     
     <!-- The Styx Grid Services that will appear under this server -->
     <gridservices>
-    
-        <gridservice name="md5sum" command="python c:\md5lines.py"
-            description="Calculates MD5 sum of each line of input">
-            <!-- The command-line parameters that are passed to the executable -->
-            <params>
-                <param name="verbose" paramType="switch" flag="v" longFlag="verbose"
-                    description="if set, will produce more verbose output"/>
-                <param name="waittime" paramType="flaggedOption" flag="w" required="yes"
-                    description="time to wait between reading each line"/>
-                <param name="inputfile" paramType="flaggedOption" flag="i"
-                    description="input file"/>
-                <param name="outputfile" paramType="flaggedOption" flag="o"
-                    description="output file"/>
-                <param name="random" paramType="unflaggedOption" required="yes"
-                    description="first unflagged option"/>
-                <param name="theRest" paramType="unflaggedOption" greedy="yes"
-                    description="consumes the rest of the command line"/>
-            </params>
-            <inputs>
-                <input type="stream" name="stdin"/>
-                <input type="file" name="input.txt"/>
-                <input type="fileFromParam" name="inputfile"/>
-            </inputs>
+        
+        <!-- On Windows NT, 2000 and XP we must run batch files via cmd.exe.
+             On Windows 95 and 98, you must replace "cmd.exe" with "command.com".
+             On other OSes you can delete "cmd.exe /C"-->
+        <gridservice name="helloworld" command="cmd.exe /C JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.HelloWorld"
+                description="Prints Hello World to stdout">
             <outputs>
                 <output type="stream" name="stdout"/>
-                <output type="stream" name="stderr"/>
-                <output type="file" name="output.txt"/>
-                <output type="fileFromParam" name="outputfile"/>
-            </outputs>
-            <serviceData>
-                <serviceDataElement name="progress" file="progress.txt" minUpdateInterval="1.0"/>
-            </serviceData>
-            <steering>
-                <steerable name="viscosity" file="viscosity.txt" initialvalue="34"/>
-            </steering>
-            <docs>
-                <!-- <doc location="C:\install.log"/> Will appear as "install.log" in the namespace -->
-                <doc location="C:\md5lines.py" name="source"/>
-                <!-- <doc location="C:\j2sdk1.4.2_05\docs\api" name="javadoc"/> -->
-            </docs>
-        </gridservice>
-        
-        <gridservice name="md5sum2" command="python c:\md5lines.py"
-            description="Calculates MD5 sum of each line of input">
-            <!-- The command-line parameters that are passed to the executable -->
-            <params>
-                <param name="waittime" paramType="flaggedOption" flag="w" required="yes"
-                    description="time to wait between reading each line"/>
-                <param name="inputfile" paramType="flaggedOption" flag="i"
-                    description="input file: if not specified, uses stdin"/>
-                <param name="outputfile" paramType="flaggedOption" flag="o"
-                    description="output file: if not specified, uses stdout"/>
-            </params>
-            <inputs>
-                <input type="stream" name="stdin"/>
-                <input type="fileFromParam" name="inputfile"/>
-            </inputs>
-            <outputs>
-                <output name="stdout"/>
-                <output name="stderr"/>
-                <output type="file" name="progress.txt"/>
-                <output type="fileFromParam" name="outputfile"/>
             </outputs>
         </gridservice>
         
-        <gridservice name="reverse" command="python c:\reverse.py"
-            description="Reverses each line of input">
+        <!-- On Windows NT, 2000 and XP we must run batch files via cmd.exe.
+             On Windows 95 and 98, you must replace "cmd.exe" with "command.com".
+             On other OSes you can delete "cmd.exe /C"-->
+        <gridservice name="reverse" command="cmd.exe /C JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.Reverse"
+                description="Reads lines of input and outputs them with characters reversed">
             <inputs>
                 <input type="stream" name="stdin"/>
             </inputs>
@@ -101,43 +50,28 @@
             </outputs>
         </gridservice>
         
-        <gridservice name="reverse2" command="python c:\reverse.py"
-            description="Reverses each line of input">
-            <!-- The command-line parameters that are passed to the executable -->
+        <!-- On Windows NT, 2000 and XP we must run batch files via cmd.exe.
+             On Windows 95 and 98, you must replace "cmd.exe" with "command.com".
+             On other OSes you can delete "cmd.exe /C"-->
+        <gridservice name="reverse2" command="cmd.exe /C JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.Reverse"
+                description="Reads lines of input and outputs them with characters reversed">
             <params>
-                <param name="inputfile" paramType="flaggedOption" flag="i" required="yes"/>
-                <param name="outputfile" paramType="flaggedOption" flag="o" required="yes"/>
+                <param name="inputfile" paramType="flaggedOption" flag="i" required="yes" description="Name of input file"/>
+                <param name="outputfile" paramType="flaggedOption" flag="o" required="yes" description="Name of output file"/>
             </params>
             <inputs>
                 <input type="fileFromParam" name="inputfile"/>
             </inputs>
             <outputs>
                 <output type="fileFromParam" name="outputfile"/>
-                <output type="stream" name="stderr"/>
             </outputs>
         </gridservice>
         
-        <gridservice name="bash" command="bash -i" description="A Bash shell">
-            <inputs>
-                <input type="stream" name="stdin"/>
-            </inputs>
+        <gridservice name="version" command="java -version"
+                description="Prints Java version to stderr (for debugging)">
             <outputs>
-                <output type="stream" name="stdout"/>
                 <output type="stream" name="stderr"/>
             </outputs>
-        </gridservice>
-        
-        <gridservice name="lbflow" command="c:\cygwin\home\jdb\lbflow-0.1\src\lbflow -i input.sim"
-            description="Lattice Boltzmann simulation">
-            <outputs>
-                <output name="stdout"/>
-            </outputs>
-            <steering>
-                <steerable name="Pressure_gradient_x" file="Pgrad_x.str" initialvalue="0"/>
-            </steering>
-            <!--<inputfiles allowOthers="no">
-                <inputfile path="input.sim"/>
-            </inputfiles>-->
         </gridservice>
         
     </gridservices>
