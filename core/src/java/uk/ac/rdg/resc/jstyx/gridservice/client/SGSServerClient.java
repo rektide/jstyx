@@ -45,6 +45,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2006/02/20 17:34:27  jonblower
+ * Added getConnection() method
+ *
  * Revision 1.4  2006/01/05 16:06:34  jonblower
  * SGS clients now deal with possibility that client could be created on a different server
  *
@@ -63,6 +66,9 @@ public class SGSServerClient
     // Contains the server clients that have already been created
     private static Hashtable serverClients = new Hashtable();
     
+    // The underlying connection
+    private StyxConnection conn;
+    
     // Contains the SGS clients that have been created
     private Hashtable sgsClients;
     
@@ -79,9 +85,17 @@ public class SGSServerClient
     {
         this.sgsClients = new Hashtable();
         // Connect to the server
-        StyxConnection conn = new StyxConnection(hostname, port);
-        conn.connect();
+        this.conn = new StyxConnection(hostname, port);
+        this.conn.connect();
         this.serverRoot = conn.getRootDirectory();
+    }
+    
+    /**
+     * @return the underlying connection to the server
+     */
+    public StyxConnection getConnection()
+    {
+        return this.conn;
     }
     
     /**

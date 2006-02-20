@@ -35,6 +35,7 @@ import org.apache.mina.common.ByteBuffer;
 import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 import uk.ac.rdg.resc.jstyx.messages.TwriteMessage;
 import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
+import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeAdapter;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
@@ -50,6 +51,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfigException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2006/02/20 17:34:27  jonblower
+ * Added getConnection() method
+ *
  * Revision 1.15  2006/01/05 16:06:34  jonblower
  * SGS clients now deal with possibility that client could be created on a different server
  *
@@ -131,6 +135,14 @@ public class SGSClient extends CStyxFileChangeAdapter
         this.gettingInstances = false;
         this.changeListeners = new Vector();
         this.instances = new Vector();
+    }
+    
+    /**
+     * @return the connection object
+     */
+    public StyxConnection getConnection()
+    {
+        return this.sgsRoot.getConnection();
     }
     
     /**
