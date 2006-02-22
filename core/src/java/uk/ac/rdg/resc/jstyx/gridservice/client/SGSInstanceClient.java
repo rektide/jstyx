@@ -32,6 +32,7 @@ import java.util.Vector;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Enumeration;
+import java.util.Date;
 
 import java.io.File;
 import java.io.InputStream;
@@ -72,6 +73,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.54  2006/02/22 08:52:57  jonblower
+ * Added debug code and support for setting service lifetime
+ *
  * Revision 1.53  2006/02/20 17:35:01  jonblower
  * Implemented correct handling of output files/streams (not fully tested yet)
  *
@@ -267,6 +271,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     // Parameters
     private CStyxFile[] paramFiles;
     
+    // Directory containing files pertaining to the lifecycle of the service
+    private CStyxFile timeDir;
+    
     // Steerable parameters
     private CStyxFile[] steeringFiles;
     
@@ -364,6 +371,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         
         // Get the files we use to set parameter values
         this.paramFiles = this.instanceRoot.getFile("params").getChildren();
+        
+        // Get the directory of files pertaining to the lifecycle of the service
+        this.timeDir = this.instanceRoot.getFile("time");
         
         // Get the directory that holds the steerable parameters
         this.steeringFiles = this.instanceRoot.getFile("steering").getChildren();
@@ -601,6 +611,38 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public String getArguments() throws StyxException
     {
         return this.argsFile.getContents();
+    }
+    
+    /**
+     * Set the lifetime of this SGS instance.  This method will block until
+     * the lifetime is set.  This method reads the creation time from the server,
+     * adds the requested number of minutes, then sets the termination time.
+     * @param the lifetime of this instance in minutes.  The instance will
+     * automatically be destroyed at this time <b>after the instance was created</b>.
+     * @throws StyxException if the lifetime could not be set
+     */
+    public void setLifetime(double lifetimeInMinutes) throws StyxException
+    {
+        try
+        {
+            // Get the creation time of the service according to the server
+            String creationTimeStr = this.timeDir.getFile("creationTime").getContents();
+            Date creationTime = StyxUtils.parseXsdDateTime(creationTimeStr);
+            //System.out.println("creation time = " + creationTime + " ("
+            //    + creationTimeStr + ")");
+            long millisecondsToAdd = Math.round(lifetimeInMinutes * 60000);
+            Date terminationTime = new Date();
+            terminationTime.setTime(creationTime.getTime() + millisecondsToAdd);
+            String termTimeStr = StyxUtils.formatAsXsdDateTime(terminationTime);
+            //System.out.println("termination time = " + terminationTime + " ("
+            //    + termTimeStr + ")");
+            this.timeDir.getFile("terminationTime").setContents(termTimeStr);
+        }
+        catch(java.text.ParseException pe)
+        {
+            // Shouldn't happen
+            throw new StyxException("Error parsing creation time string from server");
+        }
     }
     
     /**
@@ -874,7 +916,11 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                         vals[i] = new File(vals[i]).getName();
                     }
                 }
-                str.append(vals[i] + " ");
+                str.append(vals[i]);
+                if (i < vals.length - 1)
+                {
+                    str.append(" ");
+                }
             }
         }
         return str.toString();

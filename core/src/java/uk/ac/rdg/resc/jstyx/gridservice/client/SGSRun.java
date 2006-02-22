@@ -43,22 +43,20 @@ import java.util.Enumeration;
 
 import java.net.UnknownHostException;
 
+import org.apache.log4j.Logger;
+
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
 import com.martiansoftware.jsap.JSAPResult;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.FlaggedOption;
-
-import org.apache.mina.common.ByteBuffer;
+import com.martiansoftware.jsap.StringParser;
+import com.martiansoftware.jsap.ParseException;
 
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.StyxConnectionListener;
-import uk.ac.rdg.resc.jstyx.client.CStyxFile;
-
-import uk.ac.rdg.resc.jstyx.messages.TreadMessage;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
-import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSParam;
@@ -73,6 +71,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.20  2006/02/22 08:52:57  jonblower
+ * Added debug code and support for setting service lifetime
+ *
  * Revision 1.19  2006/02/20 17:35:01  jonblower
  * Implemented correct handling of output files/streams (not fully tested yet)
  *
@@ -133,10 +134,15 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
  */
 public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnectionListener
 {
+    private static final Logger log = Logger.getLogger(SGSRun.class);
+    
     private static final String OUTPUT_ALL_REFS = "sgs-allrefs";
     private static final String HELP = "sgs-help";
     private static final String VERBOSE_HELP = "sgs-verbose-help";
+    private static final String LIFETIME = "sgs-lifetime";
     private static final String DEBUG = "sgs-debug";
+    private static final StringParser POSITIVE_FLOAT_PARSER =
+        PositiveFloatStringParser.getParser();
     
     private SGSServerClient serverClient;
     private SGSClient sgsClient;
@@ -172,12 +178,15 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         
         // Get a client for this server
         this.serverClient = SGSServerClient.getServerClient(hostname, port);
+        log.debug("Connected to SGS server at " + hostname + ":" + port);
 
         // Get a handle to the required Styx Grid Service
         this.sgsClient = serverClient.getSGSClient(serviceName);
+        log.debug("Got handle to the " + serviceName + " Styx Grid Service");
 
         // Get the configuration of this SGS
         this.config = this.sgsClient.getConfig();
+        log.debug("Got configuration information for the " + serviceName + " Styx Grid Service");
     }
     
     /**
@@ -204,6 +213,11 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
             // instead of the actual files themselves
             jsap.registerParameter(new Switch(OUTPUT_ALL_REFS, JSAP.NO_SHORTFLAG, OUTPUT_ALL_REFS,
                 "Set this switch in order to get URLs to all output files rather than actual files"));
+            // Add a switch to allow the user to set the lifetime of the SGS in minutes.
+            // The default value is 60 minutes
+            jsap.registerParameter(new FlaggedOption(LIFETIME, POSITIVE_FLOAT_PARSER,
+                "60", false, JSAP.NO_SHORTFLAG, LIFETIME,
+                "The lifetime of the SGS in minutes"));
             
             // Add a parameter for each fixed input file so that the user can set the
             // URL with an argument like --sgs-ref-input.txt=
@@ -256,6 +270,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     {
         JSAP parser = this.getJSAP();
         this.result = parser.parse(args);
+        log.debug("Parsed command-line arguments, success = " + this.result.success());
         
         // Check if the user wants help
         if (this.result.getBoolean(VERBOSE_HELP))
@@ -323,6 +338,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
                     }
                 }
             }
+            log.debug("Scheduled files for upload");
         }
         else
         {
@@ -342,16 +358,22 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     public void createNewServiceInstance() throws StyxException
     {
         String instanceUrl = this.sgsClient.createNewInstance();
+        log.debug("Created new service instance at " + instanceUrl);
         // Create a client object for this instance.  Note that this instance
         // might be on a different server and so the constructor might create
         // a new connection.
         this.instanceClient = new SGSInstanceClient(instanceUrl);
+        log.debug("Created new SGSInstanceClient object");
+        this.instanceClient.setLifetime(this.result.getFloat(LIFETIME));
+        log.debug("Set lifetime to " + this.result.getFloat(LIFETIME) + " minutes");
         this.instanceClient.addChangeListener(this);
         // Close the connection to the SGS client if it's different from the
         // connection to the SGS instance
         if (this.serverClient.getConnection() != this.instanceClient.getConnection())
         {
+            log.debug("Closing connection to SGS server");
             this.serverClient.getConnection().close();
+            log.debug("Connection to SGS server closed");
         }
         this.instanceClient.getConnection().addListener(this);
     }
@@ -363,9 +385,11 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     {
         // Run through each of the parameter values in the configuration
         Vector params = this.config.getParams();
+        log.debug("Got " + params.size() + " parameters");
         for (Iterator it = params.iterator(); it.hasNext(); )
         {
             SGSParam param = (SGSParam)it.next();
+            log.debug("Got parameter called " + param.getName());
             if (param.getType() == SGSParam.OUTPUT_FILE)
             {
                 // We'll deal with this later, in readOutputFiles()
@@ -373,12 +397,21 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
             else
             {
                 // Just set the parameter value
-                // TODO need to check that getStringArray() also works for 
-                // switches (we hope it returns "true" or "false")
-                this.instanceClient.setParameterValue(param,
-                    this.result.getStringArray(param.getName()));
+                log.debug("Setting value for " + param.getName());
+                if (param.getParameter() instanceof Switch)
+                {
+                    String val = this.result.getBoolean(param.getName()) ? "true" : "false";
+                    log.debug("val = " + val);
+                    this.instanceClient.setParameterValue(param, val);
+                }
+                else
+                {
+                    this.instanceClient.setParameterValue(param,
+                        this.result.getStringArray(param.getName()));
+                }
             }
         }
+        log.debug("Set service parameters");
     }
     
     /**
@@ -412,6 +445,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         }
         // Now we actually upload the input files
         this.instanceClient.uploadInputFiles();
+        log.debug("All input sources set");
     }
     
     /**
@@ -422,6 +456,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     {
         // Start the service.
         this.instanceClient.startService();
+        log.debug("Service started");
     }
     
     /**
@@ -457,6 +492,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
                     // We must redirect this output to the filename that was given
                     // by the parameter value
                     this.instanceClient.redirectOutput(output.getName(), prtStr);
+                    log.debug("Started reading from " + output.getName());
                     downloading = true;
                 }
             }
@@ -475,6 +511,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
                 else
                 {
                     this.instanceClient.redirectOutput(output.getName(), prtStr);
+                    log.debug("Started reading from " + output.getName());
                     downloading = true;
                 }
             }
@@ -512,6 +549,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
      */
     public void gotExitCode(int exitCode)
     {
+        log.debug("Got exit code: " + exitCode);
         this.exitCode = exitCode;
         if (this.allDataDownloaded)
         {
@@ -524,6 +562,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
      */
     public void allOutputDataDownloaded()
     {
+        log.debug("All data downloaded");
         this.allDataDownloaded = true;
         if (this.exitCode != Integer.MIN_VALUE)
         {
@@ -536,6 +575,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
      */
     public void connectionClosed(StyxConnection conn)
     {
+        log.debug("Exiting with code " + this.exitCode);
         System.exit(this.exitCode);
     }
     
@@ -606,6 +646,10 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         }
         catch(Exception e)
         {
+            if (log.isDebugEnabled())
+            {
+                e.printStackTrace();
+            }
             System.err.println("Error running Styx Grid Service: " + e.getMessage());
             // TODO: what is an appropriate error code here?
             if (runner != null)
@@ -625,4 +669,42 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         }
     }
     
+}
+
+/**
+ * This class parses strings into positive floating-point numbers, throwing
+ * a ParseException if the string could not be parsed.  Use getParser() to get
+ * an instance of this class.
+ */
+class PositiveFloatStringParser extends StringParser
+{
+    private static PositiveFloatStringParser parser = null;
+    private StringParser floatStrParser;
+    
+    private PositiveFloatStringParser()
+    {
+        this.floatStrParser = JSAP.FLOAT_PARSER;
+    }
+    
+    public static PositiveFloatStringParser getParser()
+    {
+        if (parser == null)
+        {
+            parser = new PositiveFloatStringParser();
+        }
+        return parser;
+    }
+    
+    /**
+     * Parses the given string into a positive Float
+     */
+    public Object parse(String arg) throws ParseException
+    {
+        Float f = (Float)this.floatStrParser.parse(arg);
+        if (f.floatValue() < 0.0f)
+        {
+            throw new ParseException(arg + " must be a positive number");
+        }
+        return f;
+    }
 }
