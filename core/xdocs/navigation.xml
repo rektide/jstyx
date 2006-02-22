@@ -11,32 +11,32 @@
         </links>
 
         <menu name="JStyx">
-            <item name="Overview" href="index.html"/>
-            <item name="Downloads" href="downloads.html"/>
-            <item name="FAQs" href="faq.html"/>
-            <item name="Utilities" href="utilities.html"/>
-            <item name="Tutorial" href="tutorial/index.html" collapse="false">
-                <item name="1. First Styx system" href="tutorial/FirstStyxSystem.html"/>
-                <item name="2. Reading and writing" href="tutorial/ReadingAndWriting.html"/>
-                <item name="3. Custom files" href="tutorial/CustomFiles.html"/>
-                <item name="4. Next steps" href="tutorial/NextSteps.html"/>
-                <item name="5. Asynchronous files" href="tutorial/AsyncFiles.html" collapse="true"/>
-                <item name="6. Streams" href="tutorial/Streams.html" collapse="true"/>
-                <!-- <item name="5. Simple chat application" href="tutorial/tutorial_5.html" collapse="true"/>-->
+            <item name="Overview" href="/index.html"/>
+            <item name="Downloads" href="/downloads.html"/>
+            <item name="FAQs" href="/faq.html"/>
+            <item name="Utilities" href="/utilities.html"/>
+            <item name="Tutorial" href="/tutorial/index.html" collapse="true">
+                <item name="1. First Styx system" href="/tutorial/FirstStyxSystem.html"/>
+                <item name="2. Reading and writing" href="/tutorial/ReadingAndWriting.html"/>
+                <item name="3. Custom files" href="/tutorial/CustomFiles.html"/>
+                <item name="4. Next steps" href="/tutorial/NextSteps.html"/>
+                <item name="5. Asynchronous files" href="/tutorial/AsyncFiles.html"/>
+                <item name="6. Streams" href="/tutorial/Streams.html"/>
             </item>
         </menu>
         
         <menu name="Styx Grid Services">
-            <item name="Tutorial" href="sgs/tutorial.html" collapse="false">
-                <item name="Tutorial 1" href="sgs/tutorial_1.html" collapse="true"/>
-                <item name="Tutorial 2" href="sgs/tutorial_2.html" collapse="true"/>
+            <item name="Overview" href="/sgs/index.html"/>
+            <item name="Tutorial" href="/sgs/tutorial/index.html" collapse="true">
+                <item name="Hello World" href="/sgs/tutorial/HelloWorld.html"/>
             </item>
+            <item name="The configuration file" href="/sgs/config.html"/>
+            <item name="The SGS namespace" href="/sgs/namespace.html"/>
         </menu>
 		
         <menu name="JStyx References">
             <item name="JavaDocs" href="apidocs/index.html" target="_blank"/>
             <item name="Source code" href="xref/index.html" target="_blank"/>
-            <!-- <item name="Source code (SVN)" href="http://svn.apache.org/viewcvs.cgi/directory/network/mina/trunk/?root=Apache-SVN" target="_blank"/> -->
         </menu>
         
         <search/>

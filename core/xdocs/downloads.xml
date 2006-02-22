@@ -6,35 +6,38 @@
   </properties>
 
   <body>
-    <section name="Downloading the JStyx libraries">
-      <p>Currently the only way to download the JStyx libraries is as a platform-independent installer
-      package in JAR format. The latest version is 0.1.0-SNAPSHOT and you can download it from 
-      <a href="http://prdownloads.sf.net/jstyx/jstyx-0.1.0-SNAPSHOT-installer.jar?download">here</a>.</p>
-    </section>
-    <section name="Installing the software">
-      <p>If you have downloaded the JAR installer (currently the only option) you can start the installer
-      by running:
-      <source>
-      java -jar jstyx-0.1.0-SNAPSHOT-installer.jar
-      </source>
-      This has been tested on Windows and Unix.  You will need a Java runtime environment version 1.4.2 or
-      above (<a href="http://java.sun.com/">http://java.sun.com</a>) in order to run the installer (and,
-      indeed, to run the software).</p>
-      <p><strong>Note:</strong> Under Unix, you might find that the scripts do not
-      work: you might get messages like "bad interpreter: no such file or directory"
-      or "Command not found". In this case, the newlines in the script might have been
-      inadvertently converted to Windows/DOS newlines. You can fix this by running
-      "<code>perl -pi -e 's/\r//' *</code>" in the <code>bin/</code> directory
-      of the installation.</p>
-    </section>
-    <section name="Uninstalling the software">
-      <p>If you installed using the JAR installer, you can uninstall the software
-      by changing to the "Uninstall" directory of the distribution and running
-      <source>
-      java -jar uninstaller.jar
-      </source>
-      If you are running Windows, there is probably a shortcut to this uninstaller
-      in the JStyx program group in the Start Menu.</p>
+    <section name="Downloading and installing JStyx">
+      <p>The process of installing the JStyx software (which includes the
+      <a href="sgs/index.html">Styx Grid Services</a> software) is very simple.</p>
+      <subsection name="Set up Java">
+      <p>JStyx is a set of Java classes and so we need a Java runtime environment
+      to run the software:</p>
+      <ol>
+          <li>Download and install a Java runtime environment version 1.4.2 or
+          above from <a href="http://java.sun.com">here</a>.</li>
+          <li>Add the <tt>bin</tt> directory of the Java installation to your <tt>PATH</tt>
+              environment variable.</li>
+          <li>Test this by opening a new terminal window or command prompt and typing <tt>java -version</tt>.
+              The version number of the Java installation should be printed to the console.
+              This should work from any directory on your system.</li>
+      </ol>
+      </subsection>
+      <subsection name="Set up JStyx">
+      <ol>
+          <li>Download the software from
+              <a href="http://prdownloads.sf.net/jstyx/jstyx-0.1.0.zip">here</a>.</li>
+          <li>Unzip the distribution into the directory of your choice.</li>
+          <li>Set the environment variable <tt>JSTYX_HOME</tt> to the location of this directory.</li>
+          <li>Add the <tt>JSTYX_HOME/bin</tt> directory to your <tt>PATH</tt>
+              environment variable.</li>
+          <li>Test the installation by opening a new terminal window or command prompt
+              and typing <tt>SGSRun</tt> with no arguments.  You should see the 
+              usage message <tt>Usage: SGSRun &lt;hostname&gt; &lt;port&gt; &lt;servicename&gt;</tt>.
+              This should work from any directory on your system.
+              If you see an error message you probably haven't set your environment varibles
+              correctly.</li>
+      </ol>
+      </subsection>
     </section>
   </body>
 </document>

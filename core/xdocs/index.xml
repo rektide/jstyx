@@ -9,7 +9,7 @@
     <section name="What is JStyx?">
       <p>JStyx is a pure-Java implementation of the <a href="http://www.vitanuova.com/inferno/papers/styx.html">Styx</a>
       protocol for distributed systems. The JStyx libraries also include an implementation of the
-      <a href="sgs/tutorial.html">Styx Grid Services</a> (SGS) system for building stream-oriented services and workflows.
+      <a href="sgs/index.html">Styx Grid Services</a> (SGS) system for building stream-oriented services and workflows.
       </p>
     </section>
     

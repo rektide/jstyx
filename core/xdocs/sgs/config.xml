@@ -253,14 +253,14 @@
     by the <code>inputfiles</code> parameter, which is set to be greedy.
     </p>
     <p>
-    As a final example, let's pretend that we are wrapping an executable (called <code>replaceInFiles</code>)
+    As a final example, let's pretend that we are wrapping an executable (called <code>replace</code>)
     that searches for all instances of a certain string in a file and replaces those instances
     with another string.  In addition, the user can tell the program to print
     verbose debug information by specifying the argument "-v".  Here is an example
     of running this executable from the command line:
     </p>
     <source>
-    replaceInFiles -i input.dat -o output.dat Hello Goodbye -v
+    replace -i input.dat -o output.dat Hello Goodbye -v
     </source>
     <p>
     This would replace all instances of &quot;Hello&quot; in the file <code>input.dat</code>
@@ -489,7 +489,7 @@
     </p>
     </subsection>
     
-    <subsection name="Example 2: replaceInFiles">
+    <subsection name="Example 2: replace">
     <p>
     In the &quot;Parameters&quot; section <a href="#Parameters">above</a> we specified the parameters taken
     by an executable that reads an input file, replaces all instances of one string
@@ -500,7 +500,7 @@
     tag in a complete configuration file such as that given in example 1 above:
     </p>
     <source>
-    <![CDATA[<gridservice name="replaceInFiles" command="C:\path\to\replaceInFiles.exe"
+    <![CDATA[<gridservice name="replace" command="C:\path\to\replace.exe"
         description="Finds and replaces a string in a file">
             
       <params>

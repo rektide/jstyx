@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>Styx Grid Services Tutorial: Hello World application</title>
+  </properties>
+
+  <body>
+    <section name="Styx Grid Services Tutorial: Hello World">
+    <p>In this first part of the tutorial we shall wrap the traditional
+    &quot;Hello World&quot; program as a Styx Grid Service and execute it remotely.
+    In order to do this we need to go through the following steps:
+    <ol>
+        <li>Create a machine-readable description of the program (the configuration file).</li>
+        <li>Create and run the SGS server, using this description.</li>
+        <li>Run the service using the SGS client software.</li>
+    </ol>
+    </p>
+    
+    <subsection name="Creating the configuration file">
+    <p>The first thing that we need to do is to create a configuration file that
+    contains a complete description of the HelloWorld program.  The HelloWorld
+    program reads no input files or command line arguments and simply prints a
+    &quot;Hello World&quot; message to the console (i.e. to the standard output stream).
+    </p>
+    <p>The configuration file for this service is therefore very simple.  The
+    JStyx distribution contains not only a suitable configuration file, but also
+    a <a href="../../xref/uk/ac/rdg/resc/jstyx/gridservice/tutorial/HelloWorld.html">HelloWorld program</a>,
+    implemented in Java.  The configuration file provided in the JStyx distribution
+    contains descriptions of all the Styx Grid Services that are included in this
+    tutorial but we are only interested in the HelloWorld service for the moment.
+    Here is the relevant part of the configuration file, which is called <tt>SGSconfig.xml</tt>
+    and is found in the <tt>conf</tt> directory of the JStyx distribution:</p>
+    <source>
+<![CDATA[<gridservice name="helloworld"
+    command="JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.HelloWorld"
+    description="Prints Hello World to stdout">
+  <outputs>
+    <output type="stream" name="stdout"/>
+  </outputs>
+</gridservice>]]>
+    </source>
+    <p>This simply specifies that the HelloWorld program is run using the command
+    &quot;<tt>JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.HelloWorld</tt>&quot;
+    and that it prints data on its standard output stream.  (<em>Important note for
+    Windows users: the JStyxRun &quot;program&quot; is actually a batch file
+    and so cannot be run with this command.  You will need to change the <tt>command</tt>
+    property to &quot;cmd.exe /C JStyxRun uk.ac. ...&quot;.</em>)</p>
+    </subsection>
+    
+    <subsection name="Run the server">
+    
+    </subsection>
+    
+    </section>
+  </body>
+</document>

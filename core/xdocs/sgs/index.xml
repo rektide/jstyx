@@ -2,22 +2,61 @@
 <document>
   <properties>
     <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
-    <title>Styx Grid Services Tutorial</title>
+    <title>Styx Grid Services</title>
   </properties>
 
   <body>
     <section name="What are Styx Grid Services?">
-      <p>Please see <a href="http://www.resc.rdg.ac.uk/publications/Blower_AHM_2005.pdf">this paper</a>
-      for an explanation of what SGSs are and how they are used.  More details to follow.</p>
+      <p>Styx Grid Services (SGSs) are a means for wrapping command-line programs and
+      allowing them to be used remotely over the Internet.  When deployed as an SGS,
+      a program can be run from anywhere on the Internet <em>exactly as if it
+      were a local program</em>.</p>
+      <p>SGSs can be composed into &quot;workflows&quot;, in which a number of
+      SGSs, perhaps in different locations, can be combined using very simple
+      shell scripts to create distributed applications.  Data can be streamed
+      directly between the services along the shortest network path.</p>
+      <p><a href="http://www.resc.rdg.ac.uk/publications/posters/sgs_poster_SC2005.pdf">This poster</a>
+      is a good summary of the main capabilities of the SGS system.</p>
+      
+      <subsection name="A simple example">
+      <p>Let us consider a simple distributed application, consisting of two Styx Grid Services.
+      The first is called <tt>calc_mean</tt> and reads a set of input files
+      from a set of scientific experiments, calculates their mean and outputs the
+      result as a file.  The second SGS is called <tt>plot</tt> and it might be
+      deployed in a completely different location from the first service. It takes a single
+      input data file and turns it into a graph. The shell script (workflow) that
+      would be used to take a set of input files, calculate their mean
+      and plot a graph of the result would be:</p>
+      <source>
+        calc_mean input*.dat -o mean.dat
+        plot -i mean.dat -o graph.gif
+      </source>
+      <p>The important thing to note is that this is <em>exactly the same script</em> as
+      would be used to run the programs if they were installed locally.  The input files
+      for each service have been detected and uploaded automatically and the output files
+      have been automatically downloaded.</p>
+      </subsection>
     </section>
-		
+    
     <section name="Getting Started">
-      <subsection name="Download the software">
-      </subsection>
-      <subsection name="Install the software">
-      </subsection>
-      <subsection name="My First Styx Grid Service">
-      </subsection>
+    <p>Download and install the JStyx software, as described on the <a href="../downloads.html">downloads</a>
+    page.  Then follow the Styx Grid Services <a href="tutorial/index.html">tutorial</a>.</p>
+    </section>
+    
+    <section name="Further reading">
+    <p>Here are some publications about the SGS system in (roughly) decreasing order of
+    usefulness:</p>
+    <p>Jon Blower, Andrew Harrison, Keith Haines, <strong>Styx Grid Services: Lightweight, easy-to-use
+middleware for scientific workflows</strong>, accepted for oral presentation at the <em>International Conference on Computer Science</em> 2006,
+and for publication in <em>Lecture Notes in Computer Science</em>.
+<a href="http://www.resc.rdg.ac.uk/publications/Blower_et_al_ICCS06.pdf">[download paper]</a></p>
+    <p>Jon Blower, Keith Haines, Ed Llewellin, <strong>Styx Grid Services: lightweight, easy-to-use middleware for e-Science</strong>,
+Presented in the UK e-Science booth at <em>SuperComputing</em>, Seattle, 15-17 November 2005
+<a href="http://www.resc.rdg.ac.uk/publications/sgs_sc2005_talk.pdf">[download presentation]</a>
+<a href="http://www.resc.rdg.ac.uk/publications/posters/sgs_poster_SC2005.pdf">[download poster]</a></p>
+    <p>Jon Blower, Keith Haines, Ed Llewellin, <strong>Data streaming, workflow and firewall-friendly Grid Services with Styx</strong>,
+<em>Proceedings of the UK e-Science All Hands Meeting</em> 19-22 September 2005
+<a href="http://www.resc.rdg.ac.uk/publications/Blower_AHM_2005.pdf">[download paper]</a> <a href="http://www.nesc.ac.uk/talks/ahm2005/573.pdf">[download presentation]</a></p>
     </section>
   </body>
 </document>

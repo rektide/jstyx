@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>Styx Grid Services Tutorial</title>
+  </properties>
+
+  <body>
+    <section name="Styx Grid Services Tutorial: Introduction">
+    <p>This tutorial will guide you through the process of creating Styx Grid
+    Services from command-line programs and using them in a number of ways.
+    Before you start the tutorial you must install the JStyx software as 
+    instructed <a href="../../downloads.html">here</a>.  No further software is required
+    to follow this tutorial: all the Styx Grid Services software is included in
+    the JStyx distribution.</p>
+    </section>
+    <section name="Basic concepts">
+    <p>In order to create a Styx Grid Service from an existing command-line
+    program you need to write a short, machine-readable description of the
+    program, including the input files it expects, the output files it produces
+    and the command-line arguments it understands.  This description is known as
+    the &quot;configuration file&quot; and is written
+    in XML.  A full description of the format of this file can be found
+    <a href="../config.html">here</a>, but for the moment you don't need to 
+    worry about this: the tutorial material includes an example configuration file
+    and this is all we need for this tutorial.</p>
+    <p>Having created the configuration file, you will simply run a program
+    that reads the file and automatically creates the Styx Grid Services server.
+    You can then run <em>any</em> Styx Grid Service from the command line using
+    a generic client program.</p>
+    </section>
+    <section name="Tutorial contents">
+      <p>
+      You can follow this tutorial online or, if you
+      prefer to work from a printed copy, you can download a <a href="../../jstyx.pdf">PDF version</a>
+      of this entire website.  The tutorial sections are:
+      <ul>
+        <li><a href="HelloWorld.html">The traditional &quot;Hello World&quot; application as a Styx Grid Service</a></li>
+      </ul>
+      </p>
+    </section>
+  </body>
+</document>
