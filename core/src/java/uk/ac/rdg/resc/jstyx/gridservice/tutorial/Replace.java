@@ -50,6 +50,9 @@ import com.martiansoftware.jsap.UnflaggedOption;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2006/02/22 17:04:36  jonblower
+ * Change to comment
+ *
  * Revision 1.1  2006/02/22 08:47:25  jonblower
  * Added tutorial files
  *
@@ -75,7 +78,8 @@ public class Replace
             
             // Parse the command line
             JSAPResult result = jsap.parse(args);
-            // Check for success, printing a usage message if
+            // Check for success, printing a usage message if the command line was
+            // not specified correctly
             if (!result.success())
             {
                 System.err.println("Usage: Replace " + jsap.getUsage());
