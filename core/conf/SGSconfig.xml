@@ -67,6 +67,28 @@
             </outputs>
         </gridservice>
         
+        <!-- On Windows NT, 2000 and XP we must run batch files via cmd.exe.
+             On Windows 95 and 98, you must replace "cmd.exe" with "command.com".
+             On other OSes you can delete "cmd.exe /C"-->
+        <gridservice name="replace" command="cmd.exe /C JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.Replace"
+                description="Replaces all instances of one string in a file with another">
+            <params>
+                <param name="inputfile" paramType="flaggedOption" flag="i" required="yes" description="Name of input file"/>
+                <param name="outputfile" paramType="flaggedOption" flag="o" required="yes" description="Name of output file"/>
+                <param name="stringToFind" paramType="unflaggedOption" required="yes" description="String to find"/>
+                <param name="stringToReplace" paramType="unflaggedOption" required="yes" description="String to replace"/>
+                <param name="verbose" paramType="switch" flag="v" longFlag="verbose" description="If set true, will print verbose output to stdout"/>
+            </params>
+            <inputs>
+                <input type="fileFromParam" name="inputfile"/>
+            </inputs>
+            <outputs>
+                <output type="fileFromParam" name="outputfile"/>
+                <output type="stream" name="stdout"/>
+                <output type="stream" name="stderr"/>
+            </outputs>
+        </gridservice>
+        
         <gridservice name="version" command="java -version"
                 description="Prints Java version to stderr (for debugging)">
             <outputs>
