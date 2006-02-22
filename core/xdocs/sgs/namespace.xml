@@ -187,8 +187,10 @@
     <subsection name="The parameters directory">
     <p>
     The <code>params/</code> directory contains a set of files, one for each
-    parameter that was specified in the <a href="config.html">configuration file</a>.
-    Clients set parameters by writing values into these files.  The paramters
+    parameter that can be set by clients.  There is one parameter file for each
+    parameter in the <a href="config.html">configuration file</a>, except for 
+    parameters that represent output files.
+    Clients set parameters by writing values into these files.  The parameters
     are translated into command-line arguments to be passed to the underlying
     executable.  With each write,
     the server will check the validity of the input, returning an error if the
@@ -225,11 +227,6 @@
     &quot;stdout&quot; and &quot;stderr&quot; are read to obtain data from the
     standard output and standard error of the executable.  Other files represent
     output files that are produced by the executable.
-    </p>
-    <p>
-    This directory is empty until the service is started, at which point it will
-    contain all the files that can be read to obtain output data.  (TODO: is this
-    the most helpful behaviour?)
     </p>
     </subsection>
     
