@@ -13,14 +13,7 @@
 <sgs>
 
     <!-- Configuration of the server -->
-    <!-- TODO: configure max message size here? -->
-    <server> <!-- address="myserver.com" port="9092" cacheLocation="C:\StyxGridServices"> -->
-        <!-- TODO: will set SSL parameters in here (server cert location, cipher
-             suites, client authentication, acceptable client certs, etc) -->
-        <ssl activated="no">
-            <keystore location="C:\bogus.cert"/>
-        </ssl>
-        <!-- TODO: will set proxy settings etc here -->
+    <server port="9092">
     </server>
     
     <!-- The Styx Grid Services that will appear under this server -->
@@ -33,6 +26,7 @@
                 description="Prints Hello World to stdout">
             <outputs>
                 <output type="stream" name="stdout"/>
+                <output type="stream" name="stderr"/>
             </outputs>
         </gridservice>
         
@@ -89,7 +83,7 @@
             </outputs>
         </gridservice>
         
-        <gridservice name="version" command="java -version"
+        <gridservice name="javaversion" command="java -version"
                 description="Prints Java version to stderr (for debugging)">
             <outputs>
                 <output type="stream" name="stderr"/>

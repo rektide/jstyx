@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>Styx Grid Services Tutorial: Advanced techniques</title>
+  </properties>
+
+  <body>
+    <section name="Styx Grid Services Tutorial: Advanced techniques">
+        <subsection name="Setting the lifetime of a Styx Grid Service">
+            
+        </subsection>
+        <subsection name="Understanding the config file">
+            
+        </subsection>
+    </section>
+  </body>
+</document>

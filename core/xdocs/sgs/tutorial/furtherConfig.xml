@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>Styx Grid Services Tutorial: More configuration options</title>
+  </properties>
+
+  <body>
+    <section name="Styx Grid Services Tutorial: More configuration options">
+    <p>Normally you will not need to change the configuration file to follow this
+    tutorial.  However sometimes this is necessary to fit in with your system.</p>
+    
+    <subsection name="Changing the port number of the server">
+    <p>By default, the SGS server will run under port 9092.  If this is not 
+    acceptable to you for any reason, you can change this in the configuration file.
+    Look at the config file provided with the JStyx distribution (<code>SGSconfig.xml</code>).
+    Before the part that contains the details of all the services, there is a section
+    for configuring the server:</p>
+    <source><![CDATA[<server port="9092"></server>]]></source>
+    <p>Simply change the port number in this section to the number of your choice
+    (the range of port numbers that you are allowed to choose 
+    is system-dependent).</p>
+    </subsection>
+    
+    <subsection name="Changing the location of cached files">
+    <p>While a Styx Grid Service is running, it creates a number of files on the
+    server's hard disk.  These files are mostly cached copies of the input and
+    output files.  By default, these files are kept in a directory called 
+    <code>StyxGridServices</code> in the home directory of the user that is 
+    running the SGS server (this is detected through Java's <code>user.home</code>
+    system property.  Under Unix-type systems this will be <code>$HOME</code>
+    and under Windows it will be <code>C:\Documents and Settings\username</code>.)</p>
+    <p>If you would prefer these cached files to be kept elsewhere you can set this
+    in the configuration file, for example:</p>
+    <source><![CDATA[<server port="9092" cacheLocation="/usr/local/sgs/cache"></server>]]></source>
+    <p>The <code>cacheLocation</code> must be a directory.  If it does not already
+    exist it will be created. You must make sure that the user that is running the
+    SGS server has write permissions in this directory.</p>
+    </subsection>
+    
+    <subsection name="Enabling logging messages">
+    <p>(For developers only, really.)  The logging behaviour of the system is
+    controlled by the <code>log4j.properties</code> file in the <code>conf</code>
+    directory of the distribution.  To see debug messages for a particular class,
+    change the logging level of that class to DEBUG.  You can see the individual
+    Styx messages that are exchanged between client and server by setting the 
+    logging levels of the StyxServerProtocolHandler and StyxConnection to
+    DEBUG.  This is not recommended as it will significantly slow down the system.</p>
+    </subsection>
+    </section>
+  </body>
+</document>

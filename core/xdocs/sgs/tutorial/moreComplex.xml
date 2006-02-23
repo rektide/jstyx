@@ -2,23 +2,28 @@
 <document>
   <properties>
     <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
-    <title>Styx Grid Services Tutorial: Hello World application</title>
+    <title>Styx Grid Services Tutorial: Creating more complex services</title>
   </properties>
 
   <body>
-    <section name="Styx Grid Services Tutorial: Hello World">
-    <p>In this first part of the tutorial we shall wrap the traditional
-    &quot;Hello World&quot; program as a Styx Grid Service and execute it remotely.
-    In order to do this we need to go through the following steps:
+    <section name="Styx Grid Services Tutorial: Creating more complex services">
+    <p>We shall now create some Styx Grid Services from 
+    programs that are a little more complex than a Hello World program. The process for
+    doing so is exactly the same:
     <ol>
         <li>Create a machine-readable description of the program (the configuration file).</li>
         <li>Create and run the SGS server, using this description.</li>
         <li>Run the service using the SGS client software.</li>
     </ol>
     </p>
+    <p>This time, we shall look at programs that read input from either a local
+    file or the standard input (i.e. the console).</p>
     
-    <subsection name="1. Creating the configuration file">
-    <p>The first thing that we need to do is to create a configuration file that
+    <subsection name="1. A simple filter">
+    <p>A filter is simply a program that reads data from its standard input
+    and writes to its standard output.  </p>
+
+<p>The first thing that we need to do is to create a configuration file that
     contains a complete description of the HelloWorld program and how to run it.  The HelloWorld
     program reads no input files or command line arguments and simply prints a
     &quot;Hello World&quot; message to the console (i.e. to the standard output stream).

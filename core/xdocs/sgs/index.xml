@@ -27,14 +27,17 @@
       input data file and turns it into a graph. The shell script (workflow) that
       would be used to take a set of input files, calculate their mean
       and plot a graph of the result would be:</p>
-      <source>
-        calc_mean input*.dat -o mean.dat
-        plot -i mean.dat -o graph.gif
-      </source>
+      <source>calc_mean input*.dat -o mean.dat
+plot -i mean.dat -o graph.gif</source>
       <p>The important thing to note is that this is <em>exactly the same script</em> as
       would be used to run the programs if they were installed locally.  The input files
       for each service have been detected and uploaded automatically and the output files
       have been automatically downloaded.</p>
+      <p>The intermediate file <code>mean.dat</code> can be <em>passed directly
+      between the two services</em> (i.e. without being downloaded by the client)
+      with a small change to the script:</p>
+      <source>calc_mean input*.dat -o mean.dat.sgsref
+plot -i mean.dat.sgsref -o graph.gif</source>
       </subsection>
     </section>
     
