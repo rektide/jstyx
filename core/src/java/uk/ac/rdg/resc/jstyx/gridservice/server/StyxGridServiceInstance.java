@@ -77,6 +77,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.48  2006/02/23 09:06:25  jonblower
+ * Fixed bug in destroy(): instances and their cached files are now destroyed properly
+ *
  * Revision 1.47  2006/02/20 17:35:01  jonblower
  * Implemented correct handling of output files/streams (not fully tested yet)
  *
@@ -768,6 +771,8 @@ class StyxGridServiceInstance extends StyxDirectory
             log.error("Internal error: got StyxException when calling remove()" +
                 " on instance root directory");
         }
+        // Now remove the working directory
+        this.deleteDir(this.workDir);
         log.debug("**** INSTANCE " + this.getName() + " DESTROYED ****");
     }
     
