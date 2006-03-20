@@ -30,7 +30,6 @@ package uk.ac.rdg.resc.jstyx.server;
 
 import java.net.InetSocketAddress;
 import java.io.IOException;
-import javax.net.ssl.SSLContext;
 
 import org.apache.mina.common.TransportType;
 import org.apache.mina.registry.Service;
@@ -53,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.8  2006/03/20 17:51:50  jonblower
+ * Adding authentication to base JStyx system
+ *
  * Revision 1.7  2005/08/30 16:28:23  jonblower
  * Subsumed TestServer program into StyxServer class
  *
@@ -92,62 +94,79 @@ public class StyxServer
     private ProtocolProvider provider;
     private int port;
     
-    private SSLContext sslContext; // Non-null if we want to secure the server
+    private StyxSecurityContext securityContext; // If this is null, access to the
+                                                 // server is anonymous and unsecured
     
     /**
      * Creates a Styx server that exposes the given directory under the given
-     * port.
+     * port.  No security information is used: server will allow anonymous access
+     * and no traffic will be encrypted.
      * @throws IllegalArgumentException if the port number is invalid or the
      * root is null.
+     * @throws StyxSecurityException if there was an error setting up the
+     * security context (should never happen since this will be an unsecured
+     * server).
      */
-    public StyxServer(int port, StyxDirectory root)
+    public StyxServer(int port, StyxDirectory root) throws StyxSecurityException
     {
-        this(port, root, null); // By default, don't use SSL
-    }
-    
-    /**
-     * Creates a Styx server that exposes the given directory under the given
-     * port.
-     * @throws IllegalArgumentException if the port number is invalid or the
-     * root is null.
-     */
-    public StyxServer(int port, StyxDirectory root, SSLContext sslContext)
-    {
-        this(port, new StyxServerProtocolProvider(root), sslContext);
+        this(port, root, null);
     }
     
     /**
      * Creates a Styx server that listens on the given port and uses the
      * given protocol provider (This is used by the Styx interloper class)
+     * Connections are anonymous and unsecured.
      * @throws IllegalArgumentException if the port number is invalid or the
      * provider is null.
      */
     public StyxServer(int port, ProtocolProvider provider)
     {
-        this(port, provider, null); // By default, don't use SSL
-    }
-    
-    /**
-     * Creates a Styx server that listens on the given port and uses the
-     * given protocol provider (This is used by the Styx interloper class)
-     * @throws IllegalArgumentException if the port number is invalid or the
-     * provider is null.
-     */
-    public StyxServer(int port, ProtocolProvider provider, SSLContext sslContext)
-    {
         if (provider == null)
         {
             throw new IllegalArgumentException("ProtocolProvider cannot be null");
         }
+        checkPortNumber(port);
+        this.port = port;
+        this.provider = provider;
+        this.securityContext = new StyxSecurityContext();
+    }
+    
+    /**
+     * Creates a Styx server.
+     * @param port The port number on which the server will listen
+     * @param root The root of the Styx filesystem to serve
+     * @param securityConfigFile The file containing security information
+     * (user details, SSL setup etc).  If this is null, the server will allow
+     * anonymous access and no traffic will be encrypted.
+     * @throws IllegalArgumentException if the port number is invalid or 
+     * root == null.
+     * @throws StyxSecurityException if there was an error reading security
+     * configuration from <code>securityConfigFile</code>.
+     */
+    public StyxServer(int port, StyxDirectory root, String securityConfigFile)
+        throws StyxSecurityException
+    {
+        if (root == null)
+        {
+            throw new IllegalArgumentException("root cannot be null");
+        }
         // Check that the port number is valid
+        checkPortNumber(port);
+        this.securityContext = new StyxSecurityContext(securityConfigFile);
+        this.provider = new StyxServerProtocolProvider(root, this.securityContext);
+    }
+    
+    /**
+     * Checks to see if the given port number is valid, throwing an 
+     * IllegalArgumentException if it isn't.
+     */
+    private static void checkPortNumber(int port)
+    {
         // TODO: should we disallow other port numbers?
         if (port < 0 || port > StyxUtils.MAXUSHORT)
         {
             throw new IllegalArgumentException("Invalid port number");
         }
-        this.port = port;
-        this.provider = provider;
-        this.sslContext = sslContext;
     }
     
     /**
@@ -161,9 +180,9 @@ public class StyxServer
         //addLogger( registry );
 
         // Add SSL filter if SSL is enabled.
-        if( this.sslContext != null )
+        if( this.securityContext.getSSLContext() != null )
         {
-            SSLFilter sslFilter = new SSLFilter( this.sslContext );
+            SSLFilter sslFilter = new SSLFilter( this.securityContext.getSSLContext() );
             IoAcceptor acceptor = registry.getIoAcceptor( TransportType.SOCKET );
             acceptor.getFilterChain().addLast( "sslFilter", sslFilter );
         }
@@ -173,7 +192,7 @@ public class StyxServer
         registry.bind( service, this.provider );
         
         log.info( "Listening on port " + this.port + ", SSL " +
-            (this.sslContext == null ? "disabled" : "enabled"));
+            (this.securityContext.getSSLContext() == null ? "disabled" : "enabled"));
     }
     
     /**
@@ -191,8 +210,6 @@ public class StyxServer
         int port = 8080;
         // Default root directory is the user's home directory
         String home = System.getProperty("user.home");
-        // Use SSL if there is a third command-line argument
-        boolean useSSL = false;
         
         if (args.length > 0)
         {
@@ -212,12 +229,7 @@ public class StyxServer
         }
         if (args.length > 2)
         {
-            // TODO: perhaps this third argument should be something specific...
-            useSSL = true;
-        }
-        if (args.length > 3)
-        {
-            System.err.println("Usage: TestServer [port] [root directory] [use SSL]");
+            System.err.println("Usage: TestServer [port] [root directory]");
             return;
         }
         
@@ -225,15 +237,8 @@ public class StyxServer
         System.out.println("Building directory tree (this can take some time)");
         StyxDirectory root = new DirectoryOnDisk(home);
         
-        // Set the SSL settings, using a default keystore for now
-        SSLContext sslContext = null;
-        if (useSSL)
-        {
-            sslContext = JonSSLContextFactory.getInstance(true, "C:\\bogus.cert");
-        }
-        
-        // Set up the server and start it
-        StyxServer server = new StyxServer(port, root, sslContext);
+        // Set up the server and start it (completely unsecured)
+        StyxServer server = new StyxServer(port, root);
         server.start();
     }
 }

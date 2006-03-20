@@ -37,6 +37,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.5  2006/03/20 17:51:48  jonblower
+ * Adding authentication to base JStyx system
+ *
  * Revision 1.4  2005/03/15 09:01:48  jonblower
  * Message type now stored as short, not int
  *
@@ -96,6 +99,22 @@ public class TauthMessage extends StyxMessage
     protected final void encodeBody(StyxBuffer buf)
     {
         buf.putUInt(this.afid).putString(this.uname).putString(this.aname);
+    }
+    
+    /**
+     * @return the username
+     */
+    public String getUName()
+    {
+        return this.uname;
+    }
+    
+    /**
+     * @return the name of the file tree that the client wishes to access
+     */
+    public String getAName()
+    {
+        return this.aname;
     }
     
     protected String getElements()

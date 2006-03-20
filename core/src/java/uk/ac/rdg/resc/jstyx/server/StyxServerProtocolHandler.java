@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.14  2006/03/20 17:51:50  jonblower
+ * Adding authentication to base JStyx system
+ *
  * Revision 1.13  2005/12/01 08:21:56  jonblower
  * Fixed javadoc comments
  *
@@ -106,10 +109,13 @@ public class StyxServerProtocolHandler implements ProtocolHandler
     private static final Logger log = Logger.getLogger(StyxServerProtocolHandler.class);
     
     private StyxDirectory root; // Root of the file tree
+    private StyxSecurityContext securityContext; // Security context
     
-    public StyxServerProtocolHandler(StyxDirectory fileTreeRoot)
+    public StyxServerProtocolHandler(StyxDirectory fileTreeRoot,
+        StyxSecurityContext securityContext)
     {
         this.root = fileTreeRoot;
+        this.securityContext = securityContext;
     }
     
     /**
@@ -162,7 +168,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
             }
             else if (message instanceof TauthMessage)
             {
-                replyAuth();
+                replyAuth(session, sessionState, (TauthMessage)message, tag);
             }
             else if (message instanceof TattachMessage)
             {
@@ -245,12 +251,33 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         reply(session, new RversionMessage(finalMessageSize, "9P2000"), tag);
     }
     
-    private void replyAuth() throws StyxException
+    private void replyAuth(ProtocolSession session, StyxSessionState sessionState,
+        TauthMessage tAuthMsg, int tag) throws StyxException
     {
         // This message isn't used by Inferno (which uses a different
         // authentication mechanism) but could be used in a different
         // scheme
-        throw new StyxException("Authentication not supported");
+        if (this.securityContext.supportsAuthentication())
+        {
+            // Check that the supplied fid isn't already in use
+            if (sessionState.fidInUse(tAuthMsg.getFid()))
+            {
+                throw new StyxException("Fid already in use");
+            }
+            // Create a new auth file for exchange of auth information
+            // This will throw a StyxException if the given username is not 
+            // recognized in the security context
+            AuthFile authFile = new AuthFile(this.securityContext, tAuthMsg.getUName());
+            // Associate this with the given fid
+            sessionState.associate(tAuthMsg.getFid(), authFile);
+            // Reply with the Qid of this auth file
+            reply(session, new RauthMessage(authFile.getQid()), tag);
+        }
+        else
+        {
+            // Server does not support authentication
+            throw new StyxException("Authentication not supported");
+        }
     }
     
     private void replyAttach(ProtocolSession session, StyxSessionState sessionState,
@@ -260,11 +287,41 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         {
             throw new StyxException("Tversion not seen");
         }
-        // Check that afid = NOFID (anything else implies that the client
-        // wants an authenticated connection)
-        if (tAttMsg.getAfid() != StyxUtils.NOFID)
+        User user;
+        if (tAttMsg.getAfid() == StyxUtils.NOFID)
         {
-            throw new StyxException("Authentication not supported");
+            // Client is seeking an unauthenticated connection
+            if (this.securityContext.allowsAnonymousLogin())
+            {
+                user = User.ANONYMOUS;
+            }
+            else
+            {
+                throw new StyxException("Server does not allow anonymous logins");
+            }
+        }
+        else
+        {
+            // Client is seeking an authenticated connection
+            if (this.securityContext.supportsAuthentication())
+            {
+                // Get the AuthFile associated with the provided afid
+                // This will throw a StyxException if the auth file has not been created
+                AuthFile authFile = (AuthFile)sessionState.getStyxFile(tAttMsg.getAfid());
+                // See if the user is properly authenticated with this file
+                if (authFile.isAuthenticated(tAttMsg.getUname()))
+                {
+                    user = authFile.getUser();
+                }
+                else
+                {
+                    throw new StyxException("User has not authenticated");
+                }
+            }
+            else
+            {
+                throw new StyxException("Authentication not supported");
+            }
         }
         // Check that the supplied fid isn't already in use
         if (sessionState.fidInUse(tAttMsg.getFid()))
@@ -273,7 +330,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         }
         // Associate the fid with the root of the server
         sessionState.associate(tAttMsg.getFid(), this.root);
-        sessionState.setUser(tAttMsg.getUname());
+        sessionState.setUser(user);
         // Ignore the aname part of the TattachMessage (TODO)
         this.root.setLastAccessTime(StyxUtils.now());
         reply(session, new RattachMessage(this.root.getQid()), tag);

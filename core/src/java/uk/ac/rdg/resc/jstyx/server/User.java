@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 The University of Reading
+ * Copyright (c) 2006 The University of Reading
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -13,7 +13,7 @@
  * 3. Neither the name of the University of Reading, nor the names of the
  *    authors or contributors may be used to endorse or promote products
  *    derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -28,57 +28,56 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
-import org.apache.mina.protocol.ProtocolCodecFactory;
-import org.apache.mina.protocol.ProtocolHandler;
-import org.apache.mina.protocol.ProtocolProvider;
-
-import uk.ac.rdg.resc.jstyx.messages.StyxCodecFactory;
-
 /**
- * Protocol provider for a Styx server, used by MINA framework
+ * Class representing the user at the other end of a Styx connection.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.3  2006/03/20 17:51:50  jonblower
+ * Revision 1.1  2006/03/20 17:51:50  jonblower
  * Adding authentication to base JStyx system
  *
- * Revision 1.2  2005/03/11 14:02:16  jonblower
- * Merged MINA-Test_20059309 into main line of development
- *
- * Revision 1.1.2.2  2005/03/10 18:30:56  jonblower
- * Changed to use StyxCodecFactory
- *
- * Revision 1.1.2.1  2005/03/10 11:59:42  jonblower
- * Initial import
- *
  */
-public class StyxServerProtocolProvider implements ProtocolProvider
+public class User
 {
+    public static final User ANONYMOUS = new User("nobody", "", "Anonymous User");
     
-    // We must store the root directory of the Styx server to pass to the
-    // protocol handler
-    private StyxDirectory root;
-    private StyxSecurityContext securityContext;
+    private String username;
+    private String password;
+    private String fullName;
     
-    public StyxServerProtocolProvider(StyxDirectory root,
-        StyxSecurityContext securityContext)
+    /**
+     * Creates a new instance of User
+     */
+    public User(String username, String password, String fullName)
     {
-        this.root = root;
-        this.securityContext = null;
+        this.username = username.trim();
+        this.password = password.trim();
+        this.fullName = fullName.trim();
     }
     
-    public ProtocolCodecFactory getCodecFactory()
+    public String getUsername()
     {
-        return StyxCodecFactory.getInstance();
+        return this.username;
     }
     
-    public ProtocolHandler getHandler()
+    public String getFullName()
     {
-        // Must create a new StyxServerProtocolHandler for each server because
-        // each server might have a different file tree to serve up
-        return new StyxServerProtocolHandler(this.root, this.securityContext);
+        return this.fullName;
+    }
+    
+    public boolean passwordMatches(String otherPassword)
+    {
+        return false;
+    }
+    
+    /**
+     * @return true if this user is a member of the group with the given name
+     */
+    public boolean isMemberOf(String groupName)
+    {
+        return false;
     }
     
 }

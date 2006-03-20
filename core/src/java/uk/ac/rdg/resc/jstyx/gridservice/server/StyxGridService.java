@@ -69,6 +69,9 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.DocFile;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.22  2006/03/20 17:51:47  jonblower
+ * Adding authentication to base JStyx system
+ *
  * Revision 1.21  2006/01/05 12:09:15  jonblower
  * Restructured configuration to give default values for server settings
  *
@@ -375,16 +378,9 @@ public class StyxGridService
                 SGSConfig conf = (SGSConfig)it.next();
                 root.addChild(new StyxGridService(conf).getRoot());
             }
-            // Start the server
+            // Start the server: unsecured for the moment
             int port = config.getPort();
-            boolean useSSL = config.getUseSSL();
-            SSLContext sslContext = null;
-            if (useSSL)
-            {
-                sslContext = JonSSLContextFactory.getInstance(true,
-                    config.getKeystoreLocation());
-            }
-            new StyxServer(port, root, sslContext).start();
+            new StyxServer(port, root).start();
             System.out.println("Started StyxGridServices, listening on port " + port);
         }
         catch(Exception e)

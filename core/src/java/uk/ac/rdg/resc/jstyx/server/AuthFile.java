@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 The University of Reading
+ * Copyright (c) 2006 The University of Reading
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -13,7 +13,7 @@
  * 3. Neither the name of the University of Reading, nor the names of the
  *    authors or contributors may be used to endorse or promote products
  *    derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -28,57 +28,60 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
-import org.apache.mina.protocol.ProtocolCodecFactory;
-import org.apache.mina.protocol.ProtocolHandler;
-import org.apache.mina.protocol.ProtocolProvider;
-
-import uk.ac.rdg.resc.jstyx.messages.StyxCodecFactory;
+import uk.ac.rdg.resc.jstyx.StyxException;
 
 /**
- * Protocol provider for a Styx server, used by MINA framework
+ * StyxFile that is used to exchange authentication information.  Clients must
+ * write their password into this file.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
- * Revision 1.3  2006/03/20 17:51:50  jonblower
+ * Revision 1.1  2006/03/20 17:51:50  jonblower
  * Adding authentication to base JStyx system
  *
- * Revision 1.2  2005/03/11 14:02:16  jonblower
- * Merged MINA-Test_20059309 into main line of development
- *
- * Revision 1.1.2.2  2005/03/10 18:30:56  jonblower
- * Changed to use StyxCodecFactory
- *
- * Revision 1.1.2.1  2005/03/10 11:59:42  jonblower
- * Initial import
- *
  */
-public class StyxServerProtocolProvider implements ProtocolProvider
+public class AuthFile extends InMemoryFile
 {
-    
-    // We must store the root directory of the Styx server to pass to the
-    // protocol handler
-    private StyxDirectory root;
     private StyxSecurityContext securityContext;
+    private User user;
     
-    public StyxServerProtocolProvider(StyxDirectory root,
-        StyxSecurityContext securityContext)
+    /**
+     * Creates a new instance of AuthFile
+     * @param securityContext The security context for this connection
+     * @param username The name of the user (as claimed by the user)
+     * @throws StyxSecurityException if the user could not be identified or 
+     * if there was an error reading from the security context information
+     */
+    public AuthFile(StyxSecurityContext securityContext, String username)
+        throws StyxException
     {
-        this.root = root;
-        this.securityContext = null;
+        super("auth", "nobody", "nobody", 0666, false, false);
+        this.auth = true;
+        this.securityContext = securityContext;
+        this.user = this.securityContext.getUser(username);
     }
     
-    public ProtocolCodecFactory getCodecFactory()
+    /**
+     * @return true if the user with the given name has successfully authenticated
+     */
+    public boolean isAuthenticated(String username)
     {
-        return StyxCodecFactory.getInstance();
+        if (this.user.getUsername().trim().equals(username) &&
+            this.user.passwordMatches(this.getContents()))
+        {
+            return true;
+        }
+        return false;
     }
     
-    public ProtocolHandler getHandler()
+    /**
+     * @return the User that this AuthFile belongs to
+     */
+    public User getUser()
     {
-        // Must create a new StyxServerProtocolHandler for each server because
-        // each server might have a different file tree to serve up
-        return new StyxServerProtocolHandler(this.root, this.securityContext);
+        return this.user;
     }
     
 }

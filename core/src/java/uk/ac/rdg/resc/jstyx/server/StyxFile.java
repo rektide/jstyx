@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.24  2006/03/20 17:51:50  jonblower
+ * Adding authentication to base JStyx system
+ *
  * Revision 1.23  2006/02/17 09:22:32  jonblower
  * Added rename() method
  *
@@ -147,7 +150,7 @@ public class StyxFile
     protected boolean directory;     // True if this is a directory
     private boolean appendOnly;      // True if this is an append-only file
     private boolean exclusive;       // True if this file can be opened by only one client at a time
-    private boolean auth;            // True if this is a file to be used by the authentication mechanism
+    protected boolean auth;            // True if this is a file to be used by the authentication mechanism
                                      // (normally false)
     private int permissions;         // Permissions represented as a number (e.g. 0755 in octal)
     
@@ -176,7 +179,7 @@ public class StyxFile
      * "", "." or ".."
      */
     public StyxFile(String name, String owner, String group, int permissions,
-        boolean isAppendOnly, boolean isExclusive, boolean isAuth)
+        boolean isAppendOnly, boolean isExclusive)
         throws StyxException
     {
         name = name.trim();
@@ -187,10 +190,10 @@ public class StyxFile
         this.parent = null;
         this.name = name;
         this.directory = false;
+        this.auth = false;
         this.permissions = permissions;
         this.appendOnly = isAppendOnly;
         this.exclusive = isExclusive;
-        this.auth = isAuth;
         this.version = 0;
         this.creationTime = System.currentTimeMillis();
         this.lastAccessTime = StyxUtils.now();
@@ -200,14 +203,6 @@ public class StyxFile
         this.lastModifiedBy = "";
         this.clients = new Vector();
         this.changeListeners = new Vector();
-    }
-    
-    public StyxFile(String name, String userID, String groupID, int permissions,
-        boolean isAppendOnly, boolean isExclusive)
-        throws StyxException
-    {
-        this(name, userID, groupID, permissions, isAppendOnly,
-            isExclusive, false);
     }
     
     /**
@@ -463,11 +458,11 @@ public class StyxFile
      * epoch (Jan 1 00:00 1970 GMT)
      * @param user The user who is modifying the file
      */
-    public void setLastModified(long lastModifiedTime, String user)
+    public void setLastModified(long lastModifiedTime, User user)
     {
         this.lastModifiedTime = lastModifiedTime;
         this.setLastAccessTime(lastModifiedTime);
-        this.lastModifiedBy = user.trim();
+        this.lastModifiedBy = user.getUsername();
     }
     
     public void setLastAccessTime(long lastAccessTime)

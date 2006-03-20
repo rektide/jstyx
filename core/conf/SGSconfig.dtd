@@ -114,16 +114,7 @@
 <!--- The gridservices tag can contain zero or more gridservices -->
 <!ELEMENT gridservices (gridservice)*>
 
-<!--- Items concerning configuration of the server -->
-<!ELEMENT keystore EMPTY>
-<!ATTLIST keystore
-    location CDATA #REQUIRED
-  >
-<!ELEMENT ssl (keystore)>
-<!ATTLIST ssl
-    activated (yes | no) #REQUIRED
-  >
-<!ELEMENT server (ssl?)>
+<!ELEMENT server EMPTY>
 <!-- TODO: any way to force port to be a positive integer? -->
 <!ATTLIST server
     address CDATA #IMPLIED

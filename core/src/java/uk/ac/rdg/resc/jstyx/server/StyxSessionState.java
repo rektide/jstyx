@@ -46,6 +46,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2006/03/20 17:51:50  jonblower
+ * Adding authentication to base JStyx system
+ *
  * Revision 1.3  2005/03/11 14:02:16  jonblower
  * Merged MINA-Test_20059309 into main line of development
  *
@@ -68,7 +71,7 @@ class StyxSessionState
                                        // of Tversion/Rversion messages)
     private long maxMessageSize;       // The maximum size of message that will
                                        // be sent or received on this connection
-    private String user;               // The name of the remote user
+    private User user;               // The name of the remote user
     private boolean authenticated;     // True if this is an authenticated connection
     
     // Need to keep track of all open fids and tags
@@ -85,7 +88,7 @@ class StyxSessionState
     {
         this.versionNegotiated = false;
         this.maxMessageSize = 0;
-        this.user = "";
+        this.user = null;
         this.fidsInUse = new Hashtable();
         this.tagsInUse = new Vector();
         this.authenticated = false;
@@ -125,28 +128,19 @@ class StyxSessionState
     }
 
     /**
-     * @return the name of the remote user
+     * @return the remote user
      */
-    public String getUser()
+    public User getUser()
     {
         return user;
     }
 
     /**
-     * Sets the name of the remote user (in response to an RattachMessage)
+     * Sets the remote user (in response to an RattachMessage)
      */
-    public void setUser(String user)
+    public void setUser(User user)
     {
         this.user = user;
-    }
-    
-    /**
-     * Gets the groups to which the user belongs. At the moment, this just
-     * returns an empty array; it is a placeholder for future use
-     */
-    public String[] getGroups()
-    {
-        return new String[0];
     }
     
     /**
@@ -445,13 +439,9 @@ class StyxSessionState
         {
             // The group has the right permissions; now we have to find if the user
             // is a member of the group to which the file belongs
-            String[] groups = this.getGroups();
-            for (int i = 0; i < groups.length; i++)
+            if (this.user.isMemberOf(sf.getGroup()))
             {
-                if (groups[i].equals(sf.getGroup()))
-                {
-                    return true;
-                }
+                return true;
             }
         }
         // Check owner permissions
@@ -459,7 +449,7 @@ class StyxSessionState
         {
             // the owner has the right permissions; now we check that the user
             // is the owner of the file
-            if (this.user.equals(sf.getOwner()))
+            if (this.user.getUsername().equals(sf.getOwner()))
             {
                 return true;
             }

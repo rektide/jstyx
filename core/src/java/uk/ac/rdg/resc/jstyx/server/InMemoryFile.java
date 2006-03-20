@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.20  2006/03/20 17:51:50  jonblower
+ * Adding authentication to base JStyx system
+ *
  * Revision 1.19  2005/09/08 07:08:59  jonblower
  * Removed "String user" from list of parameters to StyxFile.write()
  *
@@ -109,16 +112,13 @@ public class InMemoryFile extends StyxFile
     protected ByteBuffer buf;
     
     /**
-     * Creates a new instance of InMemoryFile with a capacity of 8KB. Use
-     * setCapacity() to increase this limit
+     * Creates a new instance of InMemoryFile
      */
     public InMemoryFile(String name, String userID, String groupID,
         int permissions, boolean isAppendOnly, boolean isExclusive)
         throws StyxException
     {
-        super(name, userID, groupID, permissions, false, isAppendOnly,
-            isExclusive);
-        //this.capacity = 8192;
+        super(name, userID, groupID, permissions, isAppendOnly, isExclusive);
     }
     
     public InMemoryFile(String name, int permissions,

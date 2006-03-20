@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<!--
+    TODO define vocabulary indentification
+    PUBLIC ID: -//vendor//vocabulary//EN
+    SYSTEM ID: http://server/path/serverConfig.dtd
+
+-->
+
+<!--- The root element of the document -->
+<!ELEMENT security (server, users, groups)>
+
+<!--- Sets the port on which the server will listen and whether or not 
+      authentication is required -->
+<!ELEMENT server (sslConfig?)>
+<!ATTLIST server
+    allowAnonymousLogin (true|false) "false"
+    useSSL (true|false) "false"
+  >
+<!--- Sets up SSL - gives location of server certificate etc -->
+<!ELEMENT sslConfig (keystore)>
+<!ELEMENT keystore EMPTY>
+<!ATTLIST keystore
+    location CDATA #REQUIRED
+  >
+
+<!ELEMENT users (user)*>
+<!--- Describes a user.  Must have a username and password, email address is optional -->
+<!ELEMENT user (password, fullName?)>
+<!ATTLIST user
+    name CDATA #REQUIRED
+  >
+<!ELEMENT password (#PCDATA)>
+<!ELEMENT fullName (#PCDATA)>
+
+<!--- A group of users -->
+<!ELEMENT groups (group)*>
+<!ELEMENT group (username)*>
+<!ATTLIST group
+    name CDATA #REQUIRED
+  >
+<!ELEMENT username (#PCDATA)>

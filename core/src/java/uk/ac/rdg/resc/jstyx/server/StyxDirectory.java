@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.13  2006/03/20 17:51:50  jonblower
+ * Adding authentication to base JStyx system
+ *
  * Revision 1.12  2006/01/04 16:47:29  jonblower
  * Reworked getName() and getFullPath()
  *
@@ -97,7 +100,7 @@ public class StyxDirectory extends StyxFile
         throws StyxException
     {
         // Directories cannot be append-only, exclusive or auth files
-        super(name, owner, group, permissions, false, false, false);
+        super(name, owner, group, permissions, false, false);
         this.directory = true;
         this.children = new Vector();
     }

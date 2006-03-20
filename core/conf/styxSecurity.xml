@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Document   : serverConfig.xml
+    Created on : 20 March 2006, 11:24
+    Author     : jdb
+    Description:
+        Example config file for a Styx server.  Defines the users that are allowed
+        to connect, etc.
+-->
+
+<!DOCTYPE security SYSTEM "styxSecurity.dtd">
+
+<security>
+    
+    <server allowAnonymousLogin="false" useSSL="false"/>
+    
+    <users>
+        <user name="jdb">
+            <password>santorini</password>
+            <fullName>Jon Blower</fullName>
+        </user>
+        <user name="fred">
+            <password>bloggs</password>
+            <fullName>Fred Bloggs</fullName>
+        </user>
+    </users>
+    
+    <groups>
+        <group name="admins">
+            <username>jdb</username>
+        </group>
+    </groups>
+
+</security>

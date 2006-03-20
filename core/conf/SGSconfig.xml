@@ -13,8 +13,7 @@
 <sgs>
 
     <!-- Configuration of the server -->
-    <server port="9092">
-    </server>
+    <server port="9092"/>
     
     <!-- The Styx Grid Services that will appear under this server -->
     <gridservices>
