@@ -23,7 +23,7 @@
     <p>A filter is simply a program that reads data from its standard input
     and writes to its standard output.  </p>
 
-<p>The first thing that we need to do is to create a configuration file that
+<p>The first thing that you need to do is to create a configuration file that
     contains a complete description of the HelloWorld program and how to run it.  The HelloWorld
     program reads no input files or command line arguments and simply prints a
     &quot;Hello World&quot; message to the console (i.e. to the standard output stream).
@@ -32,7 +32,7 @@
     have to write it yourself.  The
     JStyx distribution contains not only a suitable configuration file, but also
     a <a href="../../xref/uk/ac/rdg/resc/jstyx/gridservice/tutorial/HelloWorld.html">HelloWorld program</a>,
-    implemented in Java.  The provided configuration file 
+    written in Java.  The provided configuration file 
     (the <code>SGSconfig.xml</code> file in the <code>conf</code> directory
     of the distribution) contains descriptions of all the Styx Grid Services that are included in this
     tutorial but we are only interested in the part that describes the
