@@ -47,6 +47,9 @@ import org.apache.mina.common.ByteBuffer;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.12  2006/03/21 14:58:40  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.11  2006/01/04 16:45:29  jonblower
  * Implemented automatic termination of SGS instances using Quartz scheduler
  *
@@ -83,9 +86,9 @@ import org.apache.mina.common.ByteBuffer;
  */
 public class StyxUtils
 {
-    //private static final Log log = LogFactory.getLog(StyxUtils.class);
-    
-    // The header length of a StyxMessage
+    /**
+     * The header length of a StyxMessage
+     */
     public static final int HEADER_LENGTH = 7;
     
     /**
@@ -127,9 +130,19 @@ public class StyxUtils
     private static final String charsetName = "UTF-8";
     public static final Charset UTF8 = Charset.forName(charsetName);
     
-    public static String NEWLINE = "\n"; // Newline is character 10 on Inferno
-    public static String SYSTEM_NEWLINE = System.getProperty("line.separator"); // The newline character on the host OS
-    public static String SYSTEM_FILE_SEPARATOR = System.getProperty("file.separator");
+    public static final String NEWLINE = "\n"; // Newline is character 10 on Inferno
+    public static final String SYSTEM_NEWLINE = System.getProperty("line.separator"); // The newline character on the host OS
+    public static final String SYSTEM_FILE_SEPARATOR = System.getProperty("file.separator");
+    
+    /**
+     * The username for an anonymous user
+     */
+    public static final String ANONYMOUS_USER = "nobody";
+    /**
+     * When a client creates a file on the Styx server, this is the default
+     * group for the file. All users belong to this group.
+     */
+    public static final String DEFAULT_GROUP = "users";
     
     // Formatter for xsd:dateTime format: [-]CCYY-MM-DDThh:mm:ss[Z|(+|-)hh:mm]
     // We don't allow fractions of seconds

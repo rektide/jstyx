@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2006/03/21 14:58:42  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.9  2006/03/21 09:06:15  jonblower
  * Still implementing authentication
  *
@@ -251,6 +254,11 @@ public class StyxServer
         // Set up the file tree
         System.out.println("Building directory tree (this can take some time)");
         StyxDirectory root = new DirectoryOnDisk(home);
+        
+        // Add some files with different users and groups
+        root.addChild(new StyxDirectory("jdbandusers", "jdb", StyxUtils.DEFAULT_GROUP, 0755));
+        root.addChild(new StyxDirectory("jdbonly", "jdb", StyxUtils.DEFAULT_GROUP, 0700));
+        root.addChild(new StyxDirectory("adminsonly", "jim", "admins", 0750));
         
         // Set up the server and start it with the given configuration file
         StyxServer server = new StyxServer(port, root, securityFile);

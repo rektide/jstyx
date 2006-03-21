@@ -62,6 +62,9 @@ import uk.ac.rdg.resc.jstyx.client.callbacks.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.46  2006/03/21 14:58:41  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.45  2006/01/06 10:14:22  jonblower
  * Clarified comments
  *
@@ -293,7 +296,18 @@ public class CStyxFile
             // as it isn't the root directory
             this.refresh();
         }
-        return (this.qid.getType() == 128);
+        return this.qid.isDirectory();
+    }
+    
+    /**
+     * @return true if this is an authorization file.
+     */
+    public boolean isAuth()
+    {
+        // If the qid has not been set then this can't be an auth file: for 
+        // an auth file the qid will have been set by the handshaking mechanism
+        // in StyxConnection (see TauthCallback)
+        return this.qid == null ? false : this.qid.isAuth();
     }
     
     /**
@@ -306,6 +320,18 @@ public class CStyxFile
             this.refresh();
         }
         return this.dirEntry.getOwner();
+    }
+    
+    /**
+     * @return the group of the file
+     */
+    public String getGroup() throws StyxException
+    {
+        if (this.dirEntry == null)
+        {
+            this.refresh();
+        }
+        return this.dirEntry.getGroup();
     }
     
     /**
@@ -933,7 +959,7 @@ public class CStyxFile
      */
     public void writeAsync(String str, long offset, MessageCallback callback)
     {
-        this.writeAsync(StyxUtils.strToUTF8(str), offset, true);
+        this.writeAsync(StyxUtils.strToUTF8(str), offset, true, callback);
     }
     
     /**

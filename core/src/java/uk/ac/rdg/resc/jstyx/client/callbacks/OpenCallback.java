@@ -44,6 +44,9 @@ import uk.ac.rdg.resc.jstyx.messages.RwalkMessage;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2006/03/21 14:58:42  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.2  2005/08/08 09:36:19  jonblower
  * Minor changes
  *
@@ -77,7 +80,7 @@ public class OpenCallback extends MessageCallback
         {
             // We have a fid that we can open. Open the file
             TopenMessage tOpenMsg = new TopenMessage(this.file.getFid(), this.theMode);
-            this.conn.sendAsync(tOpenMsg, this);
+            this.conn.sendAsync(tOpenMsg, this, this.file.isAuth());
         }
         else
         {

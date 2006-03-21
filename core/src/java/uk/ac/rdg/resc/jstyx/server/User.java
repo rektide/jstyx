@@ -35,6 +35,9 @@ package uk.ac.rdg.resc.jstyx.server;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2006/03/21 14:58:42  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.2  2006/03/21 09:06:15  jonblower
  * Still implementing authentication
  *
@@ -44,8 +47,7 @@ package uk.ac.rdg.resc.jstyx.server;
  */
 public class User
 {
-    public static final User ANONYMOUS = new User("nobody", "", "Anonymous User");
-    
+    private StyxSecurityContext securityContext;
     private String username;
     private String password;
     private String fullName;
@@ -53,8 +55,10 @@ public class User
     /**
      * Creates a new instance of User
      */
-    public User(String username, String password, String fullName)
+    public User(StyxSecurityContext securityContext, String username,
+        String password, String fullName)
     {
+        this.securityContext = securityContext;
         this.username = username.trim();
         this.password = password.trim();
         this.fullName = fullName.trim();
@@ -76,11 +80,12 @@ public class User
     }
     
     /**
-     * @return true if this user is a member of the group with the given name
+     * @return true if this user is a member of the group with the given name.
+     * See StyxSecurityContext.isMember()
      */
     public boolean isMemberOf(String groupName)
     {
-        return false;
+        return this.securityContext.isMember(this.username, groupName);
     }
     
 }

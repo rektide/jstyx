@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.11  2006/03/21 14:58:42  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.10  2006/03/21 09:06:14  jonblower
  * Still implementing authentication
  *
@@ -51,9 +54,6 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  *
  * Revision 1.8  2005/03/15 15:51:41  jonblower
  * Removed hard limit on maximum message size
- *
- * Revision 1.7  2005/03/11 15:19:07  jonblower
- * Removed misleading comment
  *
  * Revision 1.6  2005/03/11 15:06:21  jonblower
  * Replaced deprecated frame.show() with frame.setVisible(true)
@@ -109,9 +109,10 @@ public class StyxBrowser
     public StyxBrowser(String host, int port, String user, String password)
         throws Throwable
     {
-        String s = user.trim().equals("") ? "anonymous" : user;
+        String s = user.trim().equals("") ? StyxUtils.ANONYMOUS_USER : user;
         JFrame frame = new JFrame(s + "@" + host + ":" + port);
         final StyxConnection conn = new StyxConnection(host, port, user, password);
+        conn.connect();
         JTreeTable treeTable = new JTreeTable(new StyxFileSystemModel(conn));
         
         frame.addWindowListener(new WindowAdapter()

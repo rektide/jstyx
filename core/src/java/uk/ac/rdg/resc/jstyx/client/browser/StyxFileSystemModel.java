@@ -69,11 +69,11 @@ public class StyxFileSystemModel extends AbstractTreeTableModel
     private int port;
     
     // Names of the columns.
-    static protected String[] cNames = {"Name", "Size", "Type", "Owner", "Modified"};
+    static protected String[] cNames = {"Name", "Size", "Owner", "Group", "Permissions", "Modified"};
     
     // Types of the columns.
     static protected Class[] cTypes = {TreeTableModel.class, Long.class,
-        String.class, String.class, Date.class};
+        String.class, String.class, String.class, Date.class};
     
     // The the returned file length for directories.
     public static final Integer ZERO = new Integer(0);
@@ -81,7 +81,6 @@ public class StyxFileSystemModel extends AbstractTreeTableModel
     public StyxFileSystemModel(StyxConnection conn) throws Exception
     {
         super();
-        conn.connectAsync();
         this.setRoot(new FileNode(conn.getRootDirectory()));
     }
     
@@ -160,10 +159,12 @@ public class StyxFileSystemModel extends AbstractTreeTableModel
                 case 1:
                     return new Long(file.getLength());
                 case 2:
-                    return file.isDirectory() ? "Directory" : "File";
-                case 3:
                     return file.getOwner();
+                case 3:
+                    return file.getGroup();
                 case 4:
+                    return file.getDirEntry().getPermissionsAsString();
+                case 5:
                     return file.getLastModified();
             }
         }

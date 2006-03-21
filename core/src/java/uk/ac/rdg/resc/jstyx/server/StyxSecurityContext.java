@@ -29,11 +29,16 @@
 package uk.ac.rdg.resc.jstyx.server;
 
 import javax.net.ssl.SSLContext;
+import java.util.Iterator;
+
+import org.apache.log4j.Logger;
 
 import org.dom4j.io.SAXReader;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Node;
+
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * Describes security information for a Styx server.  This is used for finding
@@ -43,6 +48,9 @@ import org.dom4j.Node;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2006/03/21 14:58:42  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.2  2006/03/21 09:06:15  jonblower
  * Still implementing authentication
  *
@@ -52,6 +60,8 @@ import org.dom4j.Node;
  */
 public class StyxSecurityContext
 {
+    private static final Logger log = Logger.getLogger(StyxSecurityContext.class);
+    
     private String securityFile;
     private boolean allowAnonymousLogin;
     private boolean supportAuthentication;
@@ -127,6 +137,14 @@ public class StyxSecurityContext
     }
     
     /**
+     * @return a User object for the anonymous user
+     */
+    public User getAnonymousUser()
+    {
+        return new User(this, StyxUtils.ANONYMOUS_USER, "", "Anonymous User");
+    }
+    
+    /**
      * @return an object describing the user with the given username
      * @throws StyxSecurityException if a user with the given name does not
      * exist in this security context or if this server does not support authentication
@@ -149,7 +167,7 @@ public class StyxSecurityContext
                 }
                 String password = userNode.selectSingleNode("password").getText();
                 String fullName = userNode.selectSingleNode("fullName").getText();
-                return new User(username, password, fullName);
+                return new User(this, username, password, fullName);
             }
             catch(DocumentException de)
             {
@@ -160,6 +178,67 @@ public class StyxSecurityContext
         else
         {
             throw new StyxSecurityException("Server does not support authentication");
+        }
+    }
+    
+    /**
+     * @return true if the given user is a member of the given group.  If the
+     * group is the default group (StyxUtils.DEFAULT_GROUP) this will return true
+     * as all users are members of this group.  If the user is the anonymous user
+     * (StyxUtils.ANONYMOUS_USER) this will return false unless the group is the
+     * default group.
+     */
+    public boolean isMember(String username, String group)
+    {
+        log.debug("Checking to see if " + username + " is a member of " + group);
+        if (group.equals(StyxUtils.DEFAULT_GROUP))
+        {
+            // All users belong to the default group
+            return true;
+        }
+        else if (username.equals(StyxUtils.ANONYMOUS_USER))
+        {
+            // User is not authenticated
+            return false;
+        }
+        else
+        {
+            try
+            {
+                // Look inside the config file
+                SAXReader reader = new SAXReader(true);
+                Document doc = reader.read(this.securityFile);
+                Node groupNode =
+                    doc.selectSingleNode("security/groups/group[@name='" +
+                    group + "']");
+                if (groupNode == null)
+                {
+                    log.debug("Group " + group + " not found");
+                    return false;
+                }
+                else
+                {
+                    Iterator usernames = groupNode.selectNodes("username").iterator();
+                    while (usernames.hasNext())
+                    {
+                        Node usernameNode = (Node)usernames.next();
+                        if (usernameNode.getText().trim().equals(username))
+                        {
+                            // This user is a member of the group
+                            return true;
+                        }
+                    }
+                    // We haven't found the user's name in this group
+                    return false;
+                }
+            }
+            catch(DocumentException de)
+            {
+                // We can't check the user's group credentials
+                log.error("Error occurred getting details for group " + group
+                    + " from " + this.securityFile);
+                return false;
+            }
         }
     }
     

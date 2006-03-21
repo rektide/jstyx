@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.jstyx.types;
 
 import java.math.BigInteger;
+import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 /**
  * A 13-byte type representing the server's view of a file
@@ -37,6 +38,9 @@ import java.math.BigInteger;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2006/03/21 14:58:42  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.3  2005/07/08 12:18:50  jonblower
  * Implemented equals() methods
  *
@@ -79,6 +83,22 @@ public class Qid
     public ULong getPath()
     {
         return this.path;
+    }
+    
+    /**
+     * @return true if the file represented by this Qid is a directory
+     */
+    public boolean isDirectory()
+    {
+        return ((this.type << 24) & StyxUtils.DMDIR) == StyxUtils.DMDIR;
+    }
+    
+    /**
+     * @return true if the file represented by this Qid is an authorization file
+     */
+    public boolean isAuth()
+    {
+        return ((this.type << 24) & StyxUtils.DMAUTH) == StyxUtils.DMAUTH;
     }
     
     /**

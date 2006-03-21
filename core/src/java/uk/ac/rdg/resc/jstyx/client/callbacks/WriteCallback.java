@@ -47,6 +47,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2006/03/21 14:58:42  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.1  2005/08/05 13:46:40  jonblower
  * Factored out all callback objects from CStyxFile into separate classes
  *
@@ -96,7 +99,7 @@ public class WriteCallback extends MessageCallback
                     // Truncation flag is set correctly
                     TwriteMessage tWriteMsg = new TwriteMessage(this.file.getFid(),
                         new ULong(this.offset), this.bytes, this.pos, this.count);
-                    conn.sendAsync(tWriteMsg, this);
+                    conn.sendAsync(tWriteMsg, this, this.file.isAuth());
                 }
                 else if (truncFlagPresent)
                 {

@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.16  2006/03/21 14:58:42  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.15  2006/03/21 09:06:15  jonblower
  * Still implementing authentication
  *
@@ -271,6 +274,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
             // This will throw a StyxException if the given username is not 
             // recognized in the security context
             AuthFile authFile = new AuthFile(this.securityContext, tAuthMsg.getUName());
+            sessionState.setUser(authFile.getUser());
             // Associate this with the given fid
             sessionState.associate(tAuthMsg.getAfid(), authFile);
             // Reply with the Qid of this auth file
@@ -290,13 +294,12 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         {
             throw new StyxException("Tversion not seen");
         }
-        User user;
         if (tAttMsg.getAfid() == StyxUtils.NOFID)
         {
             // Client is seeking an unauthenticated connection
             if (this.securityContext.allowsAnonymousLogin())
             {
-                user = User.ANONYMOUS;
+                sessionState.setUser(this.securityContext.getAnonymousUser());
             }
             else
             {
@@ -312,11 +315,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
                 // This will throw a StyxException if the auth file has not been created
                 AuthFile authFile = (AuthFile)sessionState.getStyxFile(tAttMsg.getAfid());
                 // See if the user is properly authenticated with this file
-                if (authFile.isAuthenticated(tAttMsg.getUname()))
-                {
-                    user = authFile.getUser();
-                }
-                else
+                if (!authFile.isAuthenticated(tAttMsg.getUname()))
                 {
                     throw new StyxException("User has not authenticated");
                 }
@@ -333,7 +332,6 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         }
         // Associate the fid with the root of the server
         sessionState.associate(tAttMsg.getFid(), this.root);
-        sessionState.setUser(user);
         // Ignore the aname part of the TattachMessage (TODO)
         this.root.setLastAccessTime(StyxUtils.now());
         reply(session, new RattachMessage(this.root.getQid()), tag);
@@ -433,11 +431,10 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         sessionState.checkOpen(sf, mode);
         // Now add this client to the file's list of connected clients
         sf.addClient(new StyxFileClient(session, tOpenMsg.getFid(), mode));
-        if (((mode & StyxUtils.OTRUNC) == StyxUtils.OTRUNC) &&
-            !sf.isAuth())
+        if ((mode & StyxUtils.OTRUNC) == StyxUtils.OTRUNC)
         {
             // If we're opening with truncation, we must update the last modified
-            // time and user of the file. We don't do this for an auth file
+            // time and user of the file.
             sf.setLastModified(StyxUtils.now(), sessionState.getUser());
         }
         reply(session, new RopenMessage(sf.getQid(), sessionState.getIOUnit()), tag);

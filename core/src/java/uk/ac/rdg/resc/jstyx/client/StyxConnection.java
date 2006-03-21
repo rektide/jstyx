@@ -70,14 +70,11 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.28  2006/03/21 14:58:41  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.27  2006/03/21 09:06:14  jonblower
  * Still implementing authentication
- *
- * Revision 1.26  2006/01/06 10:14:22  jonblower
- * Clarified comments
- *
- * Revision 1.25  2005/12/01 08:21:55  jonblower
- * Fixed javadoc comments
  *
  * Revision 1.24  2005/08/08 09:35:19  jonblower
  * Commented out thread pool filters
@@ -90,12 +87,6 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  *
  * Revision 1.21  2005/06/27 17:17:15  jonblower
  * Changed MessageCallback to pass Tmessage as parameter, rather than storing in the instance
- *
- * Revision 1.20  2005/05/27 17:03:35  jonblower
- * Minor bug fix
- *
- * Revision 1.19  2005/05/26 07:56:56  jonblower
- * Minor changes
  *
  * Revision 1.18  2005/05/25 15:37:55  jonblower
  * Removed cache of CStyxFiles, dealt differently with root fid
@@ -142,17 +133,11 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * Revision 1.5.2.1  2005/03/10 11:48:30  jonblower
  * Updated to fit in with MINA framework
  *
- * Revision 1.5  2005/02/28 11:43:36  jonblower
- * Tidied up logging code
- *
  * Revision 1.4  2005/02/21 18:07:23  jonblower
  * Separated constructor and connect methods
  *
  * Revision 1.3  2005/02/18 17:56:31  jonblower
  * Set root directory in constructor; doesn't need to wait until connection is made
- *
- * Revision 1.2  2005/02/17 18:03:35  jonblower
- * Minor changes to comments
  *
  * Revision 1.1.1.1  2005/02/16 18:58:19  jonblower
  * Initial import
@@ -160,7 +145,6 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  */
 public class StyxConnection implements ProtocolHandler
 {
-    
     private static final Logger log = Logger.getLogger(StyxConnection.class);
     
     /**
@@ -182,7 +166,6 @@ public class StyxConnection implements ProtocolHandler
     
     private boolean connecting;    // True if connect() or connectAsync() has been
                                    // called, and the connection has not been closed
-    private boolean authenticating; // True if we are in the process of authenticating
     private boolean connected;     // True if this is connected to the remote
                                    // server (handshaking might not have been done)
     private String errMsg;         // Non-null if an error occurred
@@ -223,7 +206,6 @@ public class StyxConnection implements ProtocolHandler
         this.username = username.trim();
         this.password = password.trim();
         this.connecting = false;
-        this.authenticating = false;
         this.connected = false;
         this.errMsg = null;
         this.unsentMessages = new Vector();
@@ -343,8 +325,7 @@ public class StyxConnection implements ProtocolHandler
      */
     public void connect() throws StyxException
     {
-        this.connectAsync(); // I'm assuming that this does nothing if already
-                             // started
+        this.connectAsync(); // This does nothing if already started
         while (this.rootFid < 0 && this.errMsg == null)
         {
             synchronized(this)
@@ -381,7 +362,7 @@ public class StyxConnection implements ProtocolHandler
      */
     public void close()
     {
-        //log.debug("Closing StyxConnection");
+        log.debug("Called close() on StyxConnection");
         if (this.connected)
         {
             // Start off the chain of clunking fids by clunking the last fid 
@@ -400,7 +381,7 @@ public class StyxConnection implements ProtocolHandler
                     }
                     public void error(String message, StyxMessage tMessage)
                     {
-                        //log.error("Error clunking fid: " + message);
+                        log.debug("Error clunking fid: " + message);
                         clunkNextFid(this);
                     }
                 }
@@ -484,9 +465,34 @@ public class StyxConnection implements ProtocolHandler
      * If this is called before connect() or connectAsync(), the callback's error
      * function will be called.
      *
+     * @param tMessage the message to be sent
+     * @param callback the MessageCallback to be called when the reply arrives
      * @return the tag of the outgoing message
      */
     public int sendAsync(StyxMessage tMessage, MessageCallback callback)
+    {
+        return this.sendAsync(tMessage, callback, false);
+    }
+    
+    /**
+     * Sends a message and returns its tag.  Note that this method will return
+     * immediately.  When the reply arrives, the replyArrived() method of the
+     * callback object will be called. (The callback can be null.).  If the 
+     * connection hasn't been made yet, the message will be put in a queue and
+     * will be sent when the connection is ready (TODO this is convenient as it
+     * saves waiting for the connectionReady() event, but is this the best thing
+     * to do?)
+     *
+     * If this is called before connect() or connectAsync(), the callback's error
+     * function will be called unless isHandshake==true;
+     *
+     * @param tMessage the message to be sent
+     * @param callback the MessageCallback to be called when the reply arrives
+     * @param isHandshake if true, this message is part of the connection process
+     * itself (e.g. authentication)
+     * @return the tag of the outgoing message
+     */
+    public int sendAsync(StyxMessage tMessage, MessageCallback callback, boolean isHandshake)
     {
         if (!this.connecting)
         {
@@ -531,9 +537,7 @@ public class StyxConnection implements ProtocolHandler
         {
             // If the connection is ready (signalled by rootFid being set), or
             // if this is part of a handshake, send the message, otherwise, enqueue it
-            if (this.rootFid >= 0 || tMessage instanceof TversionMessage ||
-                tMessage instanceof TauthMessage || tMessage instanceof TattachMessage
-                || authenticating)
+            if (this.rootFid >= 0 || tMessage instanceof TclunkMessage || isHandshake)
             {
                 // Send the message
                 this.session.write(tMessage);
@@ -709,7 +713,7 @@ public class StyxConnection implements ProtocolHandler
         this.connected = true;
         log.debug("Connection established.");
         TversionMessage tVerMsg = new TversionMessage(this.maxMessageSizeRequest);
-        this.sendAsync(tVerMsg, new TversionCallback());
+        this.sendAsync(tVerMsg, new TversionCallback(), true);
     }
     
     private class TversionCallback extends MessageCallback
@@ -722,14 +726,13 @@ public class StyxConnection implements ProtocolHandler
             {
                 log.debug("Unauthenticated connection");
                 TattachMessage tAttMsg = new TattachMessage(getFreeFid(), username);
-                sendAsync(tAttMsg, new TattachCallback());
+                sendAsync(tAttMsg, new TattachCallback(), true);
             }
             else
             {
                 log.debug("Authenticated connection");
                 TauthMessage tAuthMsg = new TauthMessage(getFreeFid(), username, "");
-                authenticating = true;
-                sendAsync(tAuthMsg, new TauthCallback());
+                sendAsync(tAuthMsg, new TauthCallback(), true);
             }
         }
         public void error(String message, StyxMessage tMessage)
@@ -743,16 +746,18 @@ public class StyxConnection implements ProtocolHandler
         public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
         {
             TauthMessage tAuthMsg = (TauthMessage)tMessage;
+            RauthMessage rAuthMsg = (RauthMessage)rMessage;
             // We now have a fid to an authentication file.  We write the
             // password into this file
             CStyxFile authFile = getFile("/auth");
             authFile.setFid(tAuthMsg.getAfid());
-            authFile.writeAsync(password, 0,
-                new AuthFileWriteCallback(tAuthMsg.getAfid()));
+            authFile.setQid(rAuthMsg.getAQid());
+            authFile.writeAsync(password, 0, new AuthFileWriteCallback(tAuthMsg.getAfid()));
         }
         public void error(String message, StyxMessage tMessage)
         {
-            authenticating = false;
+            TauthMessage tAuthMsg = (TauthMessage)tMessage;
+            returnFid(tAuthMsg.getAfid());
             fireStyxConnectionError(new Throwable(message));
         }
     }
@@ -763,7 +768,7 @@ public class StyxConnection implements ProtocolHandler
      */
     private class AuthFileWriteCallback extends MessageCallback
     {
-        private long afid; // The afid used in the TauthMessage
+        private long afid;
         public AuthFileWriteCallback(long afid)
         {
             this.afid = afid;
@@ -772,13 +777,11 @@ public class StyxConnection implements ProtocolHandler
         {
             // The write was successful.  Now we can attach
             TattachMessage tAttMsg =
-                new TattachMessage(getFreeFid(), afid, username, "");
-            authenticating = false;
-            sendAsync(tAttMsg, new TattachCallback());
+                new TattachMessage(getFreeFid(), this.afid, username, "");
+            sendAsync(tAttMsg, new TattachCallback(), true);
         }
         public void error(String message, StyxMessage tMessage)
         {
-            authenticating = false;
             fireStyxConnectionError(new Throwable(message));
         }
     }
@@ -793,6 +796,8 @@ public class StyxConnection implements ProtocolHandler
         }
         public void error(String message, StyxMessage tMessage)
         {
+            TattachMessage tAttMsg = (TattachMessage)tMessage;
+            returnFid(tAttMsg.getFid());
             fireStyxConnectionError(new Throwable(message));
         }
     }

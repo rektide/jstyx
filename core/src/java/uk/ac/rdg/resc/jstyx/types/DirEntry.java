@@ -41,6 +41,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.3  2006/03/21 14:58:42  jonblower
+ * Implemented clear-text password-based authentication and did some simple tests
+ *
  * Revision 1.2  2005/11/28 17:18:00  jonblower
  * Changed comments to explain type, dev and DMEXCL
  *
@@ -114,44 +117,53 @@ public class DirEntry
     }
     
     /**
+     * Gets the file permissions as a string (e.g. "drwxr-xr-x")
+     */
+    public String getPermissionsAsString()
+    {
+        StringBuffer s = new StringBuffer();
+        if ((this.mode & StyxUtils.DMDIR) == StyxUtils.DMDIR)
+        {
+            s.append("d");
+        }
+        else if ((this.mode & StyxUtils.DMAPPEND) == StyxUtils.DMAPPEND)
+        {
+            s.append("a");
+        }
+        else if ((this.mode & StyxUtils.DMAUTH) == StyxUtils.DMAUTH)
+        {
+            s.append("A");
+        }
+        else
+        {
+            s.append("-");
+        }
+        if ((this.mode & StyxUtils.DMEXCL) == StyxUtils.DMEXCL)
+        {
+            s.append("l");; // "l" stands for "lock"
+        }
+        else
+        {
+            s.append("-");
+        }
+        int operm = (int)(this.mode & 1023);
+        s.append(getPerms(operm >> 6)); // owner permissions
+        s.append(getPerms(operm >> 3)); // group permissions
+        s.append(getPerms(operm));      // everyone permissions
+        return s.toString();
+    }
+    
+    /**
      * Formats the dirEntry as a string similar to how it appears with an
      * "ls -l" command in Inferno
      */
     public String asLsEntry()
     {
-        String s = "";
-        if ((this.mode & StyxUtils.DMDIR) == StyxUtils.DMDIR)
-        {
-            s += "d";
-        }
-        else if ((this.mode & StyxUtils.DMAPPEND) == StyxUtils.DMAPPEND)
-        {
-            s += "a";
-        }
-        else if ((this.mode & StyxUtils.DMAUTH) == StyxUtils.DMAUTH)
-        {
-            s += "A";
-        }
-        else
-        {
-            s += "-";
-        }
-        if ((this.mode & StyxUtils.DMEXCL) == StyxUtils.DMEXCL)
-        {
-            s += "l"; // "l" stands for "lock"
-        }
-        else
-        {
-            s += "-";
-        }
-        int operm = (int)(this.mode & 1023);
-        s += getPerms(operm >> 6); // owner permissions
-        s += getPerms(operm >> 3); // group permissions
-        s += getPerms(operm);      // everyone permissions
+        StringBuffer s = new StringBuffer(this.getPermissionsAsString());
         
         // We shan't print out the device type or device instance number
         
-        s += " " + this.owner + " " + this.group + " " + this.fileLength + " ";
+        s.append(" " + this.owner + " " + this.group + " " + this.fileLength + " ");
         
         // Now format the last modified time as in Inferno
         Date lmt = new Date(this.lastModifiedTime * 1000);
@@ -172,11 +184,11 @@ public class DirEntry
         }
         // TODO: if the year is not the current year, should we display this?
         SimpleDateFormat formatter = new SimpleDateFormat(fmtStr);
-        s += formatter.format(lmt);
+        s.append(formatter.format(lmt));
         
-        s += " " + this.fileName;     
+        s.append(" " + this.fileName);
         
-        return s;
+        return s.toString();
     }
     
     private String getPerms(int perm)
