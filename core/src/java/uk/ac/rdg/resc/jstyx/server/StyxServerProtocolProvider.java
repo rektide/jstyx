@@ -41,6 +41,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxCodecFactory;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.4  2006/03/21 09:06:15  jonblower
+ * Still implementing authentication
+ *
  * Revision 1.3  2006/03/20 17:51:50  jonblower
  * Adding authentication to base JStyx system
  *
@@ -66,7 +69,7 @@ public class StyxServerProtocolProvider implements ProtocolProvider
         StyxSecurityContext securityContext)
     {
         this.root = root;
-        this.securityContext = null;
+        this.securityContext = securityContext;
     }
     
     public ProtocolCodecFactory getCodecFactory()

@@ -53,6 +53,8 @@ import uk.ac.rdg.resc.jstyx.messages.StyxMessageDecoder;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.messages.TversionMessage;
 import uk.ac.rdg.resc.jstyx.messages.RversionMessage;
+import uk.ac.rdg.resc.jstyx.messages.TauthMessage;
+import uk.ac.rdg.resc.jstyx.messages.RauthMessage;
 import uk.ac.rdg.resc.jstyx.messages.TattachMessage;
 import uk.ac.rdg.resc.jstyx.messages.RattachMessage;
 import uk.ac.rdg.resc.jstyx.messages.TclunkMessage;
@@ -68,6 +70,9 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.27  2006/03/21 09:06:14  jonblower
+ * Still implementing authentication
+ *
  * Revision 1.26  2006/01/06 10:14:22  jonblower
  * Clarified comments
  *
@@ -172,10 +177,12 @@ public class StyxConnection implements ProtocolHandler
     
     private String host; // The host and port to which this is connected
     private int port;
-    private String user;
+    private String username;
+    private String password;
     
     private boolean connecting;    // True if connect() or connectAsync() has been
                                    // called, and the connection has not been closed
+    private boolean authenticating; // True if we are in the process of authenticating
     private boolean connected;     // True if this is connected to the remote
                                    // server (handshaking might not have been done)
     private String errMsg;         // Non-null if an error occurred
@@ -208,12 +215,15 @@ public class StyxConnection implements ProtocolHandler
      * Creates a new instance of StyxConnection. This does not actually make the
      * connection; call connectAsync() or connect() to do this.
      */
-    public StyxConnection(String host, int port, String user, int maxMessageSizeRequest)
+    public StyxConnection(String host, int port, String username, String password,
+        int maxMessageSizeRequest)
     {
         this.host = host;
         this.port = port;
-        this.user = user;
+        this.username = username.trim();
+        this.password = password.trim();
         this.connecting = false;
+        this.authenticating = false;
         this.connected = false;
         this.errMsg = null;
         this.unsentMessages = new Vector();
@@ -236,9 +246,9 @@ public class StyxConnection implements ProtocolHandler
     /**
      * Uses DEFAULT_MAX_MESSAGE_SIZE_REQUEST
      */
-    public StyxConnection(String host, int port, String user)
+    public StyxConnection(String host, int port, String username, String password)
     {
-        this(host, port, user, DEFAULT_MAX_MESSAGE_SIZE_REQUEST);
+        this(host, port, username, password, DEFAULT_MAX_MESSAGE_SIZE_REQUEST);
     }
     
     /**
@@ -246,7 +256,7 @@ public class StyxConnection implements ProtocolHandler
      */
     public StyxConnection(String host, int port, int maxMessageSizeRequest)
     {
-        this(host, port, "", maxMessageSizeRequest);
+        this(host, port, "", "", maxMessageSizeRequest);
     }
     
     /**
@@ -254,7 +264,7 @@ public class StyxConnection implements ProtocolHandler
      */
     public StyxConnection(String host, int port)
     {
-        this(host, port, "");
+        this(host, port, "", "");
     }
     
     /**
@@ -522,7 +532,8 @@ public class StyxConnection implements ProtocolHandler
             // If the connection is ready (signalled by rootFid being set), or
             // if this is part of a handshake, send the message, otherwise, enqueue it
             if (this.rootFid >= 0 || tMessage instanceof TversionMessage ||
-                tMessage instanceof TattachMessage)
+                tMessage instanceof TauthMessage || tMessage instanceof TattachMessage
+                || authenticating)
             {
                 // Send the message
                 this.session.write(tMessage);
@@ -707,11 +718,67 @@ public class StyxConnection implements ProtocolHandler
         {
             RversionMessage rVerMsg = (RversionMessage)rMessage;
             maxMessageSize = (int)rVerMsg.getMaxMessageSize();
-            TattachMessage tAttMsg = new TattachMessage(getFreeFid(), user);
+            if (username.equalsIgnoreCase(""))
+            {
+                log.debug("Unauthenticated connection");
+                TattachMessage tAttMsg = new TattachMessage(getFreeFid(), username);
+                sendAsync(tAttMsg, new TattachCallback());
+            }
+            else
+            {
+                log.debug("Authenticated connection");
+                TauthMessage tAuthMsg = new TauthMessage(getFreeFid(), username, "");
+                authenticating = true;
+                sendAsync(tAuthMsg, new TauthCallback());
+            }
+        }
+        public void error(String message, StyxMessage tMessage)
+        {
+            fireStyxConnectionError(new Throwable(message));
+        }
+    }
+    
+    private class TauthCallback extends MessageCallback
+    {
+        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
+        {
+            TauthMessage tAuthMsg = (TauthMessage)tMessage;
+            // We now have a fid to an authentication file.  We write the
+            // password into this file
+            CStyxFile authFile = getFile("/auth");
+            authFile.setFid(tAuthMsg.getAfid());
+            authFile.writeAsync(password, 0,
+                new AuthFileWriteCallback(tAuthMsg.getAfid()));
+        }
+        public void error(String message, StyxMessage tMessage)
+        {
+            authenticating = false;
+            fireStyxConnectionError(new Throwable(message));
+        }
+    }
+    
+    /**
+     * This callback is called when we have written the password to the
+     * auth file
+     */
+    private class AuthFileWriteCallback extends MessageCallback
+    {
+        private long afid; // The afid used in the TauthMessage
+        public AuthFileWriteCallback(long afid)
+        {
+            this.afid = afid;
+        }
+        public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
+        {
+            // The write was successful.  Now we can attach
+            TattachMessage tAttMsg =
+                new TattachMessage(getFreeFid(), afid, username, "");
+            authenticating = false;
             sendAsync(tAttMsg, new TattachCallback());
         }
         public void error(String message, StyxMessage tMessage)
         {
+            authenticating = false;
             fireStyxConnectionError(new Throwable(message));
         }
     }

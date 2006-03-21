@@ -60,6 +60,9 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.25  2006/03/21 09:06:15  jonblower
+ * Still implementing authentication
+ *
  * Revision 1.24  2006/03/20 17:51:50  jonblower
  * Adding authentication to base JStyx system
  *
@@ -288,7 +291,15 @@ public class StyxFile
      */
     public String getFullPath()
     {
-        return this.parent.getFullPath() + this.getName();
+        if (this.auth)
+        {
+            // Auth files don't have a parent
+            return this.getName();
+        }
+        else
+        {
+            return this.parent.getFullPath() + this.getName();
+        }
     }
     
     /**

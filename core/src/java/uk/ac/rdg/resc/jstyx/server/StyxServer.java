@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.9  2006/03/21 09:06:15  jonblower
+ * Still implementing authentication
+ *
  * Revision 1.8  2006/03/20 17:51:50  jonblower
  * Adding authentication to base JStyx system
  *
@@ -125,8 +128,7 @@ public class StyxServer
         {
             throw new IllegalArgumentException("ProtocolProvider cannot be null");
         }
-        checkPortNumber(port);
-        this.port = port;
+        setPortNumber(port);
         this.provider = provider;
         this.securityContext = new StyxSecurityContext();
     }
@@ -150,23 +152,31 @@ public class StyxServer
         {
             throw new IllegalArgumentException("root cannot be null");
         }
-        // Check that the port number is valid
-        checkPortNumber(port);
-        this.securityContext = new StyxSecurityContext(securityConfigFile);
+        // Set the port number, checking that it is valid
+        setPortNumber(port);
+        if (securityConfigFile == null)
+        {
+            this.securityContext = new StyxSecurityContext();
+        }
+        else
+        {
+            this.securityContext = new StyxSecurityContext(securityConfigFile);
+        }
         this.provider = new StyxServerProtocolProvider(root, this.securityContext);
     }
     
     /**
      * Checks to see if the given port number is valid, throwing an 
-     * IllegalArgumentException if it isn't.
+     * IllegalArgumentException if it isn't.  If it is valid, sets it
      */
-    private static void checkPortNumber(int port)
+    private void setPortNumber(int port)
     {
         // TODO: should we disallow other port numbers?
         if (port < 0 || port > StyxUtils.MAXUSHORT)
         {
             throw new IllegalArgumentException("Invalid port number");
         }
+        this.port = port;
     }
     
     /**
@@ -210,6 +220,7 @@ public class StyxServer
         int port = 8080;
         // Default root directory is the user's home directory
         String home = System.getProperty("user.home");
+        String securityFile = null;
         
         if (args.length > 0)
         {
@@ -229,7 +240,11 @@ public class StyxServer
         }
         if (args.length > 2)
         {
-            System.err.println("Usage: TestServer [port] [root directory]");
+            securityFile = args[2];
+        }
+        if (args.length > 3)
+        {
+            System.err.println("Usage: TestServer [port] [root directory] [security file]");
             return;
         }
         
@@ -237,8 +252,8 @@ public class StyxServer
         System.out.println("Building directory tree (this can take some time)");
         StyxDirectory root = new DirectoryOnDisk(home);
         
-        // Set up the server and start it (completely unsecured)
-        StyxServer server = new StyxServer(port, root);
+        // Set up the server and start it with the given configuration file
+        StyxServer server = new StyxServer(port, root, securityFile);
         server.start();
     }
 }

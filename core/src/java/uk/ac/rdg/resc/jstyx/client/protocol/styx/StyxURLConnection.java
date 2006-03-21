@@ -50,6 +50,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2006/03/21 09:06:15  jonblower
+ * Still implementing authentication
+ *
  * Revision 1.5  2005/09/01 17:12:11  jonblower
  * Changes to Input and Output stream code
  *
@@ -84,9 +87,19 @@ public class StyxURLConnection extends URLConnection
         {
             try
             {
-                // TODO: does getUserInfo() include password information?
-                String user = this.url.getUserInfo() == null ? "" : this.url.getUserInfo();
-                conn = new StyxConnection(this.url.getHost(), this.url.getPort(), user);
+                if (this.url.getUserInfo() == null)
+                {
+                    // No user info: connect anonymously
+                    conn = new StyxConnection(this.url.getHost(), this.url.getPort());
+                }
+                else
+                {
+                    String[] els = this.url.getUserInfo().split(":");
+                    String user = els[0];
+                    String password = els.length > 1 ? els[1] : "";
+                    conn = new StyxConnection(this.url.getHost(),
+                        this.url.getPort(), user, password);
+                }
                 conn.connect();
                 this.connected = true;
                 this.file = conn.getFile(this.url.getPath());

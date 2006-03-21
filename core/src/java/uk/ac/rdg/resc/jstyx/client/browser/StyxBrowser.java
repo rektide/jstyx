@@ -43,6 +43,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.10  2006/03/21 09:06:14  jonblower
+ * Still implementing authentication
+ *
  * Revision 1.9  2005/03/18 13:55:59  jonblower
  * Improved freeing of ByteBuffers, and bug fixes
  *
@@ -76,9 +79,9 @@ public class StyxBrowser
 {
     public static void main(String[] args) throws Throwable
     {
-        if (args.length < 2 || args.length > 3)
+        if (args.length < 2 || args.length > 4)
         {
-            System.err.println("Usage: java StyxBrowser <hostname> <port> [user]");
+            System.err.println("Usage: java StyxBrowser <hostname> <port> [user] [password]");
             return;
         }
         int port;
@@ -97,16 +100,18 @@ public class StyxBrowser
                 StyxUtils.MAXUSHORT + ")");
             return;
         }
-        String user = args.length == 3 ? args[2] : "";
+        String user = args.length > 2 ? args[2] : "";
+        String password = args.length > 3 ? args[3] : "";
         
-        new StyxBrowser(args[0], port, user);
+        new StyxBrowser(args[0], port, user, password);
     }
     
-    public StyxBrowser(String host, int port, String user) throws Throwable
+    public StyxBrowser(String host, int port, String user, String password)
+        throws Throwable
     {
         String s = user.trim().equals("") ? "anonymous" : user;
         JFrame frame = new JFrame(s + "@" + host + ":" + port);
-        final StyxConnection conn = new StyxConnection(host, port, user, 8216);
+        final StyxConnection conn = new StyxConnection(host, port, user, password);
         JTreeTable treeTable = new JTreeTable(new StyxFileSystemModel(conn));
         
         frame.addWindowListener(new WindowAdapter()

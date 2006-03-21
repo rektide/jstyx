@@ -35,6 +35,9 @@ package uk.ac.rdg.resc.jstyx.server;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.2  2006/03/21 09:06:15  jonblower
+ * Still implementing authentication
+ *
  * Revision 1.1  2006/03/20 17:51:50  jonblower
  * Adding authentication to base JStyx system
  *
@@ -69,7 +72,7 @@ public class User
     
     public boolean passwordMatches(String otherPassword)
     {
-        return false;
+        return this.password.equals(otherPassword);
     }
     
     /**

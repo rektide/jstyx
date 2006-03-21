@@ -52,6 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.15  2006/03/21 09:06:15  jonblower
+ * Still implementing authentication
+ *
  * Revision 1.14  2006/03/20 17:51:50  jonblower
  * Adding authentication to base JStyx system
  *
@@ -260,7 +263,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         if (this.securityContext.supportsAuthentication())
         {
             // Check that the supplied fid isn't already in use
-            if (sessionState.fidInUse(tAuthMsg.getFid()))
+            if (sessionState.fidInUse(tAuthMsg.getAfid()))
             {
                 throw new StyxException("Fid already in use");
             }
@@ -269,7 +272,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
             // recognized in the security context
             AuthFile authFile = new AuthFile(this.securityContext, tAuthMsg.getUName());
             // Associate this with the given fid
-            sessionState.associate(tAuthMsg.getFid(), authFile);
+            sessionState.associate(tAuthMsg.getAfid(), authFile);
             // Reply with the Qid of this auth file
             reply(session, new RauthMessage(authFile.getQid()), tag);
         }
@@ -430,10 +433,11 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         sessionState.checkOpen(sf, mode);
         // Now add this client to the file's list of connected clients
         sf.addClient(new StyxFileClient(session, tOpenMsg.getFid(), mode));
-        if ((mode & StyxUtils.OTRUNC) == StyxUtils.OTRUNC)
+        if (((mode & StyxUtils.OTRUNC) == StyxUtils.OTRUNC) &&
+            !sf.isAuth())
         {
             // If we're opening with truncation, we must update the last modified
-            // time and user of the file
+            // time and user of the file. We don't do this for an auth file
             sf.setLastModified(StyxUtils.now(), sessionState.getUser());
         }
         reply(session, new RopenMessage(sf.getQid(), sessionState.getIOUnit()), tag);

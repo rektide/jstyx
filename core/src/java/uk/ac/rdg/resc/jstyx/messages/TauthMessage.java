@@ -37,6 +37,9 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * $Revision$
  * $Date$
  * $Log$
+ * Revision 1.6  2006/03/21 09:06:15  jonblower
+ * Still implementing authentication
+ *
  * Revision 1.5  2006/03/20 17:51:48  jonblower
  * Adding authentication to base JStyx system
  *
@@ -99,6 +102,14 @@ public class TauthMessage extends StyxMessage
     protected final void encodeBody(StyxBuffer buf)
     {
         buf.putUInt(this.afid).putString(this.uname).putString(this.aname);
+    }
+    
+    /**
+     * @return the requested fid of the authentication file
+     */
+    public long getAfid()
+    {
+        return this.afid;
     }
     
     /**
