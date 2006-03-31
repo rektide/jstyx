@@ -66,17 +66,15 @@
         <gridservice name="replace" command="cmd.exe /C JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.Replace"
                 description="Replaces all instances of one string in a file with another">
             <params>
-                <param name="inputfile" paramType="flaggedOption" flag="i" required="yes" description="Name of input file"/>
-                <param name="outputfile" paramType="flaggedOption" flag="o" required="yes" description="Name of output file"/>
                 <param name="stringToFind" paramType="unflaggedOption" required="yes" description="String to find"/>
                 <param name="stringToReplace" paramType="unflaggedOption" required="yes" description="String to replace"/>
                 <param name="verbose" paramType="switch" flag="v" longFlag="verbose" description="If set true, will print verbose output to stdout"/>
             </params>
             <inputs>
-                <input type="fileFromParam" name="inputfile"/>
+                <input type="file" name="input.txt"/>
             </inputs>
             <outputs>
-                <output type="fileFromParam" name="outputfile"/>
+                <output type="file" name="output.txt"/>
                 <output type="stream" name="stdout"/>
                 <output type="stream" name="stderr"/>
             </outputs>

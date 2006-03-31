@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>Styx Grid Services Tutorial: Getting help</title>
+  </properties>
+
+  <body>
+    <section name="Styx Grid Services Tutorial: Getting help">
+    <p>
+    You can get help and usage information for any Styx Grid Service from the
+    <code>SGSRun</code> program.  Just typing <code>SGSRun</code> on its own
+    will reveal a usage message that shows that <code>SGSRun</code> expects at
+    least three arguments: the host name and port number of the remote server
+    and the name of the Styx Grid Service itself.
+    </p>
+    
+    <subsection name="Brief usage information">
+    <p>
+    If you want to see the usage information (i.e. the expected command-line arguments)
+    for a particular SGS, use the <code>--sgs-help</code> command-line switch.
+    For example, to get usage information for the <code>reverse2</code> SGS that
+    we created earlier in the tutorial, enter:
+    </p>
+    <source>SGSRun localhost 9092 reverse2 --sgs-help</source>
+    <p>
+    This will print out (to standard output) the description of the SGS (taken directly from the
+    server's configuration file) and a brief usage message describing the
+    command-line arguments.  The above example will print out the following
+    information:
+    </p>
+    <source><![CDATA[Reads lines of input and outputs them with characters reversed
+
+Usage: reverse2 -i <inputfile> -o <outputfile> [--sgs-help] [--sgs-verbose-help]
+    [--sgs-debug] [--sgs-allrefs] [--sgs-lifetime <sgs-lifetime>]]]></source>
+    <p>
+    Mandatory arguments are given in angle brackets (&lt; &gt;) and optional
+    arguments are given in square brackets ([ ]).
+    Note that, in addition to the the arguments that are expected by the <code>reverse2</code>
+    program, there are a number of optional arguments whose names begin with
+    <code>--sgs-</code>.  There arguments are available for all Styx Grid Services.
+    </p>
+    </subsection>
+    
+    <subsection name="Verbose usage information">
+    <p>
+    More details on the usage of a particular SGS can be found with the
+    <code>--sgs-verbose-help</code> switch.  For example, running
+    <code>SGSRun locahost 9092 reverse2 --sgs-verbose-help</code> will print out
+    the following to the console window:
+    </p>
+    <source><![CDATA[Reads lines of input and outputs them with characters reversed
+
+Usage: reverse2 -i <inputfile> -o <outputfile> [--sgs-help] [--sgs-verbose-help]
+    [--sgs-debug] [--sgs-allrefs] [--sgs-lifetime <sgs-lifetime>]
+
+  -i <inputfile>
+        Name of input file
+
+  -o <outputfile>
+        Name of output file
+
+  [--sgs-help]
+        Set this switch to print out a short help message
+
+  [--sgs-verbose-help]
+        Set this switch to print out a long help message
+
+  [--sgs-debug]
+        Set this switch in order to enable printing of debug messages
+
+  [--sgs-allrefs]
+        Set this switch in order to get URLs to all output files rather than
+        actual files
+
+  [--sgs-lifetime <sgs-lifetime>]
+        The lifetime of the SGS in minutes (default: 60)]]></source>
+    <p>
+    As you can see, this gives a brief description of all the possible input
+    parameters (these descriptions are taken from the server's configuration file).
+    The meanings of the <code>--sgs-</code> parameters will be described later in
+    this tutorial.
+    </p>
+    </subsection>
+    
+    <subsection name="Troubleshooting">
+    <p>
+    If a Styx Grid Service is not behaving as you think it should, try running
+    it with the <code>--sgs-debug</code> switch.  This will print out some 
+    debugging information that might lead you to the source of the problem.  Even
+    if you can't fix it yourself, this will be useful information that you can
+    use to ask for help from the <a href="../../mail-lists.html">mailing lists</a>.
+    In general, these mailing lists are the best place to go for help as your mail
+    will reach many users and developers of the SGS software.
+    </p>
+    </subsection>
+    </section>
+  </body>
+</document>

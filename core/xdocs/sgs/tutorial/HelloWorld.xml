@@ -104,7 +104,7 @@ SGSRun localhost 9092 helloworld</source>
     <source>#!/bin/sh
 SGSRun localhost 9092 helloworld</source>
     <p>The <code>helloworld</code> wrapper script can now be treated exactly
-    as if it were a local executable.</p>
+    as if it were the HelloWorld program itself.</p>
     
     <subsection name="5. Exercise: Provide your own Hello World program">
     <p>For convenience, an example HelloWorld program (written in Java) is provided

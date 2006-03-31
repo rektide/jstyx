@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>Styx Grid Services Tutorial: Workflow and scripting</title>
+  </properties>
+
+  <body>
+    <section name="Styx Grid Services Tutorial: Workflow and scripting">
+    <p>
+    The earlier sections of this tutorial have shown how remote Styx Grid Services can
+    be executed exactly as if they were local programs.  This means that we can
+    link SGSs together to form a distributed application (or &quot;workflow&quot;)
+    just as easily as we can link local programs together to achieve a goal.
+    Styx Grid Services, like local programs, can be linked together with simple
+    <em>shell scripts</em> (or batch files under Windows). 
+    <a href="http://www.resc.rdg.ac.uk/publications/Blower_et_al_ICCS06.pdf">This paper</a>
+    describes how Styx Grid Services can be used in this way.
+    </p>
+    
+    <subsection name="A simple workflow">
+    <p>
+    Let us create a very simple distributed application (or workflow) from two
+    of the Styx Grid Services that we have already met: <code>HelloWorld</code> and <code>Reverse</code>.
+    We are going to use the <code>HelloWorld</code> SGS to output the string &quot;Hello World&quot;
+    and the <code>Reverse</code> SGS to reverse that string.
+    </p>
+    <p>
+    We can achieve this by piping the output from the <code>HelloWorld</code> SGS
+    to the input of the <code>Reverse</code> SGS, just as if they were local
+    programs:
+    </p>
+    <source>SGSRun localhost 9092 helloworld | SGSRun localhost 9092 reverse</source>
+    <p>
+    The output from this simple workflow should be <code>&quot;dlroW olleH&quot;</code>.  If 
+    we were to create wrapper scripts called <code>helloworld</code> and <code>reverse</code>
+    (as discussed earlier in this tutorial) we could simply write:
+    </p>
+    <source>helloworld | reverse</source>
+    <p>
+    In the above example, both SGSs were running on the same server.  If you are able,
+    try running the SGS server on two different machines and performing the same
+    workflow again, for example:
+    </p>
+    <source>SGSRun machine1 9092 helloworld | SGSRun machine2 9092 reverse</source>
+    </subsection>
+    
+    <subsection name="Using input and output files">
+    <p>
+    The above example demonstrated the use of the pipe operator to send the data
+    between the two SGSs.  You could of course send the data to an intermediate
+    file and use the <code>reverse2</code> SGS, which reads input from a file rather
+    than from its standard input:
+    </p>
+    <source>SGSRun localhost 9092 helloworld > temp.txt
+SGSRun localhost 9092 reverse2 -i temp.txt -o reversed.txt</source>
+    <p>
+    The file <code>reversed.txt</code> should now contain the string <code>&quot;dlroW olleH&quot;</code>.
+    </p>
+    </subsection>
+    
+    <subsection name="Reading files from other servers">
+    <p>
+    One of the strengths of the SGS system lies in the fact that you can pass
+    input files by reference.  In other words, instead of specifying an actual
+    input file, you can specify a URL to a file on a different server.
+    </p>
+    <p>
+    For example, let's run the <code>reverse2</code> Styx Grid Service, using
+    input data from the Web:
+    </p>
+    <source>SGSRun localhost 9092 reverse2 -i readfrom:http://www.google.com -o output.txt</source>
+    <p>
+    When this finishes, open <code>output.txt</code> and verify that it contains
+    the contents of the Google home page (in HTML), but each line of text has its
+    characters reversed.
+    </p>
+    <p>
+    <strong>IMPORTANT: </strong> You must use the syntax <code>&quot;-i readfrom:<em>URL</em>&quot;</code>
+    rather than just <code>&quot;-i <em>URL</em>&quot;</code>.  There is a good reason for this, which
+    we won't go into now.
+    </p>
+    <p>
+    Let's have a quick look in more detail at what has happened in this example:
+    <ol>
+        <li>The SGSRun program connects to the server and creates a new instance
+        of the <code>reverse2</code> service.</li>
+        <li>The URL was sent to the SGS server.</li>
+        <li><em>The server</em> downloaded the data from that URL into a temporary
+        file.</li>
+        <li>The server passed that file into the <code>reverse2</code> program.</li>
+    </ol>
+    It's important to note that the server must be able to "see" the data at 
+    the URL you specify.  If the server cannot make a connection to that URL an
+    error will be raised.
+    </p>
+    </subsection>
+    
+    <subsection name="Streaming data between Styx Grid Services">
+    <p>
+    Let's create a silly workflow of two Styx Grid Services.  We're going to 
+    reverse the contents of a file, then do the same again so that the contents
+    of the final result are identical to the original file:
+    </p>
+    <source>SGSRun localhost 9092 reverse2 -i input.txt -o output1.txt
+SGSRun localhost 9092 reverse2 -i output1.txt -o output2.txt</source>
+    <p>
+    If you run this with some input file (or you could pass in data from a
+    URL as above) you should be able to verify that <code>input.txt</code>
+    and <code>output2.txt</code> have the same contents.
+    </p>
+    <p>
+    Let's pretend that we were working with large files and that we weren't
+    interested in the intermediate file (<code>output1.txt</code>).  We have
+    wasted time and bandwidth by downloading <code>output1.txt</code> to our
+    local machine and then immediately uploading it to the second service
+    in the above workflow.
+    </p>
+    <p>
+    We can be more efficient by downloading (and then uploading) a <em>reference</em>
+    to the intermediate file, with a small change to the workflow.  We just add
+    a <code>.sgsref</code> extension to any output file that we want to get
+    a reference to.  Then we can upload that reference exactly as if it were
+    the file itself:
+    </p>
+    <source>SGSRun localhost 9092 reverse2 -i input.txt -o output1.txt.sgsref
+SGSRun localhost 9092 reverse2 -i output1.txt.sgsref -o output2.txt</source>
+    <p>
+    You should be able to verify that this has the same overall effect as the
+    previous workflow.  If you examine the contents of the <code>output1.txt.sgsref</code>
+    file you will find that it contains the string
+    <code>&quot;readfrom:styx://.../reverse2/instances/.../outputs/outputfile&quot;</code>.
+    This is a reference to the output file that was produced by the first
+    SGS.
+    </p>
+    </subsection>
+    
+    <subsection name="Streaming data using the pipe operator">
+    <p>
+    Let's go back to the first example in this section of the tutorial.  We
+    printed the string &quot;Hello World&quot; then reversed it using two SGSs:
+    </p>
+    <source>SGSRun localhost 9092 helloworld | SGSRun localhost 9092 reverse</source>
+    <p>
+    What happened behind the scenes was this: the standard output from the 
+    <code>helloworld</code> service was redirected to the <em>local</em> console
+    window.  Instead of being printed out, it was redirected immediately to the
+    remote <code>reverse</code> service.  In other words the data made an
+    unnecessary trip to our client machine and back out again.
+    </p>
+    <p>
+    As above, we can arrange for the data to be passed directly between the
+    two services.  However, this time we have no filename to which we can append
+    the magic <code>&quot;.sgsref&quot;</code> extension so what do we do?  You can
+    find out by using the help system: enter <code>SGSRun localhost 9092 helloworld --sgs-verbose-help</code>
+    (see <a href="gettingHelp.html">Getting help</a>).  There is a command-line
+    switch <code>--sgs-ref-stdout</code>, which will cause a reference to the 
+    output data to be printed to the console window instead of the data themselves.
+    It is this reference that is passed to the <code>reverse</code> service:
+    </p>
+    <source>SGSRun localhost 9092 helloworld --sgs-ref-stdout | SGSRun localhost 9092 reverse</source>
+    <p>
+    The string &quot;Hello World&quot; has been passed directly between the 
+    two services.
+    </p>
+    </subsection>
+    
+    <subsection name="Obtaining the error code">
+    <p>
+    You should now be getting the picture that you can create shell scripts
+    (or batch files) that tie Styx Grid Services together to produce distributed
+    applications.  The SGSRun program behaves exactly like the program that has
+    been wrapped as a Styx Grid Service.  It even captures the error code from the
+    remotely-running executable and returns this error code when it finishes.
+    Therefore, you can trap this error code to see if the remote executable has
+    finished successfully.
+    </p>
+    </subsection>
+    
+    <subsection name="Disadvantages of the SGS system">
+    <p>
+    The SGS system is a very quick and easy way to create workflows that are based
+    on remote services.  We have seen how data can be passed directly between 
+    services.  However, unlike other workflow systems (e.g. Web Service-based
+    ones), the units of information that are being passed around are <em>files</em>.
+    In other systems, these units might be strings, integers or perhaps objects.
+    This means that it is up to the individual services in an SGS workflow to verify
+    that its input files are valid (the inputs and outputs are very weakly typed).
+    Exactly the same problem is of course faced when using shell scripts to tie
+    together local programs.
+    </p>
+    </subsection>
+    
+    </section>
+  </body>
+</document>

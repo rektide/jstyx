@@ -7,12 +7,105 @@
 
   <body>
     <section name="Styx Grid Services Tutorial: Advanced techniques">
-        <subsection name="Setting the lifetime of a Styx Grid Service">
-            
-        </subsection>
-        <subsection name="Understanding the config file">
-            
-        </subsection>
+    <p>
+    We have been through the process of setting up an SGS server and running
+    some services using the general-purpose <code>SGSRun</code> client program.
+    This is all that many people will need to know.  However, there are some
+    more techniques that you should know in order to get the most out of the system.
+    </p>
+        
+    <subsection name="Monitoring progress and status">
+    <p>
+    Clients of Styx Grid Services can monitor the changes in the state of
+    the remote service.  (This state data is known as <em>service data</em>.)
+    All Styx Grid Services expose at least two pieces of service data: the first
+    piece gives the status of the service:
+    </p>
+    <table><tbody>
+    <tr><th>Status string</th><th>Meaning</th></tr>
+    <tr><td>created</td><td>The service instance has been created but not started.</td></tr>
+    <tr><td>running</td><td>The service instance has been started.</td></tr>
+    <tr><td>finished</td><td>The service instance has finished normally.</td></tr>
+    <tr><td>aborted</td><td>The services instance has been forcibly stopped by the client.</td></tr>
+    <tr><td>error</td><td>An error has occurred.</td></tr>
+    </tbody></table>
+    <p>
+    (See the <a href="../../xref/uk/ac/rdg/resc/jstyx/gridservice/server/StatusCode.html">StatusCode</a>
+    class.)  The second piece of service data gives the error code that is returned
+    by the program that underlies the service instance.  Service providers can 
+    also create custom pieces of service data: see <a href="../config.html">Configuration
+    of Styx Grid Services</a>.
+    </p>
+    <p>
+    Monitoring of service data is handled in a rudimentary way in the <code>SGSRun</code>
+    program.  By default, no service data is monitored, but if you run <code>SGSRun</code>
+    with the switch <code>--sgs-debug</code>, all updates to service data will be
+    printed to the standard output stream.  This can be useful when troubleshooting
+    as you can get information about what has happened on the server.  For example:
+    </p>
+    <source>SGSRun localhost 9092 helloworld --sgs-debug</source>
+    <p>
+    produces the following output (for example):
+    </p>
+    <source>status = created
+Hello world
+status = finished: took 0.344 seconds.
+exitCode = 0</source>
+    </subsection>
+    
+    <subsection name="Understanding the config file">
+    <p>
+    The hardest part of setting up a Styx Grid Services server is creating the 
+    configuration file.  Although an example config file is provided with the
+    distribution, this cannot cover all possible permutations of configurations.
+    Please read <a href="../config.html">this page</a> for a more complete description
+    of how to write the configuration file.
+    </p>
+    </subsection>
+        
+    <subsection name="Setting the lifetime of a Styx Grid Service">
+    <p>
+    Whenever you run a Styx Grid Service, a new instance of that service is created
+    on the server.  This instance contains cached copies of all the input and output
+    files that the underlying executable program reads and writes.  In most cases,
+    once the SGS has finished running, these cached files are no longer needed.
+    </p>
+    <p>
+    The <code>--sgs-lifetime</code> command-line option can be used to set the
+    lifetime of a particular SGS instance (run SGSRun with the switch
+    <code>--sgs-verbose-help</code> to see this).  By default this is set to
+    60 minutes; after this time the SGS instance will be automatically garbage-collected on
+    the server.  You can set this to a longer or shorter time if you wish: for example,
+    if you know that the SGS that you are running will take several hours to run,
+    you will need to set <code>--sgs-lifetime</code> to a much larger number, or 
+    the service will be destroyed before it has finished.
+    </p>
+    <p>
+    In future releases, service lifetime will be handled better: it will be up to
+    service providers, not clients, to decide on the best default lifetime for 
+    each service.  Also, it will not be possible for services to be garbage-collected
+    before they have finished running.
+    </p>
+    </subsection>
+        
+    <subsection name="Creating custom clients">
+    <p>
+    The SGSRun program is a general-purpose command-line client for any Styx
+    Grid Service.  It is possible to create other client programs using the
+    JStyx API.  A full discussion of this is beyond the scope of this tutorial,
+    but in the meantime you might be able to figure out what to do by looking at
+    the code for the <a href="../../xref/uk/ac/rdg/resc/jstyx/gridservice/client/SGSRun.html">SGSRun</a>
+    and <a href="../../xref/uk/ac/rdg/resc/jstyx/gridservice/client/SGSInstanceClient.html">SGSInstanceClient</a>
+    classes.  Basically, the idea is that you create a class that implements the
+    <a href="../../xref/uk/ac/rdg/resc/jstyx/gridservice/client/SGSInstanceClientChangeListener.html">SGSInstanceClientChangeListener.html</a>
+    interface, and register this as a listener with an instance of
+    <a href="../../xref/uk/ac/rdg/resc/jstyx/gridservice/client/SGSInstanceClient.html">SGSInstanceClient</a>.
+    You can then use the methods of <a href="../../xref/uk/ac/rdg/resc/jstyx/gridservice/client/SGSInstanceClient.html">SGSInstanceClient</a>
+    to start the service and subscribe to changes in service data and download
+    output files, etc.
+    </p>
+    </subsection>
+    
     </section>
   </body>
 </document>

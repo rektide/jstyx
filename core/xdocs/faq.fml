@@ -103,4 +103,13 @@
     </faq>-->
   </part>
   
+  <part id="Styx Grid Services">
+      <title>Styx Grid Services</title>
+      
+      <faq id="sgs">
+          <question>What are Styx Grid Services?</question>
+          <answer>Something wonderful to behold!</answer>
+      </faq>
+  </part>
+  
 </faqs>

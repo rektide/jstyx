@@ -70,7 +70,7 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
  * @author Jon Blower
  * $Revision$
  * $Date$
- * $Log$
+ * $Log: SGSRun.java,v $
  * Revision 1.20  2006/02/22 08:52:57  jonblower
  * Added debug code and support for setting service lifetime
  *
@@ -134,6 +134,12 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
  */
 public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnectionListener
 {
+    /**
+     * The exit code that signals an internal error in the SGS mechanism, rather
+     * than an error code from the executable that is running on the SGS server
+     */
+    public static final int INTERNAL_SGS_ERROR = 20000;
+    
     private static final Logger log = Logger.getLogger(SGSRun.class);
     
     private static final String OUTPUT_ALL_REFS = "sgs-allrefs";
@@ -144,6 +150,9 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     private static final StringParser POSITIVE_FLOAT_PARSER =
         PositiveFloatStringParser.getParser();
     
+    private String hostname;
+    private int port;
+    private String serviceName;
     private SGSServerClient serverClient;
     private SGSClient sgsClient;
     private SGSInstanceClient instanceClient;
@@ -164,29 +173,39 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
      * @param hostname The name (or IP address) of the SGS server
      * @param port The port of the SGS server
      * @param serviceName The name of the SGS to invoke
-     * @throws StyxException if there was an error connecting to the server
-     * or getting the configuration of the SGS
-     * @throws UnknownHostException (from SGSServerClient.getSGSClient())
      */
     public SGSRun(String hostname, int port, String serviceName)
-        throws StyxException, UnknownHostException
     {
+        this.hostname = hostname;
+        this.port = port;
+        this.serviceName = serviceName;
         this.debug = false;
         this.allDataDownloaded = false;
         this.exitCode = Integer.MIN_VALUE;
         this.filesToUpload = new Hashtable();
-        
+    }
+    
+    /**
+     * Connects to the SGS server and downloads the configuration of this
+     * SGS.
+     * @throws StyxException if there was an error connecting to the server
+     * or getting the configuration of the SGS
+     * @throws UnknownHostException (from SGSServerClient.getSGSClient())
+     */
+    public void connect() throws StyxException, UnknownHostException
+    {
         // Get a client for this server
-        this.serverClient = SGSServerClient.getServerClient(hostname, port);
-        log.debug("Connected to SGS server at " + hostname + ":" + port);
+        this.serverClient = SGSServerClient.getServerClient(this.hostname, this.port);
+        log.debug("Connected to SGS server at " + this.hostname + ":" + this.port);
 
         // Get a handle to the required Styx Grid Service
-        this.sgsClient = serverClient.getSGSClient(serviceName);
-        log.debug("Got handle to the " + serviceName + " Styx Grid Service");
+        this.sgsClient = serverClient.getSGSClient(this.serviceName);
+        log.debug("Got handle to the " + this.serviceName + " Styx Grid Service");
 
         // Get the configuration of this SGS
         this.config = this.sgsClient.getConfig();
-        log.debug("Got configuration information for the " + serviceName + " Styx Grid Service");
+        log.debug("Got configuration information for the " + this.serviceName +
+            " Styx Grid Service");
     }
     
     /**
@@ -275,6 +294,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         // Check if the user wants help
         if (this.result.getBoolean(VERBOSE_HELP))
         {
+            System.out.println(this.config.getDescription());
             System.out.println("");
             System.out.println("Usage: " + this.sgsClient.getName() + " " +
                 parser.getUsage());
@@ -284,6 +304,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         }
         else if (this.result.getBoolean(HELP))
         {
+            System.out.println(this.config.getDescription());
             System.out.println("");
             System.out.println("Usage: " + this.sgsClient.getName() + " " +
                 parser.getUsage());
@@ -300,7 +321,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
             {
                 SGSInput input = (SGSInput)inputs.get(i);
                 // See if a URL has been set for this input
-                String url = this.result.getString(input.getName() + "-url");
+                String url = this.result.getString("sgs-ref-" + input.getName());
                 if (url != null && !url.trim().equals(""))
                 {
                     // We have a URL for this input (stdin or fixed file)
@@ -544,6 +565,17 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     }
     
     /**
+     * Called when the given service data element changes
+     */
+    public void gotServiceDataValue(String sdName, String newData)
+    {
+        if (this.debug)
+        {
+            System.out.println(sdName + " = " + newData);
+        }
+    }
+    
+    /**
      * Called when the exit code from the service is received: this signals that
      * the remote executable has completed.
      */
@@ -597,8 +629,8 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     {
         if (args.length < 3)
         {
-            System.err.println("Usage: SGSRun <hostname> <port> <servicename>");
-            System.exit(1); // TODO: what is the best exit code here?
+            System.err.println("Usage: SGSRun <hostname> <port> <servicename> [args]");
+            System.exit(INTERNAL_SGS_ERROR); // TODO: what is the best exit code here?
         }
         
         // Make sure we can understand styx:// URLs
@@ -613,9 +645,12 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
             String[] sgsArgs = new String[args.length - 3];
             System.arraycopy(args, 3, sgsArgs, 0, sgsArgs.length);
             
-            // Create an SGSRun object: this connects to the server and verifies
-            // that the given Styx Grid Service exists
+            // Create an SGSRun object
             runner = new SGSRun(args[0], port, args[2]);
+            
+            // Connect to the server and download the configuration for this
+            // service instance
+            runner.connect();
             
             // Check the command-line arguments
             runner.checkArguments(sgsArgs);
@@ -642,7 +677,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         {
             System.err.println("Invalid port number");
             // TODO: what is an appropriate error code here?
-            System.exit(1);
+            System.exit(INTERNAL_SGS_ERROR);
         }
         catch(Exception e)
         {
@@ -654,15 +689,15 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
             // TODO: what is an appropriate error code here?
             if (runner != null)
             {
-                runner.exitCode = 1;
+                runner.exitCode = INTERNAL_SGS_ERROR;
+                // System.exit(exitCode) will be called when the connection
+                // is closed
                 if (runner.serverClient != null)
                 {
                     runner.serverClient.getConnection().close();
                 }
                 if (runner.instanceClient != null)
                 {
-                    // System.exit(exitCode) will be called when the connection
-                    // is closed
                     runner.instanceClient.getConnection().close();
                 }
             }

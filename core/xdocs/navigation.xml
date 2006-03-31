@@ -27,11 +27,15 @@
         
         <menu name="Styx Grid Services">
             <item name="Overview" href="/sgs/index.html"/>
+            <item name="FAQs" href="/faq.html#sgs"/>
             <item name="Tutorial" href="/sgs/tutorial/index.html" collapse="true">
                 <item name="Hello World" href="/sgs/tutorial/HelloWorld.html"/>
                 <item name="More config options" href="/sgs/tutorial/furtherConfig.html"/>
                 <item name="More complex services" href="/sgs/tutorial/moreComplex.html"/>
+                <item name="Getting help" href="/sgs/tutorial/gettingHelp.html"/>
+                <item name="Workflow and scripting" href="/sgs/tutorial/workflow.html"/>
                 <item name="Advanced stuff" href="/sgs/tutorial/advanced.html"/>
+                <item name="Security" href="/sgs/tutorial/security.html"/>
             </item>
             <item name="The configuration file" href="/sgs/config.html"/>
             <item name="The SGS namespace" href="/sgs/namespace.html"/>

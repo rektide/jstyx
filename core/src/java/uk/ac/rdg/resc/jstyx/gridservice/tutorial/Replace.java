@@ -49,7 +49,7 @@ import com.martiansoftware.jsap.UnflaggedOption;
  * @author Jon Blower
  * $Revision$
  * $Date$
- * $Log$
+ * $Log: Replace.java,v $
  * Revision 1.2  2006/02/22 17:04:36  jonblower
  * Change to comment
  *
@@ -66,10 +66,6 @@ public class Replace
         {
             // Set up the argument parser
             JSAP jsap = new JSAP();
-            jsap.registerParameter(new FlaggedOption("inputfile", JSAP.STRING_PARSER,
-                null, true, 'i', JSAP.NO_LONGFLAG, "name of the input file"));
-            jsap.registerParameter(new FlaggedOption("outputfile", JSAP.STRING_PARSER,
-                null, true, 'o', JSAP.NO_LONGFLAG, "name of the output file"));
             jsap.registerParameter(new UnflaggedOption("stringToFind", JSAP.STRING_PARSER,
                 true, null));
             jsap.registerParameter(new UnflaggedOption("stringToReplace", JSAP.STRING_PARSER,
@@ -86,10 +82,10 @@ public class Replace
                 System.exit(-1);
             }
             
-            // Open the input and output files
+            // Open the input and output files (which have fixed names)
             BufferedReader in = new BufferedReader(new InputStreamReader(
-                new FileInputStream(result.getString("inputfile"))));
-            PrintStream out = new PrintStream(result.getString("outputfile"));
+                new FileInputStream("input.txt")));
+            PrintStream out = new PrintStream("output.txt");
             
             // Read the input file a line at a time
             String strToFind = result.getString("stringToFind");

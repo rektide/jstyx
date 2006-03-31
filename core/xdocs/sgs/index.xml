@@ -16,7 +16,9 @@
       shell scripts to create distributed applications.  Data can be streamed
       directly between the services along the shortest network path.</p>
       <p><a href="http://www.resc.rdg.ac.uk/publications/posters/sgs_poster_SC2005.pdf">This poster</a>
-      is a good summary of the main capabilities of the SGS system.</p>
+      is a good summary of the main capabilities of the SGS system.
+      <a href="http://www.resc.rdg.ac.uk/publications/Blower_et_al_ICCS06.pdf">This paper</a>
+      is a more detailed description of the capabilites of the SGS system.</p>
       
       <subsection name="A simple example">
       <p>Let us consider a simple distributed application, consisting of two Styx Grid Services.

@@ -20,6 +20,12 @@
     <p>Simply change the port number in this section to the number of your choice
     (the range of port numbers that you are allowed to choose 
     is system-dependent).</p>
+    <p>
+    Note that the SGS server only runs under a single port.  Therefore, this is
+    the only port that you will need to open through any firewalls that the server
+    happens to lie behind.  SGS clients need <b>no</b> incoming ports open: they
+    simply need to be able to make an outgoing connection to the server.
+    </p>
     </subsection>
     
     <subsection name="Changing the location of cached files">
@@ -45,7 +51,8 @@
     change the logging level of that class to DEBUG.  You can see the individual
     Styx messages that are exchanged between client and server by setting the 
     logging levels of the StyxServerProtocolHandler and StyxConnection to
-    DEBUG.  This is not recommended as it will significantly slow down the system.</p>
+    DEBUG.  This is not recommended for normal use as it will significantly slow
+    the system down.</p>
     </subsection>
     </section>
   </body>

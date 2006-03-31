@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <properties>
+    <author email="jdb@mail.nerc-essc.ac.uk">Jon Blower</author>
+    <title>Styx Grid Services Tutorial: Security</title>
+  </properties>
+
+  <body>
+    <section name="Styx Grid Services Tutorial: Security">
+    <p>
+    In the current public release (0.1.0), security is not implemented properly.
+    There is no authentication of users nor encryption of network traffic.  This
+    is a high priority for addressing in future releases.  Please email the jstyx-users
+    <a href="../../mail-lists.html">mailing list</a> if you would like this 
+    to be enabled urgently: this will encourage the developers and we might be
+    able to send you an early version of a future release or direct you to
+    the CVS repository.
+    </p>
+    <p>
+    A security mechanism based upon secure authentication of users, Unix-style
+    fine-grained access control to individual Styx files and SSL-based encryption of
+    network traffic is under development.
+    </p>
+    </section>
+  </body>
+</document>

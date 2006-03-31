@@ -38,9 +38,10 @@
         <li><a href="HelloWorld.html">Wrapping the traditional &quot;Hello World&quot; application as a Styx Grid Service</a></li>
         <li><a href="furtherConfig.html">Brief aside: more configuration options</a></li>
         <li><a href="moreComplex.html">Wrapping more complex applications as Styx Grid Services</a></li>
-        <li>Getting help</li>
-        <li>Streaming data directly between services (aka third-party data transfers)</li>
+        <li><a href="gettingHelp.html">Getting help</a></li>
+        <li><a href="workflow.html">Workflow and scripting in SGS systems</a></li>
         <li><a href="advanced.html">Advanced techniques</a></li>
+        <li><a href="security.html">Securing the SGS system</a></li>
       </ul>
       </p>
     </section>
