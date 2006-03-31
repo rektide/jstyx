@@ -36,6 +36,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
+import uk.ac.rdg.resc.jstyx.types.ULong;
 import uk.ac.rdg.resc.jstyx.server.StyxSessionState;
 import uk.ac.rdg.resc.jstyx.messages.RerrorMessage;
 
@@ -250,6 +251,14 @@ public class AsyncStyxFile extends StyxFile implements StyxFileChangeListener
     public StyxFile getBaseFile()
     {
         return this.baseFile;
+    }
+    
+    /**
+     * @return the length of the StyxFile that is wrapped by this AsyncStyxFile
+     */
+    public ULong getLength()
+    {
+        return this.baseFile.getLength();
     }
     
     /**

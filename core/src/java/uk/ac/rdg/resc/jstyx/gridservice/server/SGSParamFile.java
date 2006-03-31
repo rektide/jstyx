@@ -151,24 +151,39 @@ public class SGSParamFile extends AsyncStyxFile
         {
             throw new StyxException("Cannot set new parameter values while service is running");
         }
-        if (offset != 0)
-        {
-            throw new StyxException("Must write to the start of the parameter file");
-        }
         if (!truncate)
         {
             throw new StyxException("Must write to the parameter file with truncation");
         }
-        // Set the limit of the input data buffer correctly
-        data.limit(data.position() + count);
-        String newValue = StyxUtils.dataToString(data);
-        
-        this.setParameterValue(newValue);
-        
-        // If we've got this far the value must have been OK.
-        super.write(client, offset, count, data, truncate, tag);
-        
-        this.instance.argumentsChanged();
+        if (offset != 0 && count != 0)
+        {
+            // We're trying to write new data to the middle of the file somewhere
+            throw new StyxException("Must write data to the start of the parameter file");
+        }
+        if (count == 0)
+        {
+            // This is an EOF message
+            if (offset != this.getLength().asLong())
+            {
+                // We're trying to write EOF to somewhere other than the end of the file
+                throw new StyxException("Can only write EOF to the end of this file");
+            }
+            this.replyWrite(client, 0, tag);
+        }
+        else
+        {
+            // This is a new parameter value
+            // Set the limit of the input data buffer correctly
+            data.limit(data.position() + count);
+            String newValue = StyxUtils.dataToString(data);
+
+            this.setParameterValue(newValue);
+
+            // If we've got this far the value must have been OK.
+            super.write(client, offset, count, data, truncate, tag);
+
+            this.instance.argumentsChanged();
+        }
     }
     
     /**

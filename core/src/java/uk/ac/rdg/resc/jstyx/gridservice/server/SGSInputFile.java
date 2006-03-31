@@ -203,7 +203,6 @@ public abstract class SGSInputFile extends StyxFile
             this.candidateURLBuffer = data;
             this.candidateURL = urlStr.substring(prefix.length());
             this.candidateURLLength = dataLen;
-            System.out.println("*** Got candidate URL: " + this.candidateURL + " ***");
             return true;
         }
         else
@@ -259,6 +258,11 @@ public abstract class SGSInputFile extends StyxFile
             ByteBuffer data, boolean truncate, int tag)
             throws StyxException, IOException
         {
+            if (instance.getStatus() != StatusCode.RUNNING)
+            {
+                throw new StyxException("Can't write data to standard input" +
+                    " before the service is running");
+            }
             byte[] arr = new byte[data.remaining()];
             data.get(arr);
             this.stream.write(arr);
@@ -271,26 +275,12 @@ public abstract class SGSInputFile extends StyxFile
             ByteBuffer data, boolean truncate, int tag)
             throws StyxException
         {
-            if (instance.getStatus() != StatusCode.RUNNING)
-            {
-                throw new StyxException("Can't write data to standard input" +
-                    " before the service is running");
-            }
-            else
-            {
-                this.write2(client, offset, count, data, truncate, tag);
-            }
+            this.write2(client, offset, count, data, truncate, tag);
         }
         
         protected void closeOutput() throws IOException
         {
             this.stream.close();
-        }
-    
-        public void setURL(URL url) throws StyxException
-        {
-            super.setURL(url);
-            this.instance.readFrom(this.url, this.stream);
         }
     }
     

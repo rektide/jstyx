@@ -13,6 +13,9 @@ esac
 
 # Add the conf/ directory to the classpath so it can find .properties files
 CP=$JSTYX_HOME/conf
+for i in `find $JSTYX_HOME -name '*.jar'`; do
+    CP="$CP$_s$i"
+done
 for i in `find $JSTYX_HOME/lib -name '*.jar'`; do
     CP="$CP$_s$i"
 done

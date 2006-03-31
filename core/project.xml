@@ -37,7 +37,7 @@
     <name>JStyx</name>
     <!-- The version of the project under development, e.g.
        1.1, 1.2, 2.0-SNAPSHOT -->
-    <currentVersion>0.1.0-SNAPSHOT</currentVersion>
+    <currentVersion>0.1.0</currentVersion>
     <!-- details about the organization that 'owns' the project -->
     <organization>
         <name>Reading e-Science Centre</name>
@@ -67,9 +67,9 @@
        the connection element has the form:
        scm:<system>:<system specific connection string> -->
     <repository>
-        <connection>scm:cvs:pserver:anonymous@cvs.sourceforge.net:/cvsroot/jstyx:core</connection>
-        <developerConnection>scm:cvs:ext:jonblower@cvs.sourceforge.net:/cvsroot/jstyx:core</developerConnection>
-        <url>http://cvs.sourceforge.net/viewcvs.py/jstyx/core</url>
+        <connection>scm:https://svn.sourceforge.net/svnroot/jstyx/trunk/core</connection>
+        <developerConnection>scm:https://svn.sourceforge.net/svnroot/jstyx/trunk/core</developerConnection>
+        <url>http://svn.sourceforge.net/viewcvs.cgi/jstyx/trunk/core/</url>
     </repository>
     <!-- any mailing lists for the project -->
     <mailingLists>
@@ -181,8 +181,8 @@
     </build>
     <reports>
         <report>maven-license-plugin</report>
-        <!--<report>maven-javadoc-plugin</report>
-        <report>maven-jxr-plugin</report>-->
+        <report>maven-javadoc-plugin</report>
+        <report>maven-jxr-plugin</report>
         <report>maven-tasklist-plugin</report>
         <report>maven-faq-plugin</report>
     </reports>

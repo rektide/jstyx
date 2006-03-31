@@ -510,12 +510,16 @@ class StyxGridServiceInstance extends StyxDirectory
         StyxFile[] inputFiles = this.inputsDir.getChildren();
         for (int i = 0; i < inputFiles.length; i++)
         {
+            log.debug("Preparing " + inputFiles[i].getName() + "...");
             if (inputFiles[i] instanceof SGSInputFile)
             {
+                log.debug(inputFiles[i].getName() + " is an SGSInputFile");
                 SGSInputFile inputFile = (SGSInputFile)inputFiles[i];
                 URL url = inputFile.getURL();
+                log.debug("URL = " + url);
                 if (inputFile instanceof SGSInputFile.File)
                 {
+                    log.debug(inputFiles[i].getName() + " is an SGSInputFile.File");
                     SGSInputFile.File inFile = (SGSInputFile.File)inputFile;
                     if (url == null)
                     {
@@ -642,6 +646,12 @@ class StyxGridServiceInstance extends StyxDirectory
             ByteBuffer data, boolean truncate, int tag)
             throws StyxException
         {
+            // Ignore empty messages (e.g. EOFs)
+            if (count == 0)
+            {
+                this.replyWrite(client, 0, tag);
+                return;
+            }
             String cmdString = StyxUtils.dataToString(data);
             // Strip the trailing newline if it exists
             if (cmdString.endsWith(StyxUtils.NEWLINE))
@@ -685,6 +695,14 @@ class StyxGridServiceInstance extends StyxDirectory
                     setStatus(StatusCode.RUNNING);
                     new Waiter().start(); // Thread that waits for the process
                                           // to finish, then sets status
+                    
+                    // If we need to, start redirecting data to the standard
+                    // input of the process
+                    if (stdin != null && stdin.getURL() != null)
+                    {
+                        // Start redirecting data to the standard input
+                        readFrom(stdin.getURL(), process.getOutputStream());
+                    }
                     
                     // Start reading from stdout and stderr. Note that we do this
                     // even if the "stdout" and "stderr" streams are not exposed
@@ -801,7 +819,7 @@ class StyxGridServiceInstance extends StyxDirectory
          * all the parameters in the params/ directory. At the moment the command
          * line must be written in a single Styx message.
          */
-        public void write(StyxFileClient client, long offset, int count,
+        /*public void write(StyxFileClient client, long offset, int count,
             ByteBuffer data, boolean truncate, int tag)
             throws StyxException
         {
@@ -882,7 +900,7 @@ class StyxGridServiceInstance extends StyxDirectory
             argumentsChanged();
             
             this.replyWrite(client, count, tag);
-        }
+        }*/
     }
     
     /**
@@ -937,7 +955,7 @@ class StyxGridServiceInstance extends StyxDirectory
         {
             InputStream is = url.openStream();
             new RedirectStream(is, os).start();
-            System.out.println("*** Reading stdin from " + url + "***");
+            log.debug("*** Reading stdin from " + url + "***");
         }
         catch (IOException ioe)
         {
@@ -948,7 +966,6 @@ class StyxGridServiceInstance extends StyxDirectory
     }
     
     // Reads from an input stream and writes the result to an output stream
-    // TODO: can this be done using pipes?
     private class RedirectStream extends Thread
     {
         private InputStream is;

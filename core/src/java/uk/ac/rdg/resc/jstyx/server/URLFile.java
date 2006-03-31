@@ -89,13 +89,23 @@ public class URLFile extends StyxFile
         int count, ByteBuffer data, boolean truncate, int tag)
         throws StyxException
     {
-        if (offset != 0)
-        {
-            throw new StyxException("Must write to the start of the URL file");
-        }
         if (!truncate)
         {
             throw new StyxException("Must write to the URL file with truncation");
+        }
+        if (count == 0)
+        {
+            if (offset != this.getLength().asLong())
+            {
+                throw new StyxException("Can only write EOF to the end of this file");
+            }
+            // We can ignore EOF messages
+            this.replyWrite(client, 0, tag);
+            return;
+        }
+        if (offset != 0)
+        {
+            throw new StyxException("Must write data to the start of the URL file");
         }
         // Set the limit of the input data buffer correctly
         data.limit(data.position() + count);

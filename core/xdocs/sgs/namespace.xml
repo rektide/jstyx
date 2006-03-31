@@ -174,13 +174,14 @@
     <p>
     The <code>args</code> file is used to read and write the full set of 
     command-line arguments that will be passed to the underlying executable.
-    Reading this file is very useful for debugging purposes.  In some cases,
+    Reading this file is very useful for debugging purposes.
+    <!--In some cases,
     clients may wish to write the command-line arguments as one long string 
     (e.g. &quot;<code>-i input.dat -o output.dat -v</code>&quot;): when such
     a string is written to this file it is parsed and the relevant parameter
     values are set.  This saves the client from setting the parameter values
     individually using the files in the <a href="#The_parameters_directory">parameters</a>
-    directory.
+    directory.-->
     </p>
     </subsection>
     

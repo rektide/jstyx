@@ -843,7 +843,7 @@ public class CStyxFile
     
     /**
      * Sets the contents of the file to the given string. Overwrites anything
-     * else in the file. Closes the file after use unless the file was open
+     * else in the file. Writes EOF and closes the file after use unless the file was open
      * before this method was called.  If the file was open before this message
      * is called, it must be open for writing with truncation
      * (i.e. StyxUtils.OWRITE | StyxUtils.OTRUNC)
@@ -868,6 +868,8 @@ public class CStyxFile
         // If this file wasn't open before we called this function, close it
         if (!wasOpen)
         {
+            // Write EOF to this file first
+            this.write(new byte[0], bytes.length, true);
             this.close();
         }
     }

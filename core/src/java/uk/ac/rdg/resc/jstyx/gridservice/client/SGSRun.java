@@ -246,11 +246,17 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
                 SGSInput input = (SGSInput)inputs.get(i);
                 if (input.getType() == SGSInput.FILE)
                 {
-                    jsap.registerParameter(new FlaggedOption("sgs-ref-" + input.getName(),
-                        JSAP.STRING_PARSER, null, false, JSAP.NO_SHORTFLAG,
-                        "sgs-ref-" + input.getName(),
+                    jsap.registerParameter(new FlaggedOption("sgs-ref-" + input.getName(), JSAP.STRING_PARSER,
+                        null, false, JSAP.NO_SHORTFLAG, "sgs-ref-" + input.getName(),
                         "If set, will cause the input file " + input.getName() +
                         " to be uploaded from the given URL"));
+                }
+                else if (input.getType() == SGSInput.STREAM)
+                {
+                    jsap.registerParameter(new FlaggedOption("sgs-ref-" + input.getName(), JSAP.STRING_PARSER,
+                        null, false, JSAP.NO_SHORTFLAG, "sgs-ref-" + input.getName(),
+                        "If set, will cause the data at the given URL to be redirected" +
+                        " to the " + input.getName() + " stream of the service"));
                 }
             }
             

@@ -143,25 +143,34 @@ public class TimeDirectory extends StyxDirectory
             ByteBuffer data, boolean truncate, int tag)
             throws StyxException
         {
-            if (offset != 0)
+            if (count == 0)
             {
-                throw new StyxException("Must write to the terminationTime file at offset zero");
+                // This is an EOF message.  TODO we should check that it
+                // is being written at the correct offset
+                this.replyWrite(client, 0, tag);
             }
-            String dateString = StyxUtils.dataToString(data);
-            try
+            else
             {
-                Date termTime = null;
-                if (!dateString.trim().equals(""))
+                if (offset != 0)
                 {
-                    termTime = StyxUtils.parseXsdDateTime(dateString);
+                    throw new StyxException("Must write to the terminationTime file at offset zero");
                 }
-                instance.setTerminationTime(termTime);
-                this.replyWrite(client, count, tag);
-            }
-            catch (ParseException pe)
-            {
-                throw new StyxException("The given time (" + dateString +
-                    ") is not a valid time in the xsd:dateTime format");
+                String dateString = StyxUtils.dataToString(data);
+                try
+                {
+                    Date termTime = null;
+                    if (!dateString.trim().equals(""))
+                    {
+                        termTime = StyxUtils.parseXsdDateTime(dateString);
+                    }
+                    instance.setTerminationTime(termTime);
+                    this.replyWrite(client, count, tag);
+                }
+                catch (ParseException pe)
+                {
+                    throw new StyxException("The given time (" + dateString +
+                        ") is not a valid time in the xsd:dateTime format");
+                }
             }
         }
     }

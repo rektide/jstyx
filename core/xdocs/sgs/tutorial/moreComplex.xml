@@ -212,5 +212,29 @@
     </p>
     </section>
     
+    <section name="4. Interactive programs">
+    <p>
+    If you have a program that expect user interaction through the command line
+    (i.e. the user enters data at the keyboard), you can expose this as a 
+    Styx Grid Service.  In fact, you have already done so: the <code>reverse</code>
+    service from section 1 above reads data from its standard input.  Try running:
+    </p>
+    <source>SGSRun localhost 9092 reverse</source>
+    <p>
+    without piping any data to its standard input.  The program will just sit and
+    wait for you to type at the keyboard.  Every line you type will be reversed
+    by the <code>reverse</code> SGS and sent back to you, printed on the standard
+    output (console window).  This will continue until you enter an end-of-file
+    command (Control-Z in Windows and Control-D in many other systems).
+    </p>
+    <p>
+    You could expose any interactive program in this way, including the Python
+    interactive shell and the bash shell!  Of course, there may be serious security
+    implications connected with doing this if the program you are exposing as an SGS
+    allows the user to enter data that can cause damage to your system.  (This is
+    true with any Styx Grid Service, of course.)
+    </p>
+    </section>
+    
   </body>
 </document>

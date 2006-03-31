@@ -10,7 +10,7 @@
         Builds the JStyx source into classes and creates JAR file and distribution
     </description>
 
-	<property name="version" value="0.1.0-SNAPSHOT"/>
+	<property name="version" value="0.1.0"/>
 	<property name="src.dir" value="./src/java"/>
 	<property name="conf.dir" value="./conf"/>
 	<property name="target.dir" value="./target"/>
@@ -67,17 +67,32 @@
 		</javadoc>
 	</target>
         
+        <!-- Need to run "maven site" and "maven pdf" before this to get a fill distro -->
         <target name="dist" depends="jar" description="build distribution as a zip file">
             <mkdir dir="${dist.dir}"/>
+            <!-- The Windows version -->
             <zip destfile="${dist.dir}/jstyx-${version}.zip">
-                <zipfileset dir="./bin" prefix="bin"/>
+                <fileset file="${jar.file}"/>
+                <zipfileset dir="./bin" prefix="bin" includes="*.bat"/>
                 <zipfileset dir="${lib.dir}" prefix="lib"/>
-                <zipfileset dir="${src.dir}" prefix="src/java"/>
-                <zipfileset dir="${conf.dir}" prefix="conf" includes="log4j.properties, SGSconfig.dtd"/>
-                <zipfileset dir="${conf.dir}" includes="SGSconfig_example.xml" fullpath="conf/SGSconfig.xml"/>
+                <zipfileset dir="${conf.dir}" prefix="conf" includes="log4j.properties, SGSconfig.dtd, SGSconfig.xml"/>
                 <zipfileset dir="./xdocs" prefix="xdocs"/>
+                <zipfileset dir="${src.dir}" prefix="src/java"/>
                 <zipfileset dir="." includes="*.txt, build.xml, project.properties, project.xml"/>
-                <zipfileset dir="${javadoc.dir}" prefix="docs/apidocs"/>
+            </zip>
+            <!-- The Unix version -->
+            <tar destfile="${dist.dir}/jstyx-${version}.tar.gz" compression="gzip">
+                <tarfileset file="${jar.file}"/>
+                <tarfileset dir="./bin" prefix="bin" excludes="*.bat" mode="0755"/>
+                <tarfileset dir="${lib.dir}" prefix="lib"/>
+                <tarfileset dir="${conf.dir}" prefix="conf" includes="log4j.properties, SGSconfig.dtd, SGSconfig.xml"/>
+                <tarfileset dir="./xdocs" prefix="xdocs"/>
+                <tarfileset dir="${src.dir}" prefix="src/java"/>
+                <tarfileset dir="." includes="*.txt, build.xml, project.properties, project.xml"/>
+            </tar>
+            <!-- The documentation -->
+            <zip destfile="${dist.dir}/jstyx-${version}-doc.zip">
+                <zipfileset dir="${target.dir}/docs" prefix="docs"/>
             </zip>
         </target>
 

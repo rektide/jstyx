@@ -617,7 +617,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * Set the lifetime of this SGS instance.  This method will block until
      * the lifetime is set.  This method reads the creation time from the server,
      * adds the requested number of minutes, then sets the termination time.
-     * @param the lifetime of this instance in minutes.  The instance will
+     * @param lifetimeInMinutes the lifetime of this instance in minutes.  The instance will
      * automatically be destroyed at this time <b>after the instance was created</b>.
      * @throws StyxException if the lifetime could not be set
      */
