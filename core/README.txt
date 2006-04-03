@@ -18,7 +18,7 @@ the jstyx-users mailing list (http://jstyx.sf.net/mail-lists.html).
 Getting the source code
 =======================
 
-The complete source source code (with all library dependencies and configuration
+The complete source code (with all library dependencies and configuration
 files) can be downloaded from the project website.  The source distribution
 contains build instructions.
 

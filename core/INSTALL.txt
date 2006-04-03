@@ -1,0 +1,91 @@
+JStyx library: Pure-Java implementation of the Styx protocol
+http://jstyx.sourceforge.net
+
+Primary author: Jon Blower
+Licensed under the BSD license, Copyright University of Reading 2006
+
+Installing JStyx
+================================
+
+The process of installing the JStyx software (which includes the
+Styx Grid Services software) is very simple on all platforms.  In summary:
+   * Install a Java runtime environment and add the java program to your PATH.
+   * Unpack the JStyx distribution.
+   * Set the JSTYX_HOME environment variable and add JSTYX_HOME/bin to
+     your PATH.
+
+1. Set up Java
+==============
+
+JStyx is a set of Java classes and so we need a Java runtime environment
+to run the software:
+   * Download and install a Java runtime environment version 1.4.2 or above from
+     http://java.sun.com
+   * Add the bin directory of the Java installation to your PATH environment
+     variable
+   * Test this by opening a new terminal window or command prompt and typing
+     "java -version". The version number of the Java installation should be
+     printed to the console.  This should work from any directory on your system.
+
+
+2. Install JStyx
+================
+
+The JStyx software is essentially the same on all platforms because it consists
+of a set of platform-independent Java libraries.  The only difference between
+the different distributions is the scripts that are used to launch JStyx
+programs (these scripts are .bat files under Windows and shell scripts under Unix
+and are found in the bin directory of the distribution).
+      
+Windows installation instructions:
+   * Unzip the software into the directory of your choice (e.g. C:\JStyx).
+   * Set the environment variable JSTYX_HOME to the location of the JStyx software
+     (e.g. C:\JStyx).
+   * Append the directory %JSTYX_HOME%\bin to the PATH environment variable.
+
+   Note: to set an environment variable in Windows, right-click on "My Computer";
+   and click the "Advanced" tab.  Click on "Environment Variables".  A Google
+   search will reveal more information if you need it.
+      
+Unix/Linux installation instructions:
+   (Note: these instructions might also work on Mac OSX, but this hasn't been tested yet.)
+   * Unpack the software into the directory of your choice
+     (e.g. cd /home/jon/JStyx; tar xzf jstyx-0.2.0-unix.tar.gz</code>).
+   * Set the environment variable JSTYX_HOME to the location of the JStyx software
+     (e.g. export JSTYX_HOME=/home/jon/JStyx).
+   * Append the directory $JSTYX_HOME\bin to the PATH environment variable 
+     (e.g. export PATH=$PATH:$JSTYX_HOME/bin).
+
+   If you use the C shell you can set an environment variable like this:
+   setenv JSTYX_HOME /home/jon/JStyx.
+   
+   Add the JSTYX_HOME and PATH environment variables to your startup scripts so
+   that you do not have to set them every time you want to run the JStyx software.
+
+
+3. Test the installation
+========================
+
+To verify that your installation is working, open a new terminal window
+(or command prompt) and enter "SGSRun" with no arguments.  If all is well, you
+should just see a usage message:
+
+    Usage: SGSRun <hostname> <port> <servicename> [args]
+
+If you get an error message saying that the SGSRun program cannot
+be found, you have not set your PATH correctly.  If you get an error message 
+saying "NoClassDefFoundError" you have not set your JSTYX_HOME
+environment variable correctly.
+
+
+Access to source code repository
+================================
+
+(This is only relevant for people who want to access the latest version of
+the original source code.  Note that the latest version of the source code
+might well contain bugs or might not work at all!)
+
+The JStyx code is hosted on Sourceforge's Subversion server at
+https://svn.sourceforge.net/svnroot/jstyx/trunk/core.  Anybody can download
+the entire code base, but only developers can check changes back in.  See the
+README.txt file in the distribution for build instructions.

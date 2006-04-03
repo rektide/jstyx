@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project>
+<project name="JStyx">
 
     <title>JStyx</title>
 
     <body>
+        
+        <breadcrumbs>
+            <item name="Download" href="/downloads.html"/>
+        </breadcrumbs>
+        
         <links>
             <item name="ReSC" href="http://www.resc.rdg.ac.uk/"/>
             <item name="Inferno" href="http://www.vitanuova.com/inferno"/>
             <item name="PDF" href="jstyx.pdf" img="images/pdf.gif"/>
         </links>
+        
+        <sitemap/>
 
         <menu name="JStyx">
             <item name="Overview" href="/index.html"/>
@@ -47,6 +54,13 @@
         </menu>
         
         <search/>
+        
+        <powered-by>
+          <item
+            name="Hosted by SourceForge"
+            href="http://sourceforge.net/projects/jstyx/"
+            img="http://sourceforge.net/sflogo.php?group_id=16035&amp;type=1"/>
+        </powered-by>
         
     </body>
     

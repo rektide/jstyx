@@ -17,6 +17,9 @@
           <li>Set the JSTYX_HOME environment variable and add JSTYX_HOME/bin to
           your PATH.</li>
       </ul>
+      You can either follow the instructions below or just go straight to the
+      <a href="http://sourceforge.net/project/showfiles.php?group_id=131424&amp;package_id=144157&amp;release_id=406792">downloads page</a>
+      if you are impatient! ;-)
       </p>
     </section>
       <section name="1. Set up Java">
@@ -35,7 +38,7 @@
       <section name="2. Install JStyx">
       <p>
       The JStyx software is essentially the same on all platforms because it consists
-      of a set of platform-independant Java libraries.  The only difference between
+      of a set of platform-independent Java libraries.  The only difference between
       the different distributions is the scripts that are used to launch JStyx
       programs (these scripts are .bat files under Windows and shell scripts under Unix
       and are found in the <code>bin/</code> directory of the distribution).
@@ -67,7 +70,7 @@
               (e.g. <code>cd /home/jon/JStyx; tar xzf jstyx-0.2.0-unix.tar.gz</code>).</li>
           <li>Set the environment variable JSTYX_HOME to the location of the JStyx software
               (e.g. <code>export JSTYX_HOME=/home/jon/JStyx</code>).</li>
-          <li>Append the directory %JSTYX_HOME%\bin to the PATH environment variable 
+          <li>Append the directory $JSTYX_HOME\bin to the PATH environment variable 
               (e.g. <code>export PATH=$PATH:$JSTYX_HOME/bin</code>).</li>
       </ol>
       If you use the C shell you can set an environment variable like this:
@@ -96,14 +99,18 @@
       </p>
       </section>
       
-      <section name="Access to source code repository">
-      <p>(This is only relevant for people who want to access the latest version of
-      the original source code.  Note that the latest version of the source code
-      might well contain bugs or might not work at all!)</p>
-      <p>The JStyx code is hosted on Sourceforge's Subversion server at
+      <section name="Access to source code">
+      <p>You can get a source distribution from
+      <a href="http://prdownloads.sourceforge.net/jstyx/jstyx-0.2.0-src.zip?download">here</a>.
+      The build-instructions.txt file in this distribution contains instructions
+      on how the software can be built from this source.</p>
+
+      <p>If you want the very latest version of the source code (bearing in mind
+      that it probably will not have been tested properly, if at all!) you can
+      get the code from Sourceforge's Subversion server at
       https://svn.sourceforge.net/svnroot/jstyx/trunk/core.  Anybody can download
       the entire code base, but only developers can check changes
-      back in.  See the README.txt file in the distribution for build instructions.
+      back in.
       </p>
       </section>
   </body>
