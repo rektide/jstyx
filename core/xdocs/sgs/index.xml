@@ -10,17 +10,43 @@
       <p>Styx Grid Services (SGSs) are a means for wrapping command-line programs and
       allowing them to be used remotely over the Internet.  When deployed as an SGS,
       a program can be run from anywhere on the Internet <em>exactly as if it
-      were a local program</em>.</p>
-      <p>SGSs can be composed into &quot;workflows&quot;, in which a number of
-      SGSs, perhaps in different locations, can be combined using very simple
-      shell scripts to create distributed applications.  Data can be streamed
-      directly between the services along the shortest network path.</p>
+      were a local program</em>.
+      </p>
+      
       <p><a href="http://www.resc.rdg.ac.uk/publications/posters/sgs_poster_SC2005.pdf">This poster</a>
       is a good summary of the main capabilities of the SGS system.
       <a href="http://www.resc.rdg.ac.uk/publications/Blower_et_al_ICCS06.pdf">This paper</a>
-      is a more detailed description of the capabilites of the SGS system.</p>
+      is a more detailed description of the capabilites of the SGS system.
+      </p>
       
-      <subsection name="A simple example">
+      <subsection name="Why use the SGS system?">
+      <p>
+      Styx Grid Services are useful when you want to run a program on a machine
+      that is not your own (somewhat analogous to Web Services).  You can then 
+      run the program exactly as if it were a local program.  You might want to
+      do this because:
+      <ol>
+          <li>The program requires a different operating system or architecture
+          from your own machine</li>
+          <li>The program requires a larger amount of memory or processing power
+          than you have on your own machine</li>
+          <li>The program requires access to a data store that you cannot
+          access from your local machine</li>
+          <li>You want to allow other people to run the program from elsewhere
+          on the Internet</li>
+      </ol>
+      </p>
+      <p>Styx Grid Services are very simple to install and use and require
+      a minimum of software (just a Java virtual machine and the JStyx libraries).</p>
+      </subsection>
+      
+      <subsection name="Styx Grid Services and workflows">
+      <p>
+      SGSs can be composed into &quot;workflows&quot;, in which a number of
+      SGSs, perhaps in different locations, can be combined using very simple
+      shell scripts to create distributed applications.  Data can be streamed
+      directly between the services along the shortest network path.</p>
+      
       <p>Let us consider a simple distributed application, consisting of two Styx Grid Services.
       The first is called <tt>calc_mean</tt> and reads a set of input files
       from a set of scientific experiments, calculates their mean and outputs the

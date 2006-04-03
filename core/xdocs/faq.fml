@@ -15,7 +15,7 @@
         in Styx systems, files do not always represent bytes on the hard disk. They may represent
         a chunk of RAM, a physical device such as the screen, the interface to a device such as a
         digital camera or the interface to a program.</p>
-        <p>Both the Inferno and Plan9 operating system virtualize all resources as files and
+        <p>Both the Inferno and Plan9 operating system virtualize all resources as <b>files</b> and
         both use Styx as the protocol for accessing all these files, irrespective of the
         underlying resource they represent and their location (local or remote).  Applications
         in Inferno and Plan9 do not know the difference between local and remote files: the
@@ -46,12 +46,9 @@
         <p>Lots of reasons:
         <ul>
           <li>Lightweight - Styx messages are very short and add little bloat to the payload</li>
-          <li>Firewall-friendly</li>
-          <li>Data streaming</li>
-          <li>Built on robust framework (MINA)</li>
+          <li>Built on robust framework (<a href="http://directory.apache.org/subprojects/mina/index.html">Apache MINA</a>)</li>
           <li>Platform independence</li>
-          <li>Secure (in future!)</li>
-          <li>Comparison with Web Services...</li>
+          <li>Secure (in future! not in current public release)</li>
         </ul>
         </p>
       </answer>
@@ -91,24 +88,24 @@
     </faq>
   </part>
   
-  <part id="specific-points">
+  <!--<part id="specific-points">
     <title>Specific points</title>
     
-    <!--<faq id="data-streaming">
+    <faq id="data-streaming">
       <question>I've heard of people using JStyx in workflows to allow data
       to be streamed directly...</question>
       <answer>
         <p>Goes here</p>
       </answer>
-    </faq>-->
-  </part>
+    </faq>
+  </part>-->
   
   <part id="Styx Grid Services">
       <title>Styx Grid Services</title>
       
       <faq id="sgs">
           <question>What are Styx Grid Services?</question>
-          <answer>Something wonderful to behold!</answer>
+          <answer>See <a href="sgs/index.html">these pages</a>.</answer>
       </faq>
   </part>
   

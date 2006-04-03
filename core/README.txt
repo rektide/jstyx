@@ -2,30 +2,34 @@ JStyx library: Pure-Java implementation of the Styx protocol
 http://jstyx.sourceforge.net
 
 Primary author: Jon Blower
-Licensed under the BSD license, Copyright University of Reading 2005
+Licensed under the BSD license, Copyright University of Reading 2006
+
+Getting started
+===============
+
+The best place to get started is the project website (http://jstyx.sf.net).
+You can get a local copy of this website by downloading the docs zip file
+(jstyx-x.x.x-doc.zip).
+
+Getting help
+============
+
+The best places to get help are the project website (http://jstyx.sf.net) and
+the jstyx-users mailing list (http://jstyx.sf.net/mail-lists.html).
 
 Build instructions
 ==================
 
-THESE INSTRUCTIONS ARE SERIOUSLY OUT OF DATE - MODIFY!
+This distribution includes a pre-built jar file (called
+jstyx-x.x.x.jar (where x.x.x is the version number) in the root directory of the
+distribution.  If you want to build your own version of the library,
+run "ant jar".  Note that you need Apache Ant to build the source using this method.
 
-This distribution should have come with a pre-built jar file (called
-jstyx-x.xx.jar (where x.xx is the version number) in the target directory of the
-distribution.  If not, or if you want to build your own version of the library,
-change into the bin directory and enter "build" (should work on most
-platforms).  Note that you need Apache Ant to build the source using this method.
+The current version of JStyx requires Java 1.4.2.  It is anticipated that future
+releases will require Java 1.5 to allow use of the new security classes..
 
-You will need at least Java 5 (i.e. J2SDK 1.5) to build JStyx, as it uses
-features only available from this version of Java (e.g. SSLEngine, also new 
-language features).
+To build the Javadoc documentation, enter "ant javadoc".
 
-To build the Javadoc documentation, change into the bin directory and enter
-"build javadoc".
+To build the website and docs, enter "maven site" (you need Maven 1.0.2 for this).
 
-To clean up any class files, the jar library and javadoc, enter "build clean".
-
-Note that the build.xml file is in the ant directory of the distribution. This
-was placed here to avoid clashes with the build.xml file that NetBeans
-automatically generates on my system in the root of the distribution.
-
-The best place to get started is docs/tutorial.html.
+To build the PDF documentation, enter "maven pdf" (you need to run "maven site" first).

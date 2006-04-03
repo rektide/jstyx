@@ -27,7 +27,6 @@
         
         <menu name="Styx Grid Services">
             <item name="Overview" href="/sgs/index.html"/>
-            <item name="FAQs" href="/faq.html#sgs"/>
             <item name="Tutorial" href="/sgs/tutorial/index.html" collapse="true">
                 <item name="Hello World" href="/sgs/tutorial/HelloWorld.html"/>
                 <item name="More config options" href="/sgs/tutorial/furtherConfig.html"/>
