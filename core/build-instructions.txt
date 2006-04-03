@@ -1,0 +1,27 @@
+JStyx library: Pure-Java implementation of the Styx protocol
+http://jstyx.sourceforge.net
+
+Primary author: Jon Blower
+Licensed under the BSD license, Copyright University of Reading 2006
+
+Pre-requisites
+==============
+
+You will need Apache Ant and (optionally) Apache Maven 1.0.2 installed and on
+your PATH.
+
+Build instructions
+==================
+
+To build the JStyx library, run "ant jar".
+
+To build the JStyx distribution files, run "ant dist".
+
+The current version of JStyx requires Java 1.4.2.  It is anticipated that future
+releases will require Java 1.5 to allow use of the new security classes.
+
+To build the Javadoc documentation, enter "ant javadoc".
+
+To build the website and docs, enter "maven site" (you need Maven 1.0.2 for this).
+
+To build the PDF documentation, enter "maven pdf" (you need to run "maven site" first).

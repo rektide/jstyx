@@ -19,7 +19,9 @@ done
 for i in `find $JSTYX_HOME/lib -name '*.jar'`; do
     CP="$CP$_s$i"
 done
-for i in `find $JSTYX_HOME/target -name '*.jar'`; do
+# The target directory will not exist in a binary distribution so we swallow
+# error messages
+for i in `find $JSTYX_HOME/target -name '*.jar' 2> /dev/null`; do
     CP="$CP$_s$i"
 done
 

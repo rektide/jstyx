@@ -22,8 +22,8 @@
       <subsection name="Why use the SGS system?">
       <p>
       Styx Grid Services are useful when you want to run a program on a machine
-      that is not your own (somewhat analogous to Web Services).  You can then 
-      run the program exactly as if it were a local program.  You might want to
+      that is not your own (they are somewhat analogous to Web Services).  You can then 
+      run the program from anywhere on the Internet exactly as if it were a local program.  You might want to
       do this because:
       <ol>
           <li>The program requires a different operating system or architecture

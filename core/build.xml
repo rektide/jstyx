@@ -10,7 +10,7 @@
         Builds the JStyx source into classes and creates JAR file and distribution
     </description>
 
-	<property name="version" value="0.1.0"/>
+	<property name="version" value="0.2.0"/>
 	<property name="src.dir" value="./src/java"/>
 	<property name="conf.dir" value="./conf"/>
 	<property name="target.dir" value="./target"/>
@@ -68,31 +68,36 @@
 	</target>
         
         <!-- Need to run "maven site" and "maven pdf" before this to get a fill distro -->
+        <!-- The only difference between the distributions is the scripts that are
+             used to start programs -->
         <target name="dist" depends="jar" description="build distribution as a zip file">
             <mkdir dir="${dist.dir}"/>
             <!-- The Windows version -->
-            <zip destfile="${dist.dir}/jstyx-${version}.zip">
+            <zip destfile="${dist.dir}/jstyx-${version}-win.zip">
                 <fileset file="${jar.file}"/>
                 <zipfileset dir="./bin" prefix="bin" includes="*.bat"/>
                 <zipfileset dir="${lib.dir}" prefix="lib"/>
-                <zipfileset dir="${conf.dir}" prefix="conf" includes="log4j.properties, SGSconfig.dtd, SGSconfig.xml"/>
-                <zipfileset dir="./xdocs" prefix="xdocs"/>
-                <zipfileset dir="${src.dir}" prefix="src/java"/>
-                <zipfileset dir="." includes="*.txt, build.xml, project.properties, project.xml"/>
+                <zipfileset dir="${conf.dir}" prefix="conf" includes="log4j.properties, SGSconfig.dtd"/>
+                <zipfileset file="${conf.dir}/SGSconfig_windows.xml" fullpath="conf/SGSconfig.xml"/>
+                <zipfileset dir="." includes="*.txt" excludes="build-instructions.txt"/>
             </zip>
             <!-- The Unix version -->
-            <tar destfile="${dist.dir}/jstyx-${version}.tar.gz" compression="gzip">
+            <tar destfile="${dist.dir}/jstyx-${version}-unix.tar.gz" compression="gzip">
                 <tarfileset file="${jar.file}"/>
                 <tarfileset dir="./bin" prefix="bin" excludes="*.bat" mode="0755"/>
                 <tarfileset dir="${lib.dir}" prefix="lib"/>
-                <tarfileset dir="${conf.dir}" prefix="conf" includes="log4j.properties, SGSconfig.dtd, SGSconfig.xml"/>
-                <tarfileset dir="./xdocs" prefix="xdocs"/>
-                <tarfileset dir="${src.dir}" prefix="src/java"/>
-                <tarfileset dir="." includes="*.txt, build.xml, project.properties, project.xml"/>
+                <tarfileset dir="${conf.dir}" prefix="conf" includes="log4j.properties, SGSconfig.dtd"/>
+                <tarfileset file="${conf.dir}/SGSconfig_unix.xml" fullpath="conf/SGSconfig.xml"/>
+                <tarfileset dir="." includes="*.txt" excludes="build-instructions.txt"/>
             </tar>
-            <!-- The documentation -->
-            <zip destfile="${dist.dir}/jstyx-${version}-doc.zip">
-                <zipfileset dir="${target.dir}/docs" prefix="docs"/>
+            <!-- The source code -->
+            <zip destfile="${dist.dir}/jstyx-${version}-src.zip">
+                <zipfileset dir="./bin" prefix="bin"/>
+                <zipfileset dir="${lib.dir}" prefix="lib"/>
+                <zipfileset dir="${src.dir}" prefix="src/java"/>
+                <zipfileset dir="./xdocs" prefix="xdocs"/>
+                <zipfileset dir="${conf.dir}" prefix="conf" excludes="styxSecurity.*"/>
+                <zipfileset dir="." includes="build.xml, project.properties, project.xml, build-instructions.txt"/>
             </zip>
         </target>
 
