@@ -67,8 +67,8 @@
        the connection element has the form:
        scm:<system>:<system specific connection string> -->
     <repository>
-        <connection>scm:https://svn.sourceforge.net/svnroot/jstyx/trunk/core</connection>
-        <developerConnection>scm:https://svn.sourceforge.net/svnroot/jstyx/trunk/core</developerConnection>
+        <connection>scm:svn:https://svn.sourceforge.net/svnroot/jstyx/trunk/core</connection>
+        <developerConnection>scm:svn:https://svn.sourceforge.net/svnroot/jstyx/trunk/core</developerConnection>
         <url>http://svn.sourceforge.net/viewcvs.cgi/jstyx/trunk/core/</url>
     </repository>
     <!-- any mailing lists for the project -->
@@ -120,7 +120,7 @@
             <artifactId>slf4j</artifactId>
             <version>log4j12-1.0-beta9</version>
             <type>jar</type>
-            <url>http://www.clearthought.info/software/TableLayout/</url>
+            <url>http://www.slf4j.org/</url>
             <!-- Only needed for running, not compiling (runtime dependency for MINA) -->
         </dependency>
         <dependency>
@@ -163,6 +163,7 @@
             <artifactId>TableLayout</artifactId>
             <type>jar</type>
             <url>http://www.clearthought.info/software/TableLayout/</url>
+			<!-- Only for GUI programs -->
         </dependency>
     </dependencies>
     <!-- build information for the project -->
