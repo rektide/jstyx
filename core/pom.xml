@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/*
+ * Copyright (c) 2006 The University of Reading
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the University of Reading, nor the names of the
+ *    authors or contributors may be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+ -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    
+    <!-- the version of maven's project object model -->
+    <modelVersion>4.0.0</modelVersion>
+    <!-- a unique name for this project -->
+    <artifactId>jstyx</artifactId>>
+    <!-- a short but descriptive name for the project -->
+    <name>JStyx</name>
+    <groupId>jstyx</groupId>
+    <!-- The version of the project under development, e.g.
+       1.1, 1.2, 2.0-SNAPSHOT -->
+    <version>0.2.0</version>
+    <packaging>jar</packaging>
+    <!-- details about the organization that 'owns' the project -->
+    <organization>
+        <name>Reading e-Science Centre</name>
+        <url>http://www.resc.rdg.ac.uk/</url>
+        <!--<logo>http://www.resc.rdg.ac.uk/images/new_logo_72dpi_web.png</logo>-->
+    </organization>
+    <!-- the year the project started -->
+    <inceptionYear>2004</inceptionYear>
+    <!--<logo>/images/JStyx_logo.png</logo>-->
+    <description>Implements Styx protocol and the Styx Grid Service in Java</description>
+    <!-- a short description of what the project does -->
+    <!--<shortDescription>Java implementation of the Styx protocol</shortDescription>-->
+    <!-- the project home page -->
+    <url>http://jstyx.sf.net/</url>
+    <issueManagement>
+        <url>http://sourceforge.net/tracker/?group_id=131424</url>
+    </issueManagement>
+    <!--<siteAddress>shell.sf.net</siteAddress>-->
+    <!--<siteDirectory>/home/groups/j/js/jstyx/htdocs/</siteDirectory>-->
+    <!--<licenses>
+        <license>
+            <name>BSD</name>
+            <distribution>manual</distribution>
+        </license>
+    </licenses>-->
+    <!--<distributionDirectory>/www/maven.apache.org/builds/</distributionDirectory>-->
+    <!-- the version control repository and http url for online access
+       the connection element has the form:
+       scm:<system>:<system specific connection string> -->
+    <scm>
+        <connection>scm:svn:https://svn.sourceforge.net/svnroot/jstyx/trunk/core</connection>
+        <developerConnection>scm:svn:https://svn.sourceforge.net/svnroot/jstyx/trunk/core</developerConnection>
+        <url>http://svn.sourceforge.net/viewcvs.cgi/jstyx/trunk/core/</url>
+    </scm>
+    <!-- any mailing lists for the project -->
+    <mailingLists>
+        <mailingList>
+            <name>jstyx-announce@lists.sourceforge.net</name>
+            <subscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-announce</subscribe>
+            <unsubscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-announce</unsubscribe>
+            <archive>http://sourceforge.net/mailarchive/forum.php?forum=jstyx-announce</archive>
+        </mailingList>
+        <mailingList>
+            <name>jstyx-users@lists.sourceforge.net</name>
+            <subscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-users</subscribe>
+            <unsubscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-users</unsubscribe>
+            <archive>http://sourceforge.net/mailarchive/forum.php?forum=jstyx-users</archive>
+        </mailingList>
+    </mailingLists>
+    <!-- who the developers are for the project -->
+    <developers>
+        <developer>
+            <id>jonblower</id>
+            <name>Jon Blower</name>
+            <email>jdb@mail.nerc-essc.ac.uk</email>
+            <organization>Reading e-Science Centre</organization>
+            <organizationUrl>http://www.resc.rdg.ac.uk</organizationUrl>
+            <roles />
+            <timezone>0</timezone>
+            <properties />
+        </developer>
+    </developers>
+    <!-- jar files the project is dependent on -->
+    <dependencies>
+        <dependency>
+            <groupId>directory-network</groupId>
+            <artifactId>mina</artifactId>
+            <version>0.8.0</version>
+            <type>jar</type>
+            <!--<url>http://directory.apache.org/subprojects/network/</url>-->
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.9</version>
+            <type>jar</type>
+            <!--<url>http://logging.apache.org/log4j</url>-->
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.0-beta9</version>
+            <type>jar</type>
+            <!--<url>http://www.slf4j.org/</url>-->
+            <!-- Only needed for running, not compiling (runtime dependency for MINA) -->
+        </dependency>
+        <dependency>
+            <groupId>dom4j</groupId>
+            <artifactId>dom4j</artifactId>
+            <version>1.6.1</version>
+            <type>jar</type>
+            <!--<url>http://www.dom4j.org/</url>-->
+        </dependency>
+        <dependency>
+            <groupId>jaxen</groupId>
+            <artifactId>jaxen</artifactId>
+            <version>1.1-beta-6</version>
+            <type>jar</type>
+            <!--<url>http://jaxen.org/</url>-->
+        </dependency>
+        <dependency>
+            <groupId>quartz</groupId>
+            <artifactId>quartz</artifactId>
+            <version>1.5.1</version>
+            <type>jar</type>
+            <!--<url>http://www.opensymphony.com/quartz/</url>-->
+        </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.0.4</version>
+            <type>jar</type>
+            <!--<url>http://jakarta.apache.org/commons/logging/</url>-->
+        </dependency>
+        <dependency>
+            <groupId>JSAP</groupId>
+            <artifactId>JSAP</artifactId>
+            <version>2.0b</version>
+            <type>jar</type>
+            <!--<url>http://www.martiansoftware.com/jsap/</url>-->
+        </dependency>
+        <dependency>
+            <groupId>TableLayout</groupId>
+            <artifactId>TableLayout</artifactId>
+            <version>1.0</version><!-- don't know this really!  Unversioned -->
+            <type>jar</type>
+            <!--<url>http://www.clearthought.info/software/TableLayout/</url>-->
+			<!-- Only for GUI programs -->
+        </dependency>
+    </dependencies>
+    <!-- build information for the project -->
+    <build>
+        <!--<nagEmailAddress>jdb@mail.nerc-essc.ac.uk</nagEmailAddress>-->
+        <sourceDirectory>src/java</sourceDirectory>
+        <resources>
+            <resource>
+                <directory>conf</directory>
+                <includes>
+                    <include>*.properties</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+    <reporting/>
+    <!--<reports>
+        <report>maven-license-plugin</report>
+        <report>maven-javadoc-plugin</report>
+        <report>maven-jxr-plugin</report>
+        <report>maven-tasklist-plugin</report>
+        <report>maven-faq-plugin</report>
+    </reports>-->
+</project>
+
