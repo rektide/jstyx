@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.jstyx.gridservice.tutorial;
 
 import java.io.InputStream;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.PrintStream;
@@ -86,7 +87,7 @@ public class Reverse
             }
             else
             {
-                out = new PrintStream(outputName);
+                out = new PrintStream(new FileOutputStream(outputName));
             }
             reverseLines(in, out);
         }

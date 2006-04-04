@@ -233,6 +233,7 @@ class StyxGridServiceInstance extends StyxDirectory
     private StyxDirectory inputsDir; // Contains the input files
     private StyxDirectory outputsDir; // Contains the output files
     private SGSInputFile.StdinFile stdin;  // The standard input to the program
+    private boolean redirectingToStdin;
     private JSAP jsap; // JSAP object for parsing the command-line parameters
     private StyxDirectory paramDir; // Contains the command-line parameters to pass to the executable
     private Vector paramFiles; // Contains the SGSParamFiles
@@ -267,6 +268,8 @@ class StyxGridServiceInstance extends StyxDirectory
         this.workDir = new File(sgsConfig.getWorkingDirectory() +
             StyxUtils.SYSTEM_FILE_SEPARATOR + id);
         this.changeListeners = new Vector();
+        
+        this.redirectingToStdin = false;
         
         if (this.workDir.exists())
         {
@@ -696,12 +699,12 @@ class StyxGridServiceInstance extends StyxDirectory
                     new Waiter().start(); // Thread that waits for the process
                                           // to finish, then sets status
                     
-                    // If we need to, start redirecting data to the standard
-                    // input of the process
+                    // If we have set a URL for stdin, start redirecting data
+                    // to the standard input of the process
                     if (stdin != null && stdin.getURL() != null)
                     {
                         // Start redirecting data to the standard input
-                        readFrom(stdin.getURL(), process.getOutputStream());
+                        redirectToStdin(stdin.getURL());
                     }
                     
                     // Start reading from stdout and stderr. Note that we do this
@@ -946,22 +949,28 @@ class StyxGridServiceInstance extends StyxDirectory
     
     /**
      * Starts a thread that redirects the data from the given URL to the 
-     * given output stream
+     * input stream of the process.  If the process has not yet been created,
+     * this method does nothing
      * @throws StyxException if no data could be read from the given url
      */
-    public void readFrom(URL url, OutputStream os) throws StyxException
+    void redirectToStdin(URL url) throws StyxException
     {
-        try
+        if (this.process != null && !this.redirectingToStdin)
         {
-            InputStream is = url.openStream();
-            new RedirectStream(is, os).start();
-            log.debug("*** Reading stdin from " + url + "***");
-        }
-        catch (IOException ioe)
-        {
-            process.destroy();
-            setStatus(StatusCode.ERROR);
-            throw new StyxException("Cannot read from " + url);
+            try
+            {
+                this.redirectingToStdin = true;
+                InputStream is = url.openStream();
+                OutputStream os = this.process.getOutputStream();
+                new RedirectStream(is, os).start();
+                log.debug("*** Reading stdin from " + url + "***");
+            }
+            catch (IOException ioe)
+            {
+                process.destroy();
+                setStatus(StatusCode.ERROR);
+                throw new StyxException("Cannot read from " + url);
+            }
         }
     }
     

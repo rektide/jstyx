@@ -19,6 +19,10 @@
       is a more detailed description of the capabilites of the SGS system.
       </p>
       
+      <p>The Styx Grid Services software is built on top of, and is bundled with, the JStyx library, which
+      is a pure-Java implementation of the Styx protocol for distributed systems.
+      See <a href="..">here</a> for more details about JStyx.</p>
+      
       <subsection name="Why use the SGS system?">
       <p>
       Styx Grid Services are useful when you want to run a program on a machine

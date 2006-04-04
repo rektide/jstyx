@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.jstyx.gridservice.tutorial;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.PrintStream;
@@ -85,7 +86,9 @@ public class Replace
             // Open the input and output files (which have fixed names)
             BufferedReader in = new BufferedReader(new InputStreamReader(
                 new FileInputStream("input.txt")));
-            PrintStream out = new PrintStream("output.txt");
+            // The PrintStream("output.txt") constructor is only present in
+            // Java 1.5 and above
+            PrintStream out = new PrintStream(new FileOutputStream("output.txt"));
             
             // Read the input file a line at a time
             String strToFind = result.getString("stringToFind");
@@ -101,7 +104,7 @@ public class Replace
                 {
                     // Replace all instances of the string to find with the
                     // string to replace
-                    String newLine = line.replace(strToFind, strToReplace);
+                    String newLine = line.replaceAll(strToFind, strToReplace);
                     out.println(newLine);
                     // Check to see if replacement(s) have been made
                     if (!newLine.equals(line))

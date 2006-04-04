@@ -566,7 +566,9 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         }
         else
         {
-            return new PrintStream(filename);
+            // The PrintStream(filename) constructor is only available in
+            // Java 1.5 and above.
+            return new PrintStream(new FileOutputStream(filename));
         }
     }
     

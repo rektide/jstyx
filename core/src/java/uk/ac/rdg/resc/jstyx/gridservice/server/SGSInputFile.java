@@ -44,6 +44,8 @@ import uk.ac.rdg.resc.jstyx.types.ULong;
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
 
+import org.apache.log4j.Logger;
+
 /**
  * A file that is used to provide input (as a file or as stdin stream) to a 
  * Styx Grid Service.
@@ -70,6 +72,8 @@ import uk.ac.rdg.resc.jstyx.server.StyxFileClient;
  */
 public abstract class SGSInputFile extends StyxFile
 {
+    
+    private static final Logger log = Logger.getLogger(SGSInputFile.class);
     
     protected StyxGridServiceInstance instance;
     protected boolean dataWritten;  // True when any data have been written to this file
@@ -101,7 +105,7 @@ public abstract class SGSInputFile extends StyxFile
         ByteBuffer data, boolean truncate, int tag)
         throws StyxException
     {
-        if (this.url != null)
+        if (this.url != null && count > 0)
         {
             throw new StyxException("Cannot write to this stream: it is" +
                 " reading from " + this.url);
@@ -202,6 +206,7 @@ public abstract class SGSInputFile extends StyxFile
             data.acquire();
             this.candidateURLBuffer = data;
             this.candidateURL = urlStr.substring(prefix.length());
+            log.debug("Got candidate URL: " + this.candidateURL);
             this.candidateURLLength = dataLen;
             return true;
         }
@@ -213,6 +218,7 @@ public abstract class SGSInputFile extends StyxFile
     
     public void setURL(URL url) throws StyxException
     {
+        log.debug("Setting url = " + url);
         this.url = url;
     }
     
@@ -276,6 +282,12 @@ public abstract class SGSInputFile extends StyxFile
             throws StyxException
         {
             this.write2(client, offset, count, data, truncate, tag);
+        }
+        
+        public void setURL(URL url) throws StyxException
+        {
+            instance.redirectToStdin(url);
+            super.setURL(url);
         }
         
         protected void closeOutput() throws IOException

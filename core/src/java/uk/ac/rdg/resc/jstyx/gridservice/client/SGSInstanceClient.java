@@ -37,6 +37,7 @@ import java.util.Date;
 import java.io.File;
 import java.io.InputStream;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.IOException;
@@ -848,7 +849,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public void redirectOutput(String outputFileName, File file)
         throws FileNotFoundException
     {
-        this.redirectOutput(outputFileName, new PrintStream(file));
+        this.redirectOutput(outputFileName,
+            new PrintStream(new FileOutputStream(file)));
     }
     
     /**

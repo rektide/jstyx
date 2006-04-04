@@ -52,7 +52,7 @@
     <!-- a short description of what the project does -->
     <shortDescription>Java implementation of the Styx protocol</shortDescription>
     <!-- the project home page -->
-    <url>http://jstyx.sf.net/</url>
+    <url>http://www.resc.rdg.ac.uk/jstyx/</url>
     <issueTrackingUrl>http://sourceforge.net/tracker/?group_id=131424</issueTrackingUrl>
     <siteAddress>shell.sf.net</siteAddress>
     <siteDirectory>/home/groups/j/js/jstyx/htdocs/</siteDirectory>

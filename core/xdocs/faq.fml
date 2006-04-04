@@ -77,6 +77,20 @@
       </answer>
     </faq>
     
+    <faq id="platforms">
+      <question>Which operating systems are supported?</question>
+      <answer>
+        <p>The JStyx software (and the Styx Grid Services software) have only
+        been tested on Windows XP and Linux.  However, the software is pure 
+        Java and should work on any platform that has a Java runtime environment,
+        version 1.4.2 and above.</p>
+        <p>The software is distributed as Windows and Unix versions, but the only
+        difference between the versions is the scripts that are used to launch
+        programs.  The core libraries are identical.  Mac OSX users should get 
+        the Unix distribution (although this has not yet been tested).</p>
+      </answer>
+    </faq>
+    
     <faq id="licence">
       <question>What is the licence?</question>
       <answer>

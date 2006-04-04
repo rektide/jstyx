@@ -13,6 +13,13 @@
     instructed <a href="../../downloads.html">here</a>.  No further software is required
     to follow this tutorial: all the Styx Grid Services software is included in
     the JStyx distribution.</p>
+    
+    <p>More background information on the Styx Grid Services system can be 
+    found <a href="..">here</a>.</p>
+    
+    <p>The Styx Grid Services software is built on top of the JStyx core
+    libraries.  For more information on JStyx, please see <a href="../..">here</a>.</p>
+    
     </section>
     <section name="Basic concepts">
     <p>In order to create a Styx Grid Service from an existing command-line

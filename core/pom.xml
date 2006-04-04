@@ -80,13 +80,15 @@
     <!-- any mailing lists for the project -->
     <mailingLists>
         <mailingList>
-            <name>jstyx-announce@lists.sourceforge.net</name>
+            <name>JStyx-announce</name>
+            <post>jstyx-announce@lists.sourceforge.net</post>
             <subscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-announce</subscribe>
             <unsubscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-announce</unsubscribe>
             <archive>http://sourceforge.net/mailarchive/forum.php?forum=jstyx-announce</archive>
         </mailingList>
         <mailingList>
-            <name>jstyx-users@lists.sourceforge.net</name>
+            <name>JStyx-users</name>
+            <post>jstyx-users@lists.sourceforge.net</post>
             <subscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-users</subscribe>
             <unsubscribe>http://lists.sourceforge.net/lists/listinfo/jstyx-users</unsubscribe>
             <archive>http://sourceforge.net/mailarchive/forum.php?forum=jstyx-users</archive>
