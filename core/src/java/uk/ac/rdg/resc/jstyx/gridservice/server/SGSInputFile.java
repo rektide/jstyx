@@ -75,7 +75,7 @@ public abstract class SGSInputFile extends StyxFile
     
     private static final Logger log = Logger.getLogger(SGSInputFile.class);
     
-    protected StyxGridServiceInstance instance;
+    protected AbstractJob job;
     protected boolean dataWritten;  // True when any data have been written to this file
                                     // (don't necessarily have to have reached EOF)
     
@@ -87,11 +87,11 @@ public abstract class SGSInputFile extends StyxFile
     protected URL url;  // This is non-null if we have specified that this
                         // file will be read from a URL
     
-    private SGSInputFile(String name, StyxGridServiceInstance instance)
+    private SGSInputFile(String name, AbstractJob job)
         throws StyxException
     {
         super(name, 0222); // Input files are always write-only
-        this.instance = instance;
+        this.job = job; // The job to which this input file belongs
         this.dataWritten = false;
         this.candidateURL = null;
         this.candidateURLLength = 0;
@@ -239,42 +239,31 @@ public abstract class SGSInputFile extends StyxFile
      */
     public static class StdinFile extends SGSInputFile
     {
-        private OutputStream stream = null;
-
         /**
          * Creates new StdinFile - will be called "stdin"
          */
-        public StdinFile(StyxGridServiceInstance instance)
-            throws StyxException
+        public StdinFile(AbstractJob job) throws StyxException
         {
-            super("stdin", instance);
-        }
-
-        public void setOutputStream(OutputStream os)
-        {
-            this.stream = os;
+            super("stdin", job);
         }
         
         /**
          * This just writes the data to the current position in the stream
-         * and flushes the write.  The offset is ignored.  The "bytesConsumed"
-         * service data element is updated
+         * and flushes the write.  The offset is ignored.
          */
         protected void writeData(StyxFileClient client, long offset, int count,
             ByteBuffer data, boolean truncate, int tag)
             throws StyxException, IOException
         {
-            if (instance.getStatus() != StatusCode.RUNNING)
+            if (this.job.getStatusCode() != StatusCode.RUNNING)
             {
                 throw new StyxException("Can't write data to standard input" +
                     " before the service is running");
             }
             byte[] arr = new byte[data.remaining()];
             data.get(arr);
-            this.stream.write(arr);
-            this.stream.flush();
-            // Update the number of bytes consumed
-            this.instance.setBytesConsumed(offset + arr.length);
+            this.job.getStdinStream().write(arr);
+            this.job.getStdinStream().flush();
         }
         
         public void write(StyxFileClient client, long offset, int count,
@@ -286,13 +275,13 @@ public abstract class SGSInputFile extends StyxFile
         
         public void setURL(URL url) throws StyxException
         {
-            instance.redirectToStdin(url);
+            job.setStdinSource(url);
             super.setURL(url);
         }
         
         protected void closeOutput() throws IOException
         {
-            this.stream.close();
+            this.job.getStdinStream().close();
         }
     }
     
@@ -302,10 +291,10 @@ public abstract class SGSInputFile extends StyxFile
         private java.io.File file;
         private boolean eofWritten;
         
-        public File(java.io.File file, StyxGridServiceInstance instance)
+        public File(java.io.File file, AbstractJob job)
             throws StyxException
         {
-            super(file.getName(), instance);
+            super(file.getName(), job);
             this.file = file;
             this.chan = null; // We create this when we get our first write message
             this.eofWritten = false;
@@ -372,7 +361,7 @@ public abstract class SGSInputFile extends StyxFile
         {
             // We're not allowed to write to this file if the service is running
             // or the input URL is set
-            if (instance.getStatus() == StatusCode.RUNNING)
+            if (job.getStatusCode() == StatusCode.RUNNING)
             {
                 throw new StyxException("Cannot write to an input file while " +
                     "the service is running");

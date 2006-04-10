@@ -68,7 +68,7 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  *
  */
 
-public class SGSOutputFile extends StyxFile implements SGSInstanceChangeListener
+public class SGSOutputFile extends StyxFile implements JobChangeListener
 {
     private static final Logger log = Logger.getLogger(SGSOutputFile.class);
     
@@ -77,12 +77,12 @@ public class SGSOutputFile extends StyxFile implements SGSInstanceChangeListener
     private boolean serviceFinished;
     
     /** Creates a new instance of SGSOutputFile */
-    public SGSOutputFile(File file, StyxGridServiceInstance instance)
+    public SGSOutputFile(File file, AbstractJob job)
         throws StyxException
     {
         super(file.getName(), 0444); // File is read-only
         this.file = file;
-        instance.addChangeListener(this);
+        job.addChangeListener(this);
         this.serviceFinished = false;
         this.requestQueue = new Vector();
         new FileMonitor().start();
@@ -219,7 +219,7 @@ public class SGSOutputFile extends StyxFile implements SGSInstanceChangeListener
      * Called automatically when the status of the Styx Grid Service instance
      * changes.
      */
-    public void statusChanged(StatusCode newStatus)
+    public void statusChanged(StatusCode newStatus, String message)
     {
         log.debug("Got newStatus = " + newStatus.getText());
         if (newStatus == StatusCode.FINISHED ||
@@ -230,6 +230,11 @@ public class SGSOutputFile extends StyxFile implements SGSInstanceChangeListener
         }
         this.processOutstandingRequests();
     }
+    
+    /**
+     * Required by the JobChangeListener interface.  Does nothing in this class.
+     */
+    public void gotExitCode(int exitCode) {}
     
     /** 
      * Simple thread that monitors the state of the underlying file.  When the

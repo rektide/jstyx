@@ -30,51 +30,50 @@ package uk.ac.rdg.resc.jstyx.gridservice.server;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Vector;
+import java.net.URL;
 
 import org.apache.log4j.Logger;
 
-import uk.ac.rdg.resc.jstyx.server.StyxFile;
 import uk.ac.rdg.resc.jstyx.StyxException;
+import uk.ac.rdg.resc.jstyx.server.StyxFile;
 
 /**
- * Class describing a Job that can be started and stopped.  Provides methods
- * to get the standard streams and monitor status changes
+ * Abstract class describing a job that can be run by a StyxGridService instance
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class Job
+public abstract class AbstractJob
 {
-    private static final Logger log = Logger.getLogger(Job.class);
-    private static final Runtime runtime = Runtime.getRuntime();
+    private static final Logger log = Logger.getLogger(AbstractJob.class);
     
-    private Process process; // The process that will be executed
-    private File workDir;    // The working directory of this job
-    private String command;  // The command that will be run
-    private String argList;  // The list of command-line arguments as a String
-    private long startTime;  // The time the job was started
-    private StatusCode statusCode;
-    private CachingStreamReader stdout;   // The standard output from the program
-    private CachingStreamReader stderr;   // The standard error from the program
+    protected File workDir;    // The working directory of this job
+    protected String command;  // The command that will be run
+    protected long startTime;  // The time the job was started
+    protected StatusCode statusCode;
+    protected StyxFile stdout;   // The standard output from the program
+    protected StyxFile stderr;   // The standard error from the program
+    protected URL stdinURL;      // The URL from which we will read data to be
+                                 // sent to the standard input of the job
     
     private Vector changeListeners; // Objects that are listening for changes to this Job
     
     /**
-     * Creates a new instance of Job
-     * @throws StyxException if the job could not be created (unlikely to happen)
+     * Creates a new instance of AbstractJob, setting the statusCode to CREATED
+     * @param workDir The working directory for this Job
+     * @throws StyxException if the working directory could not be created
      */
-    public Job() throws StyxException
+    public AbstractJob(File workDir) throws StyxException
     {
-        this.process = null;
-        this.workDir = null;
-        this.changeListeners = new Vector();
-        this.stdout = new CachingStreamReader("stdout");
-        this.stderr = new CachingStreamReader("stderr");
         this.statusCode = StatusCode.CREATED;
+        this.setWorkingDirectory(workDir);
+        this.changeListeners = new Vector();
+        this.stdinURL = null;
     }
     
     /**
@@ -83,7 +82,7 @@ public class Job
      * @param workDir The to the working directory
      * @throws StyxException if the working directory could not be created
      */
-    public void setWorkingDirectory(File workDir) throws StyxException
+    private void setWorkingDirectory(File workDir) throws StyxException
     {
         if (workDir.exists())
         {
@@ -105,27 +104,11 @@ public class Job
     
     /**
      * Sets the parameters of the Job.  These parameters are contained in the
-     * given SGSParamFiles.  In this implementation, the parameters are translated
-     * into a set of command-line arguments.
+     * given SGSParamFiles.
      * @param paramFiles Array of SGSParamFiles containing the parameters that
      * have been set
      */
-    public void setParameters(SGSParamFile[] paramFiles)
-    {
-        // Get the argument list as a string 
-        StringBuffer buf = new StringBuffer();
-        for (int i = 0; i < paramFiles.length; i++)
-        {
-            // We can be pretty confident that this cast is safe
-            SGSParamFile paramFile = paramFiles[i];
-            String frag = paramFile.getCommandLineFragment();
-            if (!frag.trim().equals(""))
-            {
-                buf.append(frag + " ");
-            }
-        }
-        this.argList = buf.toString();
-    }
+    public abstract void setParameters(SGSParamFile[] paramFiles);
     
     /**
      * Sets the command that will be executed by this Job
@@ -136,61 +119,24 @@ public class Job
     }
     
     /**
+     * Sets the source of the data that is to be sent to the standard input
+     * of the job.  This can be called before <b>or</b> after start().
+     * @param url The URL from which the data will be read
+     * @throws StyxException if data could not be read from the given URL
+     */
+    public abstract void setStdinSource(URL url) throws StyxException;
+    
+    /**
+     * @return the OutputStream to which we can write data that will be sent
+     * to the standard input of the job, or null if the stream is not ready yet.
+     */
+    public abstract OutputStream getStdinStream();
+    
+    /**
      * Starts the job running
      * @throws StyxException if the job could not be started
      */
-    public void start() throws StyxException
-    {
-        try
-        {
-            System.err.println("workdir = " + this.workDir.getPath());
-            this.process = runtime.exec(this.command + " " + this.argList, null,
-                this.workDir);
-            this.startTime = System.currentTimeMillis();
-            // Start a thread that waits for the process to finish, then sets the
-            // status
-            new Waiter().start();
-
-            // Start reading from stdout and stderr. Note that we do this
-            // even if the "stdout" and "stderr" streams are not exposed
-            // through the Styx interface (we must do this to consume the
-            // stdout and stderr data)
-            this.stdout.setCacheFile(new File(workDir, "stdout"));
-            this.stdout.startReading(this.process.getInputStream());
-            this.stderr.setCacheFile(new File(workDir, "stderr"));
-            this.stderr.startReading(this.process.getErrorStream());
-
-            // Notify listeners that the job has started
-            this.setStatus(StatusCode.RUNNING);
-        }
-        catch(IOException ioe)
-        {
-            ioe.printStackTrace();
-            if (this.process == null)
-            {
-                // We didn't even start the process
-                throw new StyxException("Internal error: could not create process "
-                    + this.command + " " + this.argList);
-            }
-            else
-            {
-                // We've started the process but an error occurred elsewhere
-                this.process.destroy();
-                this.setStatus(StatusCode.ERROR, ioe.getMessage());
-                throw new StyxException("Internal error: could not start "
-                    + "reading from output and error streams");
-            }
-        }
-    }
-    
-    /**
-     * Gets an OutputStream representing the standard input of the Job
-     * @return the OutputStream, or null if the underlying system is not ready yet
-     */
-    public OutputStream getStdin()
-    {
-        return this.process == null ? null : this.process.getOutputStream();
-    }
+    public abstract void start() throws StyxException;
     
     /**
      * Gets a StyxFile that clients will read to get data from the standard
@@ -213,19 +159,10 @@ public class Job
     /**
      * Aborts the job, forcibly terminating it if necessary.  Does nothing if
      * the job is not running.  This is called when the user (i.e. the remote
-     * client) opts to stop the job
+     * client) opts to stop the job.  Implementations should remember to set
+     * the status code to ABORTED if the stop operation is successful
      */
-    public void stop()
-    {
-        synchronized(statusCode)
-        {
-            if (statusCode == StatusCode.RUNNING)
-            {
-                this.process.destroy();
-                this.setStatus(StatusCode.ABORTED);
-            }
-        }
-    }
+    public abstract void stop();
     
     /**
      * Called when the service instance is destroyed.  Deletes the working
@@ -238,14 +175,11 @@ public class Job
     }
     
     /**
-     * Stops the job because of an error.
+     * Stops the job because of an error.  Implementations should remember to set
+     * the status code to ERROR 
      * @param message Description of the error that occurred
      */
-    public void error(String message)
-    {
-        this.process.destroy();
-        this.setStatus(StatusCode.ERROR, message);
-    }
+    public abstract void error(String message);
     
     /**
      * Recursive method for deleting a directory and its contents
@@ -285,7 +219,7 @@ public class Job
      * @param code The new StatusCode
      * @param message String containing supplementary information
      */
-    private void setStatus(StatusCode code, String message)
+    protected void setStatus(StatusCode code, String message)
     {
         this.statusCode = code;
         this.fireStatusChanged(code, message);
@@ -296,7 +230,7 @@ public class Job
      * JobChangeListeners
      * @param code The new StatusCode
      */
-    private void setStatus(StatusCode code)
+    protected void setStatus(StatusCode code)
     {
         this.setStatus(code, null);
     }
@@ -333,7 +267,7 @@ public class Job
     /**
      * Fires the statusChanged() event on all registered JobChangeListeners
      */
-    private void fireStatusChanged(StatusCode newStatus, String message)
+    protected void fireStatusChanged(StatusCode newStatus, String message)
     {
         synchronized(this.changeListeners)
         {
@@ -349,7 +283,7 @@ public class Job
     /**
      * Fires the gotExitCode() event on all registered JobChangeListeners
      */
-    private void fireGotExitCode(int exitCode)
+    protected void fireGotExitCode(int exitCode)
     {
         synchronized(this.changeListeners)
         {
@@ -361,34 +295,53 @@ public class Job
             }
         }
     }
-
-    // Thread that waits for the executable to finish, then sets the status
-    private class Waiter extends Thread
+    
+    // Reads from an input stream and writes the result to an output stream
+    protected class RedirectStream extends Thread
     {
+        private InputStream is;
+        private OutputStream os;
+        
+        public RedirectStream(InputStream is, OutputStream os)
+        {
+            this.is = is;
+            this.os = os;
+        }
+        
         public void run()
         {
             try
             {
-                int exitCodeVal = process.waitFor();
-                long duration = System.currentTimeMillis() - startTime;
-                synchronized(statusCode)
+                byte[] arr = new byte[8192]; // TODO: is this an appropriate buffer size?
+                int n = 0;
+                while (n >= 0)
                 {
-                    // We must get the lock on the statusCode because
-                    // we could be changing the status in another thread
-                    if (statusCode != StatusCode.ABORTED && statusCode != StatusCode.ERROR)
+                    n = this.is.read(arr);
+                    if (n >= 0)
                     {
-                        // don't set the status if we have terminated abnormally
-                        setStatus(StatusCode.FINISHED, "took " +
-                            (float)duration / 1000 + " seconds.");
+                        this.os.write(arr, 0, n);
                     }
-                    fireGotExitCode(exitCodeVal);
                 }
             }
-            catch(Exception e)
+            catch(IOException ioe)
             {
-                if (log.isDebugEnabled())
+                if (statusCode != StatusCode.ABORTED)
                 {
-                    e.printStackTrace();
+                    // don't do this if the process was aborted manually
+                    error("when reading input data: " + ioe.getMessage());
+                }
+            }
+            finally
+            {
+                try
+                {
+                    // Close the streams
+                    this.is.close();
+                    this.os.close();
+                }
+                catch(IOException ioe)
+                {
+                    // Ignore errors when closing the streams.
                 }
             }
         }

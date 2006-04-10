@@ -83,9 +83,6 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * Revision 1.47  2006/02/20 17:35:01  jonblower
  * Implemented correct handling of output files/streams (not fully tested yet)
  *
- * Revision 1.46  2006/02/17 17:34:12  jonblower
- * Changes to comments
- *
  * Revision 1.45  2006/02/17 09:24:02  jonblower
  * Changed so that output files are added to the namespace on initialization and 
  * parameters representing output files are not present in the namespace
@@ -223,14 +220,12 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     private String id; // The ID of this instance
     private SGSConfig sgsConfig; // The configuration object used to create this instance
     private File workDir; // The working directory of this instance
-    private Job job;
+    private AbstractJob job;
     private ServiceDataElement status; // The status of the service
-    private ServiceDataElement bytesConsumed; // The number of bytes consumed by the service
     private ExitCodeFile exitCodeFile; // The exit code from the executable
     private StyxDirectory inputsDir; // Contains the input files
     private StyxDirectory outputsDir; // Contains the output files
     private SGSInputFile.StdinFile stdin;  // The standard input to the program
-    private boolean redirectingToStdin;
     private JSAP jsap; // JSAP object for parsing the command-line parameters
     private StyxDirectory paramDir; // Contains the command-line parameters to pass to the executable
     private Vector paramFiles; // Contains the SGSParamFiles
@@ -265,12 +260,10 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
             StyxUtils.SYSTEM_FILE_SEPARATOR + id);
         this.changeListeners = new Vector();
         
-        this.redirectingToStdin = false;
-        
         // Create the underlying Job object
-        this.job = new Job();
+        this.job = new LocalJob(this.workDir);
         this.job.addChangeListener(this);
-        this.job.setWorkingDirectory(this.workDir);
+        this.job.setCommand(command);
         
         // Add the ctl file
         this.addChild(new ControlFile(this)); // the ctl file
@@ -313,7 +306,7 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
             SGSInput input = (SGSInput)inputs.get(i);
             if (input.getType() == SGSInput.STREAM)
             {
-                this.stdin = new SGSInputFile.StdinFile(this);
+                this.stdin = new SGSInputFile.StdinFile(this.job);
                 this.inputsDir.addChild(this.stdin);
             }
             else if (input.getType() == SGSInput.FILE)
@@ -380,21 +373,13 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
         this.status = new StringServiceDataElement("status", true, "created");
         serviceDataDir.addChild(this.status.getAsyncStyxFile());
         this.exitCodeFile = new ExitCodeFile();
-        serviceDataDir.addChild(this.exitCodeFile);        
-        // If we are reading from stdin, add a bytesConsumed SDE
-        if (this.stdin != null)
-        {
-            this.bytesConsumed = new StringServiceDataElement("bytesConsumed",
-                true, "0", 2.0f);
-            serviceDataDir.addChild(this.bytesConsumed.getAsyncStyxFile());
-        }
+        serviceDataDir.addChild(this.exitCodeFile); 
         // Add the rest of the SDEs
         for (int i = 0; i < serviceDataElements.size(); i++)
         {
             SDEConfig sde = (SDEConfig)serviceDataElements.get(i);
             // Look for the special SDEs.
             if (sde.getName().equals("status") ||
-                sde.getName().equals("bytesConsumed") ||
                 sde.getName().equals("exitCode"))
             {
                 // Ignore these: these are default SDEs that we will add automatically
@@ -458,7 +443,7 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
                 // file name.  For files that get their name from a parameter,
                 // we name the SGSOutputFile after the parameter name
                 File file = new File(this.workDir, output.getName());
-                this.outputsDir.addChild(new SGSOutputFile(file, this));
+                this.outputsDir.addChild(new SGSOutputFile(file, this.job));
             }
         }
     }
@@ -469,7 +454,7 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     public void addInputFile(String filename) throws StyxException
     {
         File file = new File(this.workDir, filename);
-        this.inputsDir.addChild(new SGSInputFile.File(file, this));
+        this.inputsDir.addChild(new SGSInputFile.File(file, this.job));
     }
     
     /**
@@ -572,14 +557,6 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     }
     
     /**
-     * Gets the status of this service instance
-     */
-    /*public StatusCode getStatus()
-    {
-        return this.statusCode;
-    }*/
-    
-    /**
      * Gets the time at which this instance was created
      */
     Date getCreationTime()
@@ -673,23 +650,30 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
                 prepareInputFiles();
                 
                 // Start the executable
-                setBytesConsumed(0);
-                // Start the process running in the correct working directory
-                job.setCommand(command);
                 job.setParameters(parFiles);
-                job.start();
-
-                // If we have set a URL for stdin, start redirecting data
-                // to the standard input of the process
+                
                 if (stdin != null && stdin.getURL() != null)
                 {
-                    // Start redirecting data to the standard input
-                    redirectToStdin(stdin.getURL());
+                    // We have set a URL for the standard input.
+                    job.setStdinSource(stdin.getURL());
                 }
-                // Check to see if the process expects some data on standard input
+                
+                job.start();
+
                 if (stdin != null)
                 {
-                    stdin.setOutputStream(job.getStdin());
+                    if (stdin.getURL() != null)
+                    {
+                        // If we have set a URL for stdin, start redirecting data
+                        // to the standard input of the process
+                        //redirectToStdin(stdin.getURL());
+                    }
+                    else
+                    {
+                        // Make sure that any data written via Styx to the standard
+                        // input file gets sent to the standard input of the job
+                        //stdin.setOutputStream(job.getStdin());
+                    }
                 }
                 this.replyWrite(client, count, tag);
             }
@@ -856,97 +840,11 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     }
     
     /**
-     * Starts a thread that redirects the data from the given URL to the 
-     * input stream of the process.  If the process has not yet been created,
-     * this method does nothing
-     * @throws StyxException if no data could be read from the given url
-     */
-    void redirectToStdin(URL url) throws StyxException
-    {
-        if (this.job.getStatusCode() == StatusCode.RUNNING && !this.redirectingToStdin)
-        {
-            try
-            {
-                this.redirectingToStdin = true;
-                InputStream is = url.openStream();
-                OutputStream os = this.job.getStdin();
-                new RedirectStream(is, os).start();
-                log.debug("*** Reading stdin from " + url + "***");
-            }
-            catch (IOException ioe)
-            {
-                this.job.error("Cannot read from " + url);
-                throw new StyxException("Cannot read from " + url);
-            }
-        }
-    }
-    
-    /**
      * Gets the status of the underlying Job
      */
     public StatusCode getStatus()
     {
         return this.job.getStatusCode();
-    }
-    
-    // Reads from an input stream and writes the result to an output stream
-    private class RedirectStream extends Thread
-    {
-        private InputStream is;
-        private OutputStream os;
-        
-        public RedirectStream(InputStream is, OutputStream os)
-        {
-            this.is = is;
-            this.os = os;
-        }
-        
-        public void run()
-        {
-            long bytesCons = 0;
-            try
-            {
-                byte[] arr = new byte[8192]; // TODO: is this an appropriate buffer size?
-                int n = 0;
-                while (n >= 0)
-                {
-                    n = this.is.read(arr);
-                    if (n >= 0)
-                    {
-                        this.os.write(arr, 0, n);
-                        bytesCons += n;
-                    }
-                    // Update the number of bytes consumed
-                    // TODO: should we do this here or in another thread?
-                    // It won't hold us up as long as the network is the limiting
-                    // factor.
-                    setBytesConsumed(bytesCons);
-                }
-            }
-            catch(IOException ioe)
-            {
-                if (job.getStatusCode() != StatusCode.ABORTED)
-                {
-                    // don't do this if the process was aborted manually
-                    job.error("when reading input data: " + ioe.getMessage());
-                }
-            }
-            finally
-            {
-                // Make sure all clients have the final value of bytesConsumed
-                bytesConsumed.flush();
-                try
-                {
-                    // Close the streams
-                    this.is.close();
-                    this.os.close();
-                }
-                catch(IOException ioe)
-                {
-                    // Ignore errors when closing the streams.
-                }
-            }
-        }
     }
     
     /**
@@ -966,31 +864,6 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
             }
         }
         return buf.toString();
-    }
-    
-    /**
-     * Sets the number of bytes consumed by the service instance
-     * @param flush If true, will force the waiting clients to get the new value
-     * (should only be used sparingly)
-     */
-    synchronized void setBytesConsumed(long newValue, boolean flush)
-    {
-        if (this.bytesConsumed != null)
-        {
-            this.bytesConsumed.setValue("" + newValue);
-        }
-        if (flush)
-        {
-            this.bytesConsumed.flush();
-        }
-    }
-    
-    /**
-     * Sets the number of bytes consumed by the service instance
-     */
-    synchronized void setBytesConsumed(long newValue)
-    {
-        this.setBytesConsumed(newValue, false);
     }
     
     /**
