@@ -10,7 +10,7 @@
         Builds the JStyx source into classes and creates JAR file and distribution
     </description>
 
-	<property name="version" value="0.2.0"/>
+	<property name="version" value="0.3.0-SNAPSHOT"/>
 	<property name="src.dir" value="./src/java"/>
 	<property name="conf.dir" value="./conf"/>
 	<property name="target.dir" value="./target"/>

@@ -213,7 +213,7 @@ import uk.ac.rdg.resc.jstyx.gridservice.config.*;
  * Commit adding of SGS files to CVS
  *
  */
-class StyxGridServiceInstance extends StyxDirectory
+class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
 {
     
     private static final Logger log = Logger.getLogger(StyxGridServiceInstance.class);
@@ -223,13 +223,10 @@ class StyxGridServiceInstance extends StyxDirectory
     private String id; // The ID of this instance
     private SGSConfig sgsConfig; // The configuration object used to create this instance
     private File workDir; // The working directory of this instance
-    private Process process = null; // The process object returned by runtime.exec()
-    private StatusCode statusCode;
+    private Job job;
     private ServiceDataElement status; // The status of the service
     private ServiceDataElement bytesConsumed; // The number of bytes consumed by the service
     private ExitCodeFile exitCodeFile; // The exit code from the executable
-    private CachingStreamReader stdout = new CachingStreamReader(this, "stdout");  // The standard output from the program
-    private CachingStreamReader stderr = new CachingStreamReader(this, "stderr");  // The standard error from the program
     private StyxDirectory inputsDir; // Contains the input files
     private StyxDirectory outputsDir; // Contains the output files
     private SGSInputFile.StdinFile stdin;  // The standard input to the program
@@ -239,7 +236,6 @@ class StyxGridServiceInstance extends StyxDirectory
     private Vector paramFiles; // Contains the SGSParamFiles
     private StyxFile argsFile; // The file containing the command line arguments
     private String command; // The command to run (i.e. the string that is passed to System.exec)
-    private long startTime;
     
     private Date creationTime;  // The time at which this instance was created
     private Date terminationTime; // The time at which this instance will automatically be terminated
@@ -271,17 +267,10 @@ class StyxGridServiceInstance extends StyxDirectory
         
         this.redirectingToStdin = false;
         
-        if (this.workDir.exists())
-        {
-            // Delete the directory and all its contents
-            deleteDir(this.workDir);
-        }
-        // (Re)create the working directory
-        if (!this.workDir.mkdirs())
-        {
-            throw new StyxException("Unable to create working directory "
-                + this.workDir);
-        }
+        // Create the underlying Job object
+        this.job = new Job();
+        this.job.addChangeListener(this);
+        this.job.setWorkingDirectory(this.workDir);
         
         // Add the ctl file
         this.addChild(new ControlFile(this)); // the ctl file
@@ -439,8 +428,6 @@ class StyxGridServiceInstance extends StyxDirectory
         
         // Add the files that are pertinent to the lifecycle of the SGS
         this.addChild(new TimeDirectory(this));
-        
-        this.statusCode = StatusCode.CREATED;
     }
     
     /**
@@ -457,12 +444,12 @@ class StyxGridServiceInstance extends StyxDirectory
                 if (output.getName().equals("stdout"))
                 {
                     // Add the standard output file
-                    this.outputsDir.addChild(this.stdout);
+                    this.outputsDir.addChild(this.job.getStdout());
                 }
                 else if (output.getName().equals("stderr"))
                 {
                     // Add the standard error file
-                    this.outputsDir.addChild(this.stderr);
+                    this.outputsDir.addChild(this.job.getStderr());
                 }
             }
             else
@@ -587,10 +574,10 @@ class StyxGridServiceInstance extends StyxDirectory
     /**
      * Gets the status of this service instance
      */
-    public StatusCode getStatus()
+    /*public StatusCode getStatus()
     {
         return this.statusCode;
-    }
+    }*/
     
     /**
      * Gets the time at which this instance was created
@@ -663,18 +650,16 @@ class StyxGridServiceInstance extends StyxDirectory
             }            
             if (cmdString.equalsIgnoreCase("start"))
             {
-                synchronized(statusCode)
+                if (job.getStatusCode() == StatusCode.RUNNING)
                 {
-                    if (statusCode == StatusCode.RUNNING)
-                    {
-                        throw new StyxException("Service is already running");
-                    }
+                    throw new StyxException("Service is already running");
                 }
                 // Check that all the parameters are valid
-                StyxFile[] paramFiles = paramDir.getChildren();
-                for (int i = 0; i < paramFiles.length; i++)
+                SGSParamFile[] parFiles = new SGSParamFile[paramFiles.size()];
+                for (int i = 0; i < paramFiles.size(); i++)
                 {
-                    SGSParamFile sgsPF = (SGSParamFile)paramFiles[i];
+                    SGSParamFile sgsPF = (SGSParamFile)paramFiles.get(i);
+                    parFiles[i] = sgsPF;
                     // The checkValid() method throws a StyxException if the
                     // contents of the parameter file are not valid for some reason
                     // The checkValid() method downloads any input files that are
@@ -688,78 +673,34 @@ class StyxGridServiceInstance extends StyxDirectory
                 prepareInputFiles();
                 
                 // Start the executable
-                try
+                setBytesConsumed(0);
+                // Start the process running in the correct working directory
+                job.setCommand(command);
+                job.setParameters(parFiles);
+                job.start();
+
+                // If we have set a URL for stdin, start redirecting data
+                // to the standard input of the process
+                if (stdin != null && stdin.getURL() != null)
                 {
-                    setBytesConsumed(0);
-                    startTime = System.currentTimeMillis();
-                    // Start the process running in the correct working directory
-                    process = runtime.exec(command + " " + getArguments(),
-                        null, workDir);
-                    setStatus(StatusCode.RUNNING);
-                    new Waiter().start(); // Thread that waits for the process
-                                          // to finish, then sets status
-                    
-                    // If we have set a URL for stdin, start redirecting data
-                    // to the standard input of the process
-                    if (stdin != null && stdin.getURL() != null)
-                    {
-                        // Start redirecting data to the standard input
-                        redirectToStdin(stdin.getURL());
-                    }
-                    
-                    // Start reading from stdout and stderr. Note that we do this
-                    // even if the "stdout" and "stderr" streams are not exposed
-                    // through the Styx interface (we must do this to consume the
-                    // stdout and stderr data)
-                    stdout.setCacheFile(new File(workDir, "stdout"));
-                    stdout.startReading(process.getInputStream());
-                    stderr.setCacheFile(new File(workDir, "stderr"));
-                    stderr.startReading(process.getErrorStream());
-                }
-                catch(IOException ioe)
-                {
-                    ioe.printStackTrace();
-                    if (process == null)
-                    {
-                        // We didn't even start the process
-                        throw new StyxException("Internal error: could not create process "
-                            + sgs.getRoot().getName() + " " + getArguments());
-                    }
-                    else
-                    {
-                        // We've started the process but an error occurred elsewhere
-                        process.destroy();
-                        setStatus(StatusCode.ERROR, ioe.getMessage());
-                        throw new StyxException("Internal error: could not start "
-                            + "reading from output and error streams");
-                    }
+                    // Start redirecting data to the standard input
+                    redirectToStdin(stdin.getURL());
                 }
                 // Check to see if the process expects some data on standard input
                 if (stdin != null)
                 {
-                    stdin.setOutputStream(process.getOutputStream());
+                    stdin.setOutputStream(job.getStdin());
                 }
                 this.replyWrite(client, count, tag);
             }
             else if (cmdString.equalsIgnoreCase("stop"))
             {
-                synchronized(statusCode)
-                {
-                    // This synchronization prevents the Waiter thread from 
-                    // setting the status to "finished" before we can set the
-                    // status to "aborted" here
-                    if (statusCode == StatusCode.RUNNING)
-                    {
-                        // Only do this if the process is running
-                        process.destroy();
-                        setStatus(StatusCode.ABORTED);
-                    }
-                }
+                job.stop();
                 this.replyWrite(client, count, tag);
             }
             else if (cmdString.equalsIgnoreCase("destroy"))
             {
-                if (statusCode == StatusCode.RUNNING)
+                if (job.getStatusCode() == StatusCode.RUNNING)
                 {
                     throw new StyxException("Cannot destroy a running service: stop it first");
                 }
@@ -792,8 +733,7 @@ class StyxGridServiceInstance extends StyxDirectory
             log.error("Internal error: got StyxException when calling remove()" +
                 " on instance root directory");
         }
-        // Now remove the working directory
-        this.deleteDir(this.workDir);
+        this.job.destroy();
         log.debug("**** INSTANCE " + this.getName() + " DESTROYED ****");
     }
     
@@ -915,38 +855,6 @@ class StyxGridServiceInstance extends StyxDirectory
         this.argsFile.contentsChanged();
     }
     
-    // Thread that waits for the executable to finish, then sets the status
-    private class Waiter extends Thread
-    {
-        public void run()
-        {
-            try
-            {
-                int exitCodeVal = process.waitFor();
-                long duration = System.currentTimeMillis() - startTime;
-                synchronized(statusCode)
-                {
-                    // We must get the lock on the statusCode because
-                    // we could be changing the status in another thread
-                    if (statusCode != StatusCode.ABORTED && statusCode != StatusCode.ERROR)
-                    {
-                        // don't set the status if we have terminated abnormally
-                        setStatus(StatusCode.FINISHED, "took " +
-                            (float)duration / 1000 + " seconds.");
-                    }
-                    exitCodeFile.setExitCode(exitCodeVal);
-                }
-            }
-            catch(Exception e)
-            {
-                if (log.isDebugEnabled())
-                {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-    
     /**
      * Starts a thread that redirects the data from the given URL to the 
      * input stream of the process.  If the process has not yet been created,
@@ -955,23 +863,30 @@ class StyxGridServiceInstance extends StyxDirectory
      */
     void redirectToStdin(URL url) throws StyxException
     {
-        if (this.process != null && !this.redirectingToStdin)
+        if (this.job.getStatusCode() == StatusCode.RUNNING && !this.redirectingToStdin)
         {
             try
             {
                 this.redirectingToStdin = true;
                 InputStream is = url.openStream();
-                OutputStream os = this.process.getOutputStream();
+                OutputStream os = this.job.getStdin();
                 new RedirectStream(is, os).start();
                 log.debug("*** Reading stdin from " + url + "***");
             }
             catch (IOException ioe)
             {
-                process.destroy();
-                setStatus(StatusCode.ERROR);
+                this.job.error("Cannot read from " + url);
                 throw new StyxException("Cannot read from " + url);
             }
         }
+    }
+    
+    /**
+     * Gets the status of the underlying Job
+     */
+    public StatusCode getStatus()
+    {
+        return this.job.getStatusCode();
     }
     
     // Reads from an input stream and writes the result to an output stream
@@ -1010,18 +925,10 @@ class StyxGridServiceInstance extends StyxDirectory
             }
             catch(IOException ioe)
             {
-                // This will be thrown if there was an error reading from the stream
-                // or writing to the output stream
-                synchronized(statusCode)
+                if (job.getStatusCode() != StatusCode.ABORTED)
                 {
-                    // We must get the lock on the statusCode because
-                    // we could be changing the status in another thread
-                    if (statusCode != StatusCode.ABORTED)
-                    {
-                        // don't do this if the process was aborted manually
-                        process.destroy();
-                        setStatus(StatusCode.ERROR, "when reading input data: " + ioe.getMessage());
-                    }
+                    // don't do this if the process was aborted manually
+                    job.error("when reading input data: " + ioe.getMessage());
                 }
             }
             finally
@@ -1062,32 +969,6 @@ class StyxGridServiceInstance extends StyxDirectory
     }
     
     /**
-     * Sets the status of the service and updates the status service data
-     */
-    private void setStatus(StatusCode code, String message)
-    {
-        synchronized(this.statusCode)
-        {
-            this.statusCode = code;
-        }
-        String msg = "";
-        if (message != null && message != "")
-        {
-            msg = ": " + message;
-        }
-        if (this.status != null)
-        {
-            this.status.setValue(code.getText() + msg);
-        }
-        this.fireStatusChanged();
-    }
-    
-    private void setStatus(StatusCode code)
-    {
-        this.setStatus(code, null);
-    }
-    
-    /**
      * Sets the number of bytes consumed by the service instance
      * @param flush If true, will force the waiting clients to get the new value
      * (should only be used sparingly)
@@ -1113,32 +994,36 @@ class StyxGridServiceInstance extends StyxDirectory
     }
     
     /**
-     * Deletes a directory and its contents
-     * @return true if the deletion was successful, false otherwise
+     * Called by the Job object when the status of the job changes
      */
-    private static boolean deleteDir(File dir)
+    public void statusChanged(StatusCode statusCode, String message)
     {
-        log.debug("Deleting contents of " + dir.getPath());
-        if (dir.isDirectory())
+        String msg = "";
+        if (message != null && !message.trim().equals(""))
         {
-            String[] children = dir.list();
-            for (int i = 0; i < children.length; i++)
-            {
-                boolean success = deleteDir(new File(dir, children[i]));
-                if (!success)
-                {
-                    return false;
-                }
-            }
+            msg = ": " + message;
         }
-        return dir.delete();
+        if (this.status != null)
+        {
+            this.status.setValue(statusCode.getText() + msg);
+        }
+        this.fireStatusChanged(statusCode);
+    }
+    
+    /**
+     * Called by the Job object when we have the exit code of the job 
+     * @param exitCode The exit code of the job
+     */
+    public void gotExitCode(int exitCode)
+    {
+        this.exitCodeFile.setExitCode(exitCode);
     }
     
     /**
      * Called when the status of this service instance changes. Fires the
      * statusChanged() event on all registered change listeners
      */
-    private void fireStatusChanged()
+    private void fireStatusChanged(StatusCode statusCode)
     {
         synchronized(this.changeListeners)
         {
@@ -1146,7 +1031,7 @@ class StyxGridServiceInstance extends StyxDirectory
             for (int i = 0; i < this.changeListeners.size(); i++)
             {
                 listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
-                listener.statusChanged(this.statusCode);
+                listener.statusChanged(statusCode);
             }
         }
     }

@@ -102,7 +102,7 @@ class CachingStreamReader extends StyxFile
      * @param name The name for this file as it will appear on the Styx server
      * @throws StyxException if the file could not be created.
      */
-    public CachingStreamReader(StyxGridServiceInstance inst, String name) throws StyxException
+    public CachingStreamReader(String name) throws StyxException
     {
         super(name, 0444); // This is a read-only file
         this.reader = new SFCachingStreamReader();
