@@ -611,6 +611,25 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     }
     
     /**
+     * Called when an error occurs in the SGSInstanceClient
+     */
+    public void error(String message)
+    {
+        System.err.println("Error running Styx Grid Service: " + message);
+        this.exitCode = INTERNAL_SGS_ERROR;
+        // System.exit(exitCode) will be called when the connection
+        // is closed
+        if (this.serverClient != null)
+        {
+            this.serverClient.getConnection().close();
+        }
+        if (this.instanceClient != null)
+        {
+            this.instanceClient.getConnection().close();
+        }
+    }
+    
+    /**
      * Called when the connection to the SGS instance has been closed
      */
     public void connectionClosed(StyxConnection conn)
@@ -693,21 +712,14 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
             {
                 e.printStackTrace();
             }
-            System.err.println("Error running Styx Grid Service: " + e.getMessage());
             // TODO: what is an appropriate error code here?
-            if (runner != null)
+            if (runner == null)
             {
-                runner.exitCode = INTERNAL_SGS_ERROR;
-                // System.exit(exitCode) will be called when the connection
-                // is closed
-                if (runner.serverClient != null)
-                {
-                    runner.serverClient.getConnection().close();
-                }
-                if (runner.instanceClient != null)
-                {
-                    runner.instanceClient.getConnection().close();
-                }
+                System.err.println("Error running Styx Grid Service: " + e.getMessage());
+            }
+            else
+            {
+                runner.error(e.getMessage());
             }
         }
     }

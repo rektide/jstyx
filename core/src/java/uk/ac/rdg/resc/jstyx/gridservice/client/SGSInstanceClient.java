@@ -1336,10 +1336,13 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             catch (StyxException se)
             {
                 log.error("Error opening stream to standard input");
+                fireError("Error opening stream to standard input");
             }
             catch (IOException ioe)
             {
                 log.error("IOException when writing to standard input: "
+                    + ioe.getMessage());
+                fireError("IOException when writing to standard input: "
                     + ioe.getMessage());
                 if (log.isDebugEnabled())
                 {
@@ -1358,7 +1361,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                 }
                 catch (IOException ex)
                 {
-                    // Ignore errors here
+                    fireError("IOException when closing stream to standard input "
+                        + ex.getMessage());
                 }
             }
         }
@@ -1545,8 +1549,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Removes a SGSInstanceChangeListener.  (Note that this will only remove the first
-     * instance of a given SGSInstanceChangeListener.  If, for some reason, more than one 
+     * Removes a SGSInstanceClientChangeListener.  (Note that this will only remove the first
+     * instance of a given SGSInstanceClientChangeListener.  If, for some reason, more than one 
      * copy of the same change listener has been registered, this method will
      * only remove the first.)
      */

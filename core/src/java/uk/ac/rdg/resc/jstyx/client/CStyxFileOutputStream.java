@@ -31,6 +31,8 @@ package uk.ac.rdg.resc.jstyx.client;
 import java.io.OutputStream;
 import java.io.IOException;
 
+import org.apache.log4j.Logger;
+
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
 
@@ -68,6 +70,7 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  */
 public class CStyxFileOutputStream extends OutputStream
 {
+    private static final Logger log = Logger.getLogger(CStyxFileOutputStream.class);
     
     private CStyxFile file; // The file to which we are writing
     private byte[] buf;     // Buffer for storing the results of the last write
@@ -98,6 +101,7 @@ public class CStyxFileOutputStream extends OutputStream
         this.pos = 0;
         this.offset = 0;
         this.closeConnectionWhenCloseStream = closeConnectionWhenCloseStream;
+        log.debug("Created CStyxFileOutputStream for file " + file.getPath());
     }
     
     /**
@@ -136,6 +140,7 @@ public class CStyxFileOutputStream extends OutputStream
         // Write the contents of the buffer to the file
         try
         {
+            log.debug("writing " + pos + " bytes at offset " + this.offset);
             this.file.write(this.buf, 0, pos, this.offset, true);
             // Update the offset of the file
             this.offset += pos;
@@ -144,6 +149,10 @@ public class CStyxFileOutputStream extends OutputStream
         }
         catch(StyxException se)
         {
+            if (log.isDebugEnabled())
+            {
+                se.printStackTrace();
+            }
             throw new IOException(se.getMessage());
         }
     }

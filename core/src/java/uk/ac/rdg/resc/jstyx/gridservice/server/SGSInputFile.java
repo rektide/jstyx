@@ -28,6 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.server;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.net.URL;
@@ -81,11 +82,10 @@ public abstract class SGSInputFile extends StyxFile
     
     protected ByteBuffer candidateURLBuffer; // This is set when we have received a message that
                                 // seems to contain a valid URL
-    protected String candidateURL; // This is set when we have received a message that
+    protected URL candidateURL; // This is set when we have received a message that
                                 // seems to contain a valid URL
     protected int candidateURLLength;
-    protected URL url;  // This is non-null if we have specified that this
-                        // file will be read from a URL
+    protected URL url;  // The URL that corresponds to this.urlInputStream
     
     private SGSInputFile(String name, AbstractJob job)
         throws StyxException
@@ -115,51 +115,36 @@ public abstract class SGSInputFile extends StyxFile
             // First check to see if this is an EOF message
             if (count == 0)
             {
-                if (this.candidateURLBuffer != null)
-                {
-                    if (offset == this.candidateURLLength)
-                    {
-                        // We're writing EOF at the end of an existing URL
-                        // See if this URL is recognised
-                        try
-                        {
-                            URL url = new URL(this.candidateURL);
-                            this.setURL(url);
-                            this.replyWrite(client, count, tag);
-                            return;
-                        }
-                        catch (MalformedURLException mue)
-                        {
-                            throw new StyxException(this.candidateURL +
-                                " is not recognised as a valid URL");
-                        }
-                    }
-                    else
-                    {
-                        // We're writing EOF elsewhere in the file.  Write
-                        // the "candidate URL" to the file as it is obviously
-                        // not really a URL
-                        this.writeData(client, offset, count, this.candidateURLBuffer,
-                            truncate, tag);
-                        this.candidateURLBuffer.release();
-                        this.candidateURL = null;
-                        this.closeOutput();
-                        this.replyWrite(client, count, tag);
-                        return;
-                    }
-                }
-                else
+                if (this.candidateURLBuffer == null)
                 {
                     // We have reached EOF and we have no stored URL to write.
                     // Just write the empty buffer to signify EOF
-                    this.writeData(client, offset, count, data, truncate, tag);
+                    this.writeData(client, offset, count, data, truncate);
                     this.closeOutput();
                     this.replyWrite(client, count, tag);
                     return;
                 }
+                else if (offset == this.candidateURLLength)
+                {
+                    // We're writing EOF at the end of an existing URL, thereby
+                    // confirming that the client wishes to download the data
+                    // from this URL
+                    this.setURL(this.candidateURL);
+                    this.replyWrite(client, count, tag);
+                    return;
+                }
+                else
+                {
+                    // We have a candidate URL but we are writing EOF elsewhere.
+                    // This should not happen
+                    throw new StyxException("Writing EOF at offset "
+                        + offset + " but we have a candidate URL");
+                }
             }
             else
             {
+                // count > 0 - we are writing actual data
+                // First see if we are writing a URL to the beginning of the file
                 if (offset == 0 && parseURL(data))
                 {
                     // Don't write any data to the stream.  We've stored
@@ -167,22 +152,38 @@ public abstract class SGSInputFile extends StyxFile
                     this.replyWrite(client, count, tag);
                     return;
                 }
-                int bytesToWrite = data.remaining();
-                if (count < data.remaining())
+                else
                 {
-                    // Would normally be an error if count != data.remaining(),
-                    // but we'll let the calling application pick this up
-                    bytesToWrite = count;
+                    // Either this is not a valid URL or it is not being written
+                    // to the beginning of the file
+                    if (this.candidateURLBuffer != null)
+                    {
+                        // If we have a candidate URL stored we must write it to
+                        // the file
+                        log.debug("Writing candidate URL to input file");
+                        this.writeData(client, 0, this.candidateURLLength,
+                            this.candidateURLBuffer, truncate);
+                        this.candidateURLBuffer.release();
+                        this.candidateURLBuffer = null;
+                        this.candidateURL = null;
+                    }
+                    // Now we can write the data in this message
+                    int bytesToWrite = data.remaining();
+                    if (count < data.remaining())
+                    {
+                        // Would normally be an error if count != data.remaining(),
+                        // but we'll let the calling application pick this up
+                        bytesToWrite = count;
+                    }
+                    this.writeData(client, offset, count, data, truncate);
+                    this.replyWrite(client, bytesToWrite, tag);
+                    return;
                 }
-                this.writeData(client, offset, count, data, truncate, tag);
-                this.replyWrite(client, bytesToWrite, tag);
-                return;
             }
         }
         catch(IOException ioe)
         {
-            throw new StyxException("IOException occurred when writing to "
-                    + "the stream: " + ioe.getMessage());
+            throw new StyxException("IOException occurred: " + ioe.getMessage());
         }
     }
             
@@ -190,7 +191,7 @@ public abstract class SGSInputFile extends StyxFile
      * Attempts to retrieve a URL from the given data. The data buffer must
      * contain the string "readfrom:<url>" where <url> is a valid URL.
      * @return True if we might have a url: this url will be stored in
-     * this.candidateURL as a string, and this.candidateURLLength will store
+     * this.url as a string, and this.candidateURLLength will store
      * the length of the incoming data buffer
      */
     private boolean parseURL(ByteBuffer data)
@@ -202,13 +203,21 @@ public abstract class SGSInputFile extends StyxFile
         final String prefix = "readfrom:";
         if (urlStr.startsWith(prefix))
         {
-            // Store this data buffer as we might want to use it later
-            data.acquire();
-            this.candidateURLBuffer = data;
-            this.candidateURL = urlStr.substring(prefix.length());
-            log.debug("Got candidate URL: " + this.candidateURL);
-            this.candidateURLLength = dataLen;
-            return true;
+            try
+            {
+                this.candidateURL = new URL(urlStr.substring(prefix.length()));
+                log.debug("Got candidate URL: " + this.candidateURL);
+                // Store this data buffer as we might want to use it later
+                data.acquire();
+                this.candidateURLBuffer = data;
+                this.candidateURLLength = dataLen;
+                return true;
+            }
+            catch (MalformedURLException mue)
+            {
+                log.debug("Data started with \"readfrom:\" but was not a valid URL");
+                return false;
+            }
         }
         else
         {
@@ -216,7 +225,10 @@ public abstract class SGSInputFile extends StyxFile
         }
     }
     
-    public void setURL(URL url) throws StyxException
+    /**
+     * Sets the URL from which this file will read its data.
+     */
+    protected void setURL(URL url) throws IOException
     {
         log.debug("Setting url = " + url);
         this.url = url;
@@ -226,11 +238,11 @@ public abstract class SGSInputFile extends StyxFile
      * Writes data to the underlying file or stream
      */
     protected abstract void writeData(StyxFileClient client, long offset, int count,
-        ByteBuffer data, boolean truncate, int tag)
+        ByteBuffer data, boolean truncate)
         throws StyxException, IOException;
     
     /**
-     * Closes the output file or stream. This default implementation does nothing
+     * Closes the output file or stream.
      */
     protected abstract void closeOutput() throws IOException;
     
@@ -248,17 +260,18 @@ public abstract class SGSInputFile extends StyxFile
         }
         
         /**
-         * This just writes the data to the current position in the stream
+         * This is called from super.write2(), i.e. after we have checked to see
+         * if a URL has been written. This just writes the data to the stream
          * and flushes the write.  The offset is ignored.
          */
         protected void writeData(StyxFileClient client, long offset, int count,
-            ByteBuffer data, boolean truncate, int tag)
+            ByteBuffer data, boolean truncate)
             throws StyxException, IOException
         {
-            if (this.job.getStatusCode() != StatusCode.RUNNING)
+            if (this.job.getStdinStream() == null)
             {
-                throw new StyxException("Can't write data to standard input" +
-                    " before the service is running");
+                throw new StyxException("The standard input stream of the service" +
+                    " is not ready yet");
             }
             byte[] arr = new byte[data.remaining()];
             data.get(arr);
@@ -273,10 +286,15 @@ public abstract class SGSInputFile extends StyxFile
             this.write2(client, offset, count, data, truncate, tag);
         }
         
-        public void setURL(URL url) throws StyxException
+        /**
+         * This is called when we have got a URL for this input file and the
+         * InputStream to this URL has been opened.  This can happen before or
+         * after the job starts.
+         */
+        protected void setURL(URL url) throws IOException
         {
-            job.setStdinSource(url);
             super.setURL(url);
+            job.setStdinURL(url);
         }
         
         protected void closeOutput() throws IOException
@@ -309,10 +327,12 @@ public abstract class SGSInputFile extends StyxFile
         }
         
         /**
-         * This just writes the data to the underlying fileOnDisk
+         * This is called from super.write2(), i.e. after we have checked to see
+         * if a URL has been written. This just writes the data to the given
+         * offset in the underlying file on the disk.
          */
         protected void writeData(StyxFileClient client, long offset, int count,
-            ByteBuffer data, boolean truncate, int tag)
+            ByteBuffer data, boolean truncate)
             throws StyxException, IOException
         {
             if (count == 0)
@@ -390,14 +410,12 @@ public abstract class SGSInputFile extends StyxFile
     }
     
     /**
-     * @return the URL from which this file will get its data, or null if the 
-     * URL has not been set
+     * @return the URL from which the file will get its data, or null if this
+     * has not been set.  The corresponding InputStream can be obtained through
+     * this.getURLInputStream()
      */
     public URL getURL()
     {
         return this.url;
     }
-    
-    
-    
 }

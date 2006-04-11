@@ -235,9 +235,6 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     private Date creationTime;  // The time at which this instance was created
     private Date terminationTime; // The time at which this instance will automatically be terminated
     
-    // SGSInstanceChangeListeners that are listening for changes to this SGS instance
-    private Vector changeListeners;
-    
     /**
      * Creates a new StyxGridService with the given configuration
      * @todo: sort out permissions and owners on all these files
@@ -258,10 +255,9 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
         this.command = sgsConfig.getCommand();
         this.workDir = new File(sgsConfig.getWorkingDirectory() +
             StyxUtils.SYSTEM_FILE_SEPARATOR + id);
-        this.changeListeners = new Vector();
         
         // Create the underlying Job object
-        this.job = new LocalJob(this.workDir);
+        this.job = new LocalJob(this, this.workDir);
         this.job.addChangeListener(this);
         this.job.setCommand(command);
         
@@ -515,13 +511,16 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
         }
     }
     
+    /**
+     * Downloads data from the given InputStream and writes it to the file
+     * with the given name in the working directory of this instance.
+     */
     public void downloadFrom(URL url, String filename) throws StyxException
     {
         try
         {
             File targetFile = new File(this.workDir, filename);
             log.debug("Downloading from " + url + " to " + targetFile.getPath());
-            System.err.println("     ****** Downloading from " + url + " to " + targetFile.getPath());
             FileOutputStream fout = new FileOutputStream(targetFile);
             InputStream in = url.openStream();
             byte[] b = new byte[8192];
@@ -546,14 +545,6 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
             throw new StyxException("IOException downloading from "
                 + url + ": " + ioe.getMessage());
         }
-    }
-    
-    /**
-     * Returns the working directory of this instance
-     */
-    public File getWorkingDirectory()
-    {
-        return this.workDir;
     }
     
     /**
@@ -649,32 +640,30 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
                 // TODO: this will block until all the data have been downloaded.
                 prepareInputFiles();
                 
-                // Start the executable
+                // Set the input parameters and start the executable
                 job.setParameters(parFiles);
                 
-                if (stdin != null && stdin.getURL() != null)
+                if (stdin == null)
+                {
+                    // We're not getting any data for the standard input so
+                    // we can tell the job not to wait for any
+                    job.stdinDataDownloaded();
+                }
+                else if (stdin.getURL() != null)
                 {
                     // We have set a URL for the standard input.
-                    job.setStdinSource(stdin.getURL());
+                    try
+                    {
+                        job.setStdinURL(stdin.getURL());
+                    }
+                    catch (IOException ioe)
+                    {
+                        throw new StyxException("Error reading from " + stdin.getURL()
+                            + ": " + ioe.getMessage());
+                    }
                 }
                 
                 job.start();
-
-                if (stdin != null)
-                {
-                    if (stdin.getURL() != null)
-                    {
-                        // If we have set a URL for stdin, start redirecting data
-                        // to the standard input of the process
-                        //redirectToStdin(stdin.getURL());
-                    }
-                    else
-                    {
-                        // Make sure that any data written via Styx to the standard
-                        // input file gets sent to the standard input of the job
-                        //stdin.setOutputStream(job.getStdin());
-                    }
-                }
                 this.replyWrite(client, count, tag);
             }
             else if (cmdString.equalsIgnoreCase("stop"))
@@ -850,7 +839,7 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     /**
      * Gets the argument list that will be passed to the executable as a String
      */
-    private String getArguments()
+    public String getArguments()
     {
         StringBuffer buf = new StringBuffer();
         for (int i = 0; i < this.paramFiles.size(); i++)
@@ -867,7 +856,9 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     }
     
     /**
-     * Called by the Job object when the status of the job changes
+     * Called by the Job object when the status of the job changes.  This 
+     * sets the new status value in the status file and hence notifies waiting
+     * clients of the new status.
      */
     public void statusChanged(StatusCode statusCode, String message)
     {
@@ -880,7 +871,6 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
         {
             this.status.setValue(statusCode.getText() + msg);
         }
-        this.fireStatusChanged(statusCode);
     }
     
     /**
@@ -890,52 +880,6 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     public void gotExitCode(int exitCode)
     {
         this.exitCodeFile.setExitCode(exitCode);
-    }
-    
-    /**
-     * Called when the status of this service instance changes. Fires the
-     * statusChanged() event on all registered change listeners
-     */
-    private void fireStatusChanged(StatusCode statusCode)
-    {
-        synchronized(this.changeListeners)
-        {
-            SGSInstanceChangeListener listener;
-            for (int i = 0; i < this.changeListeners.size(); i++)
-            {
-                listener = (SGSInstanceChangeListener)this.changeListeners.get(i);
-                listener.statusChanged(statusCode);
-            }
-        }
-    }
-    
-    /**
-     * Adds a listener that will be notified of changes to this SGS. If the
-     * listener is already registered, this will do nothing.
-     */
-    public void addChangeListener(SGSInstanceChangeListener listener)
-    {
-        synchronized(this.changeListeners)
-        {
-            if (!this.changeListeners.contains(listener))
-            {
-                this.changeListeners.add(listener);
-            }
-        }
-    }
-    
-    /**
-     * Removes a SGSInstanceChangeListener.  (Note that this will only remove the first
-     * instance of a given SGSInstanceChangeListener.  If, for some reason, more than one 
-     * copy of the same change listener has been registered, this method will
-     * only remove the first.)
-     */
-    public void removeChangeListener(SGSInstanceChangeListener listener)
-    {
-        synchronized(this.changeListeners)
-        {
-            boolean contained = this.changeListeners.remove(listener);
-        }
     }
     
 }

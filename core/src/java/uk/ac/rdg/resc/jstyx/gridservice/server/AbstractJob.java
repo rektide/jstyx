@@ -52,6 +52,7 @@ public abstract class AbstractJob
 {
     private static final Logger log = Logger.getLogger(AbstractJob.class);
     
+    protected StyxGridServiceInstance instance;  // The instance to which this job belongs
     protected File workDir;    // The working directory of this job
     protected String command;  // The command that will be run
     protected long startTime;  // The time the job was started
@@ -65,11 +66,14 @@ public abstract class AbstractJob
     
     /**
      * Creates a new instance of AbstractJob, setting the statusCode to CREATED
+     * @param instance The StyxGridServiceInstance to which this job belongs
      * @param workDir The working directory for this Job
      * @throws StyxException if the working directory could not be created
      */
-    public AbstractJob(File workDir) throws StyxException
+    public AbstractJob(StyxGridServiceInstance instance, File workDir)
+        throws StyxException
     {
+        this.instance = instance;
         this.statusCode = StatusCode.CREATED;
         this.setWorkingDirectory(workDir);
         this.changeListeners = new Vector();
@@ -119,12 +123,12 @@ public abstract class AbstractJob
     }
     
     /**
-     * Sets the source of the data that is to be sent to the standard input
+     * Sets the URL of the data that is to be sent to the standard input
      * of the job.  This can be called before <b>or</b> after start().
      * @param url The URL from which the data will be read
-     * @throws StyxException if data could not be read from the given URL
+     * @throws IOException if data could not be read from the given URL
      */
-    public abstract void setStdinSource(URL url) throws StyxException;
+    public abstract void setStdinURL(URL url) throws IOException;
     
     /**
      * @return the OutputStream to which we can write data that will be sent
@@ -180,6 +184,15 @@ public abstract class AbstractJob
      * @param message Description of the error that occurred
      */
     public abstract void error(String message);
+    
+    /**
+     * This is called when it is confirmed that the standard input data have
+     * been downloaded.  This implementation does nothing but subclasses can 
+     * override this method if they want to be notified of this event.
+     */
+    public void stdinDataDownloaded()
+    {
+    }
     
     /**
      * Recursive method for deleting a directory and its contents

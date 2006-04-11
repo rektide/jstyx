@@ -59,9 +59,10 @@ public class LocalJob extends AbstractJob
     /**
      * Creates a new instance of LocalJob
      */
-    public LocalJob(File workDir) throws StyxException
+    public LocalJob(StyxGridServiceInstance instance, File workDir)
+        throws StyxException
     {
-        super(workDir);
+        super(instance, workDir);
         this.process = null;
         this.redirectingToStdin = false;
         this.stdout = new CachingStreamReader("stdout");
@@ -77,19 +78,9 @@ public class LocalJob extends AbstractJob
      */
     public void setParameters(SGSParamFile[] paramFiles)
     {
-        // Get the argument list as a string 
-        StringBuffer buf = new StringBuffer();
-        for (int i = 0; i < paramFiles.length; i++)
-        {
-            // We can be pretty confident that this cast is safe
-            SGSParamFile paramFile = paramFiles[i];
-            String frag = paramFile.getCommandLineFragment();
-            if (!frag.trim().equals(""))
-            {
-                buf.append(frag + " ");
-            }
-        }
-        this.argList = buf.toString();
+        // We actually already have a method for getting the argument list
+        // as a String so we ignore the paramFiles[] argument to this method
+        this.argList = this.instance.getArguments();
     }
     
     /**
@@ -100,9 +91,9 @@ public class LocalJob extends AbstractJob
      * not yet running, this will simply store the URL and the thread will be
      * started when the job is started.
      * @param url The URL from which the data will be read
-     * @throws StyxException if no data could be read from the given url
+     * @throws IOException if no data could be read from the given url.
      */
-    public void setStdinSource(URL url) throws StyxException
+    public void setStdinURL(URL url) throws IOException
     {
         this.stdinURL = url;
         if (this.statusCode == StatusCode.RUNNING)
@@ -156,21 +147,13 @@ public class LocalJob extends AbstractJob
         }
         catch(IOException ioe)
         {
-            ioe.printStackTrace();
-            if (this.process == null)
+            if (this.process != null)
             {
-                // We didn't even start the process
-                throw new StyxException("Internal error: could not create process "
-                    + this.command + " " + this.argList);
-            }
-            else
-            {
-                // We've started the process but an error occurred elsewhere
                 this.process.destroy();
-                this.setStatus(StatusCode.ERROR, ioe.getMessage());
-                throw new StyxException("Internal error: could not start "
-                    + "reading from output and error streams");
             }
+            this.setStatus(StatusCode.ERROR, ioe.getMessage());
+            throw new StyxException("IOException occurred when starting the job: "
+                + ioe.getClass() + ": " + ioe.getMessage());
         }
     }
     
@@ -197,6 +180,7 @@ public class LocalJob extends AbstractJob
      */
     public void error(String message)
     {
+        log.error(message);
         this.process.destroy();
         this.setStatus(StatusCode.ERROR, message);
     }
@@ -237,25 +221,16 @@ public class LocalJob extends AbstractJob
      * Starts a thread that redirects the data from the given URL to the 
      * input stream of the process.  If we have called this method already,
      * subsequent invocations will do nothing.
-     * @throws StyxException if no data could be read from the given url
      */
-    private void redirectToStdin() throws StyxException
+    private void redirectToStdin() throws IOException
     {
         if (!this.redirectingToStdin)
         {
-            try
-            {
-                this.redirectingToStdin = true;
-                InputStream is = this.stdinURL.openStream();
-                OutputStream os = this.process.getOutputStream();
-                new RedirectStream(is, os).start();
-                log.debug("*** Reading stdin from " + this.stdinURL + "***");
-            }
-            catch (IOException ioe)
-            {
-                this.error("Cannot read from " + this.stdinURL);
-                throw new StyxException("Cannot read from " + this.stdinURL);
-            }
+            this.redirectingToStdin = true;
+            InputStream is = this.stdinURL.openStream();
+            OutputStream os = this.process.getOutputStream();
+            new RedirectStream(is, os).start();
+            log.debug("*** Reading stdin from " + this.stdinURL + "***");
         }
     }
     

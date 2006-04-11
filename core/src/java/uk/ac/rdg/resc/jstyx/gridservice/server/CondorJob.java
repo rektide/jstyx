@@ -28,6 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.gridservice.server;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -73,9 +74,10 @@ public class CondorJob extends AbstractJob
     /**
      * Creates a new instance of CondorJob
      */
-    public CondorJob(File workDir) throws StyxException
+    public CondorJob(StyxGridServiceInstance instance, File workDir)
+        throws StyxException
     {
-        super(workDir);
+        super(instance, workDir);
         this.stdout = new SGSOutputFile(new File(this.workDir, STDOUT_FILE), this);
         this.stderr = new SGSOutputFile(new File(this.workDir, STDERR_FILE), this);
     }
@@ -95,9 +97,9 @@ public class CondorJob extends AbstractJob
      * Sets the source of the data that is to be sent to the standard input
      * of the job.  This can be called before <b>or</b> after start().
      * @param url The URL from which the data will be read
-     * @throws StyxException if data could not be read from the given URL
+     * @throws IOException if data could not be read from the given URL
      */
-    public void setStdinSource(URL url) throws StyxException
+    public void setStdinURL(URL url) throws IOException
     {
         // TODO
     }
@@ -131,6 +133,15 @@ public class CondorJob extends AbstractJob
     public void error(String message)
     {
         // TODO
+    }
+    
+    /**
+     * This is called when it is confirmed that the standard input data have
+     * been downloaded.  This is important in a CondorJob because the job cannot
+     * start until all the input data are ready.
+     */
+    public void stdinDataDownloaded()
+    {
     }
     
     /**

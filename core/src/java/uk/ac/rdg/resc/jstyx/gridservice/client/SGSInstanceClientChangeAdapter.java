@@ -34,7 +34,7 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 
 /**
  * Convenience class that provides blank implementations for all files in the
- * SGSInstanceChangeListener
+ * SGSInstanceClientChangeListener
  *
  * @author Jon Blower
  * $Revision$
