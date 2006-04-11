@@ -125,6 +125,7 @@ public class SGSConfig
     private String command;     // The command that is run by this SGS
     private String workDir;     // The working directory of this SGS
     private String description; // Short description of this SGS
+    private String type;        // Class of job type (must be "local" or "condor")
     private String configXMLForClient;   // XML snippet used to create this config in a form suitable for clients
     
     private Vector inputs;      // The inputs (files and streams) expected by this service
@@ -208,6 +209,7 @@ public class SGSConfig
         }
         this.command = gridService.valueOf("@command");
         this.description = gridService.valueOf("@description");
+        this.type = gridService.valueOf("@type").trim();
         boolean usingStdin = false;
 
         // Create the parameters
@@ -365,6 +367,14 @@ public class SGSConfig
     public String getDescription()
     {
         return this.description;
+    }
+    
+    /**
+     * @return the type of this service; either "local" or "condor".
+     */
+    public String getType()
+    {
+        return this.type;
     }
 
     /**

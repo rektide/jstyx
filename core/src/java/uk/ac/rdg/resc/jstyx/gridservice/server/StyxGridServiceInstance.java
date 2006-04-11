@@ -257,7 +257,15 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
             StyxUtils.SYSTEM_FILE_SEPARATOR + id);
         
         // Create the underlying Job object
-        this.job = new LocalJob(this, this.workDir);
+        if (sgsConfig.getType().equals("condor"))
+        {
+            this.job = new CondorJob(this);
+        }
+        else
+        {
+            // Default to a local job
+            this.job = new LocalJob(this);
+        }
         this.job.addChangeListener(this);
         this.job.setCommand(command);
         
@@ -442,6 +450,22 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
                 this.outputsDir.addChild(new SGSOutputFile(file, this.job));
             }
         }
+    }
+    
+    /**
+     * @return the working directory of this instance
+     */
+    File getWorkingDirectory()
+    {
+        return this.workDir;
+    }
+    
+    /**
+     * @return the ID of this instance
+     */
+    String getID()
+    {
+        return this.id;
     }
     
     /**

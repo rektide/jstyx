@@ -59,10 +59,10 @@ public class LocalJob extends AbstractJob
     /**
      * Creates a new instance of LocalJob
      */
-    public LocalJob(StyxGridServiceInstance instance, File workDir)
+    public LocalJob(StyxGridServiceInstance instance)
         throws StyxException
     {
-        super(instance, workDir);
+        super(instance);
         this.process = null;
         this.redirectingToStdin = false;
         this.stdout = new CachingStreamReader("stdout");

@@ -158,6 +158,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     private SGSInstanceClient instanceClient;
     private int exitCode;
     private boolean allDataDownloaded;
+    private boolean gotError;
     
     private JSAPResult result; // Result of parsing command-line parameters
     
@@ -183,6 +184,7 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         this.allDataDownloaded = false;
         this.exitCode = Integer.MIN_VALUE;
         this.filesToUpload = new Hashtable();
+        this.gotError = false;
     }
     
     /**
@@ -581,6 +583,12 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         {
             System.out.println(sdName + " = " + newData);
         }
+        // TODO: this logic is a little fragile
+        if (sdName.equals("status") && newData.startsWith("error"))
+        {
+            // We have an error message
+            this.error(newData);
+        }
     }
     
     /**
@@ -611,21 +619,26 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     }
     
     /**
-     * Called when an error occurs in the SGSInstanceClient
+     * Called when an error occurs.  Closes all connections and exits
      */
-    public void error(String message)
+    public synchronized void error(String message)
     {
-        System.err.println("Error running Styx Grid Service: " + message);
-        this.exitCode = INTERNAL_SGS_ERROR;
-        // System.exit(exitCode) will be called when the connection
-        // is closed
-        if (this.serverClient != null)
+        // If this has been called before, do nothing.
+        if (!this.gotError)
         {
-            this.serverClient.getConnection().close();
-        }
-        if (this.instanceClient != null)
-        {
-            this.instanceClient.getConnection().close();
+            this.gotError = true;
+            System.err.println("Error running Styx Grid Service: " + message);
+            this.exitCode = INTERNAL_SGS_ERROR;
+            // System.exit(exitCode) will be called when the connection
+            // is closed
+            if (this.serverClient != null)
+            {
+                this.serverClient.getConnection().close();
+            }
+            if (this.instanceClient != null)
+            {
+                this.instanceClient.getConnection().close();
+            }
         }
     }
     

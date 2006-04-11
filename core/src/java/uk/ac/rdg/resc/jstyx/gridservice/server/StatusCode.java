@@ -48,11 +48,12 @@ public class StatusCode
         this.text = text;
     }
     
-    public static final StatusCode CREATED  = new StatusCode("created");
-    public static final StatusCode RUNNING  = new StatusCode("running");
-    public static final StatusCode FINISHED = new StatusCode("finished");
-    public static final StatusCode ABORTED  = new StatusCode("aborted");
-    public static final StatusCode ERROR    = new StatusCode("error");
+    public static final StatusCode CREATED   = new StatusCode("created");
+    public static final StatusCode SUBMITTED = new StatusCode("submitted");
+    public static final StatusCode RUNNING   = new StatusCode("running");
+    public static final StatusCode FINISHED  = new StatusCode("finished");
+    public static final StatusCode ABORTED   = new StatusCode("aborted");
+    public static final StatusCode ERROR     = new StatusCode("error");
     
     /**
      * @return a short string describing this status code

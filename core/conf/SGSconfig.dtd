@@ -108,6 +108,7 @@
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED
+    type (local | condor) "local"
     description CDATA #IMPLIED
   >
   

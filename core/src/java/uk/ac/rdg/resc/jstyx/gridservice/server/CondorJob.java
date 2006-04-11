@@ -29,8 +29,14 @@
 package uk.ac.rdg.resc.jstyx.gridservice.server;
 
 import java.io.IOException;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileOutputStream;
 import java.net.URL;
 
@@ -70,16 +76,21 @@ public class CondorJob extends AbstractJob
                                                         // contain standard output data
     private static final String STDERR_FILE = "stderr"; // Name of the file that will
                                                         // contain standard error data
+    private static final String LOG_FILE = "condor.log"; // Name of the condor submit file
+    private static final String SUBMIT_FILE = "condor.submit"; // Name of the condor submit file
+    
+    private boolean stopThreads;
     
     /**
      * Creates a new instance of CondorJob
      */
-    public CondorJob(StyxGridServiceInstance instance, File workDir)
+    public CondorJob(StyxGridServiceInstance instance)
         throws StyxException
     {
-        super(instance, workDir);
+        super(instance);
         this.stdout = new SGSOutputFile(new File(this.workDir, STDOUT_FILE), this);
         this.stderr = new SGSOutputFile(new File(this.workDir, STDERR_FILE), this);
+        this.stopThreads = false;
     }
     
     /**
@@ -110,8 +121,49 @@ public class CondorJob extends AbstractJob
      */
     public void start() throws StyxException
     {
-        // Create the condor submit file in the working directory
-        
+        try
+        {
+            // Create the condor submit file in the working directory
+            PrintStream submitFile = new PrintStream(new FileOutputStream(
+                new File(this.workDir, SUBMIT_FILE)), true);
+            
+            submitFile.println("########################");
+            submitFile.println("# Submit description file for instance " +
+                this.instance.getID());
+            submitFile.println("########################");
+            
+            submitFile.println("executable = " + this.command);
+            submitFile.println("universe = vanilla");
+            submitFile.println("#input = " + STDIN_FILE);
+            submitFile.println("output = " + STDOUT_FILE);
+            submitFile.println("error = " + STDERR_FILE);
+            submitFile.println("log = " + LOG_FILE);
+            submitFile.println("initialdir = " + this.workDir.getPath());
+            
+            submitFile.println("queue");
+            
+            submitFile.close();
+            
+            // Now submit this file to the Condor pool
+            Process proc = Runtime.getRuntime().exec("condor_submit " +
+                SUBMIT_FILE, null, this.workDir);
+            
+            // Read the output from the condor_submit program
+            new CondorStreamReader(proc.getInputStream()).start();
+            new CondorStreamReader(proc.getErrorStream()).start();
+            
+            // Start a thread that parses the log file: this is how we know
+            // the status of a job
+            new LogFileParser().start();
+        }
+        catch(FileNotFoundException fnfe)
+        {
+            throw new StyxException("Could not create condor submit file");
+        }
+        catch(IOException ioe)
+        {
+            throw new StyxException("Error running condor_submit: " + ioe.getMessage());
+        }
     }
     
     /**
@@ -122,7 +174,8 @@ public class CondorJob extends AbstractJob
      */
     public void stop()
     {
-        // TODO
+        this.stopThreads = true;
+        this.setStatus(StatusCode.ABORTED);
     }
     
     /**
@@ -132,7 +185,9 @@ public class CondorJob extends AbstractJob
      */
     public void error(String message)
     {
-        // TODO
+        this.stopThreads = true;
+        log.error(message);
+        this.setStatus(StatusCode.ERROR, message);
     }
     
     /**
@@ -149,10 +204,130 @@ public class CondorJob extends AbstractJob
      * implementation, this is a FileOutputStream: data must be written to this file
      * before the job can start.
      * @return the OutputStream, or null if the underlying system is not ready yet
+     * @throws FileNotFoundException if the OutputStream could not be created
      */
-    public OutputStream getStdinStream()
+    public OutputStream getStdinStream() throws FileNotFoundException
     {
-        return null;//new FileOutputStream(new File(this.workDir, STDIN_FILE));
+        return new FileOutputStream(new File(this.workDir, STDIN_FILE));
     }
     
+    /**
+     * Thread that reads Condor's log file as it is produced and changes the
+     * status of the job based on what it finds
+     */
+    private class LogFileParser extends Thread
+    {
+        public void run()
+        {
+            boolean finished = false;
+            File logFile = new File(workDir, LOG_FILE);
+            int linesRead = 0;
+            String line;
+            
+            // We have to keep opening the log file
+            while(!stopThreads && !finished)
+            {
+                try
+                {
+                    if (logFile.exists())
+                    {
+                        // Read a line at a time from the file, looking for key phrases
+                        log.debug("Opening log file " + logFile);
+                        BufferedReader buf = new BufferedReader(new FileReader(logFile));
+                        
+                        // Read all the lines we have read already
+                        log.debug("Reading " + linesRead + " lines that we have already read");
+                        for (int i = 0; i < linesRead; i++)
+                        {
+                            line = buf.readLine();
+                        }
+                        
+                        // Now read the first new line
+                        do
+                        {
+                            line = buf.readLine();
+                            log.debug("Read line from log file: " + line);
+                            if (line != null)
+                            {
+                                linesRead++;
+                                if (line.indexOf("Job submitted") >= 0)
+                                {
+                                    log.debug("Detected that job has been submitted");
+                                    setStatus(StatusCode.SUBMITTED);
+                                }
+                                else if (line.indexOf("Job executing") >= 0)
+                                {
+                                    log.debug("Detected that job is executing");
+                                    setStatus(StatusCode.RUNNING);
+                                }
+                                else if (line.indexOf("Job terminated") >= 0)
+                                {
+                                    log.debug("Detected that job has finished");
+                                    //setStatus(StatusCode.FINISHED);
+                                    finished = true;
+                                }
+                            }
+                        } while (line != null && !stopThreads);
+                        buf.close();
+                    }
+                    // Wait for half a second before we open the file again or
+                    // check to see if it exists
+                    Thread.sleep(500);
+                }
+                catch(InterruptedException ie)
+                {
+                    // do nothing
+                }
+                catch(IOException ioe)
+                {
+                    if (log.isDebugEnabled())
+                    {
+                        ioe.printStackTrace();
+                    }
+                    error("Error reading the Condor log file: " + ioe.getMessage());
+                }
+            }
+        }
+    }
+    
+    /**
+     * Thread that reads one of the standard streams from the condor_submit
+     * program: this consumes the streams (making sure that the condor_submit
+     * program does not hang) and checks for errors
+     */
+    private class CondorStreamReader extends Thread
+    {
+        private InputStream is;
+        
+        public CondorStreamReader(InputStream is)
+        {
+            this.is = is;
+        }
+        
+        public void run()
+        {
+            try
+            {
+                BufferedReader buf = new BufferedReader(new InputStreamReader(is));
+                String line = null;
+                do
+                {
+                    line = buf.readLine();
+                    if (line != null && line.startsWith("ERROR"))
+                    {
+                        error("Error running condor_submit: " + line);
+                    }
+                } while (line != null && !stopThreads);
+                buf.close();
+            }
+            catch(IOException ioe)
+            {
+                if (log.isDebugEnabled())
+                {
+                    ioe.printStackTrace();
+                }
+                error("Error running condor_submit: " + ioe.getMessage());
+            }
+        }
+    }
 }

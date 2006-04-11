@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.jstyx.gridservice.server;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Vector;
@@ -67,15 +68,13 @@ public abstract class AbstractJob
     /**
      * Creates a new instance of AbstractJob, setting the statusCode to CREATED
      * @param instance The StyxGridServiceInstance to which this job belongs
-     * @param workDir The working directory for this Job
      * @throws StyxException if the working directory could not be created
      */
-    public AbstractJob(StyxGridServiceInstance instance, File workDir)
-        throws StyxException
+    public AbstractJob(StyxGridServiceInstance instance) throws StyxException
     {
         this.instance = instance;
         this.statusCode = StatusCode.CREATED;
-        this.setWorkingDirectory(workDir);
+        this.setWorkingDirectory(instance.getWorkingDirectory());
         this.changeListeners = new Vector();
         this.stdinURL = null;
     }
@@ -133,8 +132,9 @@ public abstract class AbstractJob
     /**
      * @return the OutputStream to which we can write data that will be sent
      * to the standard input of the job, or null if the stream is not ready yet.
+     * @throws FileNotFoundException if the OutputStream could not be created
      */
-    public abstract OutputStream getStdinStream();
+    public abstract OutputStream getStdinStream() throws FileNotFoundException;
     
     /**
      * Starts the job running
