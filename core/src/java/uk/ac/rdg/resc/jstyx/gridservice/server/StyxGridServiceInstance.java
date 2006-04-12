@@ -469,6 +469,31 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     }
     
     /**
+     * @return the names of the input files that will be consumed by this service,
+     * (not including the standard input) as a comma-separated string.  Returns
+     * an empty string if there are no input files
+     */
+    String getInputFileNames()
+    {
+        StringBuffer buf = new StringBuffer();
+        StyxFile[] files = this.inputsDir.getChildren();
+        boolean firstTime = true;
+        for (int i = 0; i < files.length; i++)
+        {
+            if (files[i] instanceof SGSInputFile.File)
+            {
+                if (!firstTime)
+                {
+                    buf.append(", ");
+                }
+                buf.append(files[i].getName());
+                firstTime = false;
+            }
+        }
+        return buf.toString();
+    }
+    
+    /**
      * Adds a new input file to the inputs/ directory
      */
     public void addInputFile(String filename) throws StyxException
@@ -556,13 +581,10 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
                 {
                     fout.write(b, 0, n);
                 }
-                else
-                {
-                    in.close();
-                    fout.close();
-                    b = null;
-                }
             } while (n >= 0);
+            in.close();
+            fout.close();
+            b = null;
         }
         catch(IOException ioe)
         {
@@ -676,15 +698,7 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
                 else if (stdin.getURL() != null)
                 {
                     // We have set a URL for the standard input.
-                    try
-                    {
-                        job.setStdinURL(stdin.getURL());
-                    }
-                    catch (IOException ioe)
-                    {
-                        throw new StyxException("Error reading from " + stdin.getURL()
-                            + ": " + ioe.getMessage());
-                    }
+                    job.setStdinURL(stdin.getURL());
                 }
                 
                 job.start();

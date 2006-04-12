@@ -81,9 +81,21 @@ public class CondorJob extends AbstractJob
     private static final String LOG_FILE = "condor.log"; // Name of the condor submit file
     private static final String SUBMIT_FILE = "condor.submit"; // Name of the condor submit file
     
+    private static final Pattern JOB_SUBMITTED_PATTERN =
+        Pattern.compile("([0-9]*) job\\(s\\) submitted to cluster ([0-9]*).*");
     private static final Pattern RETURN_VALUE_PATTERN =
         Pattern.compile(".*Normal termination \\(return value ([0-9]*)\\)");
+    private static final Pattern ABNORMAL_TERMINATION_PATTERN =
+        Pattern.compile(".*Abnormal termination \\(signal ([0-9]*)\\)");
     
+    private File stdin;
+    private OutputStream stdinStream;
+    private String args; // The argument list as a String
+    private int numJobs; // The number of jobs that have been submitted;
+    private String jobID;   // the id of the whole job (Condor's cluster number)
+    private boolean startMessageReceived; // True when we have received a message to start the job
+    private boolean stdinReady; // True when the standard input data are ready
+    private boolean jobStarted;
     private boolean stopThreads;
     
     /**
@@ -93,9 +105,17 @@ public class CondorJob extends AbstractJob
         throws StyxException
     {
         super(instance);
+        this.stdin = new File(this.workDir, STDIN_FILE);
+        this.stdinStream = null;
         this.stdout = new SGSOutputFile(new File(this.workDir, STDOUT_FILE), this);
         this.stderr = new SGSOutputFile(new File(this.workDir, STDERR_FILE), this);
+        this.numJobs = 0;
+        this.jobID = "";
         this.stopThreads = false;
+        this.startMessageReceived = false;
+        this.stdinReady = false;
+        this.jobStarted = false;
+        this.args = "";
     }
     
     /**
@@ -106,18 +126,23 @@ public class CondorJob extends AbstractJob
      */
     public void setParameters(SGSParamFile[] paramFiles)
     {
-        // Do nothing for the moment: these will eventually end up in the submit file
+        // We don't actually use the paramFiles argument since the SGSInstance
+        // contains a method for getting all the args as a string
+        this.args = this.instance.getArguments().trim();
     }
     
     /**
      * Sets the source of the data that is to be sent to the standard input
      * of the job.  This can be called before <b>or</b> after start().
+     * This blocks until the data have been downloaded.
      * @param url The URL from which the data will be read
-     * @throws IOException if data could not be read from the given URL
+     * @throws StyxException if data could not be read from the given URL, or 
+     * if the data were downloaded and the job could not be started.
      */
-    public void setStdinURL(URL url) throws IOException
+    public void setStdinURL(URL url) throws StyxException
     {
-        // TODO
+        this.instance.downloadFrom(url, STDIN_FILE);
+        this.stdinDataDownloaded();
     }
     
     /**
@@ -126,63 +151,38 @@ public class CondorJob extends AbstractJob
      */
     public void start() throws StyxException
     {
-        try
-        {
-            // Create the condor submit file in the working directory
-            PrintStream submitFile = new PrintStream(new FileOutputStream(
-                new File(this.workDir, SUBMIT_FILE)), true);
-            
-            submitFile.println("########################");
-            submitFile.println("# Submit description file for instance " +
-                this.instance.getID());
-            submitFile.println("########################");
-            
-            submitFile.println("executable = " + this.command);
-            submitFile.println("universe = vanilla");
-            submitFile.println("#input = " + STDIN_FILE);
-            submitFile.println("output = " + STDOUT_FILE);
-            submitFile.println("error = " + STDERR_FILE);
-            submitFile.println("log = " + LOG_FILE);
-            submitFile.println("initialdir = " + this.workDir.getPath());
-            
-            submitFile.println("queue");
-            
-            submitFile.close();
-            
-            // Now submit this file to the Condor pool
-            Process proc = Runtime.getRuntime().exec("condor_submit " +
-                SUBMIT_FILE, null, this.workDir);
-            
-            // Read the output from the condor_submit program
-            new CondorStreamReader(proc.getInputStream()).start();
-            new CondorStreamReader(proc.getErrorStream()).start();
-            
-            // Start a thread that parses the log file: this is how we know
-            // the status of a job
-            new LogFileParser().start();
-        }
-        catch(FileNotFoundException fnfe)
-        {
-            throw new StyxException("Could not create condor submit file");
-        }
-        catch(IOException ioe)
-        {
-            throw new StyxException("Error running condor_submit: " + ioe.getMessage());
-        }
+        log.debug("Got start message");
+        this.startMessageReceived = true;
+        this.startJob();
     }
     
     /**
      * Aborts the job, forcibly terminating it if necessary.  Does nothing if
      * the job is not running.  This is called when the user (i.e. the remote
-     * client) opts to stop the job.  Implementations should remember to set
-     * the status code to ABORTED if the stop operation is successful
+     * client) opts to stop the job.  Sets the status code to ABORTED if the
+     * stop operation is successful.  Aborts the job by calling condor_rm.
      */
-    public void stop()
+    public void stop() throws StyxException
     {
         this.stopThreads = true;
-        this.setStatus(StatusCode.ABORTED);
-        // TODO: call condor_rm: requires us to have captured the cluster number
-        // of the job
+        if (statusCode == StatusCode.RUNNING)
+        {
+            try
+            {
+                Process proc = Runtime.getRuntime().exec("condor_rm " + this.jobID);
+                log.debug("Called condor_rm " + this.jobID);
+                // Make sure we consume the outputs from the condor_rm command
+                new CondorStreamReader(proc.getInputStream()).start();
+                new CondorStreamReader(proc.getErrorStream()).start();
+                // We just assume that the condor_rm command has worked
+                this.setStatus(StatusCode.ABORTED);
+            }
+            catch (IOException ioe)
+            {
+                throw new StyxException("Error stopping job: could not create" +
+                    " process \"condor_rm " + this.jobID + "\"");
+            }
+        }
     }
     
     /**
@@ -202,8 +202,78 @@ public class CondorJob extends AbstractJob
      * been downloaded.  This is important in a CondorJob because the job cannot
      * start until all the input data are ready.
      */
-    public void stdinDataDownloaded()
+    public void stdinDataDownloaded() throws StyxException
     {
+        log.debug("Standard input data downloaded (or not used)");
+        this.stdinReady = true;
+        this.startJob();
+    }
+    
+    /**
+     * Starts the job but only if we have received a start message and the 
+     * stdin data are ready: otherwise this does nothing
+     */
+    private void startJob() throws StyxException
+    {
+        if (this.startMessageReceived && this.stdinReady && !this.jobStarted
+            && !this.stopThreads)
+        {
+            this.jobStarted = true;
+            try
+            {
+                // Create the condor submit file in the working directory
+                PrintStream submitFile = new PrintStream(new FileOutputStream(
+                    new File(this.workDir, SUBMIT_FILE)), true);
+
+                submitFile.println("########################");
+                submitFile.println("# Submit description file for instance " +
+                    this.instance.getID());
+                submitFile.println("########################");
+
+                submitFile.println("executable = " + this.command);
+                submitFile.println("universe = vanilla");
+                if (this.stdin.exists())
+                {
+                    submitFile.println("input = " + STDIN_FILE);
+                }
+                submitFile.println("output = " + STDOUT_FILE);
+                submitFile.println("error = " + STDERR_FILE);
+                submitFile.println("arguments = " + this.args);
+                submitFile.println("log = " + LOG_FILE);
+                submitFile.println("initialdir = " + this.workDir.getPath());
+                
+                // Force Condor to transfer the files using its own mechanism.
+                // Not only should this work on more systems (doesn't rely on a
+                // shared filesystem) it makes sure that the job does not finish
+                // until the output files have been transferred back to the submit
+                // host
+                submitFile.println("should_transfer_files = YES");
+                submitFile.println("when_to_transfer_output = ON_EXIT");
+                // Now make sure that Condor transfers the input file(s)
+                submitFile.println("transfer_input_files = " +
+                    this.instance.getInputFileNames());
+                
+                submitFile.println("queue");
+
+                submitFile.close();
+
+                // Now submit this file to the Condor pool
+                Process proc = Runtime.getRuntime().exec("condor_submit " +
+                    SUBMIT_FILE, null, this.workDir);
+
+                // Read the output from the condor_submit program
+                new CondorStreamReader(proc.getInputStream()).start();
+                new CondorStreamReader(proc.getErrorStream()).start();
+            }
+            catch(FileNotFoundException fnfe)
+            {
+                throw new StyxException("Could not create condor submit file");
+            }
+            catch(IOException ioe)
+            {
+                throw new StyxException("Error running condor_submit: " + ioe.getMessage());
+            }
+        }
     }
     
     /**
@@ -215,7 +285,11 @@ public class CondorJob extends AbstractJob
      */
     public OutputStream getStdinStream() throws FileNotFoundException
     {
-        return new FileOutputStream(new File(this.workDir, STDIN_FILE));
+        if (this.stdinStream == null)
+        {
+            this.stdinStream = new FileOutputStream(this.stdin);
+        }
+        return this.stdinStream;
     }
     
     /**
@@ -239,11 +313,11 @@ public class CondorJob extends AbstractJob
                     if (logFile.exists())
                     {
                         // Read a line at a time from the file, looking for key phrases
-                        log.debug("Opening log file " + logFile);
+                        //log.debug("Opening log file " + logFile);
                         BufferedReader buf = new BufferedReader(new FileReader(logFile));
                         
                         // Read all the lines we have read already
-                        log.debug("Reading " + linesRead + " lines that we have already read");
+                        //log.debug("Reading " + linesRead + " lines that we have already read");
                         for (int i = 0; i < linesRead; i++)
                         {
                             line = buf.readLine();
@@ -253,16 +327,11 @@ public class CondorJob extends AbstractJob
                         do
                         {
                             line = buf.readLine();
-                            log.debug("Read line from log file: " + line);
+                            //log.debug("Read line from log file: " + line);
                             if (line != null)
                             {
                                 linesRead++;
-                                if (line.indexOf("Job submitted") >= 0)
-                                {
-                                    log.debug("Detected that job has been submitted");
-                                    setStatus(StatusCode.SUBMITTED);
-                                }
-                                else if (line.indexOf("Job executing") >= 0)
+                                if (line.startsWith("001"))
                                 {
                                     log.debug("Detected that job is executing");
                                     setStatus(StatusCode.RUNNING);
@@ -277,21 +346,32 @@ public class CondorJob extends AbstractJob
                                         log.debug("Detected that job has finished");
                                         int exitCode = Integer.parseInt(m.group(1));
                                         fireGotExitCode(exitCode);
-                                        // Wait for a few seconds for files to be
-                                        // transferred to the submit host
-                                        // This is a rather ugly workaround!
-                                        Thread.sleep(5000);
                                         setStatus(StatusCode.FINISHED);
                                         finished = true;
+                                    }
+                                    else
+                                    {
+                                        // Look for abnormal termination
+                                        m = ABNORMAL_TERMINATION_PATTERN.matcher(line);
+                                        if (m.matches())
+                                        {
+                                            log.debug("Detected abnormal termination");
+                                            setStatus(StatusCode.ERROR, "signal = "
+                                                + m.group(1));
+                                            finished = true;
+                                        }
                                     }
                                 }
                             }
                         } while (line != null && !stopThreads);
                         buf.close();
                     }
-                    // Wait for half a second before we open the file again or
-                    // check to see if it exists
-                    Thread.sleep(500);
+                    if (!finished)
+                    {
+                        // Wait for a second before we open the file again or
+                        // check to see if it exists
+                        Thread.sleep(1000);
+                    }
                 }
                 catch(InterruptedException ie)
                 {
@@ -332,9 +412,28 @@ public class CondorJob extends AbstractJob
                 do
                 {
                     line = buf.readLine();
-                    if (line != null && line.startsWith("ERROR"))
+                    if (line != null)
                     {
-                        error("Error running condor_submit: " + line);
+                        // Check for an error (in stderr stream)
+                        if (line.startsWith("ERROR"))
+                        {
+                            error("Error running condor_submit: " + line);
+                        }
+                        else
+                        {
+                            // Check to see if the job has been submitted
+                            // (in stdout stream)
+                            Matcher m = JOB_SUBMITTED_PATTERN.matcher(line);
+                            if (m.matches())
+                            {
+                                jobID = m.group(2);
+                                log.debug("Detected job submitted: ID = " + jobID);
+                                setStatus(StatusCode.SUBMITTED, "Condor id = " + jobID);
+                                // Now we can start parsing the log file to monitor
+                                // the status of the job
+                                new LogFileParser().start();
+                            }
+                        }
                     }
                 } while (line != null && !stopThreads);
                 buf.close();
@@ -352,15 +451,14 @@ public class CondorJob extends AbstractJob
     
     public static void main (String[] args)
     {
-        Pattern pattern = Pattern.compile(".*Normal termination \\(return value ([0-9]*)\\)");
+        String test = "\t(0) Abnormal termination (signal 11)";
         
-        String test = "\t(1) Normal termination (return value 29)";
-        
-        Matcher matcher = pattern.matcher(test);
+        Matcher matcher = ABNORMAL_TERMINATION_PATTERN.matcher(test);
         if (matcher.matches())
         {
             System.out.println("Pattern matches");
-            System.out.println("Return value: " + matcher.group(1));
+            System.out.println("Signal: " + matcher.group(1));
+            //System.out.println("Job ID: " + matcher.group(2));
         }
         else
         {

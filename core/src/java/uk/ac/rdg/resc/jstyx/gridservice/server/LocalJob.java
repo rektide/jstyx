@@ -93,7 +93,7 @@ public class LocalJob extends AbstractJob
      * @param url The URL from which the data will be read
      * @throws IOException if no data could be read from the given url.
      */
-    public void setStdinURL(URL url) throws IOException
+    public void setStdinURL(URL url) throws StyxException
     {
         this.stdinURL = url;
         if (this.statusCode == StatusCode.RUNNING)
@@ -222,15 +222,23 @@ public class LocalJob extends AbstractJob
      * input stream of the process.  If we have called this method already,
      * subsequent invocations will do nothing.
      */
-    private void redirectToStdin() throws IOException
+    private void redirectToStdin() throws StyxException
     {
         if (!this.redirectingToStdin)
         {
-            this.redirectingToStdin = true;
-            InputStream is = this.stdinURL.openStream();
-            OutputStream os = this.process.getOutputStream();
-            new RedirectStream(is, os).start();
-            log.debug("*** Reading stdin from " + this.stdinURL + "***");
+            try
+            {
+                this.redirectingToStdin = true;
+                InputStream is = this.stdinURL.openStream();
+                OutputStream os = this.process.getOutputStream();
+                new RedirectStream(is, os).start();
+                log.debug("*** Reading stdin from " + this.stdinURL + "***");
+            }
+            catch(IOException ioe)
+            {
+                throw new StyxException("IOException occurred when downloading" +
+                    " data from " + this.stdinURL + ": " + ioe.getMessage());
+            }
         }
     }
     

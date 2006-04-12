@@ -228,7 +228,7 @@ public abstract class SGSInputFile extends StyxFile
     /**
      * Sets the URL from which this file will read its data.
      */
-    protected void setURL(URL url) throws IOException
+    protected void setURL(URL url) throws StyxException
     {
         log.debug("Setting url = " + url);
         this.url = url;
@@ -268,15 +268,25 @@ public abstract class SGSInputFile extends StyxFile
             ByteBuffer data, boolean truncate)
             throws StyxException, IOException
         {
-            if (this.job.getStdinStream() == null)
+            if (count == 0)
+            {
+                // We have an EOF message
+                this.job.stdinDataDownloaded();
+            }
+            else if (this.job.getStdinStream() == null)
             {
                 throw new StyxException("The standard input stream of the service" +
                     " is not ready yet");
             }
-            byte[] arr = new byte[data.remaining()];
-            data.get(arr);
-            this.job.getStdinStream().write(arr);
-            this.job.getStdinStream().flush();
+            else
+            {
+                log.debug("Writing " + data.remaining() +
+                    " bytes to standard input stream");
+                byte[] arr = new byte[data.remaining()];
+                data.get(arr);
+                this.job.getStdinStream().write(arr);
+                this.job.getStdinStream().flush();
+            }
         }
         
         public void write(StyxFileClient client, long offset, int count,
@@ -291,7 +301,7 @@ public abstract class SGSInputFile extends StyxFile
          * InputStream to this URL has been opened.  This can happen before or
          * after the job starts.
          */
-        protected void setURL(URL url) throws IOException
+        protected void setURL(URL url) throws StyxException
         {
             super.setURL(url);
             job.setStdinURL(url);

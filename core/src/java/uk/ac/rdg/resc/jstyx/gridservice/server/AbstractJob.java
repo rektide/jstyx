@@ -125,13 +125,17 @@ public abstract class AbstractJob
      * Sets the URL of the data that is to be sent to the standard input
      * of the job.  This can be called before <b>or</b> after start().
      * @param url The URL from which the data will be read
-     * @throws IOException if data could not be read from the given URL
+     * @throws StyxException if data could not be read from the given URL, or
+     * if another error occurred (e.g. starting a job on the Condor pool)
      */
-    public abstract void setStdinURL(URL url) throws IOException;
+    public abstract void setStdinURL(URL url) throws StyxException;
     
     /**
      * @return the OutputStream to which we can write data that will be sent
      * to the standard input of the job, or null if the stream is not ready yet.
+     * Note that this method may be called several times by the framework - 
+     * therefore, be careful not to create a new object every time if this 
+     * means that a previous one will be overwritten!
      * @throws FileNotFoundException if the OutputStream could not be created
      */
     public abstract OutputStream getStdinStream() throws FileNotFoundException;
@@ -165,8 +169,9 @@ public abstract class AbstractJob
      * the job is not running.  This is called when the user (i.e. the remote
      * client) opts to stop the job.  Implementations should remember to set
      * the status code to ABORTED if the stop operation is successful
+     * @throws StyxException if there was an error stopping the job
      */
-    public abstract void stop();
+    public abstract void stop() throws StyxException;
     
     /**
      * Called when the service instance is destroyed.  Deletes the working
@@ -189,10 +194,11 @@ public abstract class AbstractJob
      * This is called when it is confirmed that the standard input data have
      * been downloaded.  This implementation does nothing but subclasses can 
      * override this method if they want to be notified of this event.
+     * @throws StyxException if this causes an error to be generated (e.g. this
+     * event might cause a job to be submitted to a Condor pool, which might
+     * generate errors)
      */
-    public void stdinDataDownloaded()
-    {
-    }
+    public void stdinDataDownloaded() throws StyxException {}
     
     /**
      * Recursive method for deleting a directory and its contents
