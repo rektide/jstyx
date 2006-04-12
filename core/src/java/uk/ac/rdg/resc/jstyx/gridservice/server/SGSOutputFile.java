@@ -107,6 +107,8 @@ public class SGSOutputFile extends StyxFile implements JobChangeListener
      */
     private synchronized boolean processRequest(DataRequest dr)
     {
+        log.debug("Processing request: offset = " + dr.offset + ", file length = "
+            + this.getLength().asLong());
         if (dr.offset < this.getLength().asLong())
         {
             // There are data available and we can return them to the client

@@ -39,6 +39,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileOutputStream;
 import java.net.URL;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import org.apache.log4j.Logger;
 
@@ -78,6 +80,9 @@ public class CondorJob extends AbstractJob
                                                         // contain standard error data
     private static final String LOG_FILE = "condor.log"; // Name of the condor submit file
     private static final String SUBMIT_FILE = "condor.submit"; // Name of the condor submit file
+    
+    private static final Pattern RETURN_VALUE_PATTERN =
+        Pattern.compile(".*Normal termination \\(return value ([0-9]*)\\)");
     
     private boolean stopThreads;
     
@@ -176,6 +181,8 @@ public class CondorJob extends AbstractJob
     {
         this.stopThreads = true;
         this.setStatus(StatusCode.ABORTED);
+        // TODO: call condor_rm: requires us to have captured the cluster number
+        // of the job
     }
     
     /**
@@ -260,11 +267,23 @@ public class CondorJob extends AbstractJob
                                     log.debug("Detected that job is executing");
                                     setStatus(StatusCode.RUNNING);
                                 }
-                                else if (line.indexOf("Job terminated") >= 0)
+                                else
                                 {
-                                    log.debug("Detected that job has finished");
-                                    //setStatus(StatusCode.FINISHED);
-                                    finished = true;
+                                    // Look to see if we have normal termination
+                                    // and capture the exit code
+                                    Matcher m = RETURN_VALUE_PATTERN.matcher(line);
+                                    if (m.matches())
+                                    {
+                                        log.debug("Detected that job has finished");
+                                        int exitCode = Integer.parseInt(m.group(1));
+                                        fireGotExitCode(exitCode);
+                                        // Wait for a few seconds for files to be
+                                        // transferred to the submit host
+                                        // This is a rather ugly workaround!
+                                        Thread.sleep(5000);
+                                        setStatus(StatusCode.FINISHED);
+                                        finished = true;
+                                    }
                                 }
                             }
                         } while (line != null && !stopThreads);
@@ -328,6 +347,24 @@ public class CondorJob extends AbstractJob
                 }
                 error("Error running condor_submit: " + ioe.getMessage());
             }
+        }
+    }
+    
+    public static void main (String[] args)
+    {
+        Pattern pattern = Pattern.compile(".*Normal termination \\(return value ([0-9]*)\\)");
+        
+        String test = "\t(1) Normal termination (return value 29)";
+        
+        Matcher matcher = pattern.matcher(test);
+        if (matcher.matches())
+        {
+            System.out.println("Pattern matches");
+            System.out.println("Return value: " + matcher.group(1));
+        }
+        else
+        {
+            System.out.println("No match");
         }
     }
 }
