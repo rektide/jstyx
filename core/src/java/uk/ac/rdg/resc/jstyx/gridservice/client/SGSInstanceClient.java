@@ -1042,7 +1042,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                     {
                         CStyxFile targetFile = this.inputsDir.getFile(inputFile.getName());
                         log.debug("Setting URL (" + fileOrUrl + ") for " + targetFile.getPath());
-                        targetFile.setContents((String)fileOrUrl);
+                        targetFile.createAndSetContents((String)fileOrUrl);
+                        
                         log.debug("URL for " + targetFile.getPath() + " set.");
                         if (inputFile.getType() == SGSInput.STREAM)
                         {

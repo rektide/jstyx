@@ -152,14 +152,6 @@ public class StyxDirectory extends StyxFile
     }
     
     /**
-     * @return the name of this file
-     */
-    public String getName()
-    {
-        return this.name;
-    }
-    
-    /**
      * Returns the directory contents. This method cannot be overridden.
      */
     public final void read(StyxFileClient client, long offset, int count, int tag)
@@ -266,8 +258,6 @@ public class StyxDirectory extends StyxFile
         {
             return null;
         }
-        // TODO: toArray() should work without the dummy 
-        // argument - why doesn't it?
         return (StyxFile[])this.children.toArray(new StyxFile[0]);
     }
     

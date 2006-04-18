@@ -74,7 +74,6 @@ public class UploadCallback extends MessageCallback
     private long offset;
     private MessageCallback callback;
     private CStyxFile file;
-    private StyxConnection conn;
     private boolean closeStreamWhenComplete;
 
     public UploadCallback(CStyxFile file, File localFile, MessageCallback callback)
@@ -87,7 +86,7 @@ public class UploadCallback extends MessageCallback
         }
         catch(FileNotFoundException fnfe)
         {
-            this.error("file does not exist", null);
+            this.error("file does not exist or is a directory", null);
         }
     }
 
@@ -99,7 +98,6 @@ public class UploadCallback extends MessageCallback
     private void init(CStyxFile file, InputStream in, MessageCallback callback)
     {
         this.file = file;
-        this.conn = this.file.getConnection();
         this.in = in;
         this.bytes = null;
         this.offset = 0;

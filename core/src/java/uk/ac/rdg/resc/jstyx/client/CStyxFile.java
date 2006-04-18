@@ -846,9 +846,10 @@ public class CStyxFile
      * else in the file. Writes EOF and closes the file after use unless the file was open
      * before this method was called.  If the file was open before this message
      * is called, it must be open for writing with truncation
-     * (i.e. StyxUtils.OWRITE | StyxUtils.OTRUNC)
+     * (i.e. StyxUtils.OWRITE | StyxUtils.OTRUNC).
      * @param str The new file contents
      * @throws StyxException if there was an error opening or writing to the file
+     * (e.g. if the file does not exist)
      */
     public void setContents(String str) throws StyxException
     {
@@ -857,6 +858,39 @@ public class CStyxFile
         {
             // If the file isn't open, open it for writing with truncation
             this.open(StyxUtils.OWRITE | StyxUtils.OTRUNC);
+            wasOpen = false;
+        }
+        
+        byte[] bytes = StyxUtils.strToUTF8(str);
+        // the writeAll() method will automatically take care of splitting the
+        // input across multiple Styx messages if necessary. It will also check
+        // that the file is open in the correct mode
+        this.writeAll(bytes, 0);
+        // If this file wasn't open before we called this function, close it
+        if (!wasOpen)
+        {
+            // Write EOF to this file first
+            this.write(new byte[0], bytes.length, true);
+            this.close();
+        }
+    }
+    
+    /**
+     * Sets the contents of this file to the given string, creating the file if
+     * necessary.  Writes EOF and closes the file after use unless the file was open
+     * before this method was called.  If the file was open before this message
+     * is called, it must be open for writing with truncation
+     * (i.e. StyxUtils.OWRITE | StyxUtils.OTRUNC).
+     * @param str The new file contents
+     * @throws StyxException if there was an error opening or writing to the file
+     */
+    public void createAndSetContents(String str) throws StyxException
+    {
+        boolean wasOpen = true;
+        if (this.mode < 0)
+        {
+            // If the file isn't open, open it for writing with truncation
+            this.openOrCreate(false, StyxUtils.OWRITE | StyxUtils.OTRUNC);
             wasOpen = false;
         }
         
@@ -1245,16 +1279,24 @@ public class CStyxFile
     }
     
     /**
-     * Uploads data from an local file to this file.  If this (Styx) file does
-     * not exist it will be created with rw-rw-rw- (0666) permissions, subject
-     * to the permissions of the host directory.  Blocks until the file has been
-     * uploaded, or throws a StyxException if an error occurred.
+     * Uploads data from an local file to this file.  If this CStyxFile does
+     * not exist on the server it will be created with rw-rw-rw- (0666)
+     * permissions, subject to the permissions of the host directory.  Blocks
+     * until the file has been uploaded, or throws a StyxException if an error
+     * occurred.
      * @param fromFile The File from which to read data to be written to this file
+     * @throws StyxException if <code>fromFile</code> does not exist or is a
+     * directory, or if there was an error uploading the file.
      * @todo Add a flag to prevent overwriting a file if it already exists?
      * @todo Allow a callback to be provided for progress monitoring?
      */
     public void upload(File fromFile) throws StyxException
     {
+        if (!fromFile.exists() || fromFile.isDirectory())
+        {
+            throw new StyxException(fromFile.getPath() +
+                " does not exist or is a directory");
+        }
         StyxReplyCallback callback = new StyxReplyCallback();
         this.uploadAsync(fromFile, callback);
         // The getReply() method blocks until the download is complete.

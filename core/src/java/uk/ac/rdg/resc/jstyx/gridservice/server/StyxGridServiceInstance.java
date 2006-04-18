@@ -301,7 +301,7 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
         this.addChild(paramDir);
         
         // Add the inputs and outputs
-        this.inputsDir = new StyxDirectory("inputs");
+        this.inputsDir = new SGSInputDirectory("inputs", this.workDir, this.job);
         this.outputsDir = new StyxDirectory("outputs");
         
         Vector inputs = sgsConfig.getInputs();
@@ -317,7 +317,7 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
             {
                 // This is a fixed input file.  Create the java.io.File object
                 // that represents the local file itself.
-                this.addInputFile(input.getName());
+                //this.addInputFile(input.getName());
             }
             else if (input.getType() == SGSInput.FILE_FROM_PARAM)
             {
