@@ -313,22 +313,8 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
                 this.stdin = new SGSInputFile.StdinFile(this.job);
                 this.inputsDir.addChild(this.stdin);
             }
-            else if (input.getType() == SGSInput.FILE)
-            {
-                // This is a fixed input file.  Create the java.io.File object
-                // that represents the local file itself.
-                //this.addInputFile(input.getName());
-            }
-            else if (input.getType() == SGSInput.FILE_FROM_PARAM)
-            {
-                // Do nothing: these files do not appear in the namespace until
-                // the parameter name is set.  See SGSParamFile.setParameterValue()
-            }
-            else
-            {
-                throw new StyxException("Internal error: unknown type of input "
-                    + input.getName());
-            }
+            // Input files appear in the namespace when they are uploaded: see
+            // SGSInputDirectory
         }
         
         // Now add the output files
@@ -491,15 +477,6 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
             }
         }
         return buf.toString();
-    }
-    
-    /**
-     * Adds a new input file to the inputs/ directory
-     */
-    public void addInputFile(String filename) throws StyxException
-    {
-        File file = new File(this.workDir, filename);
-        this.inputsDir.addChild(new SGSInputFile.File(file, this.job));
     }
     
     /**

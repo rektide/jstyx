@@ -295,14 +295,7 @@ public class SGSParamFile extends AsyncStyxFile
                 // First we must remove all previous input files that were set by
                 // this parameter
                 this.instance.removeInputFiles(files);
-                for (int i = 0; i < files.length; i++)
-                {
-                    if (!files[i].startsWith(URL_PREFIX))
-                    {
-                        // This is not a URL.
-                        this.instance.addInputFile(files[i]);
-                    }
-                }
+                // The input file(s) appear in the namespace when they are uploaded
             }
             // Parameters representing output files don't show up in the namespace
         }

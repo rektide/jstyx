@@ -1298,7 +1298,7 @@ public class CStyxFile
         if (fromFile.isDirectory())
         {
             // Create this directory on the server and open it for writing
-            System.err.println("Creating " + this.getPath());
+            log.debug("Creating " + this.getPath());
             this.openOrCreate(true, StyxUtils.OREAD);
             // Get the directory contents
             File[] files = fromFile.listFiles();
@@ -1310,7 +1310,7 @@ public class CStyxFile
         }
         else
         {
-            System.err.println("Uploading from " + fromFile.getPath()+ " to "
+            log.debug("Uploading from " + fromFile.getPath() + " to "
                 + this.getPath());
             // This is a regular file
             StyxReplyCallback callback = new StyxReplyCallback();
@@ -1654,7 +1654,7 @@ public class CStyxFile
         {
             conn.connect();
             CStyxFile targetDir = conn.getFile(".");
-            targetDir.upload(new File("E:\\mylib"));
+            targetDir.upload(new File("c:\\gs\\gs8.51"));
         }
         catch(Exception e)
         {
@@ -1662,10 +1662,7 @@ public class CStyxFile
         }
         finally
         {
-            if (conn != null)
-            {
-                conn.close();
-            }
+            conn.close();
         }
     }
 }
