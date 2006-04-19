@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.Date;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 import org.apache.log4j.Logger;
@@ -642,7 +643,7 @@ public class CStyxFile
      * the given mode.  If it does not exist it will be created, provided that
      * the parent directory exists.  Files will be created with 0666 permissions
      * and directories with 0777, subject to the permissions of the parent 
-     * directory.  Blocks until the opening or creation is complete
+     * directory.  Blocks until the opening or creation is complete.
      */
     public void openOrCreate(boolean isDirectory, int mode) throws StyxException
     {
@@ -1279,28 +1280,44 @@ public class CStyxFile
     }
     
     /**
-     * Uploads data from an local file to this file.  If this CStyxFile does
-     * not exist on the server it will be created with rw-rw-rw- (0666)
-     * permissions, subject to the permissions of the host directory.  Blocks
-     * until the file has been uploaded, or throws a StyxException if an error
-     * occurred.
+     * Uploads data from a local file or directory to this file.  If 
+     * <code>fromFile</code> is a directory then it and all of its contents
+     * will be uploaded.  If this CStyxFile does not exist on the server it
+     * will be created with rw-rw-rw- (0666) permissions (if it is a file) or
+     * rwxrwxrwx (0777) permissions (if it is a directory), subject to the
+     * permissions of the host directory.  Blocks until the file has been
+     * uploaded, or throws a StyxException if an error occurred.
      * @param fromFile The File from which to read data to be written to this file
-     * @throws StyxException if <code>fromFile</code> does not exist or is a
-     * directory, or if there was an error uploading the file.
+     * @throws FileNotFoundException if <code>file</code>could not be found
+     * @throws StyxException if there was an error uploading the file.
      * @todo Add a flag to prevent overwriting a file if it already exists?
      * @todo Allow a callback to be provided for progress monitoring?
      */
-    public void upload(File fromFile) throws StyxException
+    public void upload(File fromFile) throws FileNotFoundException, StyxException
     {
-        if (!fromFile.exists() || fromFile.isDirectory())
+        if (fromFile.isDirectory())
         {
-            throw new StyxException(fromFile.getPath() +
-                " does not exist or is a directory");
+            // Create this directory on the server and open it for writing
+            System.err.println("Creating " + this.getPath());
+            this.openOrCreate(true, StyxUtils.OREAD);
+            // Get the directory contents
+            File[] files = fromFile.listFiles();
+            for (int i = 0; i < files.length; i++)
+            {
+                CStyxFile targetFile = this.getFile(files[i].getName());
+                targetFile.upload(files[i]);
+            }
         }
-        StyxReplyCallback callback = new StyxReplyCallback();
-        this.uploadAsync(fromFile, callback);
-        // The getReply() method blocks until the download is complete.
-        StyxMessage message = callback.getReply();
+        else
+        {
+            System.err.println("Uploading from " + fromFile.getPath()+ " to "
+                + this.getPath());
+            // This is a regular file
+            StyxReplyCallback callback = new StyxReplyCallback();
+            this.uploadAsync(fromFile, callback);
+            // The getReply() method blocks until the download is complete.
+            StyxMessage message = callback.getReply();
+        }
     }
     
     /**
@@ -1345,11 +1362,13 @@ public class CStyxFile
      * the uploadComplete() event will be fired on all registered
      * CStyxFileChangeListeners.  If an error occurs, the error() event will be
      * fired on registered change listeners.
-     * @param file The File to copy/upload
+     * @param file The File to copy/upload (must be a regular file, not a directory)
+     * @throws FileNotFoundException if <code>file</code>could not be found or
+     * is a directory
      * @todo Add a flag to prevent overwriting a file if it already exists?
      * @todo Allow a callback to be provided for progress monitoring?
      */
-    public void uploadAsync(File file)
+    public void uploadAsync(File file) throws FileNotFoundException
     {
         this.uploadAsync(file, null);
     }
@@ -1364,10 +1383,13 @@ public class CStyxFile
      * @param file The File to copy/upload
      * @param callback The MessageCallback that will be notified when the
      * upload process is complete.
+     * @throws FileNotFoundException if <code>file</code>could not be found or
+     * is a directory
      * @todo Add a flag to prevent overwriting a file if it already exists?
      * @todo Allow a callback to be provided for progress monitoring?
      */
     public void uploadAsync(File file, MessageCallback callback)
+        throws FileNotFoundException
     {
         new UploadCallback(this, file, callback).nextStage(null, null);
     }
@@ -1627,21 +1649,23 @@ public class CStyxFile
     
     public static void main(String[] args)
     {
-        StyxConnection conn = new StyxConnection("localhost", 9999);
+        StyxConnection conn = new StyxConnection("localhost", 8080);
         try
         {
             conn.connect();
-            CStyxFile file = conn.getFile("hello.txt");
-            System.out.println(file.getContents());
-            file.setContents("goodbye from client");
+            CStyxFile targetDir = conn.getFile(".");
+            targetDir.upload(new File("E:\\mylib"));
         }
-        catch(StyxException se)
+        catch(Exception e)
         {
-            se.printStackTrace();
+            e.printStackTrace();
         }
         finally
         {
-            conn.close();
+            if (conn != null)
+            {
+                conn.close();
+            }
         }
     }
 }

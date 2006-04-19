@@ -1029,8 +1029,18 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                             targetFile = this.inputsDir.getFile(f.getName());
                         }
                         log.debug("Uploading " + fileOrUrl + " to " + targetFile.getPath() + "...");
-                        targetFile.upload(f);
-                        log.debug("Upload of " + fileOrUrl + " complete.");
+                        try
+                        {
+                            targetFile.upload(f);
+                            log.debug("Upload of " + fileOrUrl + " complete.");
+                        }
+                        catch(FileNotFoundException fnfe)
+                        {
+                            // Shouldn't happen: we have already checked for
+                            // the existence of the file
+                            throw new StyxException(fileOrUrl + " not found: " +
+                                "cannot be uploaded");
+                        }
                     }
                 }
                 else
@@ -1063,7 +1073,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * the XXX method will be fired on all registered change listeners when 
      * each input file is uploaded.
      */
-    public void uploadInputFilesAsync()
+    /*public void uploadInputFilesAsync()
     {
         new InputFilesUploader().nextStage();
     }
@@ -1148,7 +1158,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         public void error(String message, StyxMessage tMessage)
         {
         }
-    }
+    }*/
     
     /**
      * <p>Gets the values of all service data elements as a Hashtable, in which the

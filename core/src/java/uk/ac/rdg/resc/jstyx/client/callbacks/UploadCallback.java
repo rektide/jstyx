@@ -77,25 +77,13 @@ public class UploadCallback extends MessageCallback
     private boolean closeStreamWhenComplete;
 
     public UploadCallback(CStyxFile file, File localFile, MessageCallback callback)
+        throws FileNotFoundException
     {
-        this.init(file, null, callback);
+        this(file, new FileInputStream(localFile), callback);
         this.closeStreamWhenComplete = true;
-        try
-        {
-            this.in = new FileInputStream(localFile);
-        }
-        catch(FileNotFoundException fnfe)
-        {
-            this.error("file does not exist or is a directory", null);
-        }
     }
 
     public UploadCallback(CStyxFile file, InputStream in, MessageCallback callback)
-    {
-        this.init(file, in, callback);
-    }
-
-    private void init(CStyxFile file, InputStream in, MessageCallback callback)
     {
         this.file = file;
         this.in = in;
