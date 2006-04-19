@@ -820,8 +820,11 @@ public class StyxConnection implements ProtocolHandler
         this.protocolThreadPoolFilter.stop();
         
         // Free resources associated with StyxMessageDecoder
-        StyxMessageDecoder decoder = (StyxMessageDecoder)this.session.getDecoder();
-        decoder.release();
+        if (this.session != null)
+        {
+            StyxMessageDecoder decoder = (StyxMessageDecoder)this.session.getDecoder();
+            decoder.release();
+        }
         
         // The synchronization ensures that the numSessions static variable
         // can only be altered by one thread at once
