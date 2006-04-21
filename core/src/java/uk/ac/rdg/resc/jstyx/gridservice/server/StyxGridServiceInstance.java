@@ -455,6 +455,14 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     }
     
     /**
+     * @return the list of input files in the <code>inputs/</code> directory
+     */
+    StyxFile[] getInputFiles()
+    {
+        return this.inputsDir.getChildren();
+    }
+    
+    /**
      * @return the names of the input files that will be consumed by this service,
      * (not including the standard input) as a comma-separated string.  Returns
      * an empty string if there are no input files

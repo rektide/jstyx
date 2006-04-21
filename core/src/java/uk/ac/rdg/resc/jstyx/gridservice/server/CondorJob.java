@@ -45,6 +45,7 @@ import java.util.regex.Matcher;
 import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
+import uk.ac.rdg.resc.jstyx.server.StyxFile;
 
 /**
  * A Job that runs on a Condor pool.  The SGS server must be running on a Condor
@@ -240,7 +241,6 @@ public class CondorJob extends AbstractJob
                 submitFile.println("error = " + STDERR_FILE);
                 submitFile.println("arguments = " + this.args);
                 submitFile.println("log = " + LOG_FILE);
-                submitFile.println("initialdir = " + this.workDir.getPath());
                 
                 // Force Condor to transfer the files using its own mechanism.
                 // Not only should this work on more systems (doesn't rely on a
@@ -253,6 +253,13 @@ public class CondorJob extends AbstractJob
                 submitFile.println("transfer_input_files = " +
                     this.instance.getInputFileNames());
                 
+                StyxFile[] inputFiles = this.instance.getInputFiles();
+                
+                for (int i = 0; i < inputFiles.length; i++)
+                {
+                    
+                }
+                submitFile.println("initialdir = " + this.workDir.getPath());                
                 submitFile.println("queue");
 
                 submitFile.close();
@@ -426,8 +433,10 @@ public class CondorJob extends AbstractJob
                             Matcher m = JOB_SUBMITTED_PATTERN.matcher(line);
                             if (m.matches())
                             {
+                                numJobs = Integer.parseInt(m.group(1));
                                 jobID = m.group(2);
-                                log.debug("Detected job submitted: ID = " + jobID);
+                                log.debug("Detected " + numJobs + " jobs submitted: ID = "
+                                    + jobID);
                                 setStatus(StatusCode.SUBMITTED, "Condor id = " + jobID);
                                 // Now we can start parsing the log file to monitor
                                 // the status of the job
