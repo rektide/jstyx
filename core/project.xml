@@ -152,6 +152,13 @@
             <url>http://jakarta.apache.org/commons/logging/</url>
         </dependency>
         <dependency>
+            <groupId>ant</groupId>
+            <artifactId>ant</artifactId>
+            <version>1.6.2</version>
+            <type>jar</type>
+            <url>http://ant.apache.org/</url>
+        </dependency>
+        <dependency>
             <groupId>JSAP</groupId>
             <artifactId>JSAP</artifactId>
             <version>2.0b</version>

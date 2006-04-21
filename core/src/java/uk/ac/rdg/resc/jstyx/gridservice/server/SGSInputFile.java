@@ -417,6 +417,14 @@ public abstract class SGSInputFile extends StyxFile
         {
             return new ULong(this.file.length());
         }
+        
+        /**
+         * @return the underlying java.io.File on disk
+         */
+        public java.io.File getFile()
+        {
+            return this.file;
+        }
     }
     
     /**

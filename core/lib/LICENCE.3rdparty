@@ -2,9 +2,9 @@ The third-party libraries that are distributed with JStyx are released under
 the following licences:
 
 Log4j:  Apache Software License, Version 1.1, 1999
-MINA: Apache License, Version 2.0, January 2004 (note that the version of MINA
-that is included with this distribution is a snapshot of version 0.7: it is not
-an official release)
+MINA: Apache Software License, Version 2.0
+Ant: Apache Software License, Version 2.0
+Quartz: Apache Software License, Version 2.0
 Dom4j: see LICENSE-Dom4j.txt (BSD style)
 Jaxen: see LICENSE-Jaxen.txt (Apache style)
 JSAP: see LICENSE-JSAP.txt (LGPL)

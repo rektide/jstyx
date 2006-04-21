@@ -153,6 +153,13 @@
             <!--<url>http://www.opensymphony.com/quartz/</url>-->
         </dependency>
         <dependency>
+            <groupId>ant</groupId>
+            <artifactId>ant</artifactId>
+            <version>1.6.2</version>
+            <type>jar</type>
+            <!--<url>http://jakarta.apache.org/commons/logging/</url>-->
+        </dependency>
+        <dependency>
             <groupId>commons-logging</groupId>
             <artifactId>commons-logging</artifactId>
             <version>1.0.4</version>
