@@ -62,6 +62,11 @@ public abstract class AbstractJob
     protected StyxFile stderr;   // The standard error from the program
     protected URL stdinURL;      // The URL from which we will read data to be
                                  // sent to the standard input of the job
+    protected int numSubJobs;    // The number of sub-jobs that make up this Job
+    protected int runningSubJobs; // The number of sub-jobs that are currently running
+    protected int failedSubJobs; // The number of sub-jobs that have failed
+    protected int completedSubJobs; // The number of sub-jobs that have completed,
+                                    // including those that have failed
     
     private Vector changeListeners; // Objects that are listening for changes to this Job
     
@@ -77,6 +82,10 @@ public abstract class AbstractJob
         this.setWorkingDirectory(instance.getWorkingDirectory());
         this.changeListeners = new Vector();
         this.stdinURL = null;
+        this.numSubJobs = 0;
+        this.runningSubJobs = 0;
+        this.failedSubJobs = 0;
+        this.completedSubJobs = 0;
     }
     
     /**
@@ -255,6 +264,52 @@ public abstract class AbstractJob
     }
     
     /**
+     * Sets the number of sub-jobs in this Job
+     */
+    protected synchronized void setNumSubJobs(int numSubJobs)
+    {
+        log.debug("Got number of subjobs: " + numSubJobs);
+        this.numSubJobs = numSubJobs;
+        this.fireProgressChanged();
+    }
+    
+    /**
+     * Called when a sub-job has started
+     * @param subJobID The ID number of the sub-job that has started
+     */
+    protected synchronized void subJobStarted(int subJobID)
+    {
+        log.debug("Subjob " + subJobID + " started");
+        this.runningSubJobs++;
+        this.fireProgressChanged();
+    }
+    
+    /**
+     * Called when a sub-job has failed
+     * @param subJobID The ID number of the sub-job that has failed
+     */
+    protected synchronized void subJobFailed(int subJobID)
+    {
+        log.debug("Subjob " + subJobID + " failed");
+        this.runningSubJobs--;
+        this.failedSubJobs++;
+        this.completedSubJobs++;
+        this.fireProgressChanged();
+    }
+    
+    /**
+     * Called when a sub-job has completed successfully
+     * @param subJobID The ID number of the sub-job that has completed
+     */
+    protected synchronized void subJobCompleted(int subJobID)
+    {
+        log.debug("Subjob " + subJobID + " completed successfully");
+        this.runningSubJobs--;
+        this.completedSubJobs++;
+        this.fireProgressChanged();
+    }
+    
+    /**
      * Adds a listener that will be notified of changes to this Job. If the
      * listener is already registered, this will do nothing.
      */
@@ -311,6 +366,23 @@ public abstract class AbstractJob
             {
                 listener = (JobChangeListener)this.changeListeners.get(i);
                 listener.gotExitCode(exitCode);
+            }
+        }
+    }
+    
+    /**
+     * Fires the progressChanged() event on all registered JobChangeListeners.
+     */
+    protected void fireProgressChanged()
+    {
+        synchronized(this.changeListeners)
+        {
+            JobChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (JobChangeListener)this.changeListeners.get(i);
+                listener.progressChanged(this.numSubJobs, this.runningSubJobs,
+                    this.failedSubJobs, this.completedSubJobs);
             }
         }
     }

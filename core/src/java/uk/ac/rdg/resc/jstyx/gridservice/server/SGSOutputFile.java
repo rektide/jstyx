@@ -234,6 +234,12 @@ public class SGSOutputFile extends StyxFile implements JobChangeListener
     }
     
     /**
+     * Required by the JobChangeListener interface.  Does nothing here.
+     */
+    public void progressChanged(int numJobs, int runningJobs, int failedJobs,
+        int finishedJobs) {}
+    
+    /**
      * Required by the JobChangeListener interface.  Does nothing in this class.
      */
     public void gotExitCode(int exitCode) {}

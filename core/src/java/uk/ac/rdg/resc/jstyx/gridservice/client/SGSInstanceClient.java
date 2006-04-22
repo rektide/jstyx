@@ -428,6 +428,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // Start reading from the status file.  This will confirm when the service
         // is running, aborted, finished etc
         this.readServiceDataValueAsync("status");
+        // Start reading from the progress file.  This will give information on
+        // the total number of jobs, the number that have completed and the
+        // number that have failed
+        this.readServiceDataValueAsync("progress");
         this.ctlFile.writeAsync("start", 0);
     }
     
@@ -443,6 +447,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // Start reading from the status file.  This will confirm when the service
         // is running, aborted, finished etc
         this.readServiceDataValueAsync("status");
+        // Start reading from the progress file.  This will give information on
+        // the total number of jobs, the number that have completed and the
+        // number that have failed
+        this.readServiceDataValueAsync("progress");
         this.ctlFile.setContents("start");
         this.uploadToStdin();
     }

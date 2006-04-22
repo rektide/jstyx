@@ -102,7 +102,6 @@ public class CondorJob extends AbstractJob
     private File stdin;
     private OutputStream stdinStream;
     private String args; // The argument list as a String
-    private int numJobs; // The number of jobs that have been submitted;
     private String clusterID;   // the id of the whole job (Condor's cluster number)
     private boolean startMessageReceived; // True when we have received a message to start the job
     private boolean stdinReady; // True when the standard input data are ready
@@ -124,7 +123,6 @@ public class CondorJob extends AbstractJob
         this.stdinStream = null;
         this.stdout = new SGSOutputFile(new File(this.workDir, STDOUT_FILE), this);
         this.stderr = new SGSOutputFile(new File(this.workDir, STDERR_FILE), this);
-        this.numJobs = 0;
         this.clusterID = "";
         this.stopThreads = false;
         this.startMessageReceived = false;
@@ -194,6 +192,7 @@ public class CondorJob extends AbstractJob
                 new CondorStreamReader(proc.getErrorStream()).start();
                 // We just assume that the condor_rm command has worked
                 this.setStatus(StatusCode.ABORTED);
+                // TODO: set the progress 
             }
             catch (IOException ioe)
             {
@@ -213,6 +212,7 @@ public class CondorJob extends AbstractJob
         this.stopThreads = true;
         log.error(message);
         this.setStatus(StatusCode.ERROR, message);
+        // TODO: set the progress
     }
     
     /**
@@ -242,22 +242,34 @@ public class CondorJob extends AbstractJob
             {
                 // Prepare the directories for each individual job and get the number
                 // of jobs that will be run
-                this.numJobs = this.prepareJobDirectories();
+                int n = this.prepareJobDirectories();
+                log.debug("Prepared " + n + " job directories");
+                this.setNumSubJobs(n);
+                log.debug("Updated progress");
                 
-                // Set up the output files: these are tar files that will be added
-                // to when each individual job finishes
-                StyxFile[] outputFiles = this.instance.getOutputFiles();
-                for (int i = 0; i < outputFiles.length; i++)
+                if (n > 1)
                 {
-                    File outputFile = new File(this.workDir, outputFiles[i].getName());
-                    this.tarOutputStreams.put(outputFiles[i].getName(),
-                        new TarOutputStream(new FileOutputStream(outputFile)));
+                    // Set up the output files: these are tar files that will be added
+                    // to when each individual job finishes
+                    StyxFile[] outputFiles = this.instance.getOutputFiles();
+                    for (int i = 0; i < outputFiles.length; i++)
+                    {
+                        File outputFile = new File(this.workDir, outputFiles[i].getName());
+                        this.tarOutputStreams.put(outputFiles[i].getName(),
+                            new TarOutputStream(new FileOutputStream(outputFile)));
+                    }
                 }
                 
                 // Create the condor submit file in the working directory
                 PrintStream submitFile = new PrintStream(new FileOutputStream(
                     new File(this.workDir, SUBMIT_FILE)), true);
-
+                
+                // If this is a composite job (numSubJobs > 1), common files
+                // are kept in the root directory of the job, i.e. the parent
+                // directory of the subjob
+                String commonFilePrefix = (n > 1) ? ".."
+                    + StyxUtils.SYSTEM_FILE_SEPARATOR : "";
+                    
                 submitFile.println("########################");
                 submitFile.println("# Submit description file for instance " +
                     this.instance.getID());
@@ -267,16 +279,13 @@ public class CondorJob extends AbstractJob
                 submitFile.println("universe = vanilla");
                 if (this.stdin.exists())
                 {
-                    // The stdin file will be in the root directory of this instance
-                    submitFile.println("input = .." + StyxUtils.SYSTEM_FILE_SEPARATOR
-                        + STDIN_FILE);
+                    submitFile.println("input = " + commonFilePrefix + STDIN_FILE);
                 }
                 submitFile.println("output = " + STDOUT_FILE);
                 submitFile.println("error = " + STDERR_FILE);
-                submitFile.println("arguments = " + this.args);
+                submitFile.println("arguments = " + this.args);                
                 // We use the same log file for each job
-                submitFile.println("log = .." + StyxUtils.SYSTEM_FILE_SEPARATOR
-                    + LOG_FILE);
+                submitFile.println("log = " + commonFilePrefix + LOG_FILE);
                 
                 // Force Condor to transfer the files using its own mechanism.
                 // Not only should this work on more systems (doesn't rely on a
@@ -301,7 +310,7 @@ public class CondorJob extends AbstractJob
                         {
                             submitFile.print(", ");
                         }
-                        if (inputFiles[i] instanceof SGSInputFile.File)
+                        if (inputFiles[i] instanceof SGSInputFile.File && n > 1)
                         {
                             // There is only one version of this input file and
                             // it is found in the root directory of this instance
@@ -313,9 +322,17 @@ public class CondorJob extends AbstractJob
                 }
                 submitFile.println("");
                 
-                submitFile.println("initialdir = " + this.workDir.getPath()
-                    + StyxUtils.SYSTEM_FILE_SEPARATOR + "$(Process)");                
-                submitFile.println("queue " + this.numJobs);
+                if (n > 1)
+                {
+                    submitFile.println("initialdir = " + this.workDir.getPath()
+                        + StyxUtils.SYSTEM_FILE_SEPARATOR + "$(Process)");
+                    submitFile.println("queue " + this.numSubJobs);
+                }
+                else
+                {
+                    submitFile.println("initialdir = " + this.workDir.getPath());
+                    submitFile.println("queue");
+                }
 
                 submitFile.close();
 
@@ -329,10 +346,18 @@ public class CondorJob extends AbstractJob
             }
             catch(FileNotFoundException fnfe)
             {
+                if (log.isDebugEnabled())
+                {
+                    fnfe.printStackTrace();
+                }
                 throw new StyxException("Could not create condor submit file");
             }
             catch(IOException ioe)
             {
+                if (log.isDebugEnabled())
+                {
+                    ioe.printStackTrace();
+                }
                 throw new StyxException("Error running condor_submit: " + ioe.getMessage());
             }
         }
@@ -476,6 +501,8 @@ public class CondorJob extends AbstractJob
                                 {
                                     log.debug("Detected that job is executing");
                                     //setStatus(StatusCode.RUNNING);
+                                    // TODO: get the proper ID of the job
+                                    subJobStarted(0);
                                 }
                                 else
                                 {
@@ -484,15 +511,17 @@ public class CondorJob extends AbstractJob
                                     {
                                         // One of the sub-jobs has finished
                                         int jobID = Integer.parseInt(m.group(2));
-                                        log.debug("Job " + jobID + " finished");
+                                        // TODO: distinguish between failed and
+                                        // successful jobs
+                                        subJobCompleted(jobID);
                                         
-                                        copyOutputToTarFiles(jobID);
+                                        copyOutputToRootDirectory(jobID);
                                         
                                         // TODO get error code etc
                                         jobsComplete++;
-                                        if (jobsComplete == numJobs)
+                                        if (jobsComplete == numSubJobs)
                                         {
-                                            closeAllTarFiles();
+                                            closeAllOutputFiles();
                                             fireGotExitCode(0);
                                             setStatus(StatusCode.FINISHED);
                                             finished = true;
@@ -551,48 +580,58 @@ public class CondorJob extends AbstractJob
      * the tar files in the root directory for this whole job
      * @throws IOException if the data could not be copied to the tar files
      */
-    private void copyOutputToTarFiles(int jobID) throws IOException
+    private void copyOutputToRootDirectory(int jobID) throws IOException
     {
-        File jobWorkDir = new File(this.workDir, "" + jobID);
-        for (Enumeration names = this.tarOutputStreams.keys(); names.hasMoreElements(); )
+        if (this.numSubJobs > 1)
         {
-            String name = (String)names.nextElement();
-            File file = new File(jobWorkDir, name);
-            TarEntry tarEntry = new TarEntry(name + "." + jobID);
-            tarEntry.setSize(file.length());
-            TarOutputStream tos = (TarOutputStream)this.tarOutputStreams.get(name);
-            tos.putNextEntry(tarEntry);
-            FileInputStream fin = new FileInputStream(file);
-            // Copy the file to the tar stream
-            int n;
-            byte[] b = new byte[8192];
-            do
+            File jobWorkDir = new File(this.workDir, "" + jobID);
+            for (Enumeration names = this.tarOutputStreams.keys(); names.hasMoreElements(); )
             {
-                n = fin.read(b);
-                if (n >= 0)
+                String name = (String)names.nextElement();
+                File file = new File(jobWorkDir, name);
+                TarEntry tarEntry = new TarEntry(name + "." + jobID);
+                tarEntry.setSize(file.length());
+                TarOutputStream tos = (TarOutputStream)this.tarOutputStreams.get(name);
+                tos.putNextEntry(tarEntry);
+                FileInputStream fin = new FileInputStream(file);
+                // Copy the file to the tar stream
+                int n;
+                byte[] b = new byte[8192];
+                do
                 {
-                    tos.write(b, 0, n);
-                }
-            } while (n >= 0);
-            fin.close();
-            tos.closeEntry();
+                    n = fin.read(b);
+                    if (n >= 0)
+                    {
+                        tos.write(b, 0, n);
+                    }
+                } while (n >= 0);
+                fin.close();
+                tos.closeEntry();
+            }
+            log.debug("Copied output from job " + jobID + " to tar output files");
         }
-        log.debug("Copied output from job " + jobID + " to tar output files");
+        else
+        {
+            // We don't need to copy any files
+        }
     }
     
     /**
      * Closes all the tar output files
      * @throws IOException if the data could not be copied to the tar files
      */
-    private void closeAllTarFiles() throws IOException
+    private void closeAllOutputFiles() throws IOException
     {
-        for (Enumeration names = this.tarOutputStreams.keys(); names.hasMoreElements(); )
+        if (this.numSubJobs > 1)
         {
-            TarOutputStream tos =
-                (TarOutputStream)this.tarOutputStreams.get(names.nextElement());
-            tos.close();
+            for (Enumeration names = this.tarOutputStreams.keys(); names.hasMoreElements(); )
+            {
+                TarOutputStream tos =
+                    (TarOutputStream)this.tarOutputStreams.get(names.nextElement());
+                tos.close();
+            }
+            log.debug("Closed all tar output files");
         }
-        log.debug("Closed all tar output files");
     }
     
     /**

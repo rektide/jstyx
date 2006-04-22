@@ -46,6 +46,18 @@ public interface JobChangeListener
     public void statusChanged(StatusCode newStatus, String message);
     
     /**
+     * Called when the progress of the job changes.
+     * @param numJobs The total number of sub-jobs in this service
+     * @param runningJobs The number of sub-jobs that are in progress (started
+     * but not finished)
+     * @param failedJobs The number of sub-jobs that have failed
+     * @param finishedJobs The number of sub-jobs that have finished (including
+     * those that have completed normally and those that have failed)
+     */
+    public void progressChanged(int numJobs, int runningJobs, int failedJobs,
+        int finishedJobs);
+    
+    /**
      * Called when we have the exit code of the job 
      * @param exitCode The exit code of the job
      */

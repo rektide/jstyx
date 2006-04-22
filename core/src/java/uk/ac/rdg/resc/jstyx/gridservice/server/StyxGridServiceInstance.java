@@ -222,6 +222,7 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     private File workDir; // The working directory of this instance
     private AbstractJob job;
     private ServiceDataElement status; // The status of the service
+    private ServiceDataElement progress; // The progress of the service (number of jobs, completed, failed)
     private ExitCodeFile exitCodeFile; // The exit code from the executable
     private StyxDirectory inputsDir; // Contains the input files
     private StyxDirectory outputsDir; // Contains the output files
@@ -362,6 +363,12 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
         // Add the default SDEs that all services have
         this.status = new StringServiceDataElement("status", true, "created");
         serviceDataDir.addChild(this.status.getAsyncStyxFile());
+        // The three numbers in the progress meter show the total number of 
+        // "units" in a job (e.g. the number of subjobs in a CondorJob), the
+        // number that are running, the number that have failed and the number
+        // that are complete (including failed jobs)
+        this.progress = new StringServiceDataElement("progress", true, "");
+        serviceDataDir.addChild(this.progress.getAsyncStyxFile());
         this.exitCodeFile = new ExitCodeFile();
         serviceDataDir.addChild(this.exitCodeFile); 
         // Add the rest of the SDEs
@@ -370,7 +377,8 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
             SDEConfig sde = (SDEConfig)serviceDataElements.get(i);
             // Look for the special SDEs.
             if (sde.getName().equals("status") ||
-                sde.getName().equals("exitCode"))
+                sde.getName().equals("exitCode") ||
+                sde.getName().equals("progress"))
             {
                 // Ignore these: these are default SDEs that we will add automatically
                 // TODO should we throw an exception here and treat these as
@@ -378,7 +386,8 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
             }
             else
             {
-                // This is a custom SDE
+                // This is a custom SDE, whose value is given by the contents
+                // of a file that is specified in the config file
                 if (sde.getFilePath().equalsIgnoreCase(""))
                 {
                     throw new StyxException("Service data element " +
@@ -903,6 +912,25 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
             this.status.setValue(statusCode.getText() + msg);
         }
     }
+    
+    /**
+     * Called by the Job object when the progress of the job changes.  This 
+     * sets the new status value in the progress file and hence notifies waiting
+     * clients of the new progress.
+     * @param numJobs The total number of sub-jobs in this service
+     * @param runningJobs The number of sub-jobs that are in progress (started
+     * but not finished)
+     * @param failedJobs The number of sub-jobs that have failed
+     * @param finishedJob The number of sub-jobs that have finished (including
+     * those that have completed normally and those that have failed)
+     */
+    public void progressChanged(int numJobs, int runningJobs, int failedJobs,
+        int finishedJobs)
+    {
+        this.progress.setValue(numJobs + " " + runningJobs + " " + failedJobs
+            + " " + finishedJobs);
+    }
+    
     
     /**
      * Called by the Job object when we have the exit code of the job 

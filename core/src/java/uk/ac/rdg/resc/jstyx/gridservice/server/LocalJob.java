@@ -118,6 +118,7 @@ public class LocalJob extends AbstractJob
      */
     public void start() throws StyxException
     {
+        this.setNumSubJobs(1);
         try
         {
             this.process = runtime.exec(this.command + " " + this.argList, null,
@@ -144,6 +145,7 @@ public class LocalJob extends AbstractJob
 
             // Notify listeners that the job has started
             this.setStatus(StatusCode.RUNNING);
+            this.subJobStarted(0);
         }
         catch(IOException ioe)
         {
@@ -170,6 +172,7 @@ public class LocalJob extends AbstractJob
             {
                 this.process.destroy();
                 this.setStatus(StatusCode.ABORTED);
+                this.subJobFailed(0);
             }
         }
     }
@@ -183,6 +186,7 @@ public class LocalJob extends AbstractJob
         log.error(message);
         this.process.destroy();
         this.setStatus(StatusCode.ERROR, message);
+        this.subJobFailed(0);
     }
 
     // Thread that waits for the executable to finish, then sets the status
@@ -203,6 +207,7 @@ public class LocalJob extends AbstractJob
                         // don't set the status if we have terminated abnormally
                         setStatus(StatusCode.FINISHED, "took " +
                             (float)duration / 1000 + " seconds.");
+                        subJobCompleted(0);
                     }
                     fireGotExitCode(exitCodeVal);
                 }
