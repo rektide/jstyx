@@ -67,6 +67,24 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
  */
 public class SGSInstanceClientChangeAdapter implements SGSInstanceClientChangeListener
 {
+    /**
+     * Called when the status of the service changes
+     */
+    public void statusChanged(String newStatus) {}
+    
+    /**
+     * Called when the progress of the service changes.  This will be called for
+     * the first time just after the service has started.
+     * @param numJobs The total number of sub-jobs in this service (will not
+     * change)
+     * @param runningJobs The number of sub-jobs that are in progress (started
+     * but not finished)
+     * @param failedJobs The number of sub-jobs that have failed
+     * @param finishedJobs The number of sub-jobs that have finished (including
+     * those that have completed normally and those that have failed)
+     */
+    public void progressChanged(int numJobs, int runningJobs, int failedJobs,
+        int finishedJobs) {}
     
     /**
      * Called when the given service data element changes

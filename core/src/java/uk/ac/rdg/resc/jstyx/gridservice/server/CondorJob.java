@@ -245,7 +245,6 @@ public class CondorJob extends AbstractJob
                 int n = this.prepareJobDirectories();
                 log.debug("Prepared " + n + " job directories");
                 this.setNumSubJobs(n);
-                log.debug("Updated progress");
                 
                 if (n > 1)
                 {
@@ -514,7 +513,6 @@ public class CondorJob extends AbstractJob
                                         // TODO: distinguish between failed and
                                         // successful jobs
                                         subJobCompleted(jobID);
-                                        
                                         copyOutputToRootDirectory(jobID);
                                         
                                         // TODO get error code etc
@@ -577,7 +575,8 @@ public class CondorJob extends AbstractJob
     
     /**
      * Copies all the output files from the given subjob (which has completed) into
-     * the tar files in the root directory for this whole job
+     * the tar files in the root directory for this whole job.  If this is not a
+     * composite job (i.e. if there is only a single job) this method does nothing
      * @throws IOException if the data could not be copied to the tar files
      */
     private void copyOutputToRootDirectory(int jobID) throws IOException

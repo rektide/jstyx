@@ -1055,6 +1055,11 @@ public class SGSInstanceGUI extends JFrame implements SGSInstanceClientChangeLis
      */
     public void gotExitCode(int exitCode) {}
     
+    public void progressChanged(int numJobs, int runningJobs, int failedJobs,
+        int finishedJobs) {}
+    
+    public void statusChanged(String newStatus) {}
+    
 }
 
 

@@ -478,22 +478,10 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     }
     
     /**
-     * Starts the service and begins reading from the output streams
-     * @throws StyxException if there was an error starting the service
+     * Sets the destinations (local files) for all the output streams that we
+     * will read from the server
      */
-    public void start() throws StyxException
-    {
-        // Start the service.
-        this.instanceClient.startService();
-        log.debug("Service started");
-    }
-    
-    /**
-     * Starts reading from the output files.  Note that we have
-     * already set the destinations for the outputs that are set via a parameter
-     * in the setParameters() method
-     */
-    public void readOutputFiles() throws StyxException, FileNotFoundException
+    public void setOutputDestinations() throws FileNotFoundException
     {
         // Go through all the output files in the config object.  Each of these
         // will be represented by a file in the server's namespace
@@ -508,10 +496,10 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
                 // The name of this output file is specified by the value of the
                 // parameter with the same name
                 String filename = this.result.getStringArray(output.getName())[0].trim();
-                PrintStream prtStr = this.getPrintStream(filename);
                 if (allRefs || filename.endsWith(".sgsref"))
                 {
                     // We output a reference to this file
+                    PrintStream prtStr = this.instanceClient.getPrintStream(filename);
                     prtStr.print("readfrom:" +
                         this.instanceClient.getOutputFileURL(output.getName()));
                     prtStr.close();
@@ -520,17 +508,17 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
                 {
                     // We must redirect this output to the filename that was given
                     // by the parameter value
-                    this.instanceClient.redirectOutput(output.getName(), prtStr);
-                    log.debug("Started reading from " + output.getName());
+                    this.instanceClient.setOutputDestination(output.getName(),
+                        filename);
                     downloading = true;
                 }
             }
             else
             {
                 // This is a fixed-name file or a standard stream
-                PrintStream prtStr = this.getPrintStream(output.getName());
                 if (allRefs || this.result.getBoolean("sgs-ref-" + output.getName()))
                 {
+                    PrintStream prtStr = this.instanceClient.getPrintStream(output.getName());
                     prtStr.print("readfrom:" + this.instanceClient.getOutputFileURL(output.getName()));
                     if (prtStr != System.out && prtStr != System.err)
                     {
@@ -539,8 +527,8 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
                 }
                 else
                 {
-                    this.instanceClient.redirectOutput(output.getName(), prtStr);
-                    log.debug("Started reading from " + output.getName());
+                    this.instanceClient.setOutputDestination(output.getName(),
+                        output.getName());
                     downloading = true;
                 }
             }
@@ -552,26 +540,14 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
     }
     
     /**
-     * @return a PrintStream for the given output file name.  If a file with the
-     * given name already exists, this truncates the file to zero length.
-     * @throws FileNotFoundException if the file exists but is a directory.
+     * Starts the service and begins reading from the output streams
+     * @throws StyxException if there was an error starting the service
      */
-    private PrintStream getPrintStream(String filename) throws FileNotFoundException
+    public void start() throws StyxException
     {
-        if (filename.equals("stdout"))
-        {
-            return System.out;
-        }
-        else if (filename.equals("stderr"))
-        {
-            return System.err;
-        }
-        else
-        {
-            // The PrintStream(filename) constructor is only available in
-            // Java 1.5 and above.
-            return new PrintStream(new FileOutputStream(filename));
-        }
+        // Start the service.
+        this.instanceClient.startService();
+        log.debug("Service started");
     }
     
     /**
@@ -583,11 +559,43 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         {
             System.out.println(sdName + " = " + newData);
         }
+    }
+    /**
+     * Called when the status of the service changes
+     */
+    public void statusChanged(String newStatus)
+    {
+        if (this.debug)
+        {
+            System.out.println("Status: " + newStatus);
+        }
         // TODO: this logic is a little fragile
-        if (sdName.equals("status") && newData.startsWith("error"))
+        if (newStatus.startsWith("error"))
         {
             // We have an error message
-            this.error(newData);
+            this.error(newStatus);
+        }
+    }
+    
+    /**
+     * Called when the progress of the service changes.  This will be called for
+     * the first time just after the service has started.
+     * @param numJobs The total number of sub-jobs in this service (will not
+     * change)
+     * @param runningJobs The number of sub-jobs that are in progress (started
+     * but not finished)
+     * @param failedJobs The number of sub-jobs that have failed
+     * @param finishedJobs The number of sub-jobs that have finished (including
+     * those that have completed normally and those that have failed)
+     */
+    public void progressChanged(int numJobs, int runningJobs, int failedJobs,
+        int finishedJobs)
+    {
+        if (this.debug || numJobs > 1)
+        {
+            System.out.println("Jobs: " + runningJobs + " running, " +
+                failedJobs + " failed, " + finishedJobs + " completed out of "
+                + numJobs);
         }
     }
     
@@ -704,11 +712,11 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
             // Set the input sources
             runner.setInputSources();
             
+            // Set the output destinations
+            runner.setOutputDestinations();
+            
             // Start the service
             runner.start();
-            
-            // Start reading from the output files
-            runner.readOutputFiles();
             
             // Note that the program will carry on running until all the streams
             // are closed

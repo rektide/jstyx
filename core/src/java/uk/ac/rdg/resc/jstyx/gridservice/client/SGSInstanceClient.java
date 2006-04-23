@@ -47,6 +47,12 @@ import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.UnknownHostException;
 
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+
+import org.apache.tools.tar.TarInputStream;
+import org.apache.tools.tar.TarEntry;
+
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
 
@@ -60,6 +66,7 @@ import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.CStyxFileChangeAdapter;
 import uk.ac.rdg.resc.jstyx.client.CStyxFile;
+import uk.ac.rdg.resc.jstyx.client.CStyxFileInputStream;
 import uk.ac.rdg.resc.jstyx.client.CStyxFileOutputStream;
 import uk.ac.rdg.resc.jstyx.client.MessageCallback;
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
@@ -222,7 +229,8 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * Added Styx Grid Service classes to core module
  *
  * Revision 1.4  2005/03/16 17:59:35  jonblower
- * Changed following changes to core JStyx library (replacement of java.nio.ByteBuffers with MINA's ByteBuffers)
+ * Changed following changes to core JStyx library
+ *  (replacement of java.nio.ByteBuffers with MINA's ByteBuffers)
  *
  * Revision 1.2  2005/02/21 18:12:29  jonblower
  * Following changes to core JStyx library
@@ -263,7 +271,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     private Hashtable/*<SGSInput, Vector<String or File>*/ filesToUpload;
     
     // The destinations for files that we shall download from the service
-    private Hashtable/*<CStyxFile, PrintStream>*/ filesToDownload;
+    private Hashtable/*<CStyxFile, String>*/ filesToDownload;
+    // The PrintStreams that are used as destinations for output files
+    private Hashtable/*<CStyxFile, PrintStream>*/ printStreams;
     
     // Output streams
     private CStyxFile[] outputFiles;
@@ -287,6 +297,13 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     
     // SGSInstanceClientChangeListeners that are listening for changes to this SGS instance
     private Vector changeListeners;
+    
+    // This regexp pattern is used to find the number of jobs, the number of 
+    // completed jobs etc
+    private static final Pattern PROGRESS_PATTERN =
+        Pattern.compile("([0-9]*) ([0-9]*) ([0-9]*) ([0-9]*)");
+    
+    private boolean startedReadingOutputFiles;
     
     /**
      * Creates a new SGSInstanceClient for an instance that has its root in the
@@ -395,7 +412,10 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         this.changeListeners = new Vector();
         this.filesToUpload = new Hashtable();
         this.filesToDownload = new Hashtable();
+        this.printStreams = new Hashtable();
         this.filesBeingRead = new Vector();
+        
+        this.startedReadingOutputFiles = false;
     }
     
     /**
@@ -433,6 +453,8 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
         // number that have failed
         this.readServiceDataValueAsync("progress");
         this.ctlFile.writeAsync("start", 0);
+        // We'll start uploading to stdin when we get confirmation that the 
+        // service has started
     }
     
     /**
@@ -461,6 +483,78 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public StyxConnection getConnection()
     {
         return this.instanceRoot.getConnection();
+    }
+    
+    /**
+     * Starts reading from the output files.  This is called automatically
+     * when we get confirmation of the number of sub-jobs in this service
+     * (see dataArrived()).
+     * If there is only one sub-job, the output files are treated as normal
+     * data; if there is more than one sub-job, the output files are tar files
+     * and will be extracted automatically.  
+     * @param numSubJobs the number of sub-jobs in this service.
+     */
+    private void startReadingOutputFiles(int numSubJobs)
+    {
+        log.debug("There are " + this.filesToDownload.size() + " files to" +
+            " download");
+        // Cycle through each file to download
+        for (Enumeration en = this.filesToDownload.keys(); en.hasMoreElements(); )
+        {
+            CStyxFile file = (CStyxFile)en.nextElement();
+            String destName = (String)this.filesToDownload.get(file);
+            try
+            {
+                if (numSubJobs > 1)
+                {
+                    // This will be a composite output stream
+                    new TarStreamReader(file, destName).start();
+                }
+                else
+                {
+                    // This is just a straight output stream.  Create a PrintStream
+                    // to hold the output
+                    PrintStream prtStr = this.getPrintStream(destName);
+                    this.printStreams.put(file, prtStr);
+                    file.addChangeListener(this);
+                    file.readAsync(0);
+                }
+                log.debug("Started reading from " + file.getPath());
+            }
+            catch(FileNotFoundException fnfe)
+            {
+                // This is called if the TarStreamReader could not be created
+                // or if a PrintStream could not be created.
+                if (log.isDebugEnabled())
+                {
+                    fnfe.printStackTrace();
+                }
+                this.fireError("Error reading from output files: " + fnfe.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * @return a PrintStream for the given output file name.  If a file with the
+     * given name already exists, this truncates the file to zero length.
+     * @throws FileNotFoundException if the file exists but is a directory.
+     */
+    public PrintStream getPrintStream(String filename) throws FileNotFoundException
+    {
+        if (filename.equals("stdout"))
+        {
+            return System.out;
+        }
+        else if (filename.equals("stderr"))
+        {
+            return System.err;
+        }
+        else
+        {
+            // The PrintStream(filename) constructor is only available in
+            // Java 1.5 and above.
+            return new PrintStream(new FileOutputStream(filename));
+        }
     }
     
     /**
@@ -585,6 +679,16 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * Gets a <b>new</b> handle to the output file with the given name (this
+     * method will return a new handle with each invocation to avoid clashes.
+     * It performs no checks to see if the file actually exists.
+     */
+    public CStyxFile getOutputFile(String name)
+    {
+        return this.instanceRoot.getFile("outputs/" + name);
+    }
+    
+    /**
      * @return the full URL to the output file with the given name
      * @throws IllegalArgumentException if there is no file with the given name
      */
@@ -703,6 +807,21 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
+     * Reads the value of the given piece of service data.  This is a blocking
+     * method: it will return when the server responds with the service
+     * data value.
+     * @param sdeName The name of the service data element
+     * @throws StyxException if there was an error reading the service data
+     */
+    public String getServiceDataValue(String sdeName) throws StyxException
+    {
+        // Get a new handle to this file to prevent interfering with other 
+        // handles to this file that might be open
+        CStyxFile sdeFile = this.instanceRoot.getFile("serviceData/" + sdeName);
+        return sdeFile.getContents();
+    }
+    
+    /**
      * Sends messages to get the current value of all parameters.
      * When the parameter value is returned, the gotParameterValue()
      * event will be fired on all registered change listeners.  You only need
@@ -811,54 +930,37 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     }
     
     /**
-     * Starts reading data from the given output file and redirects the data
-     * to the given PrintStream.  The same output cannot be redirected to multiple
+     * Sets the location for the output from a given output stream.  The output
+     * will not actually be read until the service has started and we have
+     * confirmation of the number of sub-jobs in the service.
+     * The same output cannot be redirected to multiple
      * destinations (currently) so calling this method multiple times on the same
      * output file name will have no effect.
-     * @param outputFileName Name of the output file (as returned by
+     * @param outputStream Name of the output stream (as returned by
      * getOutputFileNames())
-     * @param dest The PrintStream (e.g. System.out) to which the data will be
-     * written.
+     * @param dest The name of the file to which the data will be written (in
+     * the case of a composite job (i.e. a job with more than one sub-job), 
+     * this will be created as a directory.
      * @throws IllegalArgumentException if there is no output file with the
      * given name
      */
-    public void redirectOutput(String outputFileName, PrintStream dest)
+    public void setOutputDestination(String outputStreamName, String destFileName)
     {
         for (int i = 0; i < this.outputFiles.length; i++)
         {
-            if (outputFileName.equals(this.outputFiles[i].getName()))
+            if (outputStreamName.equals(this.outputFiles[i].getName()))
             {
                 // Don't do anything if we're already downloading from this file
                 if (!this.filesToDownload.containsKey(this.outputFiles[i]))
                 {
-                    this.filesToDownload.put(this.outputFiles[i], dest);
-                    this.outputFiles[i].addChangeListener(this);
-                    this.outputFiles[i].readAsync(0);
+                    this.filesToDownload.put(this.outputFiles[i], destFileName);
+                    log.debug("Set destination for " + outputStreamName + ": "
+                        + destFileName);
                 }
                 return;
             }
         }
-        throw new IllegalArgumentException(outputFileName + " is not a valid output file");
-    }
-        
-    /**
-     * Starts reading data from the given output file and redirects the data
-     * to the given local File.  The same output cannot be redirected to multiple
-     * destinations (currently) so calling this method multiple times on the same
-     * output file name will have no effect.
-     * @param outputFileName Name of the output file (as returned by
-     * getOutputFileNames())
-     * @param file the local file to which the data will be written.
-     * @throws FileNotFoundException if the local target file could not be
-     * created.
-     * @throws IllegalArgumentException if there is no output file with the
-     * given name
-     */
-    public void redirectOutput(String outputFileName, File file)
-        throws FileNotFoundException
-    {
-        this.redirectOutput(outputFileName,
-            new PrintStream(new FileOutputStream(file)));
+        throw new IllegalArgumentException(outputStreamName + " is not a valid output file");
     }
     
     /**
@@ -1395,7 +1497,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     {
         // Get the PrintStream that belongs to this file.  This will only give
         // a PrintStream if the file is an output file
-        PrintStream prtStr = (PrintStream)this.filesToDownload.get(file);
+        PrintStream prtStr = (PrintStream)this.printStreams.get(file);
         StringBuffer strBuf = null;
         if (prtStr == null)
         {
@@ -1479,7 +1581,39 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
                                 strBuf.toString() + ")");
                         }
                     }
-                    this.fireGotServiceDataValue(file.getName(), strBuf.toString());
+                    else if (file.getName().equals("status"))
+                    {
+                        this.fireStatusChanged(strBuf.toString());
+                    }
+                    else if (file.getName().equals("progress"))
+                    {
+                        log.debug("Got progress: " + strBuf.toString());
+                        Matcher m = PROGRESS_PATTERN.matcher(strBuf.toString());
+                        if (m.matches())
+                        {
+                            int numSubJobs = Integer.parseInt(m.group(1));
+                            if (!this.startedReadingOutputFiles)
+                            {
+                                this.startedReadingOutputFiles = true;
+                                log.debug("Starting to read from output files");
+                                this.startReadingOutputFiles(numSubJobs);
+                            }
+                            int runningJobs = Integer.parseInt(m.group(2));
+                            int failedJobs = Integer.parseInt(m.group(3));
+                            int finishedJobs = Integer.parseInt(m.group(4));
+                            this.fireProgressChanged(numSubJobs, runningJobs,
+                                failedJobs, finishedJobs);
+                        }
+                        else
+                        {
+                            // Do nothing. The server hasn't set the progress
+                            // information yet
+                        }
+                    }
+                    else
+                    {
+                        this.fireGotServiceDataValue(file.getName(), strBuf.toString());
+                    }
                 }
             }
             // Now check to see if this is a parameter file
@@ -1550,6 +1684,88 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
     public void close()
     {
         this.instanceRoot.getConnection().close();
+    }
+    
+    /**
+     * Thread that downloads data in tar format from the SGS instance.  It 
+     * creates a new directory for the data and extracts the tar archive into
+     * this directory as it is read.
+     */
+    private class TarStreamReader extends Thread
+    {
+        private CStyxFile stream;
+        private TarInputStream tin;
+        private File dir;
+        
+        /**
+         * @param stream The CStyxFile representing the stream from which
+         * we are reading
+         * @param dirName The name of the local directory that will hold 
+         * the extracted data.  If a file (i.e. not a directory) already exists
+         * with this name it will be overwritten. (TODO prompt first)
+         * @throws FileNotFoundException if the output directory could not be created
+         */
+        public TarStreamReader(CStyxFile stream, String dirName)
+            throws FileNotFoundException
+        {
+            this.stream = stream;
+            // Get a handle to the stream
+            this.tin = new TarInputStream(new CStyxFileInputStream(stream));
+            // Create the directory if it does not already exist
+            this.dir = new File(dirName);
+            if (this.dir.exists() && !this.dir.isDirectory())
+            {
+                // TODO prompt for confirmation here
+                log.debug("Deleting file " + dirName);
+                this.dir.delete();
+            }
+            if (!this.dir.mkdir())
+            {
+                throw new FileNotFoundException("Could not create output directory "
+                    + dirName);
+            }
+        }
+        
+        public void run()
+        {
+            log.debug("Started reading from tar file " + this.stream.getName());
+            TarEntry tarEntry = null;
+            try
+            {
+                do
+                {
+                    tarEntry = this.tin.getNextEntry();
+                    if (tarEntry != null)
+                    {
+                        // Create a new file for this data
+                        File f = new File(this.dir, tarEntry.getName());
+                        FileOutputStream fos = new FileOutputStream(f);
+                        this.tin.copyEntryContents(fos);
+                        fos.close();
+                        log.debug("Read file " + tarEntry.getName() + " from tar"
+                            + " file " + this.stream.getName());
+                    }
+                } while (tarEntry != null);
+                log.debug("Finished reading from tar file " + this.stream.getName());
+            }
+            catch (IOException ioe)
+            {
+                if (log.isDebugEnabled())
+                {
+                    ioe.printStackTrace();
+                }
+                fireError("IOException reading from tar stream " + this.stream.getName()
+                    + ": " + ioe.getMessage());
+            }
+            finally
+            {
+                filesToDownload.remove(this.stream);
+                if (filesToDownload.size() == 0)
+                {
+                    fireAllOutputDataDownloaded();
+                }
+            }
+        }
     }
     
     /**
@@ -1749,6 +1965,46 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             {
                 listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
                 listener.allOutputDataDownloaded();
+            }
+        }
+    }
+    
+    /**
+     * Fires the statusChanged() event on all registered change listeners
+     * @param String describing the new status
+     */
+    private void fireStatusChanged(String newStatus)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceClientChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
+                listener.statusChanged(newStatus);
+            }
+        }
+    }
+    
+    /**
+     * Fires the progressChanged() event on all registered change listeners
+     * @param numJobs The total number of sub-jobs in this service
+     * @param runningJobs The number of sub-jobs that are in progress (started
+     * but not finished)
+     * @param failedJobs The number of sub-jobs that have failed
+     * @param finishedJobs The number of sub-jobs that have finished (including
+     * those that have completed normally and those that have failed)
+     */
+    private void fireProgressChanged(int numJobs, int runningJobs, int failedJobs,
+        int finishedJobs)
+    {
+        synchronized(this.changeListeners)
+        {
+            SGSInstanceClientChangeListener listener;
+            for (int i = 0; i < this.changeListeners.size(); i++)
+            {
+                listener = (SGSInstanceClientChangeListener)this.changeListeners.get(i);
+                listener.progressChanged(numJobs, runningJobs, failedJobs, finishedJobs);
             }
         }
     }
