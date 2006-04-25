@@ -140,7 +140,7 @@ public abstract class GeneralCachingStreamReader
         }
         
         this.cache = new RandomAccessFile(this.cacheFile, "rw");
-        log.info("Created cache file " + this.cacheFile.getPath());
+        log.debug("Created cache file " + this.cacheFile.getPath());
         
         this.cacheLength = 0;
         this.globEx = null;
