@@ -28,9 +28,9 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import org.apache.mina.protocol.ProtocolCodecFactory;
-import org.apache.mina.protocol.ProtocolDecoder;
-import org.apache.mina.protocol.ProtocolEncoder;
+import org.apache.mina.filter.codec.ProtocolCodecFactory;
+import org.apache.mina.filter.codec.ProtocolDecoder;
+import org.apache.mina.filter.codec.ProtocolEncoder;
 
 /**
  * Codec Factory for the Styx protocol. Only has one static method (getInstance())
@@ -54,13 +54,13 @@ public class StyxCodecFactory
      */
     private static ProtocolCodecFactory CODEC_FACTORY = new ProtocolCodecFactory()
     {
-        public ProtocolEncoder newEncoder()
+        public ProtocolEncoder getEncoder()
         {
             // Create a new encoder.
             return new StyxMessageEncoder();
         }
         
-        public ProtocolDecoder newDecoder()
+        public ProtocolDecoder getDecoder()
         {
             // Create a new decoder.
             return new StyxMessageDecoder();

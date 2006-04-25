@@ -29,8 +29,10 @@
 package uk.ac.rdg.resc.jstyx.server;
 
 import org.apache.mina.common.IdleStatus;
-import org.apache.mina.protocol.ProtocolHandler;
-import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.common.IoHandler;
+import org.apache.mina.common.IoSession;
+import org.apache.mina.filter.codec.ProtocolCodecFactory;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
 
 import org.apache.log4j.Logger;
 
@@ -110,7 +112,7 @@ import uk.ac.rdg.resc.jstyx.messages.*;
  * Initial import
  *
  */
-public class StyxServerProtocolHandler implements ProtocolHandler
+public class StyxServerProtocolHandler implements IoHandler
 {
     private static final Logger log = Logger.getLogger(StyxServerProtocolHandler.class);
     
@@ -128,18 +130,21 @@ public class StyxServerProtocolHandler implements ProtocolHandler
      * Invoked when the session is created.  Initialize default socket
      * parameters and user-defined attributes here.
      */
-    public void sessionCreated( ProtocolSession session ) throws Exception
+    public void sessionCreated( IoSession session ) throws Exception
     {
         log.info( session.getRemoteAddress() + " CREATED" );
+        ProtocolCodecFactory codec = StyxCodecFactory.getInstance();
+        session.getFilterChain().addFirst(
+            "protocolFilter", new ProtocolCodecFilter( codec ) );
     }
     
-    public void sessionOpened(ProtocolSession  session )
+    public void sessionOpened(IoSession  session )
     {
         log.info( session.getRemoteAddress() + " OPENED" );
         session.setAttachment(new StyxSessionState(session));
     }
     
-    public void sessionClosed(ProtocolSession session )
+    public void sessionClosed(IoSession session )
     {
         StyxSessionState sessionState = (StyxSessionState)session.getAttachment();
         sessionState.clunkAll();
@@ -147,7 +152,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         log.info( session.getRemoteAddress() + " CLOSED" );
     }
     
-    public void messageReceived(ProtocolSession session, Object message )
+    public void messageReceived(IoSession session, Object message )
     {
         if (log.isDebugEnabled())
         {
@@ -160,7 +165,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         // Get the tag for the message
         int tag = styxMessage.getTag();
         
-        // Get the object representing the ProtocolSession state
+        // Get the object representing the IoSession state
         StyxSessionState sessionState = (StyxSessionState)session.getAttachment();
         
         try
@@ -242,7 +247,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         }
     }
     
-    private void replyVersion(ProtocolSession session, StyxSessionState sessionState,
+    private void replyVersion(IoSession session, StyxSessionState sessionState,
         TversionMessage tVerMsg, int tag) throws StyxException
     {
         long proposedMessageSize = tVerMsg.getMaxMessageSize();
@@ -251,13 +256,13 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         {
             throw new StyxException("Error negotiating protocol version (must be 9P2000)");
         }
-        // Reset the ProtocolSession (aborts all outstanding i/o, sets the message
+        // Reset the IoSession (aborts all outstanding i/o, sets the message
         // size and confirms that the version has been negotiated)
         sessionState.resetSession(finalMessageSize);
         reply(session, new RversionMessage(finalMessageSize, "9P2000"), tag);
     }
     
-    private void replyAuth(ProtocolSession session, StyxSessionState sessionState,
+    private void replyAuth(IoSession session, StyxSessionState sessionState,
         TauthMessage tAuthMsg, int tag) throws StyxException
     {
         // This message isn't used by Inferno (which uses a different
@@ -287,7 +292,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         }
     }
     
-    private void replyAttach(ProtocolSession session, StyxSessionState sessionState,
+    private void replyAttach(IoSession session, StyxSessionState sessionState,
         TattachMessage tAttMsg, int tag) throws StyxException
     {
         if (!sessionState.isVersionNegotiated())
@@ -337,14 +342,14 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         reply(session, new RattachMessage(this.root.getQid()), tag);
     }
     
-    private void replyFlush(ProtocolSession session, StyxSessionState sessionState,
+    private void replyFlush(IoSession session, StyxSessionState sessionState,
         TflushMessage tFlushMsg, int tag) throws StyxException
     {
         sessionState.flushTag(tFlushMsg.getOldTag());
         reply(session, new RflushMessage(), tag);
     }
     
-    private void replyWalk(ProtocolSession session, StyxSessionState sessionState,
+    private void replyWalk(IoSession session, StyxSessionState sessionState,
         TwalkMessage tWalkMsg, int tag) throws StyxException
     {
         if (tWalkMsg.getNumPathElements() > StyxUtils.MAXPATHELEMENTS)
@@ -423,7 +428,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         reply(session, rWalkMsg, tag);
     }
     
-    private void replyOpen(ProtocolSession session, StyxSessionState sessionState,
+    private void replyOpen(IoSession session, StyxSessionState sessionState,
         TopenMessage tOpenMsg, int tag) throws StyxException
     {
         StyxFile sf = sessionState.getStyxFile(tOpenMsg.getFid());
@@ -440,7 +445,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         reply(session, new RopenMessage(sf.getQid(), sessionState.getIOUnit()), tag);
     }
     
-    private void replyCreate(ProtocolSession session, StyxSessionState sessionState,
+    private void replyCreate(IoSession session, StyxSessionState sessionState,
         TcreateMessage tCrtMsg, int tag) throws StyxException
     {
         StyxFile sf = sessionState.getStyxFile(tCrtMsg.getFid());
@@ -500,7 +505,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         reply(session, new RcreateMessage(newFile.getQid(), sessionState.getIOUnit()), tag);
     }
     
-    private void replyRead(ProtocolSession session, StyxSessionState sessionState,
+    private void replyRead(IoSession session, StyxSessionState sessionState,
         TreadMessage tReadMsg, int tag) throws StyxException
     {
         StyxFile sf = sessionState.getStyxFile(tReadMsg.getFid());
@@ -519,7 +524,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         sf.read(client, tReadMsg.getOffset().asLong(), tReadMsg.getCount(), tag);
     }
     
-    private void replyWrite(ProtocolSession session, StyxSessionState sessionState,
+    private void replyWrite(IoSession session, StyxSessionState sessionState,
         TwriteMessage tWriteMsg, int tag) throws StyxException
     {         
         StyxFile sf = sessionState.getStyxFile(tWriteMsg.getFid());
@@ -549,14 +554,14 @@ public class StyxServerProtocolHandler implements ProtocolHandler
             truncate, tag);
     }
     
-    private void replyClunk(ProtocolSession session, StyxSessionState sessionState,
+    private void replyClunk(IoSession session, StyxSessionState sessionState,
         TclunkMessage tClkMsg, int tag) throws StyxException
     {
         sessionState.clunk(tClkMsg.getFid());
         reply(session, new RclunkMessage(), tag);
     }
     
-    private void replyRemove(ProtocolSession session, StyxSessionState sessionState,
+    private void replyRemove(IoSession session, StyxSessionState sessionState,
         TremoveMessage tRmMsg, int tag) throws StyxException
     {
         StyxFile sf = sessionState.getStyxFile(tRmMsg.getFid());
@@ -590,7 +595,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         reply(session, new RremoveMessage(), tag);
     }
     
-    private void replyStat(ProtocolSession session, StyxSessionState sessionState,
+    private void replyStat(IoSession session, StyxSessionState sessionState,
         TstatMessage tStatMsg, int tag) throws StyxException
     {
         // Stat requests require no special permissions
@@ -599,7 +604,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         reply(session, new RstatMessage(sf.getDirEntry()), tag);
     }
     
-    private void replyWstat(ProtocolSession session, StyxSessionState sessionState,
+    private void replyWstat(IoSession session, StyxSessionState sessionState,
         TwstatMessage tWstatMsg, int tag) throws StyxException
     {
         DirEntry stat = tWstatMsg.getDirEntry();
@@ -732,7 +737,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         reply(session, new RwstatMessage(), tag);
     }
     
-    public void messageSent( ProtocolSession session, Object message )
+    public void messageSent( IoSession session, Object message )
     {
         if (log.isDebugEnabled())
         {
@@ -745,13 +750,13 @@ public class StyxServerProtocolHandler implements ProtocolHandler
         }
     }
     
-    public void sessionIdle( ProtocolSession session, IdleStatus status )
+    public void sessionIdle( IoSession session, IdleStatus status )
     {
         log.debug( session.getRemoteAddress() + " IDLE(" + status + ")" );
         // Sessions are never disconnected if they are idle - is this OK?
     }
     
-    public void exceptionCaught( ProtocolSession session, Throwable cause )
+    public void exceptionCaught( IoSession session, Throwable cause )
     {
         if (log.isDebugEnabled())
         {
@@ -765,7 +770,7 @@ public class StyxServerProtocolHandler implements ProtocolHandler
     /**
      * Convenience method for sending a message back to the client.
      */
-    public static void reply(ProtocolSession session, StyxMessage message, int tag)
+    public static void reply(IoSession session, StyxMessage message, int tag)
     {
         StyxSessionState sessionState = (StyxSessionState)session.getAttachment();
         synchronized(sessionState)

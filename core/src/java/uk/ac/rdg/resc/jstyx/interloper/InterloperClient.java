@@ -31,15 +31,10 @@ package uk.ac.rdg.resc.jstyx.interloper;
 import java.net.InetSocketAddress;
 import java.io.IOException;
 
-import org.apache.mina.io.IoFilter;
-import org.apache.mina.io.filter.IoThreadPoolFilter;
-import org.apache.mina.io.socket.SocketConnector;
-import org.apache.mina.protocol.ProtocolHandler;
-import org.apache.mina.protocol.ProtocolFilter;
-import org.apache.mina.protocol.ProtocolProvider;
-import org.apache.mina.protocol.ProtocolSession;
-import org.apache.mina.protocol.filter.ProtocolThreadPoolFilter;
-import org.apache.mina.protocol.io.IoProtocolConnector;
+import org.apache.mina.common.IoConnector;
+import org.apache.mina.transport.socket.nio.SocketConnector;
+import org.apache.mina.common.ConnectFuture;
+import org.apache.mina.common.IoSession;
 
 import org.apache.log4j.Logger;
 
@@ -77,10 +72,8 @@ public class InterloperClient
     
     private static final int CONNECT_TIMEOUT = 30; // seconds
     
-    private ProtocolSession session;
-    private ProtocolSession serverSession;
-    private IoThreadPoolFilter ioThreadPoolFilter;
-    private ProtocolThreadPoolFilter protocolThreadPoolFilter;
+    private IoSession session;
+    private IoSession serverSession;
     
     private InterloperListener listener;
     
@@ -88,7 +81,7 @@ public class InterloperClient
     
     /** Creates a new instance of InterloperClient */
     public InterloperClient(InetSocketAddress sockAddress,
-        ProtocolSession serverSession, InterloperListener listener)
+        IoSession serverSession, InterloperListener listener)
     {
         this.sockAddress = sockAddress;
         this.serverSession = serverSession;
@@ -101,40 +94,22 @@ public class InterloperClient
      */
     public boolean start()
     {
-        this.ioThreadPoolFilter = new IoThreadPoolFilter();
-        this.protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
 
-        this.ioThreadPoolFilter.start();
-        this.protocolThreadPoolFilter.start();
-
-        IoProtocolConnector connector = new IoProtocolConnector( new SocketConnector() );
+        IoConnector connector = new SocketConnector();
         
-        connector.getIoConnector().getFilterChain().addLast( "IO Thread pool filter",
-            ioThreadPoolFilter );
-        connector.getFilterChain().addLast( "Protocol Thread pool filter",
-            protocolThreadPoolFilter );
+        ConnectFuture future = connector.connect( this.sockAddress,
+            new StyxInterloperClientProtocolHandler(this.serverSession, this, this.listener) );
         
-        ProtocolProvider protocolProvider =
-            new StyxInterloperProtocolProvider(this.serverSession, this.listener);
-        
-        try
-        {
-            this.session = connector.connect( this.sockAddress, CONNECT_TIMEOUT,
-                protocolProvider );
-        }
-        catch( IOException e )
-        {
-            log.error("Failed to connect: " + e.getMessage());
-            return false;
-        }
         return true;
     }
     
     public void stop()
-    {        
-        // stop threads
-        this.ioThreadPoolFilter.stop();
-        this.protocolThreadPoolFilter.start();
+    {
+    }
+    
+    public void setSession(IoSession session)
+    {
+        this.session = session;
     }
     
     public void send(Object message)

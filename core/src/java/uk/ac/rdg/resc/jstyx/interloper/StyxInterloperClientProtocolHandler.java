@@ -29,12 +29,15 @@
 package uk.ac.rdg.resc.jstyx.interloper;
 
 import org.apache.mina.common.IdleStatus;
-import org.apache.mina.protocol.ProtocolHandler;
-import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.common.IoHandler;
+import org.apache.mina.common.IoSession;
+import org.apache.mina.filter.codec.ProtocolCodecFactory;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
 
 import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
+import uk.ac.rdg.resc.jstyx.messages.StyxCodecFactory;
 
 /**
  * Protocol handler for the StyxInterloperClient
@@ -59,20 +62,22 @@ import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
  * Initial import
  *
  */
-class StyxInterloperClientProtocolHandler implements ProtocolHandler
+class StyxInterloperClientProtocolHandler implements IoHandler
 {
     private static final Logger log = Logger.getLogger(StyxInterloperClientProtocolHandler.class);
     
-    private ProtocolSession serverSession;
+    private IoSession serverSession;
+    private InterloperClient client;
     private InterloperListener listener;
     
     private boolean connected;
     
-    public StyxInterloperClientProtocolHandler(ProtocolSession serverSession,
-        InterloperListener listener)
+    public StyxInterloperClientProtocolHandler(IoSession serverSession,
+        InterloperClient client, InterloperListener listener)
     {
         this.connected = false;
         this.serverSession = serverSession;
+        this.client = client;
         this.listener = listener;
     }
     
@@ -80,25 +85,28 @@ class StyxInterloperClientProtocolHandler implements ProtocolHandler
      * Invoked when the session is created.  Initialize default socket
      * parameters and user-defined attributes here.
      */
-    public void sessionCreated( ProtocolSession session ) throws Exception
+    public void sessionCreated( IoSession session ) throws Exception
     {
-        // TODO: not sure what we're supposed to do in this method
+        this.client.setSession(session);
+        ProtocolCodecFactory codec = StyxCodecFactory.getInstance();
+        session.getFilterChain().addLast(
+                "protocolFilter", new ProtocolCodecFilter( codec ) );
         log.info("Destination connection created.");
     }
     
-    public void sessionOpened(ProtocolSession session )
+    public void sessionOpened(IoSession session )
     {
         log.info("Destination connection established.");
         this.connected = true;
     }
     
-    public void sessionClosed(ProtocolSession session )
+    public void sessionClosed(IoSession session )
     {
         log.info("Destination connection closed.");
         this.connected = false;
     }
     
-    public void messageReceived(ProtocolSession session, Object message )
+    public void messageReceived(IoSession session, Object message )
     {
         if (log.isDebugEnabled())
         {
@@ -111,7 +119,7 @@ class StyxInterloperClientProtocolHandler implements ProtocolHandler
         this.serverSession.write(message);
     }
     
-    public void messageSent( ProtocolSession session, Object message )
+    public void messageSent( IoSession session, Object message )
     {
         if (log.isDebugEnabled())
         {
@@ -119,12 +127,12 @@ class StyxInterloperClientProtocolHandler implements ProtocolHandler
         }
     }
     
-    public void sessionIdle( ProtocolSession session, IdleStatus status )
+    public void sessionIdle( IoSession session, IdleStatus status )
     {
         // Sessions are never disconnected if they are idle - is this OK?
     }
     
-    public void exceptionCaught( ProtocolSession session, Throwable cause )
+    public void exceptionCaught( IoSession session, Throwable cause )
     {
         log.error(cause.getMessage());
     }

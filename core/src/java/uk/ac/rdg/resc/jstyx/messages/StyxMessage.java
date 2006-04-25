@@ -28,9 +28,11 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
+import java.io.Serializable;
+
 import org.apache.mina.common.ByteBuffer;
-import org.apache.mina.protocol.ProtocolViolationException;
-import org.apache.mina.protocol.ProtocolEncoderOutput;
+import org.apache.mina.filter.codec.ProtocolCodecException;
+import org.apache.mina.filter.codec.ProtocolEncoderOutput;
 
 import org.apache.log4j.Logger;
 
@@ -86,13 +88,10 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
  * Changed to fit with MINA framework
  *
  */
-public abstract class StyxMessage
+public abstract class StyxMessage implements Serializable
 {
     
     private static final Logger log = Logger.getLogger(StyxMessage.class);
-    
-    protected static final String lock = new String(); // Just used to synchronize
-                                                       // writes to the network
     
     protected int length;  // The length of the StyxMessage (although in Styx
                            // this is an *unsigned* int, we guarantee in
@@ -101,9 +100,11 @@ public abstract class StyxMessage
     protected short type;    // The type of the StyxMessage
     protected int tag;     // The tag of the StyxMessage
     protected String name; // The name of the message (e.g. "Tversion")
+    
     protected ByteBuffer buf; // Contains the bytes of the body of the
                               // StyxMessage (i.e. not the header)
     private int bytesRead;  // The number of bytes we have read into the buffer
+
     
     /**
      * Creates a new instance of StyxMessage.
@@ -114,8 +115,8 @@ public abstract class StyxMessage
         this.type = type;
         this.tag = tag;
         this.name = "StyxMessage"; // This will be overridden in subclasses
-        this.buf = null; // The buffer gets allocated later, when we're sure
                          // what the message length is
+        this.buf = null;
     }
     
     /**
@@ -159,14 +160,6 @@ public abstract class StyxMessage
     }
     
     /**
-     * @return the buffer containing the body of this message
-     */
-    public final ByteBuffer getBuffer()
-    {
-        return this.buf;
-    }
-    
-    /**
      * @return the fid associated with this message. This default implementation
      * returns StyxUtils.NOFID; subclasses should override this.  This method
      * only exists in this superclass as a convenience for the StyxMon application.
@@ -177,146 +170,45 @@ public abstract class StyxMessage
     }
     
     /**
-     * Read bytes from the given ByteBuffer into this Message. There may still
-     * be bytes remaining in the input buffer after this method has been called.
-     * @param in The org.apache.mina.common.ByteBuffer that contains the data.
-     * @return true if we now have a complete StyxMessage, false otherwise
-     * @throws ProtocolViolationException if the bytes do not represent a valid
-     * StyxMessage
-     */
-    public final boolean readBytesFrom(ByteBuffer in) throws ProtocolViolationException
-    {
-        int bodyLength = this.length - StyxUtils.HEADER_LENGTH;
-        if (bodyLength == 0)
-        {
-            // We don't need to read any bytes; this message has no body
-            return true;
-        }
-        if (this.buf == null)
-        {
-            this.bytesRead = 0;
-            // This is the first time we've called this method for this
-            // message.
-            if (in.remaining() == bodyLength)
-            {
-                // If the input buffer contains the full body of the message (and
-                // nothing more) we can just use the input buffer.  This is a very
-                // common occurrence in practice.
-                // TODO: should we allow this to happen if in.remaining() > bodyLength?
-                log.debug("input buffer contains a whole message; won't create new buffer");
-                // Increment the reference count for this buffer so it doesn't get
-                // released before we want it to be
-                in.acquire();
-                this.buf = in;
-                this.bytesRead = bodyLength; // Signify that we have read all of the body
-                // We have the full message already. Decode it and return true
-                this.decode();
-                return true;
-            }
-            else
-            {
-                // Create a buffer to hold the bytes. This buffer comes
-                // from MINA's pool
-                this.buf = ByteBuffer.allocate(bodyLength);
-            }
-        }
-        if (this.bytesRead >= bodyLength) // N.B. should never be > bodyLength
-        {
-            // We don't need to read any bytes; we already have the full message
-            return true;
-        }
-        
-        // Calculate the number of bytes we can read from the input buffer.
-        // We can't rely on this.buf.remaining() here because the buffer could be
-        // bigger than the message length
-        int bytesLeft = bodyLength - this.bytesRead;
-        int bytesToRead = bytesLeft < in.remaining() ? bytesLeft : in.remaining();
-        
-        // Read the bytes and write to this message
-        byte[] b = new byte[bytesToRead];
-        in.get(b);
-        this.buf.put(b);
-        this.bytesRead += b.length;
-        
-        // Return true if the buffer is now full (i.e. we have the whole message);
-        // false otherwise
-        if (this.bytesRead >= bodyLength) // N.B. Should never be > bodyLength
-        {
-            // We now have the full message. Decode these bytes into meaningful
-            // information
-            this.buf.flip();
-            this.decode();
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    
-    /**
-     * Called when we have a complete message. Simply wraps the buffer as a
-     * StyxBuffer to make it easy to read Styx primitives and calls
-     * this.decodeBody()
-     */
-    private void decode() throws ProtocolViolationException
-    {
-        StyxBuffer styxBuf = new StyxBuffer(this.buf);
-        this.decodeBody(styxBuf);
-    }
-    
-    /**
      * Called when a complete message has arrived; signals that we are ready
      * to interpret the raw bytes in the buffer and turn them into meaningful
      * information. Subclasses should make sure that the buffer is no longer
      * needed once this method has finished, as the underlying buffer will
      * be reused.
-     * @throws ProtocolViolationException if the buffer doesn't contain a valid
+     * @throws ProtocolCodecException if the buffer doesn't contain a valid
      * StyxMessage body
      */
     protected abstract void decodeBody(StyxBuffer styxBuf)
-        throws ProtocolViolationException;
-    
-    /**
-     * Called by StyxMessageEncoder to send a message to the output
-     */
-    public void write(ProtocolEncoderOutput out) throws ProtocolViolationException
-    {
-        // Encode this message into a ByteBuffer
-        this.encode();
-        synchronized(lock)
-        {
-            // Write this ByteBuffer
-            out.write(this.buf);
-        }
-    }
+        throws ProtocolCodecException;
     
     /**
      * Called by StyxMessageEncoder when we are about to send a message. Creates
      * the underlying ByteBuffer, wraps it as a StyxBuffer, writes the header
      * information, calls encodeBody() to write the body information, then 
      * flips the buffer so that it is ready for writing to the output stream.
-     * @throws ProtocolViolationException if a problem occurred encoding the
+     * @return ByteBuffer containing the encoded message
+     * @throws ProtocolCodecException  if a problem occurred encoding the
      * message (shouldn't happen)
      */
-    public void encode() throws ProtocolViolationException
+    public ByteBuffer encode() throws ProtocolCodecException 
     {
         // Make sure we have a buffer of the appropriate length
         log.debug("Allocating new ByteBuffer of length " + this.length);
-        this.buf = ByteBuffer.allocate(this.length);
+        ByteBuffer buf = ByteBuffer.allocate(this.length);
         // Wrap the buffer as a StyxBuffer to make it easy to write Styx
         // primitives
-        StyxBuffer styxBuf = new StyxBuffer(this.buf);
+        StyxBuffer styxBuf = new StyxBuffer(buf);
         styxBuf.putUInt(this.length).putUByte(this.type).putUShort(this.tag);
         this.encodeBody(styxBuf);
-        this.buf.flip();
+        buf.flip();
+        return buf;
     }
     
     /**
      * Encode the body of the message into bytes in the underlying buffer
      */
     protected abstract void encodeBody(StyxBuffer styxBuf)
-        throws ProtocolViolationException;
+        throws ProtocolCodecException;
     
     /**
      * @return String representation of this StyxMessage
@@ -350,20 +242,6 @@ public abstract class StyxMessage
     }
     
     /**
-     * Sends request to release the underlying ByteBuffer back to the pool.
-     * Actually, this just decrements the reference count for the buffer; the
-     * buffer is only released when this count reaches zero. This is called 
-     * once the StyxMessageDecoder.decode() method has finished.
-     */
-    void release()
-    {
-        if (this.buf != null)
-        {
-            this.buf.release();
-        }
-    }
-    
-    /**
      * This is called <b>after</b> the message has been sent (in
      * StyxServerProtocolHandler.messageSent()) and is a signal to free any
      * resources associated with the message (e.g. an RreadMessage can release
@@ -383,10 +261,10 @@ public abstract class StyxMessage
      * @param type The numeric code representing the message type
      * @param tag The message tag
      * @return A StyxMessage of the appropriate type, depending on the tag
-     * @throws ProtocolViolationException if the message is of an unknown type
+     * @throws ProtocolCodecException  if the message is of an unknown type
      */
     public static StyxMessage createStyxMessage(int length, short type, int tag)
-        throws ProtocolViolationException
+        throws ProtocolCodecException 
     {
         if (log.isDebugEnabled())
         {
@@ -504,8 +382,111 @@ public abstract class StyxMessage
         }
         else
         {
-            throw new ProtocolViolationException("Unknown message type " + type);
+            throw new ProtocolCodecException ("Unknown message type " + type);
         }
+    }
+    
+    /**
+     * Sends request to release the underlying ByteBuffer back to the pool.
+     * Actually, this just decrements the reference count for the buffer; the
+     * buffer is only released when this count reaches zero. This is called 
+     * once the StyxMessageDecoder.decode() method has finished.
+     */
+    void release()
+    {
+        if (this.buf != null)
+        {
+            this.buf.release();
+        }
+    }
+    
+    /**
+     * Read bytes from the given ByteBuffer into this Message. There may still
+     * be bytes remaining in the input buffer after this method has been called.
+     * @param in The org.apache.mina.common.ByteBuffer that contains the data.
+     * @return true if we now have a complete StyxMessage, false otherwise
+     * @throws ProtocolViolationException if the bytes do not represent a valid
+     * StyxMessage
+     */
+    public final boolean readBytesFrom(ByteBuffer in) throws ProtocolCodecException
+    {
+        int bodyLength = this.length - StyxUtils.HEADER_LENGTH;
+        if (bodyLength == 0)
+        {
+            // We don't need to read any bytes; this message has no body
+            return true;
+        }
+        if (this.buf == null)
+        {
+            this.bytesRead = 0;
+            // This is the first time we've called this method for this
+            // message.
+            if (in.remaining() == bodyLength)
+            {
+                // If the input buffer contains the full body of the message (and
+                // nothing more) we can just use the input buffer.  This is a very
+                // common occurrence in practice.
+                // TODO: should we allow this to happen if in.remaining() > bodyLength?
+                log.debug("input buffer contains a whole message; won't create new buffer");
+                // Increment the reference count for this buffer so it doesn't get
+                // released before we want it to be
+                in.acquire();
+                this.buf = in;
+                this.bytesRead = bodyLength; // Signify that we have read all of the body
+                // We have the full message already. Decode it and return true
+                this.decode();
+                return true;
+            }
+            else
+            {
+                // Create a buffer to hold the bytes. This buffer comes
+                // from MINA's pool
+                this.buf = ByteBuffer.allocate(bodyLength);
+            }
+        }
+        if (this.bytesRead >= bodyLength) // N.B. should never be > bodyLength
+        {
+            // We don't need to read any bytes; we already have the full message
+            return true;
+        }
+        
+        // Calculate the number of bytes we can read from the input buffer.
+        // We can't rely on this.buf.remaining() here because the buffer could be
+        // bigger than the message length
+        int bytesLeft = bodyLength - this.bytesRead;
+        int bytesToRead = bytesLeft < in.remaining() ? bytesLeft : in.remaining();
+        
+        // Read the bytes and write to this message
+        byte[] b = new byte[bytesToRead];
+        in.get(b);
+        this.buf.put(b);
+        this.bytesRead += b.length;
+        
+        // Return true if the buffer is now full (i.e. we have the whole message);
+        // false otherwise
+        if (this.bytesRead >= bodyLength) // N.B. Should never be > bodyLength
+        {
+            // We now have the full message. Decode these bytes into meaningful
+            // information
+            this.buf.flip();
+            this.decode();
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    
+    /**
+     * Called when we have a complete message. Simply wraps the buffer as a
+     * StyxBuffer to make it easy to read Styx primitives and calls
+     * this.decodeBody()
+     */
+    private void decode() throws ProtocolCodecException
+    {
+        StyxBuffer styxBuf = new StyxBuffer(this.buf);
+        this.decodeBody(styxBuf);
     }
     
 }

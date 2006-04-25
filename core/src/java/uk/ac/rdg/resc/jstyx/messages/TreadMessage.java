@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import org.apache.mina.protocol.ProtocolViolationException;
+import org.apache.mina.filter.codec.ProtocolCodecException;
 
 import uk.ac.rdg.resc.jstyx.types.ULong;
 
@@ -91,14 +91,14 @@ public class TreadMessage extends StyxMessage
     }
     
     protected final void decodeBody(StyxBuffer buf)
-        throws ProtocolViolationException
+        throws ProtocolCodecException
     {
         this.fid = buf.getUInt();
         this.offset = buf.getULong();
         long lngCount = buf.getUInt();
         if (lngCount < 0 || lngCount > Integer.MAX_VALUE)
         {
-            throw new ProtocolViolationException("Got illegal count of " + lngCount);
+            throw new ProtocolCodecException("Got illegal count of " + lngCount);
         }
         // We now know that this cast is safe
         this.count = (int)lngCount;

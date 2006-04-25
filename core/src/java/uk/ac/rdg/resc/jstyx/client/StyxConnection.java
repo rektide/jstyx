@@ -36,20 +36,22 @@ import java.util.Hashtable;
 import java.util.Vector;
 import java.util.Iterator;
 
-import org.apache.mina.io.IoFilter;
-import org.apache.mina.io.filter.IoThreadPoolFilter;
-import org.apache.mina.protocol.filter.ProtocolThreadPoolFilter;
-import org.apache.mina.io.socket.SocketConnector;
-import org.apache.mina.protocol.ProtocolHandler;
-import org.apache.mina.protocol.ProtocolFilter;
-import org.apache.mina.protocol.ProtocolProvider;
-import org.apache.mina.protocol.ProtocolSession;
-import org.apache.mina.protocol.io.IoProtocolConnector;
+import org.apache.mina.common.IoFilter;
+import org.apache.mina.transport.socket.nio.SocketConnector;
+import org.apache.mina.common.IoHandler;
+import org.apache.mina.common.IoSession;
+import org.apache.mina.common.IoFuture;
+import org.apache.mina.common.IoFuture.Callback;
+import org.apache.mina.common.ConnectFuture;
+import org.apache.mina.common.IoConnector;
+import org.apache.mina.common.IoConnectorConfig;
+import org.apache.mina.transport.socket.nio.SocketConnector;
 import org.apache.mina.common.IdleStatus;
+import org.apache.mina.filter.codec.ProtocolCodecFactory;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
 
 import org.apache.log4j.Logger;
 
-import uk.ac.rdg.resc.jstyx.messages.StyxMessageDecoder;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.messages.TversionMessage;
 import uk.ac.rdg.resc.jstyx.messages.RversionMessage;
@@ -62,6 +64,7 @@ import uk.ac.rdg.resc.jstyx.messages.RclunkMessage;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
+import uk.ac.rdg.resc.jstyx.messages.StyxCodecFactory;
 
 /**
  * Object representing a client connection to a Styx server.
@@ -143,7 +146,7 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * Initial import
  *
  */
-public class StyxConnection implements ProtocolHandler
+public class StyxConnection implements IoHandler
 {
     private static final Logger log = Logger.getLogger(StyxConnection.class);
     
@@ -183,16 +186,9 @@ public class StyxConnection implements ProtocolHandler
     private int maxMessageSizeRequest;  // The requested maximum size of message that can be sent on this connection
     private int maxMessageSize;   // The actual maximum size of message that can be sent on this connection
     
+    private IoSession session;
+    
     private Vector listeners;     // The StyxConnectionListeners that will be informed of events
-    
-    // MINA components
-    private ProtocolSession session;
-    private IoThreadPoolFilter ioThreadPoolFilter;
-    private ProtocolThreadPoolFilter protocolThreadPoolFilter;
-    
-    private static Integer numSessions = new Integer(0); // The number of sessions that have been opened
-                                                         // This is an Integer object so we can use it as a lock
-    private static final int CONNECT_TIMEOUT = 30; // seconds
     
     /**
      * Creates a new instance of StyxConnection. This does not actually make the
@@ -217,12 +213,6 @@ public class StyxConnection implements ProtocolHandler
         this.listeners = new Vector();
         this.maxMessageSizeRequest = maxMessageSizeRequest;
         this.rootDirectory = this.getFile("/");
-        // The synchronization ensures that the numSessions static variable
-        // can only be altered by one thread at once
-        synchronized(numSessions)
-        {
-            numSessions = new Integer(numSessions.intValue() + 1);
-        }
     }
     
     /**
@@ -273,43 +263,36 @@ public class StyxConnection implements ProtocolHandler
      * handshaking, the connectionError() event will be fired on the listeners.
      * This method will do nothing if we have already connected or are in the
      * process of connecting.
-     * @throws StyxException if the IOProcessor could not be started
      */
-    public synchronized void connectAsync() throws StyxException
+    public synchronized void connectAsync()
     {
-        if (!this.connecting)
+        if (this.connecting)
         {
-            this.connecting = true;
-
-            this.ioThreadPoolFilter = new IoThreadPoolFilter();
-            this.protocolThreadPoolFilter = new ProtocolThreadPoolFilter();
-
-            // TODO: if we start these thread pool filters, they don't seem to
-            // get stopped again and (one of) the threads are left running.
-            //this.ioThreadPoolFilter.start();
-            //this.protocolThreadPoolFilter.start();
-            
-            IoProtocolConnector connector = new IoProtocolConnector( new SocketConnector() );
-            
-            // TODO: do we need these thread pools for a client connection?
-            //connector.getIoConnector().getFilterChain().addLast("Thread pool filter", ioThreadPoolFilter );
-            //connector.getFilterChain().addLast("Protocol thread pool filter",  protocolThreadPoolFilter );
-
-            ProtocolProvider protocolProvider = new StyxClientProtocolProvider(this);
-
-            try
-            {
-                this.session = connector.connect( new InetSocketAddress( this.host,
-                    this.port ), CONNECT_TIMEOUT, protocolProvider );
-            }
-            catch( IOException e )
-            {
-                throw new StyxException("Failed to connect: " + e.getMessage());
-            }
+            log.info("Already connecting");
         }
         else
         {
-            log.info("Already connecting");
+            this.connecting = true;
+            IoConnector connector = new SocketConnector();
+            ConnectFuture future = connector.connect(
+                new InetSocketAddress( this.host, this.port ), this );
+            // Add a callback to test if the connection was successful.
+            future.setCallback(new IoFuture.Callback()
+            {
+                public void operationComplete( IoFuture f )
+                {
+                    ConnectFuture future = ( ConnectFuture ) f;
+                    try
+                    {
+                        session = future.getSession();
+                    }
+                    catch( IOException e )
+                    {
+                        // Connect failed
+                        fireStyxConnectionError(new IOException("Could not connect to server"));
+                    }
+                }
+            });
         }
     }
     
@@ -571,7 +554,7 @@ public class StyxConnection implements ProtocolHandler
     /**
      * Called when a reply has arrived from a Styx server
      */
-    public void messageReceived( ProtocolSession session, Object message )
+    public void messageReceived( IoSession session, Object message )
     {
         if (log.isDebugEnabled())
         {
@@ -699,19 +682,21 @@ public class StyxConnection implements ProtocolHandler
      * Invoked when the session is created.  Initialize default socket
      * parameters and user-defined attributes here.
      */
-    public void sessionCreated( ProtocolSession session ) throws Exception
+    public void sessionCreated( IoSession session )
     {
-        // TODO: not sure what should be done in this method
+        ProtocolCodecFactory codec = StyxCodecFactory.getInstance();
+        session.getFilterChain().addLast(
+                "protocolFilter", new ProtocolCodecFilter( codec ) );
         log.debug("Connection created");
     }
     
     /**
      * Called when the socket connection to the remote server has been established
      */
-    public void sessionOpened( ProtocolSession session )
+    public void sessionOpened( IoSession session )
     {
         this.connected = true;
-        log.debug("Connection established.");
+        log.debug("Connection opened.");
         TversionMessage tVerMsg = new TversionMessage(this.maxMessageSizeRequest);
         this.sendAsync(tVerMsg, new TversionCallback(), true);
     }
@@ -805,7 +790,7 @@ public class StyxConnection implements ProtocolHandler
     /**
      * Called when the connection is closed
      */
-    public void sessionClosed( ProtocolSession session )
+    public void sessionClosed( IoSession session )
     {
         if (this.connected)
         {
@@ -815,31 +800,18 @@ public class StyxConnection implements ProtocolHandler
         this.connecting = false;
         this.rootFid = -1;
         
-        // Stop threads
-        this.ioThreadPoolFilter.stop();
-        this.protocolThreadPoolFilter.stop();
-        
         // Free resources associated with StyxMessageDecoder
+<<<<<<< .mine
+        //StyxMessageDecoder decoder = (StyxMessageDecoder)this.session.getDecoder();
+        //decoder.release();
+=======
         if (this.session != null)
         {
             StyxMessageDecoder decoder = (StyxMessageDecoder)this.session.getDecoder();
             decoder.release();
         }
+>>>>>>> .r642
         
-        // The synchronization ensures that the numSessions static variable
-        // can only be altered by one thread at once
-        // TODO: we're not using this at the moment. Can we get rid of it?
-        synchronized(numSessions)
-        {
-            numSessions = new Integer(numSessions.intValue() - 1);
-            if (numSessions.equals(new Integer(0)));
-            {
-                // If this is the last session that has been closed, request that
-                // the IoProcessor thread stopped.
-                // TODO: what do we do here in MINA?
-                // StyxUtils.stopIoProcessor();
-            }
-        }
         this.fireStyxConnectionClosed();
     }
     
@@ -847,7 +819,7 @@ public class StyxConnection implements ProtocolHandler
      * Called when an exception is caught by MINA; fires the connectError()
      * event on all registered listeners and closes the connection.
      */
-    public void exceptionCaught( ProtocolSession session, Throwable cause )
+    public void exceptionCaught( IoSession session, Throwable cause )
     {
         this.fireStyxConnectionError(cause);
     }
@@ -1026,7 +998,7 @@ public class StyxConnection implements ProtocolHandler
     /**
      * Called by MINA when a message has been sent
      */
-    public void messageSent( ProtocolSession session, Object message )
+    public void messageSent( IoSession session, Object message )
     {
         if (log.isDebugEnabled())
         {
@@ -1037,7 +1009,7 @@ public class StyxConnection implements ProtocolHandler
     /**
      * Required by the ProtocolHandler interface. Does nothing in this class.
      */
-    public void sessionIdle( ProtocolSession session, IdleStatus status )
+    public void sessionIdle( IoSession session, IdleStatus status )
     {
         return;
     }

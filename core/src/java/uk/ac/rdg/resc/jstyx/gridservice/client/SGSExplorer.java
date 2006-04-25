@@ -227,14 +227,6 @@ public class SGSExplorer extends JFrame implements StyxConnectionListener
                 "Invalid URL: " + mue.getMessage(), "Invalid URL",
                 JOptionPane.ERROR_MESSAGE);
         }
-        catch (StyxException se)
-        {
-            // This should not happen unless there's an error with MINA, the 
-            // underlying network architecture
-            JOptionPane.showMessageDialog(null, "Error connecting to " +
-                host + ":" + port + ": " + se.getMessage(),
-                "Connection error", JOptionPane.ERROR_MESSAGE);
-        }
     }
     
     private void createStatusBar()

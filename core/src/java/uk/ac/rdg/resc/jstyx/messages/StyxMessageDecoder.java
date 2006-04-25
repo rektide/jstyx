@@ -34,10 +34,10 @@ import java.io.RandomAccessFile;
 import java.io.IOException;
 
 import org.apache.mina.common.ByteBuffer;
-import org.apache.mina.protocol.ProtocolDecoder;
-import org.apache.mina.protocol.ProtocolDecoderOutput;
-import org.apache.mina.protocol.ProtocolSession;
-import org.apache.mina.protocol.ProtocolViolationException;
+import org.apache.mina.common.IoSession;
+import org.apache.mina.filter.codec.ProtocolDecoderOutput;
+import org.apache.mina.filter.codec.ProtocolCodecException;
+import org.apache.mina.filter.codec.ProtocolDecoder;
 
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -112,9 +112,9 @@ public class StyxMessageDecoder implements ProtocolDecoder
         this.headerBuf.order(ByteOrder.LITTLE_ENDIAN);
     }
     
-    public synchronized void decode(ProtocolSession session, ByteBuffer in,
+    public synchronized void decode(IoSession session, ByteBuffer in,
         ProtocolDecoderOutput out)
-        throws ProtocolViolationException
+        throws ProtocolCodecException
     {
         // Uncomment this line to dump the values of all bytes in the input buffer
         //dumpBytes("c:\\dump.txt", session, in);
@@ -145,12 +145,12 @@ public class StyxMessageDecoder implements ProtocolDecoder
                 if (length > Integer.MAX_VALUE)
                 {
                     // This should only happen due to a bug
-                    throw new ProtocolViolationException("Illegal message length ("
+                    throw new ProtocolCodecException("Illegal message length ("
                         + length + ")");
                 }
                 if ((int)length < StyxUtils.HEADER_LENGTH)
                 {
-                    throw new ProtocolViolationException("Got message length "
+                    throw new ProtocolCodecException("Got message length "
                         + length + "; Styx messages must be at least " +
                         StyxUtils.HEADER_LENGTH + " bytes long");
                 }
@@ -179,43 +179,12 @@ public class StyxMessageDecoder implements ProtocolDecoder
     }
     
     /**
-     * Dumps the hex codes of all the characters in the given buffer to the 
-     * given file.  Each buffer is recorded on a separate line
-     */
-    private static void dumpBytes(String filename, ProtocolSession session, ByteBuffer buf)
-    {
-        int pos = buf.position();
-        int lim = buf.limit();
-        try
-        {
-            RandomAccessFile raf = new RandomAccessFile(filename, "rwd");
-            raf.seek(raf.length());
-            StringBuffer strBuf = new StringBuffer(buf.remaining() +
-                " bytes from " + session.getRemoteAddress() + ": ");
-            byte[] b = new byte[buf.remaining()];
-            buf.get(b);
-            buf.position(pos).limit(lim);
-            for (int i = 0; i < b.length; i++)
-            {
-                strBuf.append((b[i] & 0xff) + " ");
-            }
-            strBuf.append(StyxUtils.NEWLINE);
-            raf.writeBytes(strBuf.toString());
-            raf.close();
-        }
-        catch (IOException ioe)
-        {
-            System.err.println(ioe.getMessage());
-        }
-    }
-    
-    /**
      * Releases the resources associated with this Decoder (specifically,
      * releases the ByteBuffer that was allocated for reading message headers.
      * This method is called automatically when a StyxConnection is closed.
      * After calling this method, the Decoder can no longer be used. 
      */
-    public void release()
+    public void dispose(IoSession session)
     {
         if (this.headerBuf != null)
         {

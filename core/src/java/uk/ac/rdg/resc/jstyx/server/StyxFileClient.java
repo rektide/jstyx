@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
-import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.common.IoSession;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 
@@ -53,7 +53,7 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 public class StyxFileClient
 {
     
-    private ProtocolSession session;  // The connection that the client sits on
+    private IoSession session;     // The connection that the client sits on
     private long fid;              // The client's identifier for the file
     
     private boolean truncate;      // true if the client wants to truncate the file
@@ -77,7 +77,7 @@ public class StyxFileClient
      * @param mode the file mode as it appears in the TopenMessage (including
      * the OTRUNC and ORCLOSE bits)
      */
-    public StyxFileClient(ProtocolSession session, long fid, int mode)
+    public StyxFileClient(IoSession session, long fid, int mode)
     {
         this.session = session;
         this.fid = fid;
@@ -94,7 +94,7 @@ public class StyxFileClient
         this.nextFileToRead = 0;
     }
     
-    public ProtocolSession getSession()
+    public IoSession getSession()
     {
         return this.session;
     }

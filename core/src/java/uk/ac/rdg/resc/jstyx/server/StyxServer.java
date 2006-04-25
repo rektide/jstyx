@@ -31,13 +31,10 @@ package uk.ac.rdg.resc.jstyx.server;
 import java.net.InetSocketAddress;
 import java.io.IOException;
 
-import org.apache.mina.common.TransportType;
-import org.apache.mina.registry.Service;
-import org.apache.mina.registry.ServiceRegistry;
-import org.apache.mina.registry.SimpleServiceRegistry;
-import org.apache.mina.io.IoAcceptor;
-import org.apache.mina.io.filter.SSLFilter;
-import org.apache.mina.protocol.ProtocolProvider;
+import org.apache.mina.common.IoAcceptor;
+import org.apache.mina.transport.socket.nio.SocketAcceptor;
+import org.apache.mina.filter.SSLFilter;
+import org.apache.mina.common.IoHandler;
 
 import org.apache.log4j.Logger;
 
@@ -97,7 +94,7 @@ public class StyxServer
     
     private static final Logger log = Logger.getLogger(StyxServer.class);
     
-    private ProtocolProvider provider;
+    private IoHandler handler;
     private int port;
     
     private StyxSecurityContext securityContext; // If this is null, access to the
@@ -120,19 +117,19 @@ public class StyxServer
     
     /**
      * Creates a Styx server that listens on the given port and uses the
-     * given protocol provider (This is used by the Styx interloper class)
+     * given io handler (This is used by the Styx interloper class)
      * Connections are anonymous and unsecured.
      * @throws IllegalArgumentException if the port number is invalid or the
      * provider is null.
      */
-    public StyxServer(int port, ProtocolProvider provider)
+    public StyxServer(int port, IoHandler handler)
     {
-        if (provider == null)
+        if (handler == null)
         {
-            throw new IllegalArgumentException("ProtocolProvider cannot be null");
+            throw new IllegalArgumentException("IoHandler cannot be null");
         }
         setPortNumber(port);
-        this.provider = provider;
+        this.handler = handler;
         this.securityContext = new StyxSecurityContext();
     }
     
@@ -165,7 +162,7 @@ public class StyxServer
         {
             this.securityContext = new StyxSecurityContext(securityConfigFile);
         }
-        this.provider = new StyxServerProtocolProvider(root, this.securityContext);
+        this.handler = new StyxServerProtocolHandler(root, this.securityContext);
     }
     
     /**
@@ -188,21 +185,16 @@ public class StyxServer
      */
     public void start() throws IOException
     {
-        ServiceRegistry registry = new SimpleServiceRegistry();
-
-        //addLogger( registry );
-
+        IoAcceptor acceptor = new SocketAcceptor();
+        
         // Add SSL filter if SSL is enabled.
         if( this.securityContext.getSSLContext() != null )
         {
             SSLFilter sslFilter = new SSLFilter( this.securityContext.getSSLContext() );
-            IoAcceptor acceptor = registry.getIoAcceptor( TransportType.SOCKET );
             acceptor.getFilterChain().addLast( "sslFilter", sslFilter );
         }
 
-        // Bind
-        Service service = new Service( "styx", TransportType.SOCKET, this.port );
-        registry.bind( service, this.provider );
+        acceptor.bind(new InetSocketAddress( this.port ), this.handler);
         
         log.info( "Listening on port " + this.port + ", SSL " +
             (this.securityContext.getSSLContext() == null ? "disabled" : "enabled"));

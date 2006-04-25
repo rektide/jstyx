@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.messages;
 
-import org.apache.mina.protocol.ProtocolViolationException;
+import org.apache.mina.filter.codec.ProtocolCodecException;
 
 /**
  * Response to a TwriteMessage to write data to a file
@@ -80,12 +80,12 @@ public class RwriteMessage extends StyxMessage
     }
     
     protected final void decodeBody(StyxBuffer buf)
-        throws ProtocolViolationException
+        throws ProtocolCodecException
     {
         long lngCount = buf.getUInt();
         if (lngCount < 0 || lngCount > Integer.MAX_VALUE)
         {
-            throw new ProtocolViolationException("Got illegal count of " + lngCount);
+            throw new ProtocolCodecException("Got illegal count of " + lngCount);
         }
         // We now know that this cast is safe
         this.count = (int)lngCount;

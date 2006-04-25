@@ -32,7 +32,7 @@ import java.util.Hashtable;
 import java.util.Vector;
 import java.util.Enumeration;
 
-import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.common.IoSession;
 
 import uk.ac.rdg.resc.jstyx.types.Qid;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -64,7 +64,7 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  */
 class StyxSessionState
 {
-    private ProtocolSession session;   // The object representing the 
+    private IoSession session;         // The object representing the 
                                        // connection to the client
     private boolean versionNegotiated; // True when the version and message size
                                        // has been negotiated (i.e. after exchange
@@ -84,7 +84,7 @@ class StyxSessionState
     private static final int READ = 2;    // and should NOT be changed
     
     /** Creates a new instance of StyxSessionState */
-    public StyxSessionState(ProtocolSession session)
+    public StyxSessionState(IoSession session)
     {
         this.versionNegotiated = false;
         this.maxMessageSize = 0;

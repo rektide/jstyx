@@ -89,7 +89,7 @@ public class StyxInterloper implements InterloperListener
         this.port = port;
         InetSocketAddress destSockAddr = new InetSocketAddress(serverHost, serverPort);
         this.styxServer = new StyxServer(port,
-            new StyxInterloperProtocolProvider(destSockAddr, this));
+            new StyxInterloperServerProtocolHandler(destSockAddr, this));
         this.styxServer.start();
     }
     

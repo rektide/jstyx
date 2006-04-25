@@ -30,8 +30,7 @@ package uk.ac.rdg.resc.jstyx.messages;
 
 import org.apache.mina.common.ByteBuffer;
 
-import org.apache.mina.protocol.ProtocolViolationException;
-import org.apache.mina.protocol.ProtocolEncoderOutput;
+import org.apache.mina.filter.codec.ProtocolCodecException;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.types.ULong;
@@ -136,18 +135,18 @@ public class TwriteMessage extends StyxMessage
     }
     
     /**
-     * @throws ProtocolViolationException if the payload of the message is more
+     * @throws ProtocolCodecException if the payload of the message is more
      * than Integer.MAX_VALUE
      */
     protected final void decodeBody(StyxBuffer buf)
-        throws ProtocolViolationException
+        throws ProtocolCodecException
     {
         this.fid = buf.getUInt();
         this.offset = buf.getULong();
         long n = buf.getUInt();
         if (n < 0 || n > Integer.MAX_VALUE)
         {
-            throw new ProtocolViolationException("Payload of Twrite message " +
+            throw new ProtocolCodecException("Payload of Twrite message " +
                 "cannot be less than 0 or greater than Integer.MAX_VALUE bytes");
         }
         this.count = (int)n; // We know this cast must be safe

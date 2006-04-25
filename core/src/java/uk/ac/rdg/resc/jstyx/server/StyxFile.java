@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
-import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.common.IoSession;
 import org.apache.mina.common.ByteBuffer;
 
 import java.util.Date;
@@ -653,7 +653,7 @@ public class StyxFile
      * Gets the StyxFileClient associated with the given Session and fid, or null
      * if client does not exist
      */
-    public StyxFileClient getClient(ProtocolSession session, long fid)
+    public StyxFileClient getClient(IoSession session, long fid)
     {
         synchronized (this.clients)
         {
@@ -698,7 +698,7 @@ public class StyxFile
             for (int i = 0; i < this.clients.size(); i++)
             {
                 StyxFileClient client = (StyxFileClient)this.clients.get(i);
-                ProtocolSession session = client.getSession();
+                IoSession session = client.getSession();
                 if (session == null || !session.isConnected())
                 {
                     this.removeClient(client);
@@ -913,7 +913,7 @@ public class StyxFile
      */
     protected void replyRead(StyxFileClient client, RreadMessage rReadMsg)
     {
-        ProtocolSession session = client.getSession();
+        IoSession session = client.getSession();
         StyxSessionState sessionState = (StyxSessionState)session.getAttachment();
         synchronized (sessionState)
         {
@@ -937,7 +937,7 @@ public class StyxFile
      */
     protected void replyWrite(StyxFileClient client, int count, int tag)
     {
-        ProtocolSession session = client.getSession();
+        IoSession session = client.getSession();
         StyxSessionState sessionState = (StyxSessionState)session.getAttachment();
         synchronized (sessionState)
         {

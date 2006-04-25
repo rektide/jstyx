@@ -29,10 +29,10 @@
 package uk.ac.rdg.resc.jstyx.messages;
 
 import org.apache.mina.common.ByteBuffer;
-import org.apache.mina.protocol.ProtocolEncoder;
-import org.apache.mina.protocol.ProtocolEncoderOutput;
-import org.apache.mina.protocol.ProtocolSession;
-import org.apache.mina.protocol.ProtocolViolationException;
+import org.apache.mina.filter.codec.ProtocolEncoder;
+import org.apache.mina.filter.codec.ProtocolEncoderOutput;
+import org.apache.mina.filter.codec.ProtocolCodecException;
+import org.apache.mina.common.IoSession;
 
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 
@@ -64,17 +64,20 @@ import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
  */
 class StyxMessageEncoder implements ProtocolEncoder
 {
-    public void encode( ProtocolSession session, Object message,
+    public void encode( IoSession session, Object message,
         ProtocolEncoderOutput out )
-        throws ProtocolViolationException
+        throws ProtocolCodecException
     {
         if (!(message instanceof StyxMessage))
         {
             // This shouldn't happen
-            throw new ProtocolViolationException("message was not a StyxMessage");
+            throw new ProtocolCodecException("message was not a StyxMessage");
         }
         StyxMessage styxMsg = (StyxMessage)message;
-        // Write the StyxMessage to the output
-        styxMsg.write(out);
+        out.write(styxMsg.encode());
+    }
+    
+    public void dispose(IoSession session)
+    {
     }
 }
