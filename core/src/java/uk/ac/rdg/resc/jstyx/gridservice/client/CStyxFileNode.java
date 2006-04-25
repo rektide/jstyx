@@ -374,6 +374,7 @@ class CStyxFileNode extends DefaultMutableTreeNode implements CStyxFileChangeLis
     public void dataArrived(CStyxFile theFile, TreadMessage tReadMsg, ByteBuffer data) {}
     public void fileOpen(CStyxFile file, int mode){}
     public void fileCreated(CStyxFile file, int mode){}
+    public void fileRemoved(CStyxFile file){}
     public void dataWritten(CStyxFile file, TwriteMessage tWriteMsg){}
     public void statChanged(CStyxFile file, DirEntry newDirEntry){}
     public void uploadComplete(CStyxFile targetFile){}

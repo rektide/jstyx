@@ -654,6 +654,51 @@ public class CStyxFile
     }
     
     /**
+     * Removes the file from the server. This call does not block; the replyArrived()
+     * method of the provided callback object will be called when the remove
+     * confirmation arrives. The error() method of the provided callback will be called if
+     * an error occurred when removing the file.  Write permissions in the parent
+     * directory are required to remove a file.
+     * @param callback The MessageCallback object that will handle the Ropen message
+     */
+    public void removeAsync(MessageCallback callback)
+    {
+        // We reset all the properties of this file immediately: a remove is 
+        // considered to be a clunk with the side-effect of removing the file
+        // if permission is granted.
+        this.fid = -1;
+        this.ioUnit = 0;
+        this.mode = -1;
+        new RemoveCallback(this, callback).nextStage();
+    }
+    
+    /**
+     * Removes the file from the server. This call does not block; the fileRemoved()
+     * event will be fired on all registered change listeners when the remove
+     * confirmation arrives. The error() method of any registered change listeners will be
+     * called if an error occurs opening the file.  Write permissions in the parent
+     * directory are required to remove a file.
+     * @param callback The MessageCallback object that will handle the Ropen message
+     */
+    public void removeAsync()
+    {
+        this.removeAsync(null);
+    }
+    
+    /**
+     * Removes the file from the server. This call blocks until the remove
+     * confirmation arrives. Write permissions in the parent
+     * directory are required to remove a file.
+     * @throws StyxException if the remove was not successful
+     */
+    public void remove() throws StyxException
+    {
+        StyxReplyCallback callback = new StyxReplyCallback();
+        this.removeAsync(callback);
+        callback.getReply();
+    }
+    
+    /**
      * Closes the file (i.e. clunks the fid). If the fid isn't set, this
      * will do nothing. This sends the Tclunk message but does not wait for a
      * reply (this doesn't matter because the rules of Styx say that the fid
@@ -1579,6 +1624,22 @@ public class CStyxFile
     }
     
     /**
+     * Fires the fileRemoved() event on all registered listeners
+     */
+    public void fireRemoved()
+    {
+        synchronized(this.listeners)
+        {
+            for (int i = 0; i < listeners.size(); i++)
+            {
+                CStyxFileChangeListener listener =
+                    (CStyxFileChangeListener)this.listeners.get(i);
+                listener.fileRemoved(this);
+            }
+        }
+    }
+    
+    /**
      * Gets the canonical version of the given path.  Removes all duplicate
      * slashes, collapses all "." and ".." and checks that the path is
      * valid and absolute, throwing an InvalidPathException if not.  This canonical
@@ -1653,8 +1714,7 @@ public class CStyxFile
         try
         {
             conn.connect();
-            CStyxFile targetDir = conn.getFile(".");
-            targetDir.upload(new File("c:\\gs\\gs8.51"));
+            conn.getFile("/gs8.51/tmp.txt").remove();
         }
         catch(Exception e)
         {

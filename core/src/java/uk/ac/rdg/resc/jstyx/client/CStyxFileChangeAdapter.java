@@ -88,6 +88,12 @@ public class CStyxFileChangeAdapter implements CStyxFileChangeListener
     public void fileCreated(CStyxFile file, int mode){}
     
     /**
+     * Called when the file has been removed.
+     * @param file The file that has been removed
+     */
+    public void fileRemoved(CStyxFile file) {}
+    
+    /**
      * Called when new data have been read from the file (after the Rread message
      * arrives). Note that the offset of the file (i.e. the file position) will
      * not have changed before this method is called.  It is up to clients to 
