@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author     : Jon Blower
+    Last modified $Date: 2006-03-31 14:07:53 +0100 (Fri, 31 Mar 2006) $ by $Author: jonblower $
+    Description:
+        Config file for setting up Styx Grid Services
+        Here's a useful DTD tutorial: http://www.zvon.org/xxl/DTDTutorial/General/contents.html
+-->
+
+<!DOCTYPE sgs SYSTEM "SGSconfig.dtd">
+
+<sgs>
+
+    <!-- Configuration of the server -->
+    <server port="9092"/>
+    
+    <!-- The Styx Grid Services that will appear under this server -->
+    <gridservices>
+        
+        <!-- On Windows NT, 2000 and XP we would have to change this to:
+                command="cmd.exe /C JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.HelloWorld".
+             On Windows 95 and 98 we would have to change this to:
+                command="command.com /C JStyxRun uk.ac..." -->
+        <gridservice name="helloworld" command="JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.HelloWorld"
+                description="Prints Hello World to stdout">
+            <outputs>
+                <output type="stream" name="stdout"/>
+                <output type="stream" name="stderr"/>
+            </outputs>
+        </gridservice>
+
+        
+        <!-- On Windows NT, 2000 and XP we would have to change this to:
+                command="cmd.exe /C JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.Reverse".
+             On Windows 95 and 98 we would have to change this to:
+                command="command.com /C JStyxRun uk.ac..." -->
+        <gridservice name="reverse" command="JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.Reverse"
+                description="Reads lines of input and outputs them with characters reversed">
+            <inputs>
+                <input type="stream" name="stdin"/>
+            </inputs>
+            <outputs>
+                <output type="stream" name="stdout"/>
+                <output type="stream" name="stderr"/>
+            </outputs>
+        </gridservice>
+        
+        <!-- On Windows NT, 2000 and XP we would have to change this to:
+                command="cmd.exe /C JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.Reverse".
+             On Windows 95 and 98 we would have to change this to:
+                command="command.com /C JStyxRun uk.ac..." -->
+        <gridservice name="reverse2" command="JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.Reverse"
+                description="Reads lines of input and outputs them with characters reversed">
+            <params>
+                <param name="inputfile" paramType="flaggedOption" flag="i" required="yes" description="Name of input file"/>
+                <param name="outputfile" paramType="flaggedOption" flag="o" required="yes" description="Name of output file"/>
+            </params>
+            <inputs>
+                <input type="fileFromParam" name="inputfile"/>
+            </inputs>
+            <outputs>
+                <output type="fileFromParam" name="outputfile"/>
+            </outputs>
+        </gridservice>
+        
+        <!-- On Windows NT, 2000 and XP we would have to change this to:
+                command="cmd.exe /C JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.Replace".
+             On Windows 95 and 98 we would have to change this to:
+                command="command.com /C JStyxRun uk.ac..." -->
+        <gridservice name="replace" command="JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.Replace"
+                description="Replaces all instances of one string in a file with another">
+            <params>
+                <param name="stringToFind" paramType="unflaggedOption" required="yes" description="String to find"/>
+                <param name="stringToReplace" paramType="unflaggedOption" required="yes" description="String to replace"/>
+                <param name="verbose" paramType="switch" flag="v" longFlag="verbose" description="If set true, will print verbose output to stdout"/>
+            </params>
+            <inputs>
+                <input type="file" name="input.txt"/>
+            </inputs>
+            <outputs>
+                <output type="file" name="output.txt"/>
+                <output type="stream" name="stdout"/>
+                <output type="stream" name="stderr"/>
+            </outputs>
+        </gridservice>
+        
+        <gridservice name="javaversion" command="java -version"
+                description="Prints Java version to stderr (for debugging)">
+            <outputs>
+                <output type="stream" name="stderr"/>
+            </outputs>
+        </gridservice>
+        
+    </gridservices>
+
+</sgs>

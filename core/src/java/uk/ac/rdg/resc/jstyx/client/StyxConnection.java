@@ -800,18 +800,6 @@ public class StyxConnection implements IoHandler
         this.connecting = false;
         this.rootFid = -1;
         
-        // Free resources associated with StyxMessageDecoder
-<<<<<<< .mine
-        //StyxMessageDecoder decoder = (StyxMessageDecoder)this.session.getDecoder();
-        //decoder.release();
-=======
-        if (this.session != null)
-        {
-            StyxMessageDecoder decoder = (StyxMessageDecoder)this.session.getDecoder();
-            decoder.release();
-        }
->>>>>>> .r642
-        
         this.fireStyxConnectionClosed();
     }
     

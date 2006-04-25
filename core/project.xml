@@ -102,9 +102,16 @@
     <!-- jar files the project is dependent on -->
     <dependencies>
         <dependency>
-            <groupId>directory-network</groupId>
-            <artifactId>mina</artifactId>
-            <version>0.8.0</version>
+            <groupId>mina</groupId>
+            <artifactId>mina-core</artifactId>
+            <version>0.9.3</version>
+            <type>jar</type>
+            <url>http://directory.apache.org/subprojects/network/</url>
+        </dependency>
+        <dependency>
+            <groupId>mina</groupId>
+            <artifactId>mina-filter-ssl</artifactId>
+            <version>0.9.3</version>
             <type>jar</type>
             <url>http://directory.apache.org/subprojects/network/</url>
         </dependency>
