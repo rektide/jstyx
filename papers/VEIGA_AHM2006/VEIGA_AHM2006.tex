@@ -62,36 +62,26 @@ We present VEIGA, a Very Easy Interface to Grid Applications.  The aim of VEIGA 
 \begin{multicols}{2}
 
 \section{Introduction}
-As Grid technology matures, an increasing amount of attention is being devoted to the problem of enhancing the usability of Grid systems.  Grids are often (necessarily) complex, but most of this complexity should not be exposed to the user.  It is a well-known problem [REFs] that many Grid toolkits (e.g.\ Globus, REF) are difficult for novice users to install and use.  This is often because such toolkits are aimed at application developers rather than end users and a further level of abstraction is required to give the desired level of usability.  This has led to the development of systems such as GEMLCA, WEDS and GridSAM [REFs], which aim to hide the details of the Grid middleware behind a Web or Web Services interface.
+As Grid technology matures, an increasing amount of attention is being devoted to the problem of enhancing the usability of Grid systems.  Grids are often (necessarily) complex, but most of this complexity should not be exposed to the user.  It is a well-known problem [REFs] that many Grid toolkits (e.g.\ Globus, REF) are difficult for novice users to install and use.  This is often because such toolkits are aimed at application developers rather than end users and a further level of abstraction is required to give the desired level of usability.  This has led to the development of systems such as GEMLCA, WEDS and GridSAM [REFs], which aim to hide the details of the Grid middleware behind a Web or Web Services interface.  The current version of the Globus Toolkit (GT4) contains Web Services interfaces to many of its components, permitting more lightweight clients to be built; however, the installation of the server components can be challenging.
 
-In order to run a simple job on a typical Grid system, the user must perform the following steps:
-
-\begin{enumerate}
-\item Upload (``stage-in'') the required input files to a location that is accessible by the system that will execute the job.
-\item Send a command to execute the job, passing in any necessary command-line arguments, plus links to the input files.
-\item Wait for the job to finish: this might involve the user sending repeated requests for updates or the user might be notified by some mechanism such as email.
-\item Download (``stage-out'') the output files that have been produced.
-\end{enumerate}
-
-There are often hidden complexities in even this simple procedure.  For example, the user must make sure to upload the input files to an appropriate location and it might not be obvious to the user what this location is:  the server on which the job ultimately runs might not be the server that hosts the input files (for good reasons).  The user would then need to know how to construct a link (e.g.\ a URL) to the input file and this link must be passed to the server that runs the job.
-
-All these operations must usually be done securely, which means that the user has to authenticate on every system that he or she accesses.  The Globus Security Infrastructure (GSI), in common with other public-key infrastructure (PKI) schemes, provides a ``single sign-on'' to Grid resources, alleviating this problem somewhat.
-
-The problem of workflow is a large topic of current research and many tools [REFs] have emerged that aim to provide the user with the means to combine many different distributed applications to achieve a goal.  However, these tools are often large and complex and there are few systems that allow simple workflows to be created in a simple manner.
-
-\subsection{How VEIGA helps}
-The aim of VEIGA is to allow users to run jobs on Grid resources with a single command that is {\em identical\/} to the command that would be used to run the job as a program on the user's local machine.  Input and output files are staged in and out automatically and the standard streams are redirected.  Workflows can be created using simple shell scripts and data can be streamed directly between jobs in the workflow.  ``Composite'' jobs (which involve running the same program many times over different inputs) can similarly be run using a single, intuitive command.
-
-The VEIGA software is very lightweight: the whole distribution is less than 3 MB in size, self-contained (i.e.\ it does not rely on external dependencies) and is easy to install and configure.  Simple, ad-hoc Grids can be created very easily with VEIGA alone, although these will not have all the features offered by larger middleware distributions.  VEIGA can interface with other Grid systems, providing a familiar and uniform interface to diverse back-ends.
-
-By providing an intuitive yet powerful interface to Grid systems, we hope that the power of Grid technology will become available to many more users, particularly those who have yet to be engaged by e-Science programmes.
+Despite many advances in Grid usability, there is still much scope for further increasing the ease of use of Grid technology.  The aim of VEIGA is to make it as easy as possible for novice users to use Grid systems by {\em making the running of applications on a Grid as easy as running applications on the user's own computer\/}.
 
 The main features of VEIGA are:
 \begin{itemize}
-\item Runs unmodified executables
-\item etc
+\item Unmodified command-line applications can be deployed on a VEIGA server in a matter of moments.
+\item Clients run these applications from remote locations by entering a single command that is identical to the command used to run the application if it were installed locally.
+\item Workflows can be created with simple shell scripts.
+\item Jobs can be run on Condor pools and Globus resources without any change to the client interface.
+\item All tasks are handled by a single server process, meaning that the server only needs to have one incoming port open through its firewall.
+\item Clients make outgoing connections only, meaning that {\em no\/} incoming ports need to be open through the client's firewall and the client can be behind a Network Address Translation (NAT) system.
+\item The software is pure Java (hence platform-independent), small in size (less than 3~MB) and contains all dependencies except a Java virtual machine.
+\item Security TODO
 \end{itemize}
 
+VEIGA is intended for the fast creation of Grid systems and for providing easy access to existing Grid resources such as Condor and Globus installations.  It is not intended to be a fully-featured replacement for toolkits such as Globus and gLite.  In creating VEIGA, we hope the power of Grid technology will become available to many more users, particularly those who have yet to be engaged by e-Science programmes.  (REPETITIVE?)
+
+\subsection{Comparison with similar systems}
+GridSAM... 
 
 \section{VEIGA overview}
 Figure~\ref{fig:veigaarchitecture} shows a high-level view of a VEIGA client-server system.  Once an application is deployed on the VEIGA server, clients can run that application from anywhere on the Internet by entering a single command, exactly as if the application were deployed on the client's machine.  The application itself can either run directly on the VEIGA server itself or on another host: the VEIGA server has the ability to submit the application to a Condor pool or Globus resource.  The user needs to know nothing of where the application ultimately runs.
@@ -112,7 +102,7 @@ The Styx protocol is suitable as a basis for VEIGA for many reasons.  The main r
 \section{A basic VEIGA system}\label{sec:basicveiga}
 The best way to illustrate the main features of VEIGA is to work through an example.  In this section we shall describe the process of setting up a new VEIGA server, deploying an application and running it from a remote location.  We shall take as an example an application called {\tt lbflow} [REF], which performs a Lattice Boltzmann (LB) simulation of fluid flow through a porous medium.
 
-The {\tt lbflow} application reads a single input file containing configuration information and writes a single output file containing results (the velocity and pressure of the fluid at each node in the simulation).  The procedure for deploying {\tt lbflow} on a VEIGA server is very simple.  After installing the VEIGA server software the {\tt lbflow} application is copied to the VEIGA server and an entry is made in the server's configuration file, describing the application (figure~\ref{fig:lbflowconfig}).
+The {\tt lbflow} application reads a single input file containing configuration information and writes a single output file containing results (the velocity and pressure of the fluid at each node in the simulation).  The procedure for deploying {\tt lbflow} on a VEIGA server is very simple.  The server administrator installs the VEIGA server software and the {\tt lbflow} application.  The administrator makes an entry in the server's configuration file, describing the application (figure~\ref{fig:lbflowconfig}).  The server program is then started.  Note that the VEIGA server runs as a normal user, not as root.  The ``server administrator'' does not need specialist technical knowledge (REPHRASE).
 
 \begin{figure*}
 \centering
@@ -136,7 +126,7 @@ The {\tt lbflow} application reads a single input file containing configuration 
 \label{fig:lbflowconfig}
 \end{figure*}
 
-Having constructed the configuration file and started the server, clients can run the {\tt lbflow} program from remote locations.  They do so through the {\tt veigarun} program, which is a generic client program for running {\em any\/} VEIGA application.  Its syntax is:
+Having constructed the configuration file and started the server, clients can run the {\tt lbflow} program from remote locations.  They do so through the {\tt veigarun} program, which is a generic client program for running {\em any\/} application that is deployed on a VEIGA server.  Its syntax is:
 
 \begin{verbatim}
 veigarun <host> <port> <appname> [args]
@@ -172,10 +162,12 @@ A general principle of VEIGA is that data should be transmitted as soon as they 
 
 However, interactive use is generally only possible for applications that run on the VEIGA server itself.  If the application is run on a different back-end system such as Condor (see REF), interactive use might not be possible because the complete standard input data are required in advance and the output is not copied back to the VEIGA server until the application has finished on the back-end system.
 
-\subsection{Security}
-TODO
+\section{Security}
+TODO.  Single port, SSH tunnelling, 
 
 \section{Workflows}\label{sec:workflows}
+The problem of workflow is a large topic of current research and many tools [REFs] have emerged that aim to provide the user with the means to combine many different distributed applications to achieve a goal.  However, these tools are often large and complex and there are few systems that allow simple workflows to be created in a simple manner.
+
 We have seen that applications that are deployed on a VEIGA server can be run exactly as if they were installed on the client's local machine.  The logical extension of this is that multiple applications can be combined into workflows using shell scripts (or batch files under Windows).  This is discussed in more detail in [REF], but the main points are summarized here.
 
 Let us consider a simple workflow of two VEIGA applications.  The first is the {\tt lbflow} application from the above example.  The second, called {\tt plot} produces a graph from an input file.  The shell script (workflow) that would be used to run the Lattice Boltzmann simulation and plot its output as a graph would be:
