@@ -98,7 +98,7 @@ public class SGSServerConfig
     protected int port; // The port on which the server will listen
     protected String host; // The hostname or IP address of this server
     private String cacheLocation; // The root of all the cached files
-    protected boolean useSSL; // True if the server is to be secured with SSL
+    protected String securityContextFile; // The file containing the security context information
     protected String keystore; // The location of the keystore
     protected Vector gridServices; // Information about all the SGSs
     
@@ -111,7 +111,6 @@ public class SGSServerConfig
     public SGSServerConfig(String xmlFilename) throws SGSConfigException
     {
         this.gridServices = new Vector();
-        this.useSSL = false;
         
         try
         {
@@ -131,7 +130,15 @@ public class SGSServerConfig
             // Get the server address and port number
             this.getServerAddressAndPort(serverNode);
             // Get the SSL parameters
-            this.getSSLConfig(serverNode);
+            String f = serverNode.valueOf("@securityContext");
+            if (f == null || f.trim().equals(""))
+            {
+                this.securityContextFile = null;
+            }
+            else
+            {
+                this.securityContextFile = f;
+            }
             // Get the configuration for all Styx Grid Services
             this.getSGSConfig();
         }
@@ -177,24 +184,6 @@ public class SGSServerConfig
     }
     
     /**
-     * Gets the SSL-related parameters
-     */
-    private void getSSLConfig(Node serverNode) throws SGSConfigException
-    {
-        Node sslNode = serverNode.selectSingleNode("ssl");
-        if (sslNode != null)
-        {
-            if (sslNode.valueOf("@activated").equalsIgnoreCase("yes"))
-            {
-                this.useSSL = true;
-            }
-            Node keystoreNode = sslNode.selectSingleNode("keystore");
-            this.keystore = keystoreNode.valueOf("@location");
-            log.debug("SSL keystore location: " + this.keystore);
-        }
-    }
-    
-    /**
      * Get the configuration of each Styx Grid Service
      */
     private void getSGSConfig() throws SGSConfigException
@@ -227,11 +216,12 @@ public class SGSServerConfig
     }
     
     /**
-     * @return true if the server is to use SSL, false otherwise
+     * @return the name of the file to get security context from or null if this
+     * does not exist
      */
-    public boolean getUseSSL()
+    public String getSecurityContextFile()
     {
-        return this.useSSL;
+        return this.securityContextFile;
     }
     
     /**

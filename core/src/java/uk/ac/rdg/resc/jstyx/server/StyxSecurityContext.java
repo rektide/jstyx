@@ -28,6 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.server;
 
+import java.security.GeneralSecurityException;
 import javax.net.ssl.SSLContext;
 import java.util.Iterator;
 
@@ -39,6 +40,7 @@ import org.dom4j.DocumentException;
 import org.dom4j.Node;
 
 import uk.ac.rdg.resc.jstyx.StyxUtils;
+import uk.ac.rdg.resc.jstyx.ssl.StyxSSLContextFactory;
 
 /**
  * Describes security information for a Styx server.  This is used for finding
@@ -80,11 +82,11 @@ public class StyxSecurityContext
     
     /**
      * Creates a new StyxSecurityContext from a configuration file
-     * @param securityFile XML File from which security information is to be read.
+     * @param securityFile File from which security information is to be read.
      * If this is null, access to the server will be anonymous and unsecured.
-     * @throws StyxSecurityException if the security config file could not be read
+     * @throws StyxGeneralSecurityExceptionecurityException if the security config file could not be read
      */
-    public StyxSecurityContext(String securityFile) throws StyxSecurityException
+    public StyxSecurityContext(String securityFile) throws GeneralSecurityException
     {
         try
         {
@@ -95,19 +97,25 @@ public class StyxSecurityContext
             }
             // Validate the input file with the DTD
             SAXReader reader = new SAXReader(true);
+            
+            // Read the XML info from the security file
             Document doc = reader.read(securityFile);
+            
             Node serverNode = doc.selectSingleNode("security/server");
             this.allowAnonymousLogin =
                 serverNode.valueOf("@allowAnonymousLogin").equalsIgnoreCase("true");
             this.supportAuthentication = true;
-            if (serverNode.valueOf("useSSL").equalsIgnoreCase("true"))
+            
+            Node sslNode = doc.selectSingleNode("security/server/ssl");
+            if (sslNode != null)
             {
-                // TODO Set up SSL
+                this.sslContext = StyxSSLContextFactory.getServerSSLContext(
+                    sslNode.valueOf("@keystore"), sslNode.valueOf("@password"));
             }
         }
         catch (DocumentException de)
         {
-            throw new StyxSecurityException("Error reading security config file "
+            throw new GeneralSecurityException("Error reading security config file "
                 + securityFile + ": " + de.getMessage());
         }
     }

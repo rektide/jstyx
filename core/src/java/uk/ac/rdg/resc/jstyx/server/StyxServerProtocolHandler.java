@@ -33,6 +33,7 @@ import org.apache.mina.common.IoHandler;
 import org.apache.mina.common.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFactory;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.SSLFilter;
 
 import org.apache.log4j.Logger;
 
@@ -41,6 +42,8 @@ import uk.ac.rdg.resc.jstyx.StyxException;
 
 import uk.ac.rdg.resc.jstyx.types.DirEntry;
 import uk.ac.rdg.resc.jstyx.types.Qid;
+
+import uk.ac.rdg.resc.jstyx.ssl.StyxSSLContextFactory;
 
 import uk.ac.rdg.resc.jstyx.messages.*;
 
@@ -252,14 +255,50 @@ public class StyxServerProtocolHandler implements IoHandler
     {
         long proposedMessageSize = tVerMsg.getMaxMessageSize();
         long finalMessageSize = Math.min(proposedMessageSize, StyxUtils.MAX_MESSAGE_SIZE);
-        if (!tVerMsg.getVersion().equals("9P2000"))
+        String versionReply;
+        if (tVerMsg.getVersion().equals("9P2000s"))
         {
-            throw new StyxException("Error negotiating protocol version (must be 9P2000)");
+            // Client supports SSL
+            if (this.securityContext.getSSLContext() == null)
+            {
+                // Server does not support SSL.  Client may choose to abort
+                // connection upon reception of this RversionMessage
+                versionReply = "9P2000";
+            }
+            else
+            {
+                // The SSL filter must be the first in the chain so that bytes are
+                // decrypted before being passed to the protocol codec filter
+                SSLFilter filter = new SSLFilter(this.securityContext.getSSLContext());
+                session.getFilterChain().addFirst("ssl", filter);
+                // Disable encryption for the first message we send (the Rversion)
+                session.setAttribute(SSLFilter.DISABLE_ENCRYPTION_ONCE, Boolean.TRUE);
+                log.info("Using SSL");
+                versionReply = "9P2000s";
+            }            
+        }
+        else if (tVerMsg.getVersion().equals("9P2000"))
+        {
+            // Client does not support SSL
+            if (this.securityContext.getSSLContext() == null)
+            {
+                // Server does not support SSL.  Connection will not be encrypted
+                versionReply = "9P2000";
+            }
+            else
+            {
+                // Server needs SSL
+                throw new StyxException("Server requires a secure connection");
+            }
+        }
+        else
+        {
+            throw new StyxException("Error negotiating protocol version (must be 9P2000 or 9P2000s)");
         }
         // Reset the IoSession (aborts all outstanding i/o, sets the message
         // size and confirms that the version has been negotiated)
         sessionState.resetSession(finalMessageSize);
-        reply(session, new RversionMessage(finalMessageSize, "9P2000"), tag);
+        reply(session, new RversionMessage(finalMessageSize, versionReply), tag);
     }
     
     private void replyAuth(IoSession session, StyxSessionState sessionState,

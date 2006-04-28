@@ -54,7 +54,7 @@ import uk.ac.rdg.resc.jstyx.server.StyxServer;
 import uk.ac.rdg.resc.jstyx.server.FileOnDisk;
 import uk.ac.rdg.resc.jstyx.server.InMemoryFile;
 
-import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
+import uk.ac.rdg.resc.jstyx.ssl.StyxSSLContextFactory;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
@@ -307,18 +307,10 @@ public class StyxGridService
                 
                 // Create a new StyxGridServiceInstance and return its URL
                 String newInstanceURL = newInstance(id);
-                byte[] msgBytes = StyxUtils.strToUTF8(newInstanceURL);
-                // Check that the client has requested enough bytes for the reply
-                // TODO: we can check this in advance, since we know how long the
-                // reply will be
-                if (count < msgBytes.length)
-                {
-                    // TODO: delete the new instance, or perhaps just return
-                    // the requested number of bytes, storing the message bytes
-                    // for later
-                    throw new StyxException("must request at least " + msgBytes.length + " bytes.");
-                }
-                replyRead(client, msgBytes, tag);
+                
+                // For simplicity we just return the ID of the instance: we are
+                // not creating instances on other servers yet
+                this.processAndReplyRead(id, client, offset, count, tag);
             }
             else
             {
@@ -380,7 +372,7 @@ public class StyxGridService
             }
             // Start the server: unsecured for the moment
             int port = config.getPort();
-            new StyxServer(port, root).start();
+            new StyxServer(port, root, config.getSecurityContextFile()).start();
             System.out.println("Started StyxGridServices, listening on port " + port);
         }
         catch(Exception e)

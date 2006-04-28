@@ -31,6 +31,7 @@ package uk.ac.rdg.resc.jstyx.client;
 import java.net.InetSocketAddress;
 import java.net.ConnectException;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 import java.util.Hashtable;
 import java.util.Vector;
@@ -49,6 +50,7 @@ import org.apache.mina.transport.socket.nio.SocketConnector;
 import org.apache.mina.common.IdleStatus;
 import org.apache.mina.filter.codec.ProtocolCodecFactory;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.SSLFilter;
 
 import org.apache.log4j.Logger;
 
@@ -65,6 +67,7 @@ import uk.ac.rdg.resc.jstyx.messages.RclunkMessage;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.messages.StyxCodecFactory;
+import uk.ac.rdg.resc.jstyx.ssl.StyxSSLContextFactory;
 
 /**
  * Object representing a client connection to a Styx server.
@@ -185,6 +188,7 @@ public class StyxConnection implements IoHandler
     private CStyxFile rootDirectory; // The root directory of the server as a CStyxFile
     private int maxMessageSizeRequest;  // The requested maximum size of message that can be sent on this connection
     private int maxMessageSize;   // The actual maximum size of message that can be sent on this connection
+    private boolean useSSL;       // True if we are going to make an SSL connection
     
     private IoSession session;
     
@@ -240,6 +244,15 @@ public class StyxConnection implements IoHandler
     }
     
     /**
+     * Creates a new instance of StyxConnection, connecting as an anonymous user
+     */
+    public StyxConnection(String host, int port, boolean useSSL)
+    {
+        this(host, port, "", "");
+        this.useSSL = true;
+    }
+    
+    /**
      * @return the name (or IP address) of the remote host
      */
     public String getRemoteHost()
@@ -284,6 +297,7 @@ public class StyxConnection implements IoHandler
                     ConnectFuture future = ( ConnectFuture ) f;
                     try
                     {
+                        log.debug("Connection complete");
                         session = future.getSession();
                     }
                     catch( IOException e )
@@ -684,6 +698,7 @@ public class StyxConnection implements IoHandler
      */
     public void sessionCreated( IoSession session )
     {
+        this.session = session;
         ProtocolCodecFactory codec = StyxCodecFactory.getInstance();
         session.getFilterChain().addLast(
                 "protocolFilter", new ProtocolCodecFilter( codec ) );
@@ -697,7 +712,9 @@ public class StyxConnection implements IoHandler
     {
         this.connected = true;
         log.debug("Connection opened.");
-        TversionMessage tVerMsg = new TversionMessage(this.maxMessageSizeRequest);
+        // Offer to use Styx with SSL ("9P2000s")
+        TversionMessage tVerMsg = new TversionMessage(this.maxMessageSizeRequest,
+            "9P2000s");
         this.sendAsync(tVerMsg, new TversionCallback(), true);
     }
     
@@ -706,6 +723,38 @@ public class StyxConnection implements IoHandler
         public void replyArrived(StyxMessage rMessage, StyxMessage tMessage)
         {
             RversionMessage rVerMsg = (RversionMessage)rMessage;
+            if (rVerMsg.getVersion().equals("9P2000s"))
+            {
+                // Server supports SSL, so we must add an SSL filter.  This must
+                // be first in the chain so that messages are encoded into bytes
+                // (by the ProtocolCodecFilter) before being encrypted
+                try
+                {
+                    SSLFilter filter = new SSLFilter(
+                        StyxSSLContextFactory.getClientSSLContext());
+                    filter.setUseClientMode(true);
+                    session.getFilterChain().addFirst("ssl", filter);
+                    log.info("Using SSL");
+                }
+                catch(GeneralSecurityException gse)
+                {
+                    fireStyxConnectionError(gse);
+                }
+            }
+            else if (rVerMsg.getVersion().equals("9P2000"))
+            {
+                log.info("Server does not support SSL");
+                if (!username.equalsIgnoreCase(""))
+                {
+                    // TODO: warn the user that password will be transmitted in
+                    // the clear
+                }
+            }
+            else
+            {
+                this.error("Unsupported protocol version " + rVerMsg.getVersion(),
+                    tMessage);
+            }
             maxMessageSize = (int)rVerMsg.getMaxMessageSize();
             if (username.equalsIgnoreCase(""))
             {

@@ -30,17 +30,16 @@ package uk.ac.rdg.resc.jstyx.server;
 
 import java.net.InetSocketAddress;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 import org.apache.mina.common.IoAcceptor;
 import org.apache.mina.transport.socket.nio.SocketAcceptor;
-import org.apache.mina.filter.SSLFilter;
 import org.apache.mina.common.IoHandler;
 
 import org.apache.log4j.Logger;
 
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
-import uk.ac.rdg.resc.jstyx.ssl.JonSSLContextFactory;
 
 /**
  * A Styx server.
@@ -106,11 +105,11 @@ public class StyxServer
      * and no traffic will be encrypted.
      * @throws IllegalArgumentException if the port number is invalid or the
      * root is null.
-     * @throws StyxSecurityException if there was an error setting up the
+     * @throws GeneralSecurityException if there was an error setting up the
      * security context (should never happen since this will be an unsecured
      * server).
      */
-    public StyxServer(int port, StyxDirectory root) throws StyxSecurityException
+    public StyxServer(int port, StyxDirectory root) throws GeneralSecurityException
     {
         this(port, root, null);
     }
@@ -142,11 +141,11 @@ public class StyxServer
      * anonymous access and no traffic will be encrypted.
      * @throws IllegalArgumentException if the port number is invalid or 
      * root == null.
-     * @throws StyxSecurityException if there was an error reading security
+     * @throws GeneralSecurityException if there was an error reading security
      * configuration from <code>securityConfigFile</code>.
      */
     public StyxServer(int port, StyxDirectory root, String securityConfigFile)
-        throws StyxSecurityException
+        throws GeneralSecurityException
     {
         if (root == null)
         {
@@ -186,18 +185,10 @@ public class StyxServer
     public void start() throws IOException
     {
         IoAcceptor acceptor = new SocketAcceptor();
-        
-        // Add SSL filter if SSL is enabled.
-        if( this.securityContext.getSSLContext() != null )
-        {
-            SSLFilter sslFilter = new SSLFilter( this.securityContext.getSSLContext() );
-            acceptor.getFilterChain().addLast( "sslFilter", sslFilter );
-        }
 
         acceptor.bind(new InetSocketAddress( this.port ), this.handler);
         
-        log.info( "Listening on port " + this.port + ", SSL " +
-            (this.securityContext.getSSLContext() == null ? "disabled" : "enabled"));
+        log.info( "Listening on port " + this.port);
     }
     
     /**

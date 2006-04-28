@@ -121,6 +121,7 @@
     address CDATA #IMPLIED
     port CDATA "9092"
     cacheLocation CDATA #IMPLIED
+    securityContext CDATA #IMPLIED
   >
 
 <!ELEMENT sgs (server?, gridservices)>

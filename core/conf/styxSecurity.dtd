@@ -12,16 +12,16 @@
 
 <!--- Sets the port on which the server will listen and whether or not 
       authentication is required -->
-<!ELEMENT server (sslConfig?)>
+<!ELEMENT server (ssl?)>
 <!ATTLIST server
     allowAnonymousLogin (true|false) "false"
     useSSL (true|false) "false"
   >
-<!--- Sets up SSL - gives location of server certificate etc -->
-<!ELEMENT sslConfig (keystore)>
-<!ELEMENT keystore EMPTY>
-<!ATTLIST keystore
-    location CDATA #REQUIRED
+<!--- Sets up SSL - gives location and password of keystore -->
+<!ELEMENT ssl EMPTY>
+<!ATTLIST ssl
+    keystore CDATA #REQUIRED
+    password CDATA #REQUIRED
   >
 
 <!ELEMENT users (user)*>

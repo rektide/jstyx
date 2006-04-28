@@ -13,7 +13,9 @@
 
 <security>
     
-    <server allowAnonymousLogin="false" useSSL="false"/>
+    <server allowAnonymousLogin="true">
+        <ssl keystore="c:\keystore.jon" password="santorini"/>
+    </server>
     
     <users>
         <user name="jdb">
