@@ -557,17 +557,29 @@ public class CondorJob extends AbstractJob
                         Thread.sleep(1000);
                     }
                 }
-                catch(InterruptedException ie)
-                {
-                    // do nothing
-                }
                 catch(IOException ioe)
                 {
                     if (log.isDebugEnabled())
                     {
                         ioe.printStackTrace();
                     }
-                    error("Error reading the Condor log file: " + ioe.getMessage());
+                    // We don't treat this as a fatal error because this happens
+                    // under Windows Condor when we try to read from the log file
+                    // but Condor is trying to write to it at the same time
+                    log.error("Error reading the Condor log file: " + ioe.getMessage());
+                    try
+                    {
+                        // Give Condor a chance to finish writing to the file
+                        Thread.sleep(1000);
+                    }
+                    catch(InterruptedException ie)
+                    {
+                        // do nothing
+                    }
+                }
+                catch(InterruptedException ie)
+                {
+                    // do nothing
                 }
             }
         }
