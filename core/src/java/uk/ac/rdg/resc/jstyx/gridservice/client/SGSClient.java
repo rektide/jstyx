@@ -202,14 +202,13 @@ public class SGSClient extends CStyxFileChangeAdapter
     /**
      * Requests creation of a new instance of the SGS on the server.  This method
      * blocks until the instance has been created.
-     * @return The full URL to the root of the new instance, e.g.
-     * <code>styx://thehost.com:9092/mySGS/instances/1234567890abcde</code>. 
-     * Note that the new instance may be created on a different server (for
-     * load balancing purposes, for example).
+     * @return SGSInstanceClient object representing the new instance
      */
-    public String createNewInstance() throws StyxException
+    public SGSInstanceClient createNewInstance() throws StyxException
     {
-        return this.cloneFile.getContents();
+        String id = this.cloneFile.getContents();
+        CStyxFile instanceRoot = this.getInstanceFile(id);
+        return new SGSInstanceClient(this, instanceRoot);
     }
     
     /**

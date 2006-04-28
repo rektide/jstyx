@@ -386,24 +386,11 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
      */
     public void createNewServiceInstance() throws StyxException
     {
-        String instanceUrl = this.sgsClient.createNewInstance();
-        log.debug("Created new service instance at " + instanceUrl);
-        // Create a client object for this instance.  Note that this instance
-        // might be on a different server and so the constructor might create
-        // a new connection.
-        this.instanceClient = new SGSInstanceClient(instanceUrl);
-        log.debug("Created new SGSInstanceClient object");
+        this.instanceClient = this.sgsClient.createNewInstance();
+        log.debug("Created new service instance with id " + this.instanceClient.getInstanceID());
         this.instanceClient.setLifetime(this.result.getFloat(LIFETIME));
         log.debug("Set lifetime to " + this.result.getFloat(LIFETIME) + " minutes");
         this.instanceClient.addChangeListener(this);
-        // Close the connection to the SGS client if it's different from the
-        // connection to the SGS instance
-        if (this.serverClient.getConnection() != this.instanceClient.getConnection())
-        {
-            log.debug("Closing connection to SGS server");
-            this.serverClient.getConnection().close();
-            log.debug("Connection to SGS server closed");
-        }
         this.instanceClient.getConnection().addListener(this);
     }
     

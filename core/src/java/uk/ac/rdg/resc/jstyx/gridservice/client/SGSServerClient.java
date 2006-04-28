@@ -85,7 +85,7 @@ public class SGSServerClient
     {
         this.sgsClients = new Hashtable();
         // Connect to the server
-        this.conn = new StyxConnection(hostname, port);
+        this.conn = new StyxConnection(hostname, port, true);
         this.conn.connect();
         this.serverRoot = conn.getRootDirectory();
     }
