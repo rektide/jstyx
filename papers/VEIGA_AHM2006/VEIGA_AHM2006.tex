@@ -38,7 +38,7 @@
 
 \begin{document}
 
-\title{Making the Grid easier to use with Styx Grid Services}
+\title{Making Grids easier to use and build with Styx Grid Services}
 
 \author{\textbf{Jon Blower$^{*}$}, Keith Haines}
 \date{}
@@ -64,9 +64,85 @@ We present VEIGA, a Very Easy Interface to Grid Applications.  The aim of VEIGA 
 \begin{multicols}{2}
 
 \section{Introduction}
-As Grid technology matures, an increasing amount of attention is being devoted to the problem of enhancing the usability of Grid systems.  Grids are often (necessarily) complex, but most of this complexity should not be exposed to the user.  It is a well-known problem [REFs] that many Grid toolkits (e.g.\ Globus, REF) are difficult for novice users to install and use.  This is often because such toolkits are aimed at application developers rather than end users and a further level of abstraction is required to give the desired level of usability.  This has led to the development of systems such as GEMLCA, WEDS and GridSAM [REFs], which aim to hide the details of the Grid middleware behind a Web or Web Services interface.  The current version of the Globus Toolkit (GT4) contains Web Services interfaces to many of its components, permitting more lightweight clients to be built; however, the installation of the server components can be challenging.
+As Grid technology matures, an increasing amount of attention is being devoted to the problem of enhancing the usability of Grid systems.  Grids are often (necessarily) complex, but most of this complexity should not be exposed to the user.  It is a well-known problem [REFs] that many Grid toolkits (e.g.\ Globus, REF) are difficult for novice users to install and use.  This is often because such toolkits are aimed at application developers rather than end users and a further level of abstraction is required to give the desired level of usability.
 
-Despite many advances in Grid usability, there is still much scope for further increasing the ease of use of Grid technology.  The aim of VEIGA is to make it as easy as possible for novice users to use Grid systems by {\em making the running of applications on a Grid as easy as running applications on the user's own computer\/}.
+Give definition of Grid computing!
+
+\subsection{The problem of usability}
+Despite many advances in Grid usability, there is still much scope for further increasing the ease of use of Grid technology.  The aim of the Styx Grid Services system is to make it as easy as possible for novice users to use Grid systems by {\em making the running of applications on a Grid as easy as running applications on the user's own computer\/}.
+
+\subsection{The problem of security}
+A key problem in the design of Grid systems is security.  It is very important to find a level of security with which both users and resource providers can be satisfied.  If the security level is too low there will be an unacceptable risk that the resource in question will be compromised by unauthorized access.  Conversely, if the security level is too high, many users will find it too difficult to use the resource; in this case, users will either choose not to use the resource in question or, worse, users will find ways to circumvent the security procedure.
+
+A good example of this is the Grid Security Infrastructure (GSI, http://www.globus.org/security/overview.html or REF), which is based on public-key infrastructure (PKI) and proxy certificates.  This security mechanism gives, theoretically, a high level of security; however, it often raises complaints from users who feel that this level of security interferes with their normal working practices to an unacceptable degree.  Many users feel that the processes of caring for their digital certificates, renewing them annually and generating time-limited proxies before running jobs are too cumbersome.  This user-unfriendliness leads users to engage in forbidden practices such as storing their digital certificates in multiple, perhaps insecure, locations and sharing their digital certificates with colleagues.  The resource administrator has no control over these practices and cannot detect that they are occurring.  SOMETHING ABOUT BUILDING AD-HOC, MINI-GRIDS.
+
+\subsection{Why not use SSH and SCP?}
+At heart, many Grid jobs consist of transferring input files to a Grid resource, running the job and transferring the output files back to the user.  A common question that is asked by users is, ``Why can't I simply use the Secure Shell (SSH) and Secure Copy (SCP) to run my jobs?''  SSH and SCP are 
+well-known utilities with which a large proportion of users are already familiar.  Files can be transferred to and from remote resources securely with SCP.  Applications can be run on remote machines through SSH.  Importantly, SSH and SCP are very familiar to system administrators (sysadmins).  Sometimes, sysadmins will {\em only\/} permit remote access to their resources through SSH.
+
+In order to log on to a remote resource using SSH, the user must have an account on that resource.  Therefore, if the user wishes to access many resources, he or she will need an account on each of those resources.  At first glance, this would seem to violate the principle of ``single sign-on'', in which the user can access multiple resources having authenticated only once.  Single sign-on is one of the problems that GSI addresses through the use of certificates.  However, in practice many systems that use GSI also require that each user has a unique user account on each resource: the user's certificate is then simply mapped to this account.  Single sign-on can be achieved in the SSH domain through the use of public and private keys and authentication agents.
+
+Something about increasing usability of SSH-based systems.  Something about suitability for Grids with little admin effort: doesn't do everything that other Grids do. 
+
+\subsection{The proposed solution}
+In this paper we shall describe how the usability of the Styx Grid Services system can be combined with the security of SSH to allow Grids to be constructed simply, allowing users to run Grid jobs with very little effort and placing very little load on system administrators.  For resource providers that must use GSI security, GSISSH can be used in place of SSH with little additional effort; no more middleware (e.g.\ the Globus Toolkit) is necessary.
+
+We shall illustrate our solution through a case study.  The GCEP (Grid for Coupled Ensemble Prediction) project is a NERC e-Science project that will study the predicability of the Earth's climate on seasonal to decadal timescales.  In GCEP, users will run jobs on a Grid of machines in several different institutions, including the UK National Grid Service (NGS).  Our solution will allow users to run Grid jobs just as easily as if they were running programs on their local machines.  Furthermore, the administrators of the machines in the Grid will not be burdened by the tasks of installing and maintaining complex pieces of software.
+
+
+\section{How Styx Grid Services make things simple}
+The Styx Grid Services (SGS) system is a means for running remote applications {\em exactly\/} as if they were installed locally.  The software is pure Java and is very small in size (under 3 MB) and easy to install and configure.  The technical details of the SGS system have been discussed in previous papers (REFs) and will not be repeated here.  In summary, an SGS system is set up as follows:
+
+REPLACE WITH A CONCRETE EXAMPLE
+
+\begin{enumerate}
+\item The server administrator downloads and installs the SGS software.
+\item For each application that is deployed on the server, a short XML description of the application's inputs, outputs and command-line arguments is constructed.
+\item A server process is run that listens on a {\em single\/} port.  This server process handles all file transfers, notification messages and control messages.
+\item Users run the deployed applications through a simple, generic SGS client program.  This client program connects to the server, downloads the XML description of the application to be run, automatically uploads the required input files from the client's computer, starts the application on the server and downloads the output files as they are produced.
+\item If the user wishes, the progress of the running application can be monitored and, if supported by the application, the application can be steered [REF].
+\end{enumerate}
+
+The ``Grid-enabled'' version of the application can therefore be used in exactly the same way as if it were a local application, creating a very low barrier to entry for the user.  This means that workflows (in which many remote applications are combined in order to achieve a goal) can be created using simple shell scripts, or batch files under Windows [REF].  No specialist workflow tools are required at either the client or server side.  Data can be transferred directly between applications along the shortest network route, saving time and bandwidth (i.e.\ intermediate data do not have to pass through the client).  SOMETHING ABOUT GUIs?
+
+The Styx Grid Services system was designed to be easy to deploy by system administrators: indeed, it is sufficiently simple for users with very little technical knowledge to run their own SGS servers.  The system is easy to deploy for two main reasons: (i) a single server process handles all client-server interactions and (ii) the clients use a persistent connection to the server.  Both of these facts mean that only one incoming port needs to be open through the server's firewall and {\em no\/} incoming ports need to be open to the client.
+
+\subsection{Running ensemble jobs with SGS}
+TODO
+
+\subsection{SGS-SSH}
+Although the SGS system is easy to use, deploy and maintain, it has some disadvantages:
+
+\begin{itemize}
+\item The SGS system has its own security model.  The server administrator must maintain an SGS user database in addition to that of the underlying system.
+\item On the server, each application runs with the permissions of the owner of the SGS server itself, rather than with the permissions of the specific user.
+\item Although there is only one server process in the SGS system, this still needs to be monitored and maintained.
+\item Some resource providers might not trust the SGS software without considerable further testing and wider acceptance within the community.
+\end{itemize}
+
+All of these issues can be addressed by combining the SGS system with the Secure Shell (SSH).  Essentially, the user uses the SGS system exactly as before (and benefits from its ease of use) but authenticates using SSH.  All SGS traffic is transmitted over the secure channel that is created by the SSH connection.  This combined system is known as SGS-SSH.
+
+This is achieved through a relatively minor modification to the SGS software.  The original SGS server reads and writes messages through network sockets.  The SGS-SSH ``server'' is actually a program that reads messages on its standard input and writes replies to its standard output.  The SGS client is modified to make a connection to the remote server via SSH and execute the SGS-SSH ``server'' program via an exec request.  The client then exchanges messages with the SGS-SSH server program through the secure channel that is created.
+
+Therefore, the only server that needs to be maintained by the system administrator is the SSH server itself.  The user authenticates via the normal SSH procedures and the applications that the user runs through the SGS-SSH interface run with the permissions of the specific user in question, not a generic user.  There is no separate user database.
+
+\section{Case Study: the GCEP project}
+GCEP (Grid for Coupled Ensemble Prediction) is a NERC e-Science project that involves the Reading e-Science Centre (ReSC), the NERC Centre for Global Atmospheric Modelling (CGAM), the British Antarctic Survey (BAS) and the Council for the Central Laboratory of the Research Councils (CCLRC).  GCEP aims to test the extent to which the Earth's climate can be predicted on seasonal to decadal timescales.  This will be achieved by running a large number of computer-based climate simulations, with each simulation being started from a different set of initial conditions of the oceans and the distributions of ice, soil moisture and snow cover.  If any aspect of climate can be predicted on these timescales, it is these slowly-varying properties that will contain the necessary information.
+
+The climate simulation program that will be run is the Hadley Centre's full HadCM3 model (REF), which has recently been ported so that it can run on PC clusters.  Large numbers ({\em ensembles\/}) of simulations will need to be run in order to gather the necessary statistics.  The process of analysing the results of the simulations will also be compute- and data-intensive.  The compute resources available to the project include clusters at ReSC, BAS and CCLRC and the UK National Grid Service (NGS).  The project will generate several terabytes of data and so an efficient data management system will be required to allow results to be shared amongst the project scientists.
+
+The GCEP partners wish to focus on the science challenges and do not wish to devote large amounts of time to the installation and maintenance of complex Grid middleware.
+
+\subsection{Submitting jobs to the compute clusters}
+
+Include submitting ensemble jobs.
+
+\subsection{Data management}
+
+
+\section{Discussion}
+
+
 
 The main features of VEIGA are:
 \begin{itemize}
