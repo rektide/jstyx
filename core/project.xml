@@ -173,6 +173,13 @@
             <url>http://www.martiansoftware.com/jsap/</url>
         </dependency>
         <dependency>
+            <groupId>jsch</groupId>
+            <artifactId>jsch</artifactId>
+            <version>0.1.28</version>
+            <type>jar</type>
+            <url>http://www.jcraft.com/jsch/</url>
+        </dependency>
+        <dependency>
             <groupId>TableLayout</groupId>
             <artifactId>TableLayout</artifactId>
             <type>jar</type>

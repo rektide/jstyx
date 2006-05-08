@@ -187,10 +187,8 @@ public abstract class StyxMessage implements Serializable
      * information, calls encodeBody() to write the body information, then 
      * flips the buffer so that it is ready for writing to the output stream.
      * @return ByteBuffer containing the encoded message
-     * @throws ProtocolCodecException  if a problem occurred encoding the
-     * message (shouldn't happen)
      */
-    public ByteBuffer encode() throws ProtocolCodecException 
+    public ByteBuffer encode()
     {
         // Make sure we have a buffer of the appropriate length
         log.debug("Allocating new ByteBuffer of length " + this.length);
@@ -207,8 +205,7 @@ public abstract class StyxMessage implements Serializable
     /**
      * Encode the body of the message into bytes in the underlying buffer
      */
-    protected abstract void encodeBody(StyxBuffer styxBuf)
-        throws ProtocolCodecException;
+    protected abstract void encodeBody(StyxBuffer styxBuf);
     
     /**
      * @return String representation of this StyxMessage

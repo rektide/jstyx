@@ -151,7 +151,7 @@ import uk.ac.rdg.resc.jstyx.ssl.StyxSSLContextFactory;
  */
 public class StyxConnection implements IoHandler
 {
-    private static final Logger log = Logger.getLogger(StyxConnection.class);
+    protected static final Logger log = Logger.getLogger(StyxConnection.class);
     
     /**
      * The default maximum message size that this connection will request. This
@@ -165,12 +165,12 @@ public class StyxConnection implements IoHandler
      */
     private static final int DEFAULT_MAX_MESSAGE_SIZE_REQUEST = 8192;
     
-    private String host; // The host and port to which this is connected
+    protected String host; // The host and port to which this is connected
     private int port;
     private String username;
     private String password;
     
-    private boolean connecting;    // True if connect() or connectAsync() has been
+    protected boolean connecting;    // True if connect() or connectAsync() has been
                                    // called, and the connection has not been closed
     private boolean connected;     // True if this is connected to the remote
                                    // server (handshaking might not have been done)
@@ -190,7 +190,7 @@ public class StyxConnection implements IoHandler
     private int maxMessageSize;   // The actual maximum size of message that can be sent on this connection
     private boolean useSSL;       // True if we are going to make an SSL connection
     
-    private IoSession session;
+    protected IoSession session;
     
     private Vector listeners;     // The StyxConnectionListeners that will be informed of events
     
@@ -712,9 +712,9 @@ public class StyxConnection implements IoHandler
     {
         this.connected = true;
         log.debug("Connection opened.");
-        // Offer to use Styx with SSL ("9P2000s")
+        // Also could use Styx with SSL ("9P2000s")
         TversionMessage tVerMsg = new TversionMessage(this.maxMessageSizeRequest,
-            "9P2000s");
+            "9P2000");
         this.sendAsync(tVerMsg, new TversionCallback(), true);
     }
     
@@ -991,7 +991,7 @@ public class StyxConnection implements IoHandler
     /**
      * Fired when an error occurs (i.e. an exception is caught by MINA)
      */
-    private void fireStyxConnectionError(Throwable cause)
+    protected void fireStyxConnectionError(Throwable cause)
     {
         this.errMsg = cause.getMessage();
         if (log.isDebugEnabled())
