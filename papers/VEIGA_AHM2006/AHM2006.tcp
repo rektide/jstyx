@@ -3,10 +3,10 @@ Type=TeXnicCenterProjectInformation
 Version=4
 
 [ProjectInfo]
-MainFile=VEIGA_AHM2006.tex
+MainFile=AHM2006.tex
 UseBibTeX=1
 UseMakeIndex=0
 ActiveProfile=LaTeX => PS => PDF
-ProjectLanguage=
-ProjectDialect=
+ProjectLanguage=en
+ProjectDialect=US
 
