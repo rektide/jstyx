@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.jstyx.server;
+package uk.ac.rdg.resc.jstyx.ssh;
 
 import java.net.SocketAddress;
 import java.io.IOException;
@@ -41,25 +41,27 @@ import org.apache.mina.common.IoService;
 import org.apache.mina.common.WriteFuture;
 import org.apache.mina.common.ByteBuffer;
 
+import uk.ac.rdg.resc.jstyx.server.StyxSessionState;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 
 /**
- * IoSession object for the StyxStreamServer: messages are written to the
- * standard output.  All methods apart from write() are dummies.
+ * IoSession object for the StyxSSHServer and StyxSSHConnection. Messages are
+ * written to a specified PrintStream.  Most methods is this class are dummies
+ * as they are not needed (we do not use the full MINA framework in this case).
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class StyxStreamIoSession extends BaseIoSession
+public class StyxSSHIoSession extends BaseIoSession
 {
     private StyxSessionState sessionState;
     private IoHandler handler;
     private PrintStream stream;
     
     /** Creates a new instance of StyxStreamIoSession */
-    public StyxStreamIoSession(IoHandler handler, PrintStream stream)
+    public StyxSSHIoSession(IoHandler handler, PrintStream stream)
     {
         this.sessionState = new StyxSessionState(this);
         this.handler = handler;

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.jstyx.client;
+package uk.ac.rdg.resc.jstyx.ssh;
 
 import javax.swing.*;
 import java.io.PrintStream;
@@ -40,8 +40,8 @@ import com.jcraft.jsch.JSchException;
 
 import org.apache.mina.common.IoSession;
 
-import uk.ac.rdg.resc.jstyx.server.StyxStreamIoSession;
-import uk.ac.rdg.resc.jstyx.server.StyxStreamServer.MessageReader;
+import uk.ac.rdg.resc.jstyx.client.StyxConnection;
+import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 
 /**
  * A StyxConnection that reads Styx Rmessages from the standard input and
@@ -52,7 +52,7 @@ import uk.ac.rdg.resc.jstyx.server.StyxStreamServer.MessageReader;
  * $Date$
  * $Log$
  */
-public class StyxStreamConnection extends StyxConnection
+public class StyxSSHConnection extends StyxConnection
 {
     private String sshUser;
     private Session sshSession;
@@ -64,9 +64,8 @@ public class StyxStreamConnection extends StyxConnection
      * @param sshUser the username on the SSH server (not the username in the
      * Styx hierarchy)
      */
-    public StyxStreamConnection(String hostname, String sshUser)
+    public StyxSSHConnection(String hostname, String sshUser)
     {
-        // Use dummies for host and port
         super(hostname, 22);
         this.sshUser = sshUser;
     }
@@ -97,7 +96,6 @@ public class StyxStreamConnection extends StyxConnection
                 // Connect to the SSH server
                 this.sshSession = jsch.getSession(this.sshUser, this.host, 22);
 
-
                 // username and password will be given via UserInfo interface.
                 UserInfo ui = new MyUserInfo();
                 sshSession.setUserInfo(ui);
@@ -112,7 +110,7 @@ public class StyxStreamConnection extends StyxConnection
                 
                 // Create a new IoSession that writes messages to the output
                 // stream of the secure channel
-                this.session = new StyxStreamIoSession(this,
+                this.session = new StyxSSHIoSession(this,
                     new PrintStream(channel.getOutputStream(), true));
 
                 // Start a process that listens for Styx messages (i.e. replies from
@@ -197,7 +195,7 @@ public class StyxStreamConnection extends StyxConnection
     
     public static void main(String[] args) throws Exception
     {
-        StyxStreamConnection conn = new StyxStreamConnection("lovejoy.nerc-essc.ac.uk", "resc");
+        StyxConnection conn = new StyxSSHConnection("lovejoy.nerc-essc.ac.uk", "resc");
         conn.connect();
         CStyxFile f = conn.getFile("history.txt");
         System.out.println(f.getContents());

@@ -62,7 +62,7 @@ import uk.ac.rdg.resc.jstyx.StyxException;
  * Initial import
  *
  */
-class StyxSessionState
+public class StyxSessionState
 {
     private IoSession session;         // The object representing the 
                                        // connection to the client

@@ -26,29 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.jstyx.server;
+package uk.ac.rdg.resc.jstyx.ssh;
 
-import java.io.InputStream;
-import java.io.IOException;
-
-import org.apache.mina.common.ByteBuffer;
 import org.apache.mina.common.IoSession;
-import org.apache.mina.common.IoHandler;
-import org.apache.mina.filter.codec.ProtocolDecoderOutput;
-import org.apache.mina.filter.codec.ProtocolCodecException;
 
-import uk.ac.rdg.resc.jstyx.messages.StyxMessageDecoder;
+import uk.ac.rdg.resc.jstyx.server.StyxSecurityContext;
+import uk.ac.rdg.resc.jstyx.server.StyxServerProtocolHandler;
+import uk.ac.rdg.resc.jstyx.server.StyxDirectory;
+import uk.ac.rdg.resc.jstyx.server.DirectoryOnDisk;
 
 /**
  * Styx "server" that listens for incoming messages on its standard input and
- * writes outgoing messages on its standard output
+ * writes outgoing messages on its standard output.  This can be executed via
+ * SSH using an exec request and hence Styx messages can be exchanged across
+ * a secure connection.  The counterpart client class is StyxSSHConnection.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class StyxStreamServer
+public class StyxSSHServer
 {
     private IoSession session;
     private StyxServerProtocolHandler handler;
@@ -63,7 +61,7 @@ public class StyxStreamServer
             return;
         }
         StyxDirectory root = new DirectoryOnDisk(args[0]);
-        new StyxStreamServer(root, new StyxSecurityContext()).start();
+        new StyxSSHServer(root, new StyxSecurityContext()).start();
     }
     
     /**
@@ -73,98 +71,21 @@ public class StyxStreamServer
      * @param root Root of the Styx namespace that will be served
      * @param securityContext The security context
      */
-    public StyxStreamServer(StyxDirectory root, StyxSecurityContext securityContext)
+    public StyxSSHServer(StyxDirectory root, StyxSecurityContext securityContext)
     {
         // Create a protocol handler with a security context that does not
         // use authentication 
         this.handler = new StyxServerProtocolHandler(root, securityContext);
         // Create an IoSession that writes messages to standard output
-        this.session = new StyxStreamIoSession(this.handler, System.out);
+        this.session = new StyxSSHIoSession(this.handler, System.out);
     }
     
     /**
-     * Starts the StyxStreamServer (starts reading from standard input)
+     * Starts the StyxSSHServer (reads from standard input)
      */
     public void start()
     {
         new MessageReader(System.in, this.handler, this.session).start();
-    }
-    
-    /**
-     * Thread that reads Styx messages from the standard input and writes replies
-     * to the standard output
-     */
-    public static class MessageReader extends Thread implements ProtocolDecoderOutput
-    {
-        private InputStream in;
-        private IoHandler handler;
-        private IoSession session;
-        
-        public MessageReader(InputStream in, IoHandler handler, IoSession session)
-        {
-            this.in = in;
-            this.handler = handler;
-            this.session = session;
-        }
-        
-        public void run()
-        {
-            StyxMessageDecoder decoder = new StyxMessageDecoder();
-            ByteBuffer buf = ByteBuffer.allocate(8192);
-            buf.setAutoExpand(true);
-            try
-            {
-                byte[] b = new byte[8192];
-                int n;
-                do
-                {
-                    n = this.in.read(b);
-                    if (n >= 0)
-                    {
-                        buf.put(b, 0, n);
-                        buf.flip();
-                        // We don't need a real IoSession in this case
-                        decoder.decode(null, buf, this);
-                        buf.compact();
-                    }
-                } while (n >= 0);
-            }
-            catch (ProtocolCodecException pce)
-            {
-                pce.printStackTrace();
-            }
-            catch (IOException ioe)
-            {
-                ioe.printStackTrace();
-            }
-            finally
-            {
-                buf.release();
-                // Release resources associated with the StyxMessageDecoder.
-                // This doesn't need a real IoSession
-                decoder.dispose(null);
-            }
-        }
-        
-        /**
-         * This is called when the StyxMessageDecoder finds a complete message.
-         * Specified by ProtocolDecoderOutput interface
-         */
-        public void write(Object message)
-        {
-            // Send the message to the StyxServerProtocolHandler.  This may
-            // result in a reply being written to the standard output via
-            // the session object
-            try
-            {
-                this.handler.messageReceived(this.session, message);
-            }
-            catch(Exception e)
-            {
-                // Shouldn't happen
-                e.printStackTrace();
-            }
-        }
     }
     
 }
