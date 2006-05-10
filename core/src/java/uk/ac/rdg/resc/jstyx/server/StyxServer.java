@@ -235,7 +235,7 @@ public class StyxServer
         }
         
         // Set up the file tree
-        System.out.println("Building directory tree (this can take some time)");
+        System.out.print("Building directory tree (this can take some time)... ");
         StyxDirectory root = new DirectoryOnDisk(home);
         
         // Add some files with different users and groups
@@ -246,5 +246,7 @@ public class StyxServer
         // Set up the server and start it with the given configuration file
         StyxServer server = new StyxServer(port, root, securityFile);
         server.start();
+        
+        System.out.println("done.");
     }
 }
