@@ -3,8 +3,6 @@
 # Sets the classpath and command-line options for running a program
 # with JStyx
 
-# TODO: Check for $JSTYX_HOME environment variable
-
 case "`uname`" in
 	CYGWIN*) _s=';'
 	;;
@@ -12,16 +10,19 @@ case "`uname`" in
 esac
 
 # Add the conf/ directory to the classpath so it can find .properties files
-CP=$JSTYX_HOME/conf
-for i in `find $JSTYX_HOME -name '*.jar'`; do
+# ${0%/*} holds the directory containing this (JStyxRun) script: see 
+# http://www.codecomments.com/archive287-2004-5-194770.html
+
+CP=${0%/*}/../conf
+for i in `find ${0%/*}/.. -name '*.jar'`; do
     CP="$CP$_s$i"
 done
-for i in `find $JSTYX_HOME/lib -name '*.jar'`; do
+for i in `find ${0%/*}/../lib -name '*.jar'`; do
     CP="$CP$_s$i"
 done
 # The target directory will not exist in a binary distribution so we swallow
 # error messages
-for i in `find $JSTYX_HOME/target -name '*.jar' 2> /dev/null`; do
+for i in `find ${0%/*}/../target -name '*.jar' 2> /dev/null`; do
     CP="$CP$_s$i"
 done
 

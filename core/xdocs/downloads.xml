@@ -14,7 +14,7 @@
           <li>Install a Java runtime environment and add the <code>java</code>
           program to your PATH.</li>
           <li>Download the JStyx distribution and unpack it.</li>
-          <li>Set the JSTYX_HOME environment variable and add JSTYX_HOME/bin to
+          <li>Add the <code>bin</code> directory of the distribution to
           your PATH.</li>
       </ul>
       You can either follow the instructions below or just go straight to the
@@ -50,9 +50,7 @@
           <li>Download the software in zip format from
             <a href="http://prdownloads.sourceforge.net/jstyx/jstyx-0.2.0-win.zip?download">here</a>.</li>
           <li>Unzip the software into the directory of your choice (e.g. <code>C:\JStyx</code>).</li>
-          <li>Set the environment variable JSTYX_HOME to the location of the JStyx software
-              (e.g. <code>C:\JStyx</code>).</li>
-          <li>Append the directory %JSTYX_HOME%\bin to the PATH environment variable.</li>
+          <li>Append the <code>bin</code> directory of the JStyx distribution to your PATH environment variable.</li>
       </ol>
       Note: to set an environment variable in Windows, right-click on &quot;My Computer&quot;
       and click the &quot;Advanced&quot; tab.  Click on &quot;Environment Variables&quot;.
@@ -68,18 +66,13 @@
             <a href="http://prdownloads.sourceforge.net/jstyx/jstyx-0.2.0-unix.tar.gz?download">here</a>.</li>
           <li>Unpack the software into the directory of your choice
               (e.g. <code>cd /home/jon/JStyx; tar xzf jstyx-0.2.0-unix.tar.gz</code>).</li>
-          <li>Set the environment variable JSTYX_HOME to the location of the JStyx software
-              (e.g. <code>export JSTYX_HOME=/home/jon/JStyx</code>).</li>
-          <li>Append the directory $JSTYX_HOME/bin to the PATH environment variable 
-              (e.g. <code>export PATH=$PATH:$JSTYX_HOME/bin</code>).</li>
+          <li>Append the <code>bin</code> directory of the JStyx distribution to
+              your PATH environment variable.  You will probably want to do this
+              in your login script (e.g. <code>~/.bashrc</code> or <code>~/.cshrc</code>)
+              so that this is set automatically every time you log in.</li>
       </ol>
       If you use the C shell you can set an environment variable like this:
-      <code>setenv JSTYX_HOME /home/jon/JStyx</code>.
-      </p>
-      <p>
-      Add the JSTYX_HOME and PATH environment variables
-      to your startup scripts so that you do not have to set them every time you
-      want to run the JStyx software.
+      <code>setenv PATH ${PATH}:/home/jon/JStyx/bin</code>.
       </p>
       </subsection>
       </section>

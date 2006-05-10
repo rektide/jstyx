@@ -72,6 +72,9 @@
              used to start programs -->
         <target name="dist" depends="jar" description="build distribution as a zip file">
             <mkdir dir="${dist.dir}"/>
+            <!-- Use the fixcrlf task to fix dos/unix newlines -->
+            <fixcrlf srcdir="./bin" includes="*.bat" eol="dos"/>
+            <fixcrlf srcdir="./bin" excludes="*.bat" eol="unix"/>
             <!-- The Windows version -->
             <zip destfile="${dist.dir}/jstyx-${version}-win.zip">
                 <fileset file="${jar.file}"/>
