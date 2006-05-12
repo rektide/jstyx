@@ -36,6 +36,7 @@ import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
 import uk.ac.rdg.resc.jstyx.messages.RwalkMessage;
 import uk.ac.rdg.resc.jstyx.messages.RstatMessage;
 import uk.ac.rdg.resc.jstyx.messages.RopenMessage;
+import uk.ac.rdg.resc.jstyx.messages.TcreateMessage;
 import uk.ac.rdg.resc.jstyx.messages.RcreateMessage;
 
 /**
@@ -151,7 +152,7 @@ public class OpenOrCreateCallback extends MessageCallback
 
     public void error(String message, StyxMessage tMessage)
     {
-        if (!this.file.hasFid())
+        if (!this.file.hasFid() && !(tMessage instanceof TcreateMessage))
         {
             // The file does not exist
             int perm = this.isDirectory ? 0777 : 0666;
