@@ -626,6 +626,25 @@ public class CStyxFile
     }
     
     /**
+     * Creates this file on the remote server, provided that its parent directory
+     * exists.
+     * @param isDirectory Set true if you want to create a directory
+     * @param permissions The permissions of the newly-created file or directory
+     * @param mode When this method returns, the file or directory will be open
+     * with this mode.  If you are creating a directory, this mode must be
+     * StyxUtils.OREAD.
+     * @throws StyxException if there was an error creating this file or directory.
+     */
+    public void create(boolean isDirectory, int permissions, int mode)
+        throws StyxException
+    {
+        StyxReplyCallback callback = new StyxReplyCallback();
+        this.createAsync(isDirectory, permissions, mode, callback);
+        // Blocks until the process is complete
+        callback.getReply();
+    }
+    
+    /**
      * Opens or creates this file: if the file exists it will be opened with 
      * the given mode.  If it does not exist it will be created, provided that
      * the parent directory exists.  Files will be created with 0666 permissions
@@ -1714,7 +1733,7 @@ public class CStyxFile
         try
         {
             conn.connect();
-            conn.getFile("/gs8.51/tmp.txt").remove();
+            conn.getFile("/gs8.51/tmp.txt").create(false, 0666, StyxUtils.OREAD);
         }
         catch(Exception e)
         {
