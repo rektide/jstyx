@@ -36,6 +36,7 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.UserInfo;
+import com.jcraft.jsch.UIKeyboardInteractive;
 import com.jcraft.jsch.JSchException;
 
 import org.apache.mina.common.IoSession;
@@ -102,7 +103,7 @@ public class StyxSSHConnection extends StyxConnection
                 sshSession.connect();
 
                 this.channel = sshSession.openChannel("exec");
-                ((ChannelExec)channel).setCommand("JStyxRun uk.ac.rdg.resc.jstyx.server.StyxStreamServer /users/resc/cll");
+                ((ChannelExec)channel).setCommand("~/jstyx-0.3.0-SNAPSHOT/bin/GridServices");
 
                 ((ChannelExec)channel).setErrStream(System.err);
 
@@ -131,14 +132,20 @@ public class StyxSSHConnection extends StyxConnection
     {
         super.sessionClosed(session);
         log.debug("Disconnecting SSH session");
-        this.channel.disconnect();
-        this.sshSession.disconnect();
+        if (this.channel != null)
+        {
+            this.channel.disconnect();
+        }
+        if (this.sshSession != null)
+        {
+            this.sshSession.disconnect();
+        }
     }
     
     /**
      * Callback class for getting user info (e.g. password)
      */
-    public static class MyUserInfo implements UserInfo
+    public static class MyUserInfo implements UserInfo, UIKeyboardInteractive
     {
         String passwd;
         JTextField passwordField=(JTextField)new JPasswordField(20);
@@ -173,17 +180,38 @@ public class StyxSSHConnection extends StyxConnection
         public boolean promptPassword(String message)
         {
             Object[] ob={passwordField};
-            int result=
-                JOptionPane.showConfirmDialog(null, ob, message,
+            int result= JOptionPane.showConfirmDialog(null, ob, message,
                 JOptionPane.OK_CANCEL_OPTION);
-            if(result==JOptionPane.OK_OPTION)
+            if(result == JOptionPane.OK_OPTION)
             {
-                passwd=passwordField.getText();
+                passwd = passwordField.getText();
                 return true;
             }
             else
             {
                 return false;
+            }
+        }
+        
+        public String[] promptKeyboardInteractive(String destination, String name,
+            String instruction, String[] prompt, boolean[] echo)
+        {
+            
+            if(prompt.length != 1 || echo[0] != false) // || this.password == null)
+            {
+                return null;
+            }
+            
+            Object[] ob = {passwordField};
+            int result= JOptionPane.showConfirmDialog(null, ob, "Enter your password",
+                JOptionPane.OK_CANCEL_OPTION);
+            if(result==JOptionPane.OK_OPTION)
+            {
+                return new String[]{passwordField.getText()};
+            }
+            else
+            {
+                return null;
             }
         }
         
@@ -195,11 +223,22 @@ public class StyxSSHConnection extends StyxConnection
     
     public static void main(String[] args) throws Exception
     {
-        StyxConnection conn = new StyxSSHConnection("lovejoy.nerc-essc.ac.uk", "resc");
-        conn.connect();
-        CStyxFile f = conn.getFile("history.txt");
-        System.out.println(f.getContents());
-        conn.close();
+        StyxConnection conn = null;
+        try
+        {
+            conn = new StyxSSHConnection("192.168.0.40", "jon");
+            conn.connect();
+            CStyxFile f = conn.getFile("history.txt");
+            System.out.println(f.getContents());
+        }
+        finally
+        {
+            System.out.println("Closing connection");
+            if (conn != null)
+            {
+                conn.close();
+            }
+        }
     }
     
 }
