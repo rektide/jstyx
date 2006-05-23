@@ -28,6 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.ssh;
 
+import org.apache.log4j.Logger;
+
 import java.io.InputStream;
 import java.io.IOException;
 
@@ -50,7 +52,9 @@ import uk.ac.rdg.resc.jstyx.messages.StyxMessageDecoder;
  * $Log$
  */
 class MessageReader extends Thread implements ProtocolDecoderOutput
-{
+{    
+    private static final Logger log = Logger.getLogger(MessageReader.class);
+    
     private InputStream in;
     private IoHandler handler;
     private IoSession session;
@@ -64,6 +68,7 @@ class MessageReader extends Thread implements ProtocolDecoderOutput
 
     public void run()
     {
+        log.debug("Started MessageReader");
         StyxMessageDecoder decoder = new StyxMessageDecoder();
         ByteBuffer buf = ByteBuffer.allocate(8192);
         buf.setAutoExpand(true);
@@ -94,6 +99,7 @@ class MessageReader extends Thread implements ProtocolDecoderOutput
         }
         finally
         {
+            log.debug("MessageReader finished");
             buf.release();
             // Release resources associated with the StyxMessageDecoder.
             // This doesn't need a real IoSession

@@ -697,7 +697,6 @@ public class CStyxFile
      * confirmation arrives. The error() method of any registered change listeners will be
      * called if an error occurs opening the file.  Write permissions in the parent
      * directory are required to remove a file.
-     * @param callback The MessageCallback object that will handle the Ropen message
      */
     public void removeAsync()
     {

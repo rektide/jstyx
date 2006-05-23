@@ -3,6 +3,7 @@
 # Change to the directory containing the config XML and DTD.
 # ${0%/*} contains the directory from which this script runs.
 # This ensures that the DTD is loaded correctly.
+
 cd ${0%/*}/../conf
 
-JStyxRun uk.ac.rdg.resc.jstyx.gridservice.server.StyxGridService SGSconfig.xml
+JStyxRun uk.ac.rdg.resc.jstyx.gridservice.server.SGSServer SGSconfig.xml $*

@@ -56,6 +56,8 @@ import com.martiansoftware.jsap.ParseException;
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.client.StyxConnectionListener;
 
+import uk.ac.rdg.resc.jstyx.ssh.StyxSSHConnection;
+
 import uk.ac.rdg.resc.jstyx.StyxException;
 
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
@@ -196,8 +198,25 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
      */
     public void connect() throws StyxException, UnknownHostException
     {
+        // Create a StyxConnection.  If the port number is 22, this is an SSH
+        // connection (TODO: make this neater)
+        StyxConnection conn;
+        if (this.port == 22)
+        {
+            // TODO get the user name from somewhere
+            // TODO get the command properly
+            conn = new StyxSSHConnection(this.hostname, "resc",
+                "~/JStyx/bin/GridServices -ssh");
+        }
+        else
+        {
+            // This is a regular StyxConnection to the given host and port
+            conn = new StyxConnection(this.hostname, this.port);
+        }
+        conn.connect();
+        
         // Get a client for this server
-        this.serverClient = SGSServerClient.getServerClient(this.hostname, this.port);
+        this.serverClient = SGSServerClient.getServerClient(conn);
         log.debug("Connected to SGS server at " + this.hostname + ":" + this.port);
 
         // Get a handle to the required Styx Grid Service

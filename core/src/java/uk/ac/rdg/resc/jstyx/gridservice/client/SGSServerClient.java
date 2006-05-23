@@ -77,16 +77,14 @@ public class SGSServerClient
     /**
      * Connects to the SGS server and sets up the client.  Blocks until the connection
      * to the server is made.
-     * @param hostname The hostname or IP address of the SGS server
-     * @param port The port of the SGS server
+     * @param conn the StyxConnection which we are using to connect to the server.
      * @throws StyxException if there was an error connecting to the server
      */
-    private SGSServerClient(String hostname, int port) throws StyxException
+    private SGSServerClient(StyxConnection conn) throws StyxException
     {
         this.sgsClients = new Hashtable();
-        // Connect to the server
-        this.conn = new StyxConnection(hostname, port, true);
-        this.conn.connect();
+        this.conn = conn;
+        //this.conn.connect();
         this.serverRoot = conn.getRootDirectory();
     }
     
@@ -100,25 +98,20 @@ public class SGSServerClient
     
     /**
      * Static factory method for creating an SGSServerClient.  If a client
-     * already exists for the given server (and port number) it will be returned.
+     * already exists for the given connection object it will be returned.
      * If not, a new one will be created.
-     * @param hostname The hostname or IP address of the SGS server
-     * @param port The port of the SGS server
+     * @param conn the StyxConnection which we are using to connect to the server.
      * @throws StyxException if there was an error connecting to the server.
      * @throws UnknownHostException if the host could not be found
      */
-    public static SGSServerClient getServerClient(String hostname, int port)
+    public static SGSServerClient getServerClient(StyxConnection conn)
         throws StyxException, UnknownHostException
     {
-        // Look up the IP address of the server
-        InetAddress serverAddr = InetAddress.getByName(hostname);
-        // See if we already have a client for this server
-        String key = serverAddr.getHostAddress() + ":" + port;
-        SGSServerClient serverClient = (SGSServerClient)serverClients.get(key);
+        SGSServerClient serverClient = (SGSServerClient)serverClients.get(conn);
         if (serverClient == null)
         {
-            serverClient = new SGSServerClient(hostname, port);
-            serverClients.put(key, serverClient);
+            serverClient = new SGSServerClient(conn);
+            serverClients.put(conn, serverClient);
         }
         return serverClient;
     }

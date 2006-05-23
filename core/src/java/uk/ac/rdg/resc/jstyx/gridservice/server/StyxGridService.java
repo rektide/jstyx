@@ -61,6 +61,7 @@ import uk.ac.rdg.resc.jstyx.StyxUtils;
 
 import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfig;
 import uk.ac.rdg.resc.jstyx.gridservice.config.DocFile;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSConfigException;
 
 /**
  * Class representing a Styx Grid Service
@@ -346,39 +347,6 @@ public class StyxGridService
         catch (SchedulerException se)
         {
             log.error("Error scheduling instance for termination: " + se.getMessage());
-        }
-    }
-    
-    public static void main (String[] args)
-    {
-        System.setProperty("java.protocol.handler.pkgs", "uk.ac.rdg.resc.jstyx.client.protocol");
-        if (args.length != 1)
-        {
-            System.err.println("Usage: StyxGridService <config file>");
-            return;
-        }
-        try
-        {
-            // Create the server configuration from the given XML config file
-            SGSServerConfig config = new SGSServerConfig(args[0]);            
-            // Create the root directory
-            StyxDirectory root = new StyxDirectory("/");
-            // Add the SGSs to this directory
-            Iterator it = config.getSGSConfigInfo();
-            while(it.hasNext())
-            {
-                SGSConfig conf = (SGSConfig)it.next();
-                root.addChild(new StyxGridService(conf).getRoot());
-            }
-            // Start the server: unsecured for the moment
-            int port = config.getPort();
-            new StyxServer(port, root, config.getSecurityContextFile()).start();
-            System.out.println("Started StyxGridServices, listening on port " + port);
-        }
-        catch(Exception e)
-        {
-            e.printStackTrace();
-            return;
         }
     }
     

@@ -328,7 +328,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * <code>styx://thehost.com:9092/mySGS/instances/1234567890abcde</code>
      * @throws StyxException if there was an error creating the client object
      */
-    public SGSInstanceClient(String instanceURL) throws StyxException
+    /*public SGSInstanceClient(String instanceURL) throws StyxException
     {
         // Check to see if the new instance is on the same server and port
         // as the current connection
@@ -360,7 +360,7 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
             throw new StyxException("The host at address " + url.getHost() +
                 " is unknown.");
         }
-    }
+    }*/
     
     /**
      * Sets up this instance
@@ -936,9 +936,9 @@ public class SGSInstanceClient extends CStyxFileChangeAdapter
      * The same output cannot be redirected to multiple
      * destinations (currently) so calling this method multiple times on the same
      * output file name will have no effect.
-     * @param outputStream Name of the output stream (as returned by
+     * @param outputStreamName Name of the output stream (as returned by
      * getOutputFileNames())
-     * @param dest The name of the file to which the data will be written (in
+     * @param destFileName The name of the file to which the data will be written (in
      * the case of a composite job (i.e. a job with more than one sub-job), 
      * this will be created as a directory.
      * @throws IllegalArgumentException if there is no output file with the

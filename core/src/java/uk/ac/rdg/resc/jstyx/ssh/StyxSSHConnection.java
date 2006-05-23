@@ -56,6 +56,7 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 public class StyxSSHConnection extends StyxConnection
 {
     private String sshUser;
+    private String commandToExec;
     private Session sshSession;
     private Channel channel;
     
@@ -64,11 +65,15 @@ public class StyxSSHConnection extends StyxConnection
      * @param hostname The host to connect to
      * @param sshUser the username on the SSH server (not the username in the
      * Styx hierarchy)
+     * @param commandToExec the command to execute on the SSH server (this is 
+     * a program that will listen for Styx messages on standard input and write
+     * replies to standard output, such as a StyxSSHServer)
      */
-    public StyxSSHConnection(String hostname, String sshUser)
+    public StyxSSHConnection(String hostname, String sshUser, String commandToExec)
     {
         super(hostname, 22);
         this.sshUser = sshUser;
+        this.commandToExec = commandToExec;
     }
     
     /**
@@ -103,7 +108,7 @@ public class StyxSSHConnection extends StyxConnection
                 sshSession.connect();
 
                 this.channel = sshSession.openChannel("exec");
-                ((ChannelExec)channel).setCommand("~/jstyx-0.3.0-SNAPSHOT/bin/GridServices");
+                ((ChannelExec)channel).setCommand(this.commandToExec);
 
                 ((ChannelExec)channel).setErrStream(System.err);
 
@@ -126,6 +131,7 @@ public class StyxSSHConnection extends StyxConnection
                 this.fireStyxConnectionError(e);
             }
         }
+        log.info("SSH connection established");
     }
     
     public void sessionClosed(IoSession session)
@@ -226,10 +232,14 @@ public class StyxSSHConnection extends StyxConnection
         StyxConnection conn = null;
         try
         {
-            conn = new StyxSSHConnection("192.168.0.40", "jon");
+            conn = new StyxSSHConnection("lovejoy.nerc-essc.ac.uk", "resc",
+                "~/JStyx/bin/GridServices -ssh");
             conn.connect();
-            CStyxFile f = conn.getFile("history.txt");
-            System.out.println(f.getContents());
+            CStyxFile[] f = conn.getRootDirectory().getChildren();
+            for (int i = 0; i < f.length; i++)
+            {
+                System.out.println(f[i].getPath());
+            }
         }
         finally
         {

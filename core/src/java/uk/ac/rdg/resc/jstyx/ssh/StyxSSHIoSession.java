@@ -69,7 +69,7 @@ public class StyxSSHIoSession extends BaseIoSession
     }
     
     /**
-     * Writes the message to standard output immediately
+     * Writes the message to the output PrintStream immediately
      */
     public synchronized WriteFuture write( Object message )
     {

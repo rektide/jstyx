@@ -180,7 +180,7 @@ public class SGSServerConfig
                 throw new SGSConfigException("Cannot get the address of this server");
             }
         }
-        System.out.println("Host address = " + this.host);
+        log.info("Host address = " + this.host);
     }
     
     /**
