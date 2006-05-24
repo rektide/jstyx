@@ -389,6 +389,11 @@ public class CondorJob extends AbstractJob
             // job ID
             File jobWorkDir = new File(this.workDir, "" + jobID);
             jobWorkDir.mkdir();
+            
+            if (inputFiles.length == 0)
+            {
+                done = true;
+            }
 
             // Copy the required files to this directory.  We don't need to
             // copy the files that are the same for every job
