@@ -6,6 +6,19 @@
     SYSTEM ID: http://server/path/SGSconfig.dtd
 -->
 
+<!-- Options for a SGS.  These are provided as key-value pairs.  The
+     interpretation of these options is dependent upon
+     the type of the SGS (see the <gridservice> tag).  For example, these options
+     might be used to pass parameters to Condor.
+-->
+<!ELEMENT options (option*)>
+<!ELEMENT option EMPTY>
+<!ATTLIST option
+    key CDATA #REQUIRED
+    value CDATA #REQUIRED
+    description CDATA #IMPLIED
+  >
+
 <!-- A parameter for a SGS (passed on the command-line to the executable).  For
            now, all parameter values will be plain strings.
      name: The name of the parameter (must not contain spaces)
@@ -13,7 +26,7 @@
      required: "yes" if a value for this parameter must be set.  Meaningless for switches.
            For other parameter types, setting required="yes" means that the
            parameter must contain a value (i.e. not just whitespace characters)
-     flag: (Optional) The command-line flag (single character) used to prefix
+     flag: The command-line flag (single character) used to prefix
            the parameter value, e.g. "v".  Used in "switch" and "flaggedOption" only
      longFlag: (Optional) The long version of the command-line flag, e.g. "verbose"
      defaultValue: (Optional) default value for the parameter.  For switches, the
@@ -104,7 +117,7 @@
 <!-- Element that defines a Styx Grid Service -->
 <!-- The description of the service will automatically appear as a file called
      "description" in the docs/ directory of the SGS. -->
-<!ELEMENT gridservice (params?, inputs?, outputs?, serviceData?, steering?, docs?)>
+<!ELEMENT gridservice (options?, params?, inputs?, outputs?, serviceData?, steering?, docs?)>
 <!ATTLIST gridservice
     name CDATA #REQUIRED
     command CDATA #REQUIRED

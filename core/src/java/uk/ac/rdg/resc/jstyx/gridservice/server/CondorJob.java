@@ -183,9 +183,10 @@ public class CondorJob extends AbstractJob
         this.stopThreads = true;
         if (statusCode == StatusCode.RUNNING)
         {
+            String rmCommand = "condor_rm " + this.clusterID;
             try
             {
-                Process proc = Runtime.getRuntime().exec("condor_rm " + this.clusterID);
+                Process proc = Runtime.getRuntime().exec(rmCommand);
                 log.debug("Called condor_rm " + this.clusterID);
                 // Make sure we consume the outputs from the condor_rm command
                 new CondorStreamReader(proc.getInputStream()).start();
@@ -197,7 +198,7 @@ public class CondorJob extends AbstractJob
             catch (IOException ioe)
             {
                 throw new StyxException("Error stopping job: could not create" +
-                    " process \"condor_rm " + this.clusterID + "\"");
+                    " process \"" + rmCommand + "\"");
             }
         }
     }
@@ -240,13 +241,12 @@ public class CondorJob extends AbstractJob
             
             try
             {
-                // Prepare the directories for each individual job and get the number
+                // Prepare the directories for each individual job and set the number
                 // of jobs that will be run
-                int n = this.prepareJobDirectories();
-                log.debug("Prepared " + n + " job directories");
-                this.setNumSubJobs(n);
+                this.prepareJobDirectories();
+                log.debug("Prepared " + this.numSubJobs + " job directories");
                 
-                if (n > 1)
+                if (this.numSubJobs > 1)
                 {
                     // Set up the output files: these are tar files that will be added
                     // to when each individual job finishes
@@ -262,74 +262,26 @@ public class CondorJob extends AbstractJob
                 // Create the condor submit file in the working directory
                 PrintStream submitFile = new PrintStream(new FileOutputStream(
                     new File(this.workDir, SUBMIT_FILE)), true);
-                
-                // If this is a composite job (numSubJobs > 1), common files
-                // are kept in the root directory of the job, i.e. the parent
-                // directory of the subjob
-                String commonFilePrefix = (n > 1) ? ".."
-                    + StyxUtils.SYSTEM_FILE_SEPARATOR : "";
                     
                 submitFile.println("########################");
                 submitFile.println("# Submit description file for instance " +
                     this.instance.getID());
                 submitFile.println("########################");
 
-                submitFile.println("executable = " + this.command);
-                submitFile.println("universe = vanilla");
-                if (this.stdin.exists())
+                Hashtable condorOpts = this.getCondorOptions();
+                for (Enumeration en = condorOpts.keys(); en.hasMoreElements(); )
                 {
-                    submitFile.println("input = " + commonFilePrefix + STDIN_FILE);
+                    String opt = (String)en.nextElement();
+                    String val = (String)condorOpts.get(opt);
+                    submitFile.println(opt + " = " + val);
                 }
-                submitFile.println("output = " + STDOUT_FILE);
-                submitFile.println("error = " + STDERR_FILE);
-                submitFile.println("arguments = " + this.args);                
-                // We use the same log file for each job
-                submitFile.println("log = " + commonFilePrefix + LOG_FILE);
                 
-                // Force Condor to transfer the files using its own mechanism.
-                // Not only should this work on more systems (doesn't rely on a
-                // shared filesystem) it makes sure that the job does not finish
-                // until the output files have been transferred back to the submit
-                // host
-                submitFile.println("should_transfer_files = YES");
-                submitFile.println("when_to_transfer_output = ON_EXIT");
-                
-                // Now make sure that Condor transfers the input file(s) from the
-                // correct directory
-                submitFile.print("transfer_input_files = ");
-                StyxFile[] inputFiles = this.instance.getInputFiles();
-                boolean firstTime = true;
-                for (int i = 0; i < inputFiles.length; i++)
+                if (this.numSubJobs > 1)
                 {
-                    // Don't do anything with the standard input
-                    if (inputFiles[i] instanceof SGSInputFile.File ||
-                        inputFiles[i] instanceof SGSInputDirectory)
-                    {
-                        if (!firstTime)
-                        {
-                            submitFile.print(", ");
-                        }
-                        if (inputFiles[i] instanceof SGSInputFile.File && n > 1)
-                        {
-                            // There is only one version of this input file and
-                            // it is found in the root directory of this instance
-                            submitFile.print(".." + StyxUtils.SYSTEM_FILE_SEPARATOR);
-                        }
-                        submitFile.print(inputFiles[i].getName());
-                        firstTime = false;
-                    }
-                }
-                submitFile.println("");
-                
-                if (n > 1)
-                {
-                    submitFile.println("initialdir = " + this.workDir.getPath()
-                        + StyxUtils.SYSTEM_FILE_SEPARATOR + "$(Process)");
                     submitFile.println("queue " + this.numSubJobs);
                 }
                 else
                 {
-                    submitFile.println("initialdir = " + this.workDir.getPath());
                     submitFile.println("queue");
                 }
 
@@ -363,15 +315,110 @@ public class CondorJob extends AbstractJob
     }
     
     /**
+     * @return a Hashtable of options for the condor submit file.  These will
+     * be a combination of the mandatory options that we need and the optional
+     * ones that have been set through the SGS configuration file.  Problems
+     * might arise if the SGS config file sets a parameter called (for example)
+     * "WhenToTransferOutput", whereas the default key is "when_to_transfer_output".
+     * Need more intelligence in this routine to make sure the system knows that
+     * these are the same thing.
+     */
+    private Hashtable getCondorOptions()
+    {
+        Hashtable opts = new Hashtable();
+        
+        // First we set the options that can be overridden by the options in 
+        // the SGS configuration file
+        opts.put("universe", "vanilla");
+        
+        // Now we set the options from the SGS configuration file
+        Hashtable configOpts = this.instance.getOptions();
+        // configOpts should not be null - this is defensive
+        if (configOpts != null)
+        {
+            for (Enumeration en = configOpts.keys(); en.hasMoreElements(); )
+            {
+                String key = (String)en.nextElement();
+                String value = (String)configOpts.get(key);
+                opts.put(key, value);
+            }
+        }
+        
+        // Finally we set the options that cannot be overridden
+
+        // If this is a composite job (numSubJobs > 1), common files
+        // are kept in the root directory of the job, i.e. the parent
+        // directory of the subjob
+        String commonFilePrefix = (this.numSubJobs > 1) ? ".." +
+            StyxUtils.SYSTEM_FILE_SEPARATOR : "";
+        
+        opts.put("executable", this.command);
+        if (this.stdin.exists())
+        {
+            opts.put("input", commonFilePrefix + STDIN_FILE);
+        }
+        opts.put("output", STDOUT_FILE);
+        opts.put("error", STDERR_FILE);
+        opts.put("arguments", this.args);                
+        // We use the same log file for each job
+        opts.put("log", commonFilePrefix + LOG_FILE);
+
+        // Force Condor to transfer the files using its own mechanism.
+        // Not only should this work on more systems (doesn't rely on a
+        // shared filesystem) it makes sure that the job does not finish
+        // until the output files have been transferred back to the submit
+        // host
+        opts.put("should_transfer_files", "YES");
+        opts.put("when_to_transfer_output", "ON_EXIT");
+        
+        // Now make sure that Condor transfers the input file(s) from the
+        // correct directory
+        StringBuffer buf = new StringBuffer();
+        StyxFile[] inputFiles = this.instance.getInputFiles();
+        boolean firstTime = true;
+        for (int i = 0; i < inputFiles.length; i++)
+        {
+            // Don't do anything with the standard input
+            if (inputFiles[i] instanceof SGSInputFile.File ||
+                inputFiles[i] instanceof SGSInputDirectory)
+            {
+                if (!firstTime)
+                {
+                    buf.append(", ");
+                }
+                if (inputFiles[i] instanceof SGSInputFile.File && this.numSubJobs > 1)
+                {
+                    // There is only one version of this input file and
+                    // it is found in the root directory of this instance
+                    buf.append(".." + StyxUtils.SYSTEM_FILE_SEPARATOR);
+                }
+                buf.append(inputFiles[i].getName());
+                firstTime = false;
+            }
+        }
+        opts.put("transfer_input_files", buf.toString());
+        
+        if (this.numSubJobs > 1)
+        {
+            opts.put("initialdir", this.workDir.getPath()
+                + StyxUtils.SYSTEM_FILE_SEPARATOR + "$(Process)");
+        }
+        else
+        {
+            opts.put("initialdir", this.workDir.getPath());
+        }
+        
+        return opts;
+    }
+    
+    /**
      * Prepares the directories for each individual job.  Each directory contains
      * a unique combination of input files and will contain the output files for
-     * an individual Condor job
-     * @return The number of input directories prepared (i.e. the number of jobs
-     * that will be run)
+     * an individual Condor job.  Also sets the number of subjobs.
      * @throws IOException if there was an error copying input files into a
      * job directory
      */
-    private int prepareJobDirectories() throws IOException
+    private void prepareJobDirectories() throws IOException
     {
         boolean done = false;
         int jobID = 0;
@@ -441,7 +488,7 @@ public class CondorJob extends AbstractJob
             }
             jobID++;
         }
-        return jobID;
+        this.setNumSubJobs(jobID);
     }
     
     /**

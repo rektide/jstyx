@@ -43,6 +43,7 @@ import java.io.FileNotFoundException;
 import java.util.Vector;
 import java.util.Iterator;
 import java.util.Date;
+import java.util.Hashtable;
 
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
@@ -477,6 +478,14 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     StyxFile[] getOutputFiles()
     {
         return this.outputsDir.getChildren();
+    }
+    
+    /**
+     * @return the Hashtable of options that can be used to configure a job
+     */
+    Hashtable getOptions()
+    {
+        return this.sgsConfig.getOptions();
     }
     
     /**

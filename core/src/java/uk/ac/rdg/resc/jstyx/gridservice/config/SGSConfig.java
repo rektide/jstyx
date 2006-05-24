@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.jstyx.gridservice.config;
 
 import java.util.Vector;
 import java.util.Iterator;
+import java.util.Hashtable;
 import java.io.StringReader;
 
 import org.dom4j.Node;
@@ -136,6 +137,8 @@ public class SGSConfig
     private JSAP paramParser;   // Object that parses the parameters for this service
     private Vector steerables;  // The steerable parameters for this SGS
     private Vector serviceData; // The service data elements for this SGS
+    private Hashtable options;  // The options for this SGS (these might be used
+                                // to customize a Condor submit file, for instance)
 
     /**
      * This is called by the SGS server program to generate a configuration
@@ -156,12 +159,23 @@ public class SGSConfig
             StyxUtils.SYSTEM_FILE_SEPARATOR + name;
         this.setConfigXMLForClient();
         
+        // Create the options: these are key-value pairs whose use is dependent
+        // upon the job type (LocalJob, CondorJob etc).  They are not exposed
+        // to the client.
+        this.options = new Hashtable();
+        Iterator it = gridService.selectNodes("options/option").iterator();
+        while(it.hasNext())
+        {
+            Node optionEl = (Node)it.next();
+            this.options.put(optionEl.valueOf("@key"), optionEl.valueOf("@value"));
+        }
+        
         // Create the documentation files
         this.docFiles = new Vector();
-        Iterator docListIter = gridService.selectNodes("docs/doc").iterator();
-        while(docListIter.hasNext())
+        it = gridService.selectNodes("docs/doc").iterator();
+        while(it.hasNext())
         {
-            Node docEl = (Node)docListIter.next();
+            Node docEl = (Node)it.next();
             String name = docEl.valueOf("@name");
             String location = docEl.valueOf("@location");
             this.docFiles.add(new DocFile(name, location));
@@ -392,7 +406,7 @@ public class SGSConfig
      * Sets the XML that was used to create this config object in a form
      * suitable for clients to read.  This is the same as the XML that was used
      * to create the config object except that the command attribute of the root
-     * element and the documentation section are missing.
+     * element, the options section and the documentation section are missing.
      */
     private void setConfigXMLForClient()
     {
@@ -409,7 +423,7 @@ public class SGSConfig
         while (it.hasNext())
         {
             Node node = (Node)it.next();
-            if (!node.getName().equals("docs"))
+            if (!node.getName().equals("docs") && !node.getName().equals("options"))
             {
                 buf.append(node.asXML());
             }
@@ -487,5 +501,16 @@ public class SGSConfig
     public Vector getServiceData()
     {
         return this.serviceData;
+    }
+    
+    /**
+     * @return Hashtable of options for this SGS.  These options are only available
+     * to the SGS server.  If an SGS client calls this method, this will return
+     * null.  These options are used to configure a particular job.  For example,
+     * for a CondorJob, we might set an option called "universe" to "globus".
+     */
+    public Hashtable getOptions()
+    {
+        return this.options;
     }
 }
