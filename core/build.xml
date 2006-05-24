@@ -77,30 +77,30 @@
             <fixcrlf srcdir="./bin" excludes="*.bat" eol="unix"/>
             <!-- The Windows version -->
             <zip destfile="${dist.dir}/jstyx-${version}-win.zip">
-                <fileset file="${jar.file}"/>
-                <zipfileset dir="./bin" prefix="bin" includes="*.bat"/>
-                <zipfileset dir="${lib.dir}" prefix="lib"/>
-                <zipfileset dir="${conf.dir}" prefix="conf" includes="log4j.properties, SGSconfig.dtd"/>
-                <zipfileset file="${conf.dir}/SGSconfig_windows.xml" fullpath="conf/SGSconfig.xml"/>
-                <zipfileset dir="." includes="*.txt" excludes="build-instructions.txt"/>
+                <zipfileset file="${jar.file}" prefix="jstyx-${version}"/>
+                <zipfileset dir="./bin" prefix="jstyx-${version}/bin" includes="*.bat"/>
+                <zipfileset dir="${lib.dir}" prefix="jstyx-${version}/lib"/>
+                <zipfileset dir="${conf.dir}" prefix="jstyx-${version}/conf" includes="log4j.properties, SGSconfig.dtd"/>
+                <zipfileset file="${conf.dir}/SGSconfig_windows.xml" fullpath="jstyx-${version}/conf/SGSconfig.xml"/>
+                <zipfileset dir="." includes="*.txt" excludes="build-instructions.txt" prefix="jstyx-${version}"/>
             </zip>
             <!-- The Unix version -->
             <tar destfile="${dist.dir}/jstyx-${version}-unix.tar.gz" compression="gzip">
-                <tarfileset file="${jar.file}"/>
-                <tarfileset dir="./bin" prefix="bin" excludes="*.bat" mode="0755"/>
-                <tarfileset dir="${lib.dir}" prefix="lib"/>
-                <tarfileset dir="${conf.dir}" prefix="conf" includes="log4j.properties, SGSconfig.dtd"/>
-                <tarfileset file="${conf.dir}/SGSconfig_unix.xml" fullpath="conf/SGSconfig.xml"/>
-                <tarfileset dir="." includes="*.txt" excludes="build-instructions.txt"/>
+                <tarfileset file="${jar.file}" prefix="jstyx-${version}"/>
+                <tarfileset dir="./bin" prefix="jstyx-${version}/bin" excludes="*.bat" mode="0755"/>
+                <tarfileset dir="${lib.dir}" prefix="jstyx-${version}/lib"/>
+                <tarfileset dir="${conf.dir}" prefix="jstyx-${version}/conf" includes="log4j.properties, SGSconfig.dtd"/>
+                <tarfileset file="${conf.dir}/SGSconfig_unix.xml" fullpath="jstyx-${version}/conf/SGSconfig.xml"/>
+                <tarfileset dir="." includes="*.txt" excludes="build-instructions.txt" prefix="jstyx-${version}"/>
             </tar>
             <!-- The source code -->
             <zip destfile="${dist.dir}/jstyx-${version}-src.zip">
-                <zipfileset dir="./bin" prefix="bin"/>
-                <zipfileset dir="${lib.dir}" prefix="lib"/>
-                <zipfileset dir="${src.dir}" prefix="src/java"/>
-                <zipfileset dir="./xdocs" prefix="xdocs"/>
-                <zipfileset dir="${conf.dir}" prefix="conf" excludes="styxSecurity.*"/>
-                <zipfileset dir="." includes="build.xml, project.properties, project.xml, build-instructions.txt"/>
+                <zipfileset dir="./bin" prefix="jstyx-${version}-src/bin"/>
+                <zipfileset dir="${lib.dir}" prefix="jstyx-${version}-src/lib"/>
+                <zipfileset dir="${src.dir}" prefix="jstyx-${version}-src/src/java"/>
+                <zipfileset dir="./xdocs" prefix="jstyx-${version}-src/xdocs"/>
+                <zipfileset dir="${conf.dir}" prefix="jstyx-${version}-src/conf" excludes="styxSecurity.*"/>
+                <zipfileset dir="." includes="build.xml, project.properties, project.xml, build-instructions.txt" prefix="jstyx-${version}-src"/>
             </zip>
         </target>
 
