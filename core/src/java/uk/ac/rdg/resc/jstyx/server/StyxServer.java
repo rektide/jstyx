@@ -179,16 +179,40 @@ public class StyxServer
     }
     
     /**
-     * Starts the Styx server.
+     * Starts the Styx server.  Does nothing if the server is already started.
      * @throws IOException if an error occurred
      */
     public void start() throws IOException
     {
         IoAcceptor acceptor = new SocketAcceptor();
-
         acceptor.bind(new InetSocketAddress( this.port ), this.handler);
-        
+
+        // Add a shutdown hook that unbinds this acceptor when the Java VM
+        // shuts down
+        Runtime.getRuntime().addShutdownHook(new Unbinder(acceptor));
+
         log.info( "Listening on port " + this.port);
+    }
+    
+    /**
+     * Shutdown hook for this Styx server; unbinds the IoAcceptor when the
+     * JVM shuts down
+     */
+    private static class Unbinder extends Thread
+    {
+        private IoAcceptor acceptor;
+        public Unbinder(IoAcceptor acceptor)
+        {
+            this.acceptor = acceptor;
+        }
+        public void run()
+        {
+            if (this.acceptor != null)
+            {
+                this.acceptor.unbindAll();
+                log.debug("IoAcceptor has been unbound");
+            }
+        }
     }
     
     /**
