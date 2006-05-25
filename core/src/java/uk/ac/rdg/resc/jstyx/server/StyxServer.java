@@ -185,11 +185,12 @@ public class StyxServer
     public void start() throws IOException
     {
         IoAcceptor acceptor = new SocketAcceptor();
-        acceptor.bind(new InetSocketAddress( this.port ), this.handler);
+        InetSocketAddress sockAddress = new InetSocketAddress(this.port);
+        acceptor.bind(sockAddress, this.handler);
 
         // Add a shutdown hook that unbinds this acceptor when the Java VM
         // shuts down
-        Runtime.getRuntime().addShutdownHook(new Unbinder(acceptor));
+        Runtime.getRuntime().addShutdownHook(new Unbinder(acceptor, sockAddress));
 
         log.info( "Listening on port " + this.port);
     }
@@ -201,16 +202,22 @@ public class StyxServer
     private static class Unbinder extends Thread
     {
         private IoAcceptor acceptor;
-        public Unbinder(IoAcceptor acceptor)
+        private InetSocketAddress sockAddress;
+        public Unbinder(IoAcceptor acceptor, InetSocketAddress sockAddress)
         {
             this.acceptor = acceptor;
+            this.sockAddress = sockAddress;
         }
         public void run()
         {
             if (this.acceptor != null)
             {
-                this.acceptor.unbindAll();
-                log.debug("IoAcceptor has been unbound");
+                // This debug message doesn't seem to appear on some systems
+                // (e.g. OxGrid) but the port appears to be unbound anyway.
+                // Is this because the program quits before the message gets
+                // printed?
+                log.debug("Unbinding from port " + sockAddress.getPort());
+                this.acceptor.unbind(sockAddress);
             }
         }
     }
