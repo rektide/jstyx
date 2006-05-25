@@ -9,7 +9,7 @@
 <!-- Options for a SGS.  These are provided as key-value pairs.  The
      interpretation of these options is dependent upon
      the type of the SGS (see the <gridservice> tag).  For example, these options
-     might be used to pass parameters to Condor.
+     might be used to pass parameters to Condor(-G) if type=condor.
 -->
 <!ELEMENT options (option*)>
 <!ELEMENT option EMPTY>

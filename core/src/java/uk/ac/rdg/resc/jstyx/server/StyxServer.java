@@ -212,10 +212,6 @@ public class StyxServer
         {
             if (this.acceptor != null)
             {
-                // This debug message doesn't seem to appear on some systems
-                // (e.g. OxGrid) but the port appears to be unbound anyway.
-                // Is this because the program quits before the message gets
-                // printed?
                 log.debug("Unbinding from port " + sockAddress.getPort());
                 this.acceptor.unbind(sockAddress);
             }
