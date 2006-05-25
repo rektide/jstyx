@@ -330,8 +330,9 @@ public class CondorJob extends AbstractJob
         // First we set the options that can be overridden by the options in 
         // the SGS configuration file
         opts.put("universe", "vanilla");
+        opts.put("transfer_executable", "true");
         
-        // Now we set the options from the SGS configuration file
+        // Now we set the options from the SGS configuration file.
         Hashtable configOpts = this.instance.getOptions();
         // configOpts should not be null - this is defensive
         if (configOpts != null)
@@ -346,8 +347,8 @@ public class CondorJob extends AbstractJob
         
         // Finally we set the options that cannot be overridden
 
-        // If this is a composite job (numSubJobs > 1), common files
-        // are kept in the root directory of the job, i.e. the parent
+        // If this is a composite job (numSubJobs > 1), files that are common to
+        // all subjobs are kept in the root directory of the job, i.e. the parent
         // directory of the subjob
         String commonFilePrefix = (this.numSubJobs > 1) ? ".." +
             StyxUtils.SYSTEM_FILE_SEPARATOR : "";
@@ -355,6 +356,7 @@ public class CondorJob extends AbstractJob
         opts.put("executable", this.command);
         if (this.stdin.exists())
         {
+            // The standard input data is the same for each job
             opts.put("input", commonFilePrefix + STDIN_FILE);
         }
         opts.put("output", STDOUT_FILE);
