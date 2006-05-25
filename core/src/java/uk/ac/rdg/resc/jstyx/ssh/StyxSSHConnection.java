@@ -28,8 +28,10 @@
 
 package uk.ac.rdg.resc.jstyx.ssh;
 
-import javax.swing.*;
 import java.io.PrintStream;
+import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
@@ -154,8 +156,11 @@ public class StyxSSHConnection extends StyxConnection
     public static class MyUserInfo implements UserInfo, UIKeyboardInteractive
     {
         String passwd;
-        JTextField passwordField=(JTextField)new JPasswordField(20);
         
+        /**
+         * Not very secure to store password as a String (can't overwrite it)
+         * but JSch gives us no choice.
+         */
         public String getPassword()
         {
             return passwd;
@@ -163,14 +168,29 @@ public class StyxSSHConnection extends StyxConnection
         
         public boolean promptYesNo(String str)
         {
-            Object[] options={ "yes", "no" };
-            int foo=JOptionPane.showOptionDialog(null,
-                str,
-                "Warning",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.WARNING_MESSAGE,
-                null, options, options[0]);
-            return foo==0;
+            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+            try
+            {
+                while (true)
+                {
+                    System.out.println(str + " (Y/N)");
+                    String s = in.readLine().trim().toLowerCase();
+                    if (s.equals("y") || s.equals("yes"))
+                    {
+                        return true;
+                    }
+                    else if (s.equals("n") || s.equals("no"))
+                    {
+                        return false;
+                    }
+                }
+            }
+            catch (IOException ioe)
+            {
+                // This shouldn't happen
+                System.err.println("Error reading response");
+                return false;
+            }
         }
         
         public String getPassphrase()
@@ -185,16 +205,22 @@ public class StyxSSHConnection extends StyxConnection
         
         public boolean promptPassword(String message)
         {
-            Object[] ob={passwordField};
-            int result= JOptionPane.showConfirmDialog(null, ob, message,
-                JOptionPane.OK_CANCEL_OPTION);
-            if(result == JOptionPane.OK_OPTION)
+            try
             {
-                passwd = passwordField.getText();
+                // Shame that JSch won't let us use a char array here - would be
+                // more secure
+                this.passwd = new String(SecurePassword.readConsoleSecure(message));
                 return true;
             }
-            else
+            catch(IOException ioe)
             {
+                // Shouldn't happen
+                return false;
+            }
+            catch(InterruptedException ie)
+            {
+                // Shouldn't happen either
+                System.err.println("Internal error: InterruptedException when reading password");
                 return false;
             }
         }
@@ -202,28 +228,29 @@ public class StyxSSHConnection extends StyxConnection
         public String[] promptKeyboardInteractive(String destination, String name,
             String instruction, String[] prompt, boolean[] echo)
         {
-            
-            if(prompt.length != 1 || echo[0] != false) // || this.password == null)
+            try
             {
+                // Shame that JSch won't let us use a char array here - would be
+                // more secure
+                return new String[]{new String(SecurePassword.readConsoleSecure(instruction))};
+            }
+            catch(IOException ioe)
+            {
+                // Shouldn't happen
+                System.err.println("Internal error: IOException when reading password");
                 return null;
             }
-            
-            Object[] ob = {passwordField};
-            int result= JOptionPane.showConfirmDialog(null, ob, "Enter your password",
-                JOptionPane.OK_CANCEL_OPTION);
-            if(result==JOptionPane.OK_OPTION)
+            catch(InterruptedException ie)
             {
-                return new String[]{passwordField.getText()};
-            }
-            else
-            {
+                // Shouldn't happen either
+                System.err.println("Internal error: InterruptedException when reading password");
                 return null;
             }
         }
         
         public void showMessage(String message)
         {
-            JOptionPane.showMessageDialog(null, message);
+            System.out.println(message);
         }
     }
     
