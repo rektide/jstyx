@@ -489,6 +489,14 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     }
     
     /**
+     * @return the configuration information for this service
+     */
+    SGSConfig getConfig()
+    {
+        return this.sgsConfig;
+    }
+    
+    /**
      * @return the names of the input files that will be consumed by this service,
      * (not including the standard input) as a comma-separated string.  Returns
      * an empty string if there are no input files

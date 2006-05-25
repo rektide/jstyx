@@ -39,11 +39,15 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+
 import java.net.URL;
+
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.Hashtable;
 import java.util.Enumeration;
+import java.util.Vector;
+
 import java.nio.channels.FileChannel;
 
 import org.apache.log4j.Logger;
@@ -54,6 +58,7 @@ import org.apache.tools.tar.TarEntry;
 import uk.ac.rdg.resc.jstyx.StyxUtils;
 import uk.ac.rdg.resc.jstyx.StyxException;
 import uk.ac.rdg.resc.jstyx.server.StyxFile;
+import uk.ac.rdg.resc.jstyx.gridservice.config.SGSOutput;
 
 /**
  * A Job that runs on a Condor pool.  The SGS server must be running on a Condor
@@ -399,6 +404,38 @@ public class CondorJob extends AbstractJob
             }
         }
         opts.put("transfer_input_files", buf.toString());
+        
+        // If this is a grid/globus job we need to make sure that the output
+        // files get transferred back correctly: i.e. we need to set
+        // transfer_output_files.  For non-grid jobs, Condor handles the transfer
+        // of output files automatically.
+        String universe = ((String)opts.get("universe")).trim().toLowerCase();
+        if (universe.equals("grid") || universe.equals("globus"))
+        {
+            Vector outputs = this.instance.getConfig().getOutputs();
+            log.debug("Got " + outputs.size() + " output files");
+            buf = new StringBuffer();
+            firstTime = true;
+            for (int i = 0; i < outputs.size(); i++)
+            {
+                SGSOutput output = (SGSOutput)outputs.get(i);
+                log.debug("output " + i + " name = " + output.getName());
+                if (output.getType() != SGSOutput.STREAM)
+                {
+                    if (!firstTime)
+                    {
+                        buf.append(", ");
+                    }
+                    buf.append(output.getName());
+                    firstTime = false;
+                }
+            }
+            if (!firstTime)
+            {
+                // Only add this to the submit file if there is at least one output file
+                opts.put("transfer_output_files", buf.toString());
+            }
+        }
         
         if (this.numSubJobs > 1)
         {
