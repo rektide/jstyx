@@ -33,13 +33,11 @@ import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelExec;
-import com.jcraft.jsch.UserInfo;
-import com.jcraft.jsch.UIKeyboardInteractive;
-import com.jcraft.jsch.JSchException;
+import com.sshtools.j2ssh.SshClient;
+import com.sshtools.j2ssh.session.SessionChannelClient;
+import com.sshtools.j2ssh.transport.IgnoreHostKeyVerification;
+import com.sshtools.j2ssh.authentication.PasswordAuthenticationClient;
+import com.sshtools.j2ssh.authentication.AuthenticationProtocolState;
 
 import org.apache.mina.common.IoSession;
 
@@ -58,23 +56,30 @@ import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 public class StyxSSHConnection extends StyxConnection
 {
     private String sshUser;
+    private String sshPassword;
     private String commandToExec;
-    private Session sshSession;
-    private Channel channel;
+    
+    private SshClient sshClient;
+    private SessionChannelClient channel;
     
     /**
-     * Creates a new instance of StyxStreamConnection
+     * Creates a new instance of StyxSSHConnection
      * @param hostname The host to connect to
      * @param sshUser the username on the SSH server (not the username in the
      * Styx hierarchy)
+     * @param sshPassword the password for the user on the SSH server.  Note that
+     * this is provided as a String and so is not 100% secure (this String cannot
+     * be overwritten so will persist in memory).
      * @param commandToExec the command to execute on the SSH server (this is 
      * a program that will listen for Styx messages on standard input and write
      * replies to standard output, such as a StyxSSHServer)
      */
-    public StyxSSHConnection(String hostname, String sshUser, String commandToExec)
+    public StyxSSHConnection(String hostname, String sshUser, String sshPassword,
+        String commandToExec)
     {
         super(hostname, 22);
         this.sshUser = sshUser;
+        this.sshPassword = sshPassword;
         this.commandToExec = commandToExec;
     }
     
@@ -99,31 +104,43 @@ public class StyxSSHConnection extends StyxConnection
             try
             {
                 // Create the secure channel object
-                JSch jsch = new JSch();
+                this.sshClient = new SshClient();
+                sshClient.connect(this.host, new IgnoreHostKeyVerification());
 
-                // Connect to the SSH server
-                this.sshSession = jsch.getSession(this.sshUser, this.host, 22);
+                PasswordAuthenticationClient auth = new PasswordAuthenticationClient();
+                auth.setUsername(this.sshUser);
+                auth.setPassword(this.sshPassword);
+                int result = sshClient.authenticate(auth);
+                if (result == AuthenticationProtocolState.FAILED)
+                {
+                    // TODO: what can we do here?
+                    System.err.println("Authentication failed");
+                }
+                else if (result == AuthenticationProtocolState.PARTIAL)
+                {
+                    System.err.println("Auth succeeded but more auth required");
+                }
+                else if (result == AuthenticationProtocolState.COMPLETE)
+                {
+                    // TODO: can we attach a listener to this channel?
+                    this.channel = sshClient.openSessionChannel();
 
-                // username and password will be given via UserInfo interface.
-                UserInfo ui = new MyUserInfo();
-                sshSession.setUserInfo(ui);
-                sshSession.connect();
+                    if(!channel.executeCommand(this.commandToExec))
+                    {
+                        // Create a new IoSession that writes messages to the output
+                        // stream of the secure channel
+                        this.session = new StyxSSHIoSession(this,
+                            new PrintStream(channel.getOutputStream(), true));
 
-                this.channel = sshSession.openChannel("exec");
-                ((ChannelExec)channel).setCommand(this.commandToExec);
-
-                ((ChannelExec)channel).setErrStream(System.err);
-
-                channel.connect();
-                
-                // Create a new IoSession that writes messages to the output
-                // stream of the secure channel
-                this.session = new StyxSSHIoSession(this,
-                    new PrintStream(channel.getOutputStream(), true));
-
-                // Start a process that listens for Styx messages (i.e. replies from
-                // the server) on the secure channel's input stream
-                new MessageReader(channel.getInputStream(), this, this.session).start();
+                        // Start a process that listens for Styx messages (i.e. replies from
+                        // the server) on the secure channel's input stream
+                        new MessageReader(channel.getInputStream(), this, this.session).start();
+                    }
+                    else
+                    {
+                        System.err.println("Could not execute command");
+                    }
+                }
 
                 // Start the handshaking process
                 this.sessionOpened(this.session);
@@ -142,115 +159,18 @@ public class StyxSSHConnection extends StyxConnection
         log.debug("Disconnecting SSH session");
         if (this.channel != null)
         {
-            this.channel.disconnect();
-        }
-        if (this.sshSession != null)
-        {
-            this.sshSession.disconnect();
-        }
-    }
-    
-    /**
-     * Callback class for getting user info (e.g. password)
-     */
-    public static class MyUserInfo implements UserInfo, UIKeyboardInteractive
-    {
-        String passwd;
-        
-        /**
-         * Not very secure to store password as a String (can't overwrite it)
-         * but JSch gives us no choice.
-         */
-        public String getPassword()
-        {
-            return passwd;
-        }
-        
-        public boolean promptYesNo(String str)
-        {
-            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
             try
             {
-                while (true)
-                {
-                    System.out.println(str + " (Y/N)");
-                    String s = in.readLine().trim().toLowerCase();
-                    if (s.equals("y") || s.equals("yes"))
-                    {
-                        return true;
-                    }
-                    else if (s.equals("n") || s.equals("no"))
-                    {
-                        return false;
-                    }
-                }
-            }
-            catch (IOException ioe)
-            {
-                // This shouldn't happen
-                System.err.println("Error reading response");
-                return false;
-            }
-        }
-        
-        public String getPassphrase()
-        {
-            return null;
-        }
-        
-        public boolean promptPassphrase(String message)
-        {
-            return true;
-        }
-        
-        public boolean promptPassword(String message)
-        {
-            try
-            {
-                // Shame that JSch won't let us use a char array here - would be
-                // more secure
-                this.passwd = new String(SecurePassword.readConsoleSecure(message));
-                return true;
+                this.channel.close();
             }
             catch(IOException ioe)
             {
-                // Shouldn't happen
-                return false;
-            }
-            catch(InterruptedException ie)
-            {
-                // Shouldn't happen either
-                System.err.println("Internal error: InterruptedException when reading password");
-                return false;
+                log.debug("IOException closing SSH channel: " + ioe.getMessage());
             }
         }
-        
-        public String[] promptKeyboardInteractive(String destination, String name,
-            String instruction, String[] prompt, boolean[] echo)
+        if (this.sshClient != null)
         {
-            try
-            {
-                // Shame that JSch won't let us use a char array here - would be
-                // more secure
-                return new String[]{new String(SecurePassword.readConsoleSecure(instruction))};
-            }
-            catch(IOException ioe)
-            {
-                // Shouldn't happen
-                System.err.println("Internal error: IOException when reading password");
-                return null;
-            }
-            catch(InterruptedException ie)
-            {
-                // Shouldn't happen either
-                System.err.println("Internal error: InterruptedException when reading password");
-                return null;
-            }
-        }
-        
-        public void showMessage(String message)
-        {
-            System.out.println(message);
+            this.sshClient.disconnect();
         }
     }
     
@@ -260,7 +180,7 @@ public class StyxSSHConnection extends StyxConnection
         try
         {
             conn = new StyxSSHConnection("lovejoy.nerc-essc.ac.uk", "resc",
-                "~/JStyx/bin/GridServices -ssh");
+                "3sc1!Gr1d", "~/JStyx/bin/GridServices -ssh");
             conn.connect();
             CStyxFile[] f = conn.getRootDirectory().getChildren();
             for (int i = 0; i < f.length; i++)
