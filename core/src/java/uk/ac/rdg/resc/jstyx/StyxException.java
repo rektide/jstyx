@@ -40,7 +40,7 @@ package uk.ac.rdg.resc.jstyx;
 public class StyxException extends Exception
 {
     
-    /** Creates a new instance of StyxConnectionException */
+    /** Creates a new instance of StyxException */
     public StyxException()
     {
     }
