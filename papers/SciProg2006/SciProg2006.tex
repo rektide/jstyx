@@ -4,16 +4,16 @@
 
 \documentclass{article}
 \usepackage{graphicx}
-\setlength{\textwidth}{27pc}
-\setlength{\textheight}{43pc}
 \usepackage{setspace}
-%\usepackage[left=30mm, right=30mm, top=30mm, bottom=30mm]{geometry}
+\usepackage[left=30mm, right=30mm, top=30mm, bottom=30mm]{geometry}
 %
 \begin{document}
 \doublespacing
 
 \begin{center}
 {\Large Styx Grid Services: Lightweight, easy-to-use middleware for scientific workflows}
+
+\bigskip
 
 {\large J.D. Blower$^{1}$, A.B. Harrison$^{2}$ and K. Haines$^{1}$}
 
@@ -134,12 +134,12 @@ Here, the intermediate data are being streamed to the local client, then streame
 The {\tt --sgs-ref-stdout} flag is a signal to send a reference (URL) to the standard output of the {\tt calc\_mean} service to the standard input of the {\tt plot} service.  In this way the intermediate data are streamed directly between the services, across the Internet.
 
 \subsubsection{Weaknesses of this approach.}
-%Although very convenient, this method of constructing workflows using shell scripts has some weaknesses.
+Although very convenient, this method of constructing workflows using shell scripts has some weaknesses.
 The inputs and outputs of SGSs are files and so the ``workflow engine'' (i.e.\ the shell environment) performs no type checking on these entities.  The reponsibility of checking for validity of inputs is left to the services themselves.  Secondly, although constructs such as loops are supported by the shell, the variables used to control these loops cannot be read directly from the outputs of SGSs% unless ``helper'' programs are written to parse outputs from SGSs and set environment variables accordingly
 .  An important subject of future research would be to use the SGS approach to wrap entities such as classes and functions, rather than whole executables: in this case, inputs and outputs could be strongly typed and could also be captured by workflow engines, solving the above two problems.
 
 \subsection{Using graphical workflow tools}\label{subsec:graphical-workflow}
-The command line scripting interface to the SGS system that is described above is perhaps the simplest way of creating SGS workflows.  In some cases, however, there are significant advantages in using more sophisticated graphical tools to interact with services and create workflows.  In particular, graphical interfaces can provide richer interactivity with the SGS server: progress and status can be monitored graphically %, input parameters can be set using graphical controls
+The command line scripting interface to the SGS system that is described above is perhaps the simplest way of creating SGS workflows.  In some cases, however, there are significant advantages in using more sophisticated graphical tools to interact with services and create workflows.  In particular, graphical interfaces can provide richer interactivity with the SGS server: progress and status can be monitored graphically, input parameters can be set using graphical controls
 and the service can be steered~\cite{blower:2005}.
 
 The Taverna workbench ({\tt http://taverna.sf.net}) is a graphical workflow system that was designed for performing {\it in silico} experiments in the field of bioinformatics, but it is sufficiently general to be useful to other communities.  We have worked with the Taverna developers to incorporate support for Styx Grid Services into the software.  Using Taverna, the user can build workflows by mixing diverse service types, including Web Services and SGSs.
