@@ -200,9 +200,18 @@ Many resource providers (including the UK National Grid Service) use the Globus 
 In both cases, users can run jobs on Globus resources exactly as above, i.e.\ in the same way in which they would run local programs.  Both methods require the user to have a valid proxy certificate.
 
 \subsection{A workflow using heterogeneous Grid resources}
-To illustrate all of the above concepts, we shall give an example of a workflow that brings together various Grid resources in order to solve a particular scientific problem.
+To illustrate all of the above concepts, we shall give an example of a workflow that brings together various Grid resources in order to solve a particular scientific problem.  This example is taken from the authors' own research into ensemble forecasting of the Earth's climate.  In an ensemble forecast, many different simulations of the Earth's climate are run, each with a different set of initial conditions, to give a probability distribution of different climate scenarios.  These initial conditions are generated using a local program called \texttt{gen\_inputs}.  Each initial condition is used to drive a climate simulation (\texttt{climate\_sim}), which runs on one of a number of high-performance cluster resources that are load-balanced through Condor-G.  The whole ensemble is then analyzed on a Globus resource using a program called \texttt{analyze\_ensemble}.
 
-TODO
+\texttt{climate\_sim} is installed as a Styx Grid Service on the Condor-G head node.  \texttt{analyze\_ensemble} is installed as an SGS on the head node of the Globus resource and is accessed through GSI-SSH.  The user has created wrapper scripts for both of these SGSs.  The workflow (shell script) to perform the analysis is:
+
+\begin{verbatim}
+   gen_inputs -o inputs
+   climate_sim -i inputs -o outputs.sgsref
+   analyze_ensemble -i outputs.sgsref -o stats.dat
+   makepic -i stats.dat -o stats.png
+\end{verbatim}
+
+In the first line, the input files are generated on the user's local machine and placed in the \texttt{inputs} directory.  In the second line, all these input files are uploaded to the Condor-G scheduler, which runs the \texttt{climate\_sim} program over each input, balancing the load amongst a number of clusters.  Note that the client does not download the actual output files from the ensembles: the \texttt{.sgsref} extension ensures that the client downloads \textit{references} (URLs) to these files instead.  When all the ensembles are complete the references to the output files are uploaded to the Globus resource, which downloads the output files and runs the \texttt{analyze\_ensemble} program, outputting a set of ensemble statistics, which are downloaded to the client.  Finally, these output statistics are visualized using the \texttt{makepic} service from the above examples.
 
 \section{Using graphical workflow tools}\label{subsec:graphical-workflow}
 The command line scripting interface to the SGS system that is described above is perhaps the simplest way of creating SGS workflows.  In some cases, however, there are significant advantages in using more sophisticated graphical tools to interact with services and create workflows.  In particular, graphical interfaces can provide richer interactivity with the SGS server: progress and status can be monitored graphically, input parameters can be set using graphical controls
