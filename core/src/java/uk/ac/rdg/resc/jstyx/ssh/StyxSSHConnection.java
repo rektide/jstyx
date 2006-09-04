@@ -109,7 +109,7 @@ public class StyxSSHConnection extends StyxConnection
                 PasswordAuthenticationClient auth = new PasswordAuthenticationClient();
                 auth.setUsername(this.sshUser);
                 auth.setPassword(this.sshPassword);
-                int result = sshClient.authenticate(auth);
+                int result = sshClient.authenticate(auth, "");
                 if (result == AuthenticationProtocolState.FAILED)
                 {
                     // TODO: what can we do here?

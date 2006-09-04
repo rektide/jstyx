@@ -56,7 +56,7 @@
             </ide-actions>
             <export>
                 <type>jar</type>
-                <location>target/jstyx-0.1.0-SNAPSHOT.jar</location>
+                <location>target/jstyx-0.3.0-SNAPSHOT.jar</location>
                 <build-target>jar</build-target>
             </export>
             <view>
@@ -81,8 +81,8 @@
         <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/2">
             <compilation-unit>
                 <package-root>src/java</package-root>
-                <classpath mode="compile">lib/dom4j-1.6.jar;lib/jaxen-1.1-beta-5.jar;lib/log4j-1.2.8.jar;lib/TableLayout.jar;lib/JSAP-2.0b.jar;lib/quartz-1.5.1.jar;lib/commons-logging.jar;lib/ant-1.6.2.jar;lib/mina-core-0.9.3.jar;lib/mina-filter-ssl-0.9.3.jar;lib/jsch-0.1.28.jar;lib/j2ssh-core.jar</classpath>
-                <built-to>target/jstyx-0.1.0-SNAPSHOT.jar</built-to>
+                <classpath mode="compile">lib/dom4j-1.6.jar;lib/jaxen-1.1-beta-5.jar;lib/log4j-1.2.8.jar;lib/TableLayout.jar;lib/JSAP-2.0b.jar;lib/quartz-1.5.1.jar;lib/commons-logging.jar;lib/ant-1.6.2.jar;lib/mina-core-0.9.3.jar;lib/mina-filter-ssl-0.9.3.jar;lib/jsch-0.1.28.jar;lib/j2ssh-core-0.2.7.jar;lib/cog-jglobus.jar</classpath>
+                <built-to>target/jstyx-0.3.0-SNAPSHOT.jar</built-to>
                 <javadoc-built-to>target/docs/apidocs</javadoc-built-to>
                 <source-level>1.4</source-level>
             </compilation-unit>
