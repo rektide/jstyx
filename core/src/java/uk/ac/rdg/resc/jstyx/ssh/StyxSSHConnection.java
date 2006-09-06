@@ -62,7 +62,8 @@ public class StyxSSHConnection extends StyxConnection
     private SessionChannelClient channel;
     
     /**
-     * Creates a new instance of StyxSSHConnection
+     * Creates a new instance of StyxSSHConnection, using the default SSH port
+     * of 22
      * @param hostname The host to connect to
      * @param sshUser the username on the SSH server (not the username in the
      * Styx hierarchy)
@@ -76,7 +77,27 @@ public class StyxSSHConnection extends StyxConnection
     public StyxSSHConnection(String hostname, String sshUser, String sshPassword,
         String commandToExec)
     {
-        super(hostname, 22);
+        this(hostname, 22, sshUser, sshPassword, commandToExec);
+    }
+    
+    /**
+     * Creates a new instance of StyxSSHConnection, allowing the user to specify
+     * a port number
+     * @param hostname The host to connect to
+     * @param port The port to connect to
+     * @param sshUser the username on the SSH server (not the username in the
+     * Styx hierarchy)
+     * @param sshPassword the password for the user on the SSH server.  Note that
+     * this is provided as a String and so is not 100% secure (this String cannot
+     * be overwritten so will persist in memory).
+     * @param commandToExec the command to execute on the SSH server (this is 
+     * a program that will listen for Styx messages on standard input and write
+     * replies to standard output, such as a StyxSSHServer)
+     */
+    public StyxSSHConnection(String hostname, int port, String sshUser,
+        String sshPassword, String commandToExec)
+    {
+        super(hostname, port);
         this.sshUser = sshUser;
         this.sshPassword = sshPassword;
         this.commandToExec = commandToExec;
@@ -169,8 +190,36 @@ public class StyxSSHConnection extends StyxConnection
         }
         if (this.sshClient != null)
         {
+            System.err.println("Disconnecting SSHClient");
             this.sshClient.disconnect();
         }
     }
     
+    public static void main(String[] args)
+    {
+        StyxConnection conn = null;
+        try
+        {
+            // Create a StyxSSHConnection.
+            // This connects to an inaccessible host on the private network so
+            // it doesn't matter that the password is visible in SVN
+            conn = new StyxSSHConnection("192.168.0.40", "test", "testtest",
+                "/bin/date");
+            conn.connect();
+        }
+        catch(Exception e)
+        {
+            System.err.println("Caught exception");
+            e.printStackTrace();
+        }
+        finally
+        {
+            System.err.println("In finally clause");
+            if(conn != null)
+            {
+                System.err.println("Closing SSH connection");
+                conn.close();
+            }
+        }
+    }
 }

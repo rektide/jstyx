@@ -421,7 +421,13 @@ public class StyxConnection implements IoHandler
         if(!tClunkSent)
         {
             // No more fids left to clunk
-            this.session.close();
+            if (this.session != null)
+            {
+                // The Session object can be null in the case of an SSH
+                // connection if we have connected but not authenticated or
+                // started the StyxSSHServer on the remote machine
+                this.session.close();
+            }
         }
     }
     
