@@ -386,9 +386,14 @@ public class StyxConnection implements IoHandler
         }
         else
         {
-            //log.debug("Connection was not open");
-            // Make sure the threads are stopped
-            this.sessionClosed(this.session);
+            try
+            {
+                this.sessionClosed(this.session);
+            }
+            catch(Exception e)
+            {
+                log.error("Exception thrown when closing StyxConnection", e);
+            }
         }
     }
     
@@ -844,8 +849,10 @@ public class StyxConnection implements IoHandler
     
     /**
      * Called when the connection is closed
+     * @throws Exception if an error occurs (actualy this will never happen
+     * from this method unless overridden in a subclass)
      */
-    public void sessionClosed( IoSession session )
+    public void sessionClosed( IoSession session ) throws Exception
     {
         if (this.connected)
         {

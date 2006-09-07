@@ -42,6 +42,7 @@ import com.sshtools.j2ssh.authentication.AuthenticationProtocolState;
 import org.apache.mina.common.IoSession;
 
 import uk.ac.rdg.resc.jstyx.client.StyxConnection;
+import uk.ac.rdg.resc.jstyx.client.CStyxFile;
 
 /**
  * A StyxConnection that reads Styx Rmessages from the standard input and
@@ -158,7 +159,8 @@ public class StyxSSHConnection extends StyxConnection
                     }
                     else
                     {
-                        System.err.println("Could not execute command");
+                        // TODO: should throw exception here
+                        log.error("Could not execute command");
                     }
                 }
 
@@ -173,24 +175,16 @@ public class StyxSSHConnection extends StyxConnection
         log.info("SSH connection established");
     }
     
-    public void sessionClosed(IoSession session)
+    public void sessionClosed(IoSession session) throws Exception
     {
         super.sessionClosed(session);
         log.debug("Disconnecting SSH session");
         if (this.channel != null)
         {
-            try
-            {
-                this.channel.close();
-            }
-            catch(IOException ioe)
-            {
-                log.debug("IOException closing SSH channel: " + ioe.getMessage());
-            }
+            this.channel.close();
         }
         if (this.sshClient != null)
         {
-            System.err.println("Disconnecting SSHClient");
             this.sshClient.disconnect();
         }
     }
@@ -203,21 +197,25 @@ public class StyxSSHConnection extends StyxConnection
             // Create a StyxSSHConnection.
             // This connects to an inaccessible host on the private network so
             // it doesn't matter that the password is visible in SVN
+            // How can we set up the PATH on the remote server such that
+            // we don't have to specify the full path to JStyxRun?
             conn = new StyxSSHConnection("192.168.0.40", "test", "testtest",
-                "/bin/date");
+                "~/jstyx-0.3.0-SNAPSHOT/bin/JStyxRun uk.ac.rdg.resc.jstyx.ssh.StyxSSHServer /home/test");
             conn.connect();
+            CStyxFile[] contents = conn.getRootDirectory().getChildren();
+            for (int i = 0; i < contents.length; i++)
+            {
+                System.out.println(contents[i].toString());
+            }
         }
         catch(Exception e)
         {
-            System.err.println("Caught exception");
             e.printStackTrace();
         }
         finally
         {
-            System.err.println("In finally clause");
             if(conn != null)
             {
-                System.err.println("Closing SSH connection");
                 conn.close();
             }
         }

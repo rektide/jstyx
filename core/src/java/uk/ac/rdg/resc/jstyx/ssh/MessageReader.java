@@ -89,13 +89,17 @@ class MessageReader extends Thread implements ProtocolDecoderOutput
                 }
             } while (n >= 0);
         }
-        catch (ProtocolCodecException pce)
+        catch (Exception e)
         {
-            pce.printStackTrace();
-        }
-        catch (IOException ioe)
-        {
-            ioe.printStackTrace();
+            try
+            {
+                this.handler.exceptionCaught(this.session, e);
+            }
+            catch(Exception ex)
+            {
+                // Not sure why exceptionCaught() throws an Exception...
+                log.error("Exception thrown in exceptionCaught()", ex);
+            }
         }
         finally
         {

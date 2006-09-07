@@ -32,6 +32,8 @@ import java.net.SocketAddress;
 import java.io.IOException;
 import java.io.PrintStream;
 
+import org.apache.log4j.Logger;
+
 import org.apache.mina.common.support.BaseIoSession;
 import org.apache.mina.common.TransportType;
 import org.apache.mina.common.IoFilterChain;
@@ -39,6 +41,7 @@ import org.apache.mina.common.IoSessionConfig;
 import org.apache.mina.common.IoHandler;
 import org.apache.mina.common.IoService;
 import org.apache.mina.common.WriteFuture;
+import org.apache.mina.common.CloseFuture;
 import org.apache.mina.common.ByteBuffer;
 
 import uk.ac.rdg.resc.jstyx.server.StyxSessionState;
@@ -56,6 +59,8 @@ import uk.ac.rdg.resc.jstyx.messages.StyxMessage;
  */
 public class StyxSSHIoSession extends BaseIoSession
 {
+    protected static final Logger log = Logger.getLogger(StyxSSHIoSession.class);
+    
     private StyxSessionState sessionState;
     private IoHandler handler;
     private PrintStream stream;
@@ -123,6 +128,22 @@ public class StyxSSHIoSession extends BaseIoSession
     public IoHandler getHandler()
     {
         return this.handler;
+    }
+    
+    public CloseFuture close()
+    {
+        this.stream.close();
+        try
+        {
+            this.handler.sessionClosed(this);
+        }
+        catch (Exception e)
+        {
+            log.error("Exception thrown when closing IoHandler", e);
+        }
+        CloseFuture cf = new CloseFuture();
+        cf.setClosed();
+        return cf;
     }
     
     public void updateTrafficMask() {}
