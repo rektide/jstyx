@@ -61,7 +61,7 @@ public class StyxSSHServer
         // (anonymous logins allowed, no encryption, etc)
         if (args.length != 1)
         {
-            System.err.println("Usage: StyxStreamServer <root directory>");
+            System.err.println("Usage: StyxSSHServer <root directory>");
             return;
         }
         StyxDirectory root = new DirectoryOnDisk(args[0]);

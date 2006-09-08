@@ -237,9 +237,10 @@ public class StyxSSHConnection extends StyxConnection
             // we don't have to specify the full path to JStyxRun?
             conn = new StyxSSHConnection("192.168.0.40", "test", "testtest",
                 "~/jstyx-0.3.0-SNAPSHOT/bin/JStyxRun " +
-                "uk.ac.rdg.resc.jstyx.gridservice.server.SGSServer ~/jstyx-0.3.0-SNAPSHOT/conf/SGSconfig.xml -ssh");
+                "uk.ac.rdg.resc.jstyx.gridservice.server.SGSServer "+
+                "~/jstyx-0.3.0-SNAPSHOT/conf/SGSconfig.xml -ssh");
             conn.connect();
-            CStyxFile[] contents = conn.getRootDirectory().getChildren();
+            CStyxFile[] contents = conn.getFile("reverse").getChildren();
             for (int i = 0; i < contents.length; i++)
             {
                 System.out.println(contents[i].toString());

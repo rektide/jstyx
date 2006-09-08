@@ -205,8 +205,10 @@ public class SGSRun extends SGSInstanceClientChangeAdapter implements StyxConnec
         {
             // TODO get the user name from somewhere
             // TODO get the command properly
-            conn = new StyxSSHConnection(this.hostname, "resc", "",
-                "~/JStyx/bin/GridServices -ssh");
+            conn = new StyxSSHConnection(this.hostname, "test", "testtest",
+                "~/jstyx-0.3.0-SNAPSHOT/bin/JStyxRun " +
+                "uk.ac.rdg.resc.jstyx.gridservice.server.SGSServer "+
+                "~/jstyx-0.3.0-SNAPSHOT/conf/SGSconfig.xml -ssh");
         }
         else
         {
