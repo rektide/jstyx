@@ -28,6 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.ssh;
 
+import org.apache.log4j.Logger;
+
 import org.apache.mina.common.IoSession;
 
 import uk.ac.rdg.resc.jstyx.server.StyxSecurityContext;
@@ -48,6 +50,8 @@ import uk.ac.rdg.resc.jstyx.server.DirectoryOnDisk;
  */
 public class StyxSSHServer
 {
+    private static final Logger log = Logger.getLogger(StyxSSHServer.class);
+    
     private IoSession session;
     private StyxServerProtocolHandler handler;
     

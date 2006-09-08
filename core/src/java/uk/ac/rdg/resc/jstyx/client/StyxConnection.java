@@ -345,6 +345,14 @@ public class StyxConnection implements IoHandler
     }
     
     /**
+     * @return true if a connection has been made to the server
+     */
+    public boolean isConnected()
+    {
+        return this.connected;
+    }
+    
+    /**
      * Overrides the close() method in Session.  Clunks all fids before
      * closing the connection.  Does nothing if the connection has not been made.
      * If the connection has been made, but the handshaking has not been done,

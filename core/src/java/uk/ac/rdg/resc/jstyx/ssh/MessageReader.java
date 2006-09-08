@@ -38,8 +38,8 @@ import org.apache.mina.common.IoSession;
 import org.apache.mina.common.IoHandler;
 
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
-import org.apache.mina.filter.codec.ProtocolCodecException;
 
+import uk.ac.rdg.resc.jstyx.client.StyxConnection;
 import uk.ac.rdg.resc.jstyx.messages.StyxMessageDecoder;
 
 /**
@@ -64,6 +64,7 @@ class MessageReader extends Thread implements ProtocolDecoderOutput
         this.in = in;
         this.handler = handler;
         this.session = session;
+        this.setName("Message reader");
     }
 
     public void run()
@@ -91,15 +92,7 @@ class MessageReader extends Thread implements ProtocolDecoderOutput
         }
         catch (Exception e)
         {
-            try
-            {
-                this.handler.exceptionCaught(this.session, e);
-            }
-            catch(Exception ex)
-            {
-                // Not sure why exceptionCaught() throws an Exception...
-                log.error("Exception thrown in exceptionCaught()", ex);
-            }
+            this.throwHandlerException(e);
         }
         finally
         {
@@ -108,6 +101,32 @@ class MessageReader extends Thread implements ProtocolDecoderOutput
             // Release resources associated with the StyxMessageDecoder.
             // This doesn't need a real IoSession
             decoder.dispose(null);
+            
+            if (this.handler instanceof StyxConnection &&
+                ((StyxConnection)this.handler).isConnected())
+            {
+                // We are still connected to the server but we're not going to
+                // receive any more messages - something is wrong
+                this.throwHandlerException(
+                    new IOException("connection to Styx server broken unexpectedly"));
+            }
+        }
+    }
+    
+    /**
+     * Convenience method to save having to try-catch the exception that
+     * exceptionCaught() throws
+     */
+    private void throwHandlerException(Exception e)
+    {
+        try
+        {
+            this.handler.exceptionCaught(this.session, e);
+        }
+        catch(Exception ex)
+        {
+            // Not sure why exceptionCaught() can throw an Exception...
+            log.error("Exception thrown in exceptionCaught()", ex);
         }
     }
 

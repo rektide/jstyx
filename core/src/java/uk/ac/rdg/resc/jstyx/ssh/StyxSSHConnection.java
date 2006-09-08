@@ -28,6 +28,7 @@
 
 package uk.ac.rdg.resc.jstyx.ssh;
 
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.IOException;
 import java.io.BufferedReader;
@@ -152,10 +153,16 @@ public class StyxSSHConnection extends StyxConnection
                         // stream of the secure channel
                         this.session = new StyxSSHIoSession(this,
                             new PrintStream(channel.getOutputStream(), true));
+                        // Start a thread that consumes the standard error stream
+                        // from the server and prints it out
+                        new StderrReader(channel.getStderrInputStream()).start();
 
                         // Start a process that listens for Styx messages (i.e. replies from
                         // the server) on the secure channel's input stream
                         new MessageReader(channel.getInputStream(), this, this.session).start();
+
+                        // Start the handshaking process
+                        this.sessionOpened(this.session);
                     }
                     else
                     {
@@ -163,9 +170,6 @@ public class StyxSSHConnection extends StyxConnection
                         log.error("Could not execute command");
                     }
                 }
-
-                // Start the handshaking process
-                this.sessionOpened(this.session);
             }
             catch (Exception e)
             {
@@ -189,6 +193,38 @@ public class StyxSSHConnection extends StyxConnection
         }
     }
     
+    /**
+     * Simple class to consume the standard error stream from the channel
+     */
+    private class StderrReader extends Thread
+    {
+        private InputStream in;
+        public StderrReader(InputStream in)
+        {
+            this.in = in;
+        }
+        public void run()
+        {
+            try
+            {
+                byte[] b = new byte[1024];
+                int n = 0;
+                do
+                {
+                    n = in.read(b);
+                    if (n >= 0)
+                    {
+                        System.err.print(new String(b, 0, n));
+                    }
+                } while (n >= 0);
+            }
+            catch(IOException ioe)
+            {
+                log.error("IOException reading from standard error stream", ioe);
+            }
+        }
+    }
+    
     public static void main(String[] args)
     {
         StyxConnection conn = null;
@@ -200,7 +236,8 @@ public class StyxSSHConnection extends StyxConnection
             // How can we set up the PATH on the remote server such that
             // we don't have to specify the full path to JStyxRun?
             conn = new StyxSSHConnection("192.168.0.40", "test", "testtest",
-                "~/jstyx-0.3.0-SNAPSHOT/bin/JStyxRun uk.ac.rdg.resc.jstyx.ssh.StyxSSHServer /home/test");
+                "~/jstyx-0.3.0-SNAPSHOT/bin/JStyxRun " +
+                "uk.ac.rdg.resc.jstyx.gridservice.server.SGSServer ~/jstyx-0.3.0-SNAPSHOT/conf/SGSconfig.xml -ssh");
             conn.connect();
             CStyxFile[] contents = conn.getRootDirectory().getChildren();
             for (int i = 0; i < contents.length; i++)
