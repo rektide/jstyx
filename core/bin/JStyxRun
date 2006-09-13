@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# Add Java and this directory to the PATH: necessary for executing
+# through SSH, where PATHs are not automatically set
+# ${0%/*} holds the directory containing this (JStyxRun) script: see 
+# TODO: only do this if these directories are not already in the PATH?
+
+export PATH=/usr/java/jdk1.5.0_06/bin/:${0%/*}:"$PATH"
+
 # Sets the classpath and command-line options for running a program
 # with JStyx
 
@@ -10,7 +17,6 @@ case "`uname`" in
 esac
 
 # Add the conf/ directory to the classpath so it can find .properties files
-# ${0%/*} holds the directory containing this (JStyxRun) script: see 
 # http://www.codecomments.com/archive287-2004-5-194770.html
 
 CP=${0%/*}/../conf

@@ -28,6 +28,8 @@
 
 package uk.ac.rdg.resc.jstyx.ssh;
 
+import java.io.PrintStream;
+
 import org.apache.log4j.Logger;
 
 import org.apache.mina.common.IoSession;

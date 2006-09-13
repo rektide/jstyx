@@ -71,8 +71,8 @@ class MessageReader extends Thread implements ProtocolDecoderOutput
     {
         log.debug("Started MessageReader");
         StyxMessageDecoder decoder = new StyxMessageDecoder();
-        ByteBuffer buf = ByteBuffer.allocate(8192);
-        buf.setAutoExpand(true);
+        //ByteBuffer buf = ByteBuffer.allocate(8192);
+        //buf.setAutoExpand(true);
         try
         {
             byte[] b = new byte[8192];
@@ -80,13 +80,15 @@ class MessageReader extends Thread implements ProtocolDecoderOutput
             do
             {
                 n = this.in.read(b);
-                if (n >= 0)
+                if (n > 0)
                 {
+                    ByteBuffer buf = ByteBuffer.allocate(n);
                     buf.put(b, 0, n);
                     buf.flip();
                     // We don't need a real IoSession in this case
                     decoder.decode(null, buf, this);
-                    buf.compact();
+                    //buf.compact();
+                    buf.release();
                 }
             } while (n >= 0);
         }
@@ -97,7 +99,7 @@ class MessageReader extends Thread implements ProtocolDecoderOutput
         finally
         {
             log.debug("MessageReader finished");
-            buf.release();
+            //buf.release();
             // Release resources associated with the StyxMessageDecoder.
             // This doesn't need a real IoSession
             decoder.dispose(null);

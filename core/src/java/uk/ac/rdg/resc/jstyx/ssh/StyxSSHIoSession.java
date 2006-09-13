@@ -63,18 +63,27 @@ public class StyxSSHIoSession extends BaseIoSession
     
     private StyxSessionState sessionState;
     private IoHandler handler;
-    private PrintStream stream;
+    private PrintStream[] streams;
+    
+    /**
+     * Creates a new instance of StyxStreamIoSession
+     * @param streams The Styx messages will be printed to all of these streams
+     */
+    public StyxSSHIoSession(IoHandler handler, PrintStream[] streams)
+    {
+        this.sessionState = new StyxSessionState(this);
+        this.handler = handler;
+        this.streams = streams;
+    }
     
     /** Creates a new instance of StyxStreamIoSession */
     public StyxSSHIoSession(IoHandler handler, PrintStream stream)
     {
-        this.sessionState = new StyxSessionState(this);
-        this.handler = handler;
-        this.stream = stream;
+        this(handler, new PrintStream[]{stream});
     }
     
     /**
-     * Writes the message to the output PrintStream immediately
+     * Writes the message to the output PrintStreams immediately
      */
     public synchronized WriteFuture write( Object message )
     {
@@ -92,7 +101,10 @@ public class StyxSSHIoSession extends BaseIoSession
         // Write the message to the output stream
         try
         {
-            stream.write(b);
+            for (int i = 0; i < this.streams.length; i++)
+            {
+                this.streams[i].write(b);
+            }
         }
         catch(IOException ioe)
         {
@@ -132,7 +144,10 @@ public class StyxSSHIoSession extends BaseIoSession
     
     public CloseFuture close()
     {
-        this.stream.close();
+        for (int i = 0; i < this.streams.length; i++)
+        {
+            this.streams[i].close();
+        }
         try
         {
             this.handler.sessionClosed(this);

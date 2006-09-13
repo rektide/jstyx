@@ -135,10 +135,36 @@ public class TwriteMessage extends StyxMessage
     }
     
     /**
+     * Simple decodeBody that always makes a copy of the data in the incoming
+     * StyxBuffer.  May not be very efficient (see decodeBody2()).
+     */
+    protected final void decodeBody(StyxBuffer buf)
+        throws ProtocolCodecException
+    {
+        this.fid = buf.getUInt();
+        this.offset = buf.getULong();
+        long n = buf.getUInt();
+        if (n < 0 || n > Integer.MAX_VALUE)
+        {
+            throw new ProtocolCodecException("Payload of Twrite message " +
+                "cannot be less than 0 or greater than Integer.MAX_VALUE bytes");
+        }
+        this.count = (int)n; // We know this cast must be safe
+        
+        // We need to copy the data in this buffer.
+        byte[] b = buf.getData(this.count);
+        this.data = ByteBuffer.wrap(b);
+        this.pos = 0;
+    }
+    
+    /**
+     * An attempt to increase the efficiency of the decoding by not copying
+     * bytes of data unnecessarily.  May cause bugs in some situations.  Will
+     * reinstate this message if it is proved that it can increase efficiency.
      * @throws ProtocolCodecException if the payload of the message is more
      * than Integer.MAX_VALUE
      */
-    protected final void decodeBody(StyxBuffer buf)
+    protected final void decodeBody2(StyxBuffer buf)
         throws ProtocolCodecException
     {
         this.fid = buf.getUInt();
