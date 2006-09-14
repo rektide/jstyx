@@ -66,8 +66,10 @@ public class StyxSSHIoSession extends BaseIoSession
     private PrintStream[] streams;
     
     /**
-     * Creates a new instance of StyxStreamIoSession
-     * @param streams The Styx messages will be printed to all of these streams
+     * Creates a new instance of StyxStreamIoSession.  This constructor is 
+     * typically used for debugging, to ensure that Styx messages will be sent
+     * to a log file as well as to the required output stream.
+     * @param streams The Styx messages will be printed to all of these streams.
      */
     public StyxSSHIoSession(IoHandler handler, PrintStream[] streams)
     {
