@@ -233,6 +233,9 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     private Vector paramFiles; // Contains the SGSParamFiles
     private StyxFile argsFile; // The file containing the command line arguments
     private String command; // The command to run (i.e. the string that is passed to System.exec)
+    private boolean useSSH; // If we're executing through SSH, this will be the
+                            // only service instance and so we can quit when
+                            // the job has finished
     
     private Date creationTime;  // The time at which this instance was created
     private Date terminationTime; // The time at which this instance will automatically be terminated
@@ -242,12 +245,13 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
      * @todo: sort out permissions and owners on all these files
      */
     public StyxGridServiceInstance(StyxGridService sgs, String id,
-        SGSConfig sgsConfig) throws StyxException
+        SGSConfig sgsConfig, boolean useSSH) throws StyxException
     {
         super(id);
         this.sgs = sgs;
         this.id = id;
         this.sgsConfig = sgsConfig;
+        this.useSSH = useSSH;
         
         // Set the creation time and the termination time.  By default, the 
         // termination time is null, i.e. the instance will last forever
@@ -956,6 +960,12 @@ class StyxGridServiceInstance extends StyxDirectory implements JobChangeListener
     public void gotExitCode(int exitCode)
     {
         this.exitCodeFile.setExitCode(exitCode);
+        if (this.useSSH)
+        {
+            // This is the only job that will run under this process so we
+            // can exit
+            //System.exit(0);
+        }
     }
     
 }

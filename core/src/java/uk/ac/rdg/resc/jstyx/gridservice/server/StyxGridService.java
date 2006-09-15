@@ -156,6 +156,7 @@ public class StyxGridService
     private StyxDirectory root; // The root of the Grid Service
     private StyxDirectory instancesDir; // Directory to hold SGS instances
     private SGSConfig sgsConfig; // The configuration for the SGS and its instances
+    private boolean useSSH; // True if we are executing SGSs through SSH
     
     static
     {
@@ -184,10 +185,13 @@ public class StyxGridService
     /**
      * Creates a new StyxGridService.
      * @param sgsConfig Object containing the configuration of the SGS
+     * @param useSSH True if this SGS is being run as a process through SSH, 
+     * rather than as a daemon
      */
-    public StyxGridService(SGSConfig sgsConfig) throws StyxException
+    public StyxGridService(SGSConfig sgsConfig, boolean useSSH) throws StyxException
     {
         log.debug("Creating StyxGridService called " + sgsConfig.getName());
+        this.useSSH = useSSH;
         this.root = new StyxDirectory(sgsConfig.getName());
         this.root.addChild(new CloneFile());
         
@@ -274,7 +278,7 @@ public class StyxGridService
     private String newInstance(String id) throws StyxException
     {
         StyxDirectory newInstance = new StyxGridServiceInstance(this, id,
-            this.sgsConfig);
+            this.sgsConfig, this.useSSH);
         this.instancesDir.addChild(newInstance);
         // Return the full URL to the new service instance
         String hostAddress = this.sgsConfig.getServerConfig().getHostAddress();

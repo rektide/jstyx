@@ -214,7 +214,7 @@ public class StyxSSHConnection extends StyxConnection
                     n = in.read(b);
                     if (n >= 0)
                     {
-                        System.err.print("From stderr: \"" + new String(b, 0, n) + "\"");
+                        System.err.print(new String(b, 0, n));
                     }
                 } while (n >= 0);
             }

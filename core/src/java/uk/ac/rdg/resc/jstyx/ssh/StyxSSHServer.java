@@ -82,7 +82,8 @@ public class StyxSSHServer
         // Create a protocol handler with a security context that does not
         // use authentication 
         this.handler = new StyxServerProtocolHandler(root, securityContext);
-        // Create an IoSession that writes messages to standard output
+        // Create an IoSession that writes messages to standard output.  These
+        // messages will be redirected to the client via the secure channel.
         this.session = new StyxSSHIoSession(this.handler, System.out);
     }
     

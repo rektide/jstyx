@@ -57,10 +57,12 @@ public class SGSServer
     
     /**
      * Creates a Styx Grid Services server from the given configuration file
+     * @param config File The file from which to read configuration information
+     * @param useSSH True if the server is being executed over SSH
      * @throws SGSConfigException if there is an error in the configuration file
      * @throws StyxException if there was an error creating the namespace
      */
-    public SGSServer(String configFile) throws SGSConfigException, StyxException
+    public SGSServer(String configFile, boolean useSSH) throws SGSConfigException, StyxException
     {
         // Create the server configuration from the given XML config file
         this.config = new SGSServerConfig(configFile);
@@ -71,7 +73,7 @@ public class SGSServer
         while(it.hasNext())
         {
             SGSConfig conf = (SGSConfig)it.next();
-            this.root.addChild(new StyxGridService(conf).getRoot());
+            this.root.addChild(new StyxGridService(conf, useSSH).getRoot());
         }
     }
     
@@ -125,10 +127,12 @@ public class SGSServer
             return;
         }
         
-        SGSServer sgsServer = new SGSServer(args[0]);
+        boolean useSSH = args.length > 1 && args[1].equals("-ssh");
+        
+        SGSServer sgsServer = new SGSServer(args[0], useSSH);
 
         // Check to see if we are doing this over SSH
-        if (args.length > 1 && args[1].equals("-ssh"))
+        if (useSSH)
         {
             sgsServer.getStyxSSHServer().start();
         }
