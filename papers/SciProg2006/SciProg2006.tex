@@ -24,7 +24,7 @@
 
 
 \begin{document}
-\doublespacing
+%\doublespacing TODO: reinstate
 
 \begin{center}
 {\Large Styx Grid Services: Lightweight Workflow Middleware for Grid Environments}
@@ -52,7 +52,7 @@ Keywords: Styx, streaming, third-party transfers, WS-RF, Condor, Globus
 
 \end{center}
 
-\newpage
+%\newpage TODO: reinstate
 
 \begin{abstract}
 The service-oriented approach to performing distributed scientific research is potentially very powerful but is not yet widely used in many scientific fields.  This is partly due to the technical difficulties involved in creating services and composing them into workflows.  We present the Styx Grid Service, a simple system that wraps command-line programs and allows them to be run over the Internet exactly as if they were local programs.  Styx Grid Services are very easy to create and use and can be composed into powerful workflows with simple shell scripts or more sophisticated graphical tools.  Data can be streamed directly from service to service and progress can be monitored asynchronously using a mechanism that places very few demands on firewalls.  Styx Grid Services can be used as an easy-to-use, uniform interface to Condor and Globus resources, permitting the creation of workflows that span various Grid resources and can be integrated with Web Services and the WS-RF specification.
@@ -88,7 +88,7 @@ Our main goal in developing the Styx Grid Services system was to create remote s
 \subsection{The Styx protocol}
 Styx~\cite{Pike:1999} is a well-established protocol for building distributed systems: it is a key component of the Inferno \cite{Inferno} and Plan~9 \cite{Plan9} operating systems (in Plan~9, Styx is known as ``9P'': the current version of Styx is equivalent to 9P2000).  In Inferno and Plan~9, applications communicate with all resources using Styx, without knowing whether the resources are local or remote.  Styx is essentially a file-sharing protocol, similar in some ways to NFS.  However, in a Styx system the ``files'' are not always literal files on a hard disk.  They can represent a block of RAM or the interface to a program, database or physical device.  Styx can therefore be used as a uniform interface to access diverse resource types.  Whereas in Remote Procedure Call (RPC)-style Web Services the resources are accessed through a set of methods, Styx resources are accessed by reading from and writing to a hierarchy of files, which is known as a \textit{namespace\/}.
 
-We developed a pure-Java implementation of the Styx protocol (JStyx~\cite{JStyx}) and used this as the basis for the Styx Grid Services software..
+We developed a pure-Java implementation of the Styx protocol (JStyx~\cite{JStyx}) and used this as the basis for the Styx Grid Services software.  
 
 \subsection{The SGS namespace}\label{sec:sgsnamespace}
 The namespace of a typical Styx Grid Service server is shown in Fig.~\ref{fig:sgsnamespace}.  A server can host several Styx Grid Services, which are each represented as a directory in the namespace.  A more detailed description of the purpose of the files in the namespace can be found on the project website~\cite{sgswebsite}.
@@ -340,7 +340,7 @@ The authors would like to thank Tom Oinn for incorporating the SGS framework int
 \newpage
 
 \subsection*{Fig.~\ref{fig:datapassing}}
-\includegraphics[height=8cm]{datapassing1.eps}
+\includegraphics[height=8cm]{datapassing.eps}
 
 
 \end{document}
