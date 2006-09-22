@@ -1,4 +1,4 @@
-\documentclass[times,10pt,twocolumn]{article} 
+\documentclass[times,10pt,twocolumn,8.5x11]{article} 
 \usepackage{latex8}
 \usepackage{times}
 
@@ -22,7 +22,7 @@ United Kingdom\\
 \thispagestyle{empty}
 
 \begin{abstract}
-Grid systems have a reputation for being difficult to build and use.  We describe how the ease of use of the Styx Grid Services (SGS) software can be combined with the security and trusted nature of the Secure Shell (SSH) to build simple Grid systems that are secure, robust and easy to use and administer.  We present a case study of how this method is applied to a science project (GCEP), allowing the scientists to share resources securely and in a manner that does not place unnecessary load on system administrators.  Applications on the Grid can be run exactly as if they were local programs from the point of view of the scientists.  The resources in the GCEP Grid are diverse, including dedicated clusters, Condor pools and data archives but the system we present here provides a uniform interface to all these resources.  The same methods can be used to access Globus resources via GSISSH if required.
+Grid systems have a reputation for being difficult to build and use.  We describe how the ease of use of the Styx Grid Services (SGS) software can be combined with the security and trusted nature of the Secure Shell (SSH) to build simple Grid systems that are secure, robust and easy to use and administer.  We present a case study of how this method is applied to a science project (GCEP), allowing the scientists to share resources securely and in a manner that does not place unnecessary load on system administrators.  Applications on the Grid can be run exactly as if they were local programs from the point of view of the scientists.  The resources in the GCEP Grid are diverse, including dedicated clusters, Condor pools and data archives but the system we present here provides a uniform interface to all these resources.  The same methods can be used to access Globus resources via Condor-G or GSISSH if required.
 \end{abstract}
 
 
@@ -43,7 +43,7 @@ A good example of this is the Grid Security Infrastructure (GSI~\cite{gsi}), whi
 Some Grid systems (e.g.\ the NERC Data Grid,~\cite{ndg}) take the approach of completely insulating the user from the certificate-based security architecture by storing users' certificates in some secure location such as a MyProxy server and allowing the users to log on to the Grid using a username and password.  Whenever the certificate is needed, it is automatically retrieved in a manner that is hidden from the user.  This ``portal'' approach is one of the best means for increasing the usability of Grid security but does require a system administrator to care for the certificates on behalf of the users.
 
 \SubSection{Why not use SSH and SFTP?}
-At heart, many Grid jobs consist of transferring input files to a Grid resource, running the job and transferring the output files back to the user.  A common question that is asked by users is, ``Why can't I simply use the Secure Shell (SSH) and Secure FTP (SFTP) to run my jobs?''  SSH and SFTP are 
+At heart, most Grid jobs consist of transferring input files to a Grid resource, running the job and transferring the output files back to the user.  A common question that is asked by users is, ``Why can't I simply use the Secure Shell (SSH) and Secure FTP (SFTP) to run my jobs?''  SSH and SFTP are 
 well-known utilities with which a large proportion of users are already familiar.  Files can be transferred to and from remote resources securely with SFTP.  Applications can be run on remote machines through SSH.  SFTP is commonly installed as an SSH subsystem on the server, meaning that the same port (normally 22) is used for both SSH logins and SFTP file transfers.   Importantly, SSH and SFTP are very familiar to system administrators (sysadmins).  Sometimes, sysadmins will {\em only\/} permit remote access to their resources through SSH.
 
 In order to log on to a remote resource using SSH, the user must have an account on that resource.  Therefore, if the user wishes to access many resources, he or she will need an account on each of those resources.  At first glance, this would seem to violate the principle of ``single sign-on'', in which the user can access multiple resources having authenticated only once.  Single sign-on is one of the problems that GSI addresses through the use of user certificates.  However, in practice many systems that use GSI also require that each user has a unique user account on each resource: the user's certificate is then simply mapped to this account.  Single sign-on can be achieved in the SSH domain through the use of public and private keys and authentication agents.  Computer-savvy users who dislike the GSI method of authentication have been known to take unusual steps in order to obtain a plain SSH connection (e.g.\ running an SSH server as a Grid job and then logging into it).
@@ -130,14 +130,17 @@ This is particularly useful when the user wishes to execute the same program man
 In the Styx Grid Services system, the running of these high-throughput jobs is very simple.  Let us imagine that the user has a set of input files for the {\tt makepic} program in a directory called {\tt inputs} on his or her local machine.  The user simply runs the {\tt makepic} Styx Grid Service as before but, instead of specifying a single input file on the command line, the user enters the name of the {\tt inputs} directory:
 
 \begin{verbatim}
-makepic -i inputs -o pic.png
+makepic -i inputs -o pngfiles
 \end{verbatim}
 
 \noindent (where {\tt makepic} is the script that wraps the SGSRun executable as described above).
 
-The input files are automatically uploaded to the SGS server as before.  The server notices the presence of an input directory where it was expecting a single file.  It takes this as a signal to run the {\tt makepic} program over each file in the input directory, producing a picture for each file.  The client then downloads these pictures automatically and places them in a directory called {\tt pic.png} on the user's local machine.  The SGS server uses the underlying DRM system (e.g.\ Condor or SGE) to run these tasks in parallel on the worker nodes.  The progress of the whole job is displayed to the client as the individual tasks are executed.
+The input files are automatically uploaded to the SGS server as before.  The server notices the presence of an input directory where it was expecting a single file.  It takes this as a signal to run the {\tt makepic} program over each file in the input directory, producing a picture for each file.  The client then downloads these pictures automatically and places them in a directory called {\tt pngfiles} on the user's local machine.  The SGS server uses the underlying DRM system (e.g.\ Condor or SGE) to run these tasks in parallel on the worker nodes.  The progress of the whole job is displayed to the client as the individual tasks are executed.
 
-\SubSection{Disadvantages of the SGS system}
+\SubSection{Robustness and fault tolerance}
+The SGS server maintains the complete state of each job and a cache of all input and output files and streams.  Therefore, clients (such as the {\tt SGSRun} program) can, in theory, disconnect and reconnect to a running SGS instance without losing information.  However, this is not implemented in the current prototype of the SGS system, in which the connection between the client and server must be maintained throughout the life of the job.  The current implementation is also not yet robust to server failure: in order to allow the system to recover gracefully from server crashes we will implement a persistent job store.  Increasing the robustness of the SGS system is a high priority for future development.
+
+\SubSection{Disadvantages of the SGS system}\label{sec:disadvantages}
 The design of the SGS system has focused on ease of use, deployment and maintenance.  There are a number of disadvantages of the system:
 \begin{itemize}
 \item It only works with command-line programs (this is true for most Grid systems).
@@ -186,17 +189,18 @@ The second job type that will be run in GCEP is the analysis of the output from 
 Although this does not use ``traditional'' Grid software, this is true Grid computing: it is distributed computing, performed transparently across multiple administrative domains.
 
 \SubSection{Using the National Grid Service}
-When the GCEP scientists wish to use Globus resources such as the UK National Grid Service they will not be able to use SSH to access these resources directly.  There are two approaches to this:
+When the GCEP scientists wish to use Globus resources such as the UK National Grid Service they will not be able to use SSH to access these resources directly.  There are three approaches to achieve this:
 
 \begin{enumerate}
 \item Use GSISSH as a direct replacement for SSH: this uses the user's Grid certificate to authenticate with the server.  This requires the user to obtain and care for a certificate and create proxy certificates whenever he or she needs to run a job.
 \item Create a ``gateway'' machine, which the user accesses through SSH as before. This gateway machine accesses the Globus resource on the user's behalf, creating the necessary proxy certificate automatically.  The user's certificate could be stored on this gateway machine (if it is sufficiently secure) or the certificate could be stored in a MyProxy server and retrieved automatically when the user runs a job.
+\item Use a Globus-aware metascheduler such as Condor-G.  The Campus Grid at the University of Oxford (OxGrid,~\cite{wallom:2006}) uses Condor-G as its central point of job submission to the NGS and other Globus resources.  We have successfully tested running jobs on OxGrid through SGS and find this a promising and easy-to-use means for submitting Globus jobs.
 \end{enumerate}
 
 At the time of writing it is not clear which approach will be more appropriate for the project and further investigation will be required.
 
 \SubSection{Automatic resource selection}
-A greater degree of transparency could be obtained by providing a system that automatically finds the best resource in the GCEP Grid on which a given job should run.  This might involve automatic selection of the ``fastest'' or ``least busy'' machine in the Grid to ensure that the scientists receive their results as quickly as possible.  Although an attractive idea in theory, this is very difficult to achieve in practice.  We envisage that the GCEP users will, initially at least, have to perform their own resource selection.  It may be possible to create a basic resource selector that queries the queue management system on each of the GCEP resources and makes a decision; however, this is unlikely to be optimal as it is extremely difficult to quantify the ``load'' on any given machine or to estimate the true length of a queue.
+A greater degree of transparency could be obtained by providing a system that automatically finds the best resource in the GCEP grid on which a given job should run.  This might involve automatic selection of the ``fastest'' or ``least busy'' machine in the Grid to ensure that the scientists receive their results as quickly as possible.  Although an attractive idea in theory, this is very difficult to achieve in practice as there are very many factors that affect the true speed of a machine.  We envisage that the GCEP users will, initially at least, have to perform their own resource selection but we shall investigate the possibility of creating a resource selector that helps the user by estimating system load on the various clusters and, where possible, runs jobs close to the required input data, minimizing the transfer of large data files.
 
 \SubSection{Data management}\label{sec:datamanagement}
 The GCEP project will produce several terabytes of data, which will be stored at the various partner institutions and which must be shared amongst the project scientists at all the institutions.  One option for handling this is to use the Storage Resource Broker (SRB).  This would create a single virtual data store that combines all the data stores at the partner locations.  Users would not have to know where each individual data file is stored: this is handled by the SRB system.  Additionally, the SRB system can store metadata about each file in the system, making it easier for scientists to find files in the entire virtual store.
@@ -206,10 +210,14 @@ An alternative approach, which would sacrifice some functionality but require le
 \Section{Discussion}
 We have described how the ease of use of the Styx Grid Services system can be combined with the Secure Shell (SSH) to create Grid systems that are easy to build, use and administer.  No complex middleware is required and the barrier to uptake by users is very low: most of the tools involved are already familiar to a large proportion of users.  We have discussed how SGS-SSH can be applied to a multi-partner science project (GCEP), allowing compute and data resources to be shared transparently and securely with the minimum of administrative effort.  This will provide a reliable and easy-to-use Grid system to the GCEP scientists, allowing them to focus on the considerable science challenges rather than having to spend time learning new tools.
 
+There are other related activities.  GridSAM (Grid job Submission And Monitoring~\cite{gridsam}) is a Web Service for submitting and monitoring jobs on a variety of DRMs.  GridSAM, unlike SGS, complies with the Job Submission Description Language (JSDL,~\cite{jsdl}), which is a standard developed within the Global Grid Forum.  However, JSDL (and hence GridSAM) have the important current limitation that they do not allow multiple jobs (e.g.\ running the same program multiple times over a set of input files) to be submitted with a single invocation. This is a very convenient feature of the SGS system (section~\ref{sec:condor_sge} above).  There are, nevertheless, significant similarities between GridSAM and the SGS system and therefore scope for sharing development effort.
+
+Although the SGS system allows remote jobs to behave like local programs, this analogy does not quite hold true for interactive jobs on some batch-oriented Grid systems (e.g.\ Globus).  If a Grid system will only accept batch jobs, it is not possible for the SGS system to send or retrieve data to or from the job until the job is complete.  The glogin system~\cite{rosmanith:2004} provides a means to submit interactive jobs on Globus resources and we shall investigate how the SGS and glogin systems can be combined to improve the running of interactive Grid jobs.
+
 SGS-SSH does not provide every possible feature that might be desirable in a full-scale production Grid.  However, we argue that it provides enough features for most users and the simple nature of the system will, in many cases, more than make up for the missing features.  We hope that this will encourage more users and resource providers to create Grid systems to support collaborative science projects.
 
 \Section{Acknowledgements}
-This work was supported by the NERC Reading e-Science Centre grant and the NERC GCEP project grant.  The authors would like to thank Bruce Beckles for illuminating discussions on Grid security and the GCEP project partners for helpful suggestions and guidance.
+This work was supported by the NERC Reading e-Science Centre contract (R8/H12/36) and the NERC GCEP project grant (NE/C515820/1).  The authors would like to thank three anonymous reviewers for their helpful comments, Bruce Beckles for illuminating discussions on Grid security, the GCEP project partners for suggestions and guidance and David Wallom of the Oxford e-Research Centre for helping to link the SGS system with OxGrid.
 
 \bibliographystyle{latex8}
 \bibliography{refs}
