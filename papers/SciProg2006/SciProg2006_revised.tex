@@ -1,0 +1,148 @@
+% Submission to Scientific Programming: adapted from paper in ICCS2006,
+% "Workflow systems in e-Science" workshop
+
+% Changes from WSES workshop paper:
+% * Reworked intro
+% * More on security and (GSI)-SSH
+% * Added section on running on Condor/SGE
+% * Added two figures
+
+\documentclass[a4paper]{article}
+
+\usepackage{graphicx}
+\usepackage{setspace}
+
+\usepackage{caption}
+\usepackage{alltt}
+\usepackage[left=40mm, right=40mm, top=40mm, bottom=40mm]{geometry}
+
+% Make figures come out as "Fig. 1" instead of "Figure 1"
+\renewcommand{\figurename}{Fig.}
+
+% I tried to create a bibtex style file for Scientific Programming but didn't get it quite right...
+%\bibliographystyle{plain}
+
+
+\begin{document}
+%\doublespacing TODO: reinstate
+
+\begin{center}
+%TODO: change the title
+{\Large Styx Grid Services: Lightweight Workflow Middleware for Grid Environments}
+
+\bigskip
+\bigskip
+
+{\large J.D. Blower$^{1}$, A.B. Harrison$^{2}$ and K. Haines$^{1}$}
+
+\bigskip
+
+{\small 1. \textit{Reading e-Science Centre, Environmental Systems Science Centre, \\
+University of Reading, Reading RG6 6AL, UK} \\
+Email: \{jdb, kh\}@mail.nerc-essc.ac.uk\\
+Tel: +44 (0)118 3788741 \\
+\medskip
+2. \textit{School of Computer Science, Cardiff University, Cardiff CF24 3AA, UK}\\
+Email: a.b.harrison@cs.cardiff.ac.uk\\
+Tel: +44 (0)29 20876964}
+
+\bigskip
+\bigskip
+
+Keywords: Styx, streaming, third-party transfers, WS-RF, Condor, Globus
+
+\end{center}
+
+%\newpage TODO: reinstate
+
+\begin{abstract}
+Here's the abstract.
+\end{abstract}
+
+\section{Introduction}
+SGS easy to create and use.  Software is lightweight. SGSs can run on single machines or Condor/SGE/Globus resources.  Easy to deploy - few demands on firewalls.  As easy to use as local progs.
+
+Workflows similarly easy to create with shell scripts or graphical tools
+
+Major contribution to WF domain is that data are streamed between services in binary form.  Unlike other WF systems, data do not pass through the workflow engine, nor are they encoded in XML/SOAP.  Workflow engine simply sets up the pipeline.
+
+For compatibility, SGS can be wrapped (Java API) or brokered (message forwarding) with WS or WS-R.  Enables compability with other workflow systems.
+
+Related work goes here?
+
+\section{Styx Grid Services: architecture}
+
+Based on Styx protocol...  does not distinguish between remote and local files.  Persistent connections: pseudo-asynchronous notification (delayed read).  Styx protocol is itself a form of middleware, creating an abstraction layer.
+
+SGS server system wraps a command-line exe and exposes it as a namespace (virtual fs).  Clients create a new instance, then interact with the SGS by reading and writing files in the namespace.  All parts of the namespace uniquely refd as URL.  Clients always download from an SGS: SGS never pushes data to a client, hence clients need no firewall holes open.  Server monitors outputs from a running SGS.  SGS container can hold many SGSs.  Similar to GriddLeS~\cite{abramson:2004} approach: both work with unmodified executables, except that SGS wraps executables, GriddLeS intercepts local I/O calls and redirects them to the network at run time.  GriddLeS also handles replica file systems etc.  However, GriddLeS cannot redirect standard streams (CHECK THIS).
+
+\subsection{Direct data streaming}
+Explanation of how data downloads in Styx work.  Why this avoids buffer over/underflows and why it is not as fast as HTTP.  Can be sped up by sending multiple read requests without waiting for reply.  Zero-length reply signifies EOF.  Downstream services and clients don't need to know the difference between a stream and a data file.  Standard streams and append-only files can be streamed.  Random-access files can only be downloaded after the service has finished.
+
+Any number of clients can download the same file or stream simultaneously, giving the effect of streaming data to multiple sites simultaneously.  Due to cache.  Also makes standard streams seekable.
+
+WF engine starts up services and passes references to output files.
+
+Step-by-step two-service workflow showing how direct data passing is enabled by the WF engine.
+
+\subsection{SGS clients}
+Three ways of invoking SGSs, hence can incorporate into different WF tools.
+
+Command-line tools (SGSRun).  Simple workflows with shell scripts, and WF tools that can invoke local programs can execute SGSs in same way.
+
+Java API (Taverna)
+
+WS(R) wrappers: see later
+
+\section{Example workflow}
+
+Creating the services (1 example of config file maybe).  Service A extracts timeseries data and appends to a NetCDF file - gets streamed across the network.  Service B finds isosurface.  Service C creates movie.  Typical data volumes passing between services = ?.  Can we read part of a NetCDF file?
+
+extract -i mydataset -o temperaturefield.dat.sgsref
+isosurface -t 20 -i temperaturefield.dat.sgsref -o isosurfacevals.sgsref
+render -i isosurfacevals.sgsref -o movie.gif
+
+Important because downstream service can begin the downloading process before upstream service has finished.
+
+Alternative syntax with Unix filters:
+
+extract <params> --sgs-ref-stdout | isosurface -t 20 --sgs-ref-stdout | render
+
+Exactly the same behaviour in each case.  Streams and append-only files treated identically.  SGS server software monitors both output streams and output files looking for new data.
+
+Executing the service using command-line: other methods do the same thing, server doesn't know what sort of client is being used.
+
+Advantages of streaming (speed tests).  Important where data volumes can be large, especially where services support streaming.  Saves writing intermediate data to disk.
+
+\section{Integration with other Grid systems}
+Condor/Globus integration.
+
+\section{Web Service interfaces to SGS}
+Wrapping with API, brokering
+
+\section{Related work}
+
+\section{Discussion}
+
+\subsection{Security}
+
+\bibliographystyle{sciprog}
+
+\bibliography{refs}
+\newpage
+\singlespace
+
+\section*{Figure Captions}
+
+SGS namespace?  Cut for space reasons?
+
+SGS config file?  Refer to website/other paper?
+
+Architecture diagram: SGS wrapping cmd-line exe, clip of namespace?
+
+Workflow diagram: Three services: extract | process | render
+
+\newpage
+% Figures go here
+
+\end{document}
