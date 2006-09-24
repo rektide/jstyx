@@ -6,4 +6,4 @@
 
 cd ${0%/*}/../conf
 
-JStyxRun uk.ac.rdg.resc.jstyx.gridservice.server.SGSServer SGSconfig.xml $*
+../bin/JStyxRun uk.ac.rdg.resc.jstyx.gridservice.server.SGSServer SGSconfig.xml $*
