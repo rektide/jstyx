@@ -50,6 +50,7 @@
         <menu name="JStyx References">
             <item name="JavaDocs" href="apidocs/index.html" target="_blank"/>
             <item name="Source code" href="xref/index.html" target="_blank"/>
+            <item name="Trac site" href="/trac/jstyx"/>
             <item name="Sf.net site" href="http://sourceforge.net/projects/jstyx/"/>
         </menu>
         

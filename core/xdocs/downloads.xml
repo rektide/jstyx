@@ -58,9 +58,8 @@
       </p>
       </subsection>
       
-      <subsection name="Unix/Linux">
+      <subsection name="Unix/Linux/Mac OSX">
       <p>
-      (Note: these instructions might also work on Mac OSX, but this hasn't been tested yet.)
       <ol>
           <li>Download the software as a gzipped tar archive from
             <a href="http://prdownloads.sourceforge.net/jstyx/jstyx-0.2.0-unix.tar.gz?download">here</a>.</li>
