@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
     <servlet>
-        <servlet-name>TRexServlet</servlet-name>
-        <servlet-class>uk.ac.rdg.resc.trex.servlet.TRexServlet</servlet-class>
+        <description>Spring Dispatcher Servlet, will handle all requests to .xml and .html files
+(in future, could also handle .rss files)
+Configured by WEB-INF/G-Rex-servlet.xml.</description>
+        <servlet-name>G-Rex</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
     </servlet>
     <servlet-mapping>
-        <servlet-name>TRexServlet</servlet-name>
-        <url-pattern>/</url-pattern>
+        <servlet-name>G-Rex</servlet-name>
+        <url-pattern>*.html</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>G-Rex</servlet-name>
+        <url-pattern>*.xml</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>

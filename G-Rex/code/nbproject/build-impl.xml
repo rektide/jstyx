@@ -396,14 +396,17 @@
     <target name="library-inclusion-in-manifest" depends="init" if="dist.ear.dir">
         <basename property="included.lib.libs.BerkeleyDB.classpath" file="${libs.BerkeleyDB.classpath}"/>
         <copy-ear-war file="${libs.BerkeleyDB.classpath}" propname="included.lib.libs.BerkeleyDB.classpath.X"/>
+        <basename property="included.lib.libs.Spring2.0.classpath" file="${libs.Spring2.0.classpath}"/>
+        <copy-ear-war file="${libs.Spring2.0.classpath}" propname="included.lib.libs.Spring2.0.classpath.X"/>
         <mkdir dir="${build.web.dir.real}/META-INF"/>
         <manifest file="${build.web.dir.real}/META-INF/MANIFEST.MF" mode="update">
-            <attribute name="Class-Path" value="${included.lib.libs.BerkeleyDB.classpath} "/>
+            <attribute name="Class-Path" value="${included.lib.libs.BerkeleyDB.classpath} ${included.lib.libs.Spring2.0.classpath} "/>
         </manifest>
         <delete dir="${dist.ear.dir}/temp"/>
     </target>
     <target name="library-inclusion-in-archive" depends="init" unless="dist.ear.dir">
         <copy file="${libs.BerkeleyDB.classpath}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${libs.Spring2.0.classpath}" todir="${build.web.dir.real}/WEB-INF/lib"/>
     </target>
     <target name="do-ear-dist" depends="init,compile,compile-jsps,-pre-dist,library-inclusion-in-manifest">
         <dirname property="dist.jar.dir" file="${dist.ear.war}"/>
