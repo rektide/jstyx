@@ -8,9 +8,7 @@ on Libraries node in Projects view can be used to add the JSTL 1.1 library.
 <%--
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%> 
 --%>
-
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-   "http://www.w3.org/TR/html4/loose.dtd">
+<%@taglib uri="http://acegisecurity.org/authz" prefix="authz" %>
 
 <html>
     <head>
@@ -20,6 +18,8 @@ on Libraries node in Projects view can be used to add the JSTL 1.1 library.
     <body>
 
     <h1>JSP Page</h1>
+    
+    <authenticatedAs><authz:authentication operation="username"/></authenticatedAs>
     
     <%--
     This example uses JSTL, uncomment the taglib directive above.

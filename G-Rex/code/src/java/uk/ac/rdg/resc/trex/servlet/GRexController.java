@@ -54,7 +54,7 @@ public class GRexController extends AbstractController
             System.out.print("   " + method);
         }
         System.out.println("");
-        if (true) throw new GRexException("This is an exception!");
+        //if (true) throw new GRexException("This is an exception!");
         // TODO: automatically append the file extension to the view name
         if (request.getRequestURI().endsWith(".html"))
         {

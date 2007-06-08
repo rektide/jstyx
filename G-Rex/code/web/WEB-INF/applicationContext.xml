@@ -9,7 +9,7 @@
             <value>
                 CONVERT_URL_TO_LOWERCASE_BEFORE_COMPARISON
                 PATTERN_TYPE_APACHE_ANT
-                /**=httpSessionContextIntegrationFilter,basicProcessingFilter,exceptionTranslationFilter,filterInvocationInterceptor
+                /**=httpSessionContextIntegrationFilter,digestProcessingFilter,exceptionTranslationFilter,filterInvocationInterceptor
             </value>
         </property>
     </bean>
@@ -26,7 +26,7 @@
         <property name="authenticationEntryPoint"><ref local="authenticationEntryPoint"/></property>
     </bean>    
     <bean id="authenticationEntryPoint" class="org.acegisecurity.ui.basicauth.BasicProcessingFilterEntryPoint">
-        <property name="realmName"><value>G-Rex realm</value></property>
+        <property name="realmName"><value>G-Rex realm via BASIC authentication</value></property>
     </bean>    
     <bean id="authenticationManager" class="org.acegisecurity.providers.ProviderManager">
         <property name="providers">
@@ -49,8 +49,21 @@
         </property>
     </bean>
     
+    <!-- HTTP Digest Authentication -->
+    <bean id="digestProcessingFilter" class="org.acegisecurity.ui.digestauth.DigestProcessingFilter">
+        <property name="userDetailsService"><ref local="inMemoryDaoImpl"/></property>
+        <property name="authenticationEntryPoint"><ref local="digestProcessingFilterEntryPoint"/></property>
+        <!-- We don't use a UserCache - no need -->
+    </bean>    
+    <bean id="digestProcessingFilterEntryPoint" class="org.acegisecurity.ui.digestauth.DigestProcessingFilterEntryPoint">
+        <property name="realmName"><value>G-Rex Realm via Digest Authentication</value></property>
+        <property name="key"><value>acegigrex</value></property>
+        <property name="nonceValiditySeconds"><value>10</value></property>
+    </bean>
+    
     <bean id="exceptionTranslationFilter" class="org.acegisecurity.ui.ExceptionTranslationFilter">
-        <property name="authenticationEntryPoint"><ref local="authenticationEntryPoint"/></property>
+        <property name="authenticationEntryPoint"><ref local="digestProcessingFilterEntryPoint"/></property>
+        <!-- TODO: set error page for redirection -->
     </bean>
     
     <bean id="filterInvocationInterceptor" class="org.acegisecurity.intercept.web.FilterSecurityInterceptor">
