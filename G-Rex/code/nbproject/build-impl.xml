@@ -402,9 +402,13 @@
         <copy-ear-war file="${libs.Acegi.classpath}" propname="included.lib.libs.Acegi.classpath.X"/>
         <basename property="included.lib.file.reference.commons-codec.jar" file="${file.reference.commons-codec.jar}"/>
         <copy-ear-war file="${file.reference.commons-codec.jar}" propname="included.lib.file.reference.commons-codec.jar.X"/>
+        <basename property="included.lib.file.reference.commons-httpclient.jar" file="${file.reference.commons-httpclient.jar}"/>
+        <copy-ear-war file="${file.reference.commons-httpclient.jar}" propname="included.lib.file.reference.commons-httpclient.jar.X"/>
+        <basename property="included.lib.file.reference.commons-logging.jar" file="${file.reference.commons-logging.jar}"/>
+        <copy-ear-war file="${file.reference.commons-logging.jar}" propname="included.lib.file.reference.commons-logging.jar.X"/>
         <mkdir dir="${build.web.dir.real}/META-INF"/>
         <manifest file="${build.web.dir.real}/META-INF/MANIFEST.MF" mode="update">
-            <attribute name="Class-Path" value="${included.lib.libs.BerkeleyDB.classpath} ${included.lib.libs.Spring2.0.classpath} ${included.lib.libs.Acegi.classpath} ${included.lib.file.reference.commons-codec.jar} "/>
+            <attribute name="Class-Path" value="${included.lib.libs.BerkeleyDB.classpath} ${included.lib.libs.Spring2.0.classpath} ${included.lib.libs.Acegi.classpath} ${included.lib.file.reference.commons-codec.jar} ${included.lib.file.reference.commons-httpclient.jar} ${included.lib.file.reference.commons-logging.jar} "/>
         </manifest>
         <delete dir="${dist.ear.dir}/temp"/>
     </target>
@@ -413,6 +417,8 @@
         <copy file="${libs.Spring2.0.classpath}" todir="${build.web.dir.real}/WEB-INF/lib"/>
         <copy file="${libs.Acegi.classpath}" todir="${build.web.dir.real}/WEB-INF/lib"/>
         <copy file="${file.reference.commons-codec.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${file.reference.commons-httpclient.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${file.reference.commons-logging.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
     </target>
     <target name="do-ear-dist" depends="init,compile,compile-jsps,-pre-dist,library-inclusion-in-manifest">
         <dirname property="dist.jar.dir" file="${dist.ear.war}"/>
