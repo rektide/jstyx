@@ -43,7 +43,7 @@
             <value>
                 marissa=koala,ROLE_TELLER,ROLE_SUPERVISOR
                 dianne=emu,ROLE_TELLER
-                scott=wombat,ROLE_TELLER
+                scott=wombat,ROLE_FOO
                 peter=opal,disabled,ROLE_TELLER
             </value>
         </property>
@@ -60,7 +60,7 @@
             <value>
                 CONVERT_URL_TO_LOWERCASE_BEFORE_COMPARISON
                 PATTERN_TYPE_APACHE_ANT
-                /**=ROLE_USER
+                /**=ROLE_TELLER
             </value>
         </property>
     </bean>
