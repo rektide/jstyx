@@ -29,7 +29,9 @@
 package uk.ac.rdg.resc.trex.client;
 
 import org.apache.commons.httpclient.Credentials;
+import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -49,22 +51,33 @@ public class TestClient
     
     public static void main(String[] args) throws Exception
     {
-        HttpClient client = new HttpClient();
+        // Allow many threads to use this connection
+        MultiThreadedHttpConnectionManager connectionManager = 
+            new MultiThreadedHttpConnectionManager();
+        HttpClient client = new HttpClient(connectionManager);
+        
         // Set the credentials for authentication
         Credentials creds = new UsernamePasswordCredentials("marissa", "koala");
         client.getState().setCredentials(new AuthScope(HOST, PORT, "G-Rex Realm via Digest Authentication"), creds);
         
-        GetMethod get = new GetMethod("http://" + HOST + ":" + PORT + "/G-Rex/adfsadf.xml");
-        get.setDoAuthentication(true);
+        GetMethod get = new GetMethod("http://" + HOST + ":" + PORT + "/G-Rex/adfsadf.html");
+        get.setDoAuthentication(true); // Seems to work even if this is commented out!
         
         try
         {
             int status = client.executeMethod(get);
             System.out.println("Status: " + status);
+            for (Header header : get.getResponseHeaders())
+            {
+                System.out.println(header.toString());
+            }
+            // N.B. Use getResponseBodyAsStream() if the content-length is unknown
+            // to avoid using too much memory
             System.out.println(get.getResponseBodyAsString());
         }
         finally
         {
+            // we must do this to return the connection to the pool
             get.releaseConnection();
         }
     }
