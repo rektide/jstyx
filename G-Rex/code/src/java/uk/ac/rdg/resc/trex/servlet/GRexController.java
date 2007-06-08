@@ -44,7 +44,7 @@ import uk.ac.rdg.resc.trex.exceptions.GRexException;
  */
 public class GRexController extends AbstractController
 {
-
+    
     protected ModelAndView handleRequestInternal(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {

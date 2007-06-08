@@ -23,7 +23,7 @@
                 <!-- All URLs will be mapped to the mainController.  We know that
                 all URLs will end in either .xml or .html, because we have set
                 this in WEB-INF/web.xml -->
-                <prop key="/*/instances/*/config.*">mainController</prop>
+                <prop key="/*">mainController</prop>
             </props>
         </property>
     </bean>

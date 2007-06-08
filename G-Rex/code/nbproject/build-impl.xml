@@ -398,15 +398,18 @@
         <copy-ear-war file="${libs.BerkeleyDB.classpath}" propname="included.lib.libs.BerkeleyDB.classpath.X"/>
         <basename property="included.lib.libs.Spring2.0.classpath" file="${libs.Spring2.0.classpath}"/>
         <copy-ear-war file="${libs.Spring2.0.classpath}" propname="included.lib.libs.Spring2.0.classpath.X"/>
+        <basename property="included.lib.libs.Acegi.classpath" file="${libs.Acegi.classpath}"/>
+        <copy-ear-war file="${libs.Acegi.classpath}" propname="included.lib.libs.Acegi.classpath.X"/>
         <mkdir dir="${build.web.dir.real}/META-INF"/>
         <manifest file="${build.web.dir.real}/META-INF/MANIFEST.MF" mode="update">
-            <attribute name="Class-Path" value="${included.lib.libs.BerkeleyDB.classpath} ${included.lib.libs.Spring2.0.classpath} "/>
+            <attribute name="Class-Path" value="${included.lib.libs.BerkeleyDB.classpath} ${included.lib.libs.Spring2.0.classpath} ${included.lib.libs.Acegi.classpath} "/>
         </manifest>
         <delete dir="${dist.ear.dir}/temp"/>
     </target>
     <target name="library-inclusion-in-archive" depends="init" unless="dist.ear.dir">
         <copy file="${libs.BerkeleyDB.classpath}" todir="${build.web.dir.real}/WEB-INF/lib"/>
         <copy file="${libs.Spring2.0.classpath}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${libs.Acegi.classpath}" todir="${build.web.dir.real}/WEB-INF/lib"/>
     </target>
     <target name="do-ear-dist" depends="init,compile,compile-jsps,-pre-dist,library-inclusion-in-manifest">
         <dirname property="dist.jar.dir" file="${dist.ear.war}"/>

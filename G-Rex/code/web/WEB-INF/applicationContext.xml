@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd">
+    
+    <!-- Acegi Security configuration -->
+    <bean id="filterChainProxy" class="org.acegisecurity.util.FilterChainProxy">
+        <property name="filterInvocationDefinitionSource">
+            <value>
+                CONVERT_URL_TO_LOWERCASE_BEFORE_COMPARISON
+                PATTERN_TYPE_APACHE_ANT
+                /**=httpSessionContextIntegrationFilter,basicProcessingFilter,exceptionTranslationFilter,filterInvocationInterceptor
+            </value>
+        </property>
+    </bean>
+    
+    <!-- We disallow session creation so that we have to authenticate afresh
+         with each request -->
+    <bean id="httpSessionContextIntegrationFilter" class="org.acegisecurity.context.HttpSessionContextIntegrationFilter">
+        <property name="allowSessionCreation" value="false"/>
+    </bean>
+    
+    <!-- Set up BASIC authentication -->
+    <bean id="basicProcessingFilter" class="org.acegisecurity.ui.basicauth.BasicProcessingFilter">
+        <property name="authenticationManager"><ref local="authenticationManager"/></property>
+        <property name="authenticationEntryPoint"><ref local="authenticationEntryPoint"/></property>
+    </bean>    
+    <bean id="authenticationEntryPoint" class="org.acegisecurity.ui.basicauth.BasicProcessingFilterEntryPoint">
+        <property name="realmName"><value>G-Rex realm</value></property>
+    </bean>    
+    <bean id="authenticationManager" class="org.acegisecurity.providers.ProviderManager">
+        <property name="providers">
+            <list>
+                <ref local="daoAuthenticationProvider"/>
+            </list>
+        </property>
+    </bean>
+    <bean id="daoAuthenticationProvider" class="org.acegisecurity.providers.dao.DaoAuthenticationProvider">
+        <property name="userDetailsService"><ref local="inMemoryDaoImpl"/></property>
+    </bean>
+    <bean id="inMemoryDaoImpl" class="org.acegisecurity.userdetails.memory.InMemoryDaoImpl">
+        <property name="userMap">
+            <value>
+                marissa=koala,ROLE_TELLER,ROLE_SUPERVISOR
+                dianne=emu,ROLE_TELLER
+                scott=wombat,ROLE_TELLER
+                peter=opal,disabled,ROLE_TELLER
+            </value>
+        </property>
+    </bean>
+    
+    <bean id="exceptionTranslationFilter" class="org.acegisecurity.ui.ExceptionTranslationFilter">
+        <property name="authenticationEntryPoint"><ref local="authenticationEntryPoint"/></property>
+    </bean>
+    
+    <bean id="filterInvocationInterceptor" class="org.acegisecurity.intercept.web.FilterSecurityInterceptor">
+        <property name="authenticationManager"><ref local="authenticationManager"/></property>
+        <property name="accessDecisionManager"><ref local="httpRequestAccessDecisionManager"/></property>
+        <property name="objectDefinitionSource">
+            <value>
+                CONVERT_URL_TO_LOWERCASE_BEFORE_COMPARISON
+                PATTERN_TYPE_APACHE_ANT
+                /**=ROLE_USER
+            </value>
+        </property>
+    </bean>
+    <bean id="httpRequestAccessDecisionManager" class="org.acegisecurity.vote.AffirmativeBased">
+        <property name="allowIfAllAbstainDecisions"><value>false</value></property>
+        <property name="decisionVoters">
+            <list>
+                <ref local="roleVoter"/>
+            </list>
+        </property>
+    </bean>
+    <bean id="roleVoter" class="org.acegisecurity.vote.RoleVoter"/> 
+    
+</beans>
