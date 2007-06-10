@@ -1,4 +1,4 @@
-<jsp:include page="xml_header.jsp"/>
+<%@include file="xml_header.jsp"%>
 <%--
 The taglib directive below imports the JSTL library. If you uncomment it,
 you must also add the JSTL library to the project. The Add Library... action
