@@ -46,14 +46,14 @@ public interface GRexServiceInstancesStore
      * @param id The id of the instance
      * @return The TrexServiceInstance with this id
      */
-    public TrexServiceInstance getServiceInstanceById(int id);
+    public GrexServiceInstance getServiceInstanceById(int id);
     
     /**
      * Finds all the instances of the service with the given name
      * @param serviceName The name of the service as specified in the config file
      * @return a List of all the instances of this service
      */
-    public List<TrexServiceInstance> getServiceInstancesByServiceName(String serviceName);
+    public List<GrexServiceInstance> getServiceInstancesByServiceName(String serviceName);
     
     /**
      * Finds all the service instances (of any service) that belong to the 
@@ -61,5 +61,5 @@ public interface GRexServiceInstancesStore
      * @param userName The name of the user that owns the service instances
      * @return a List of all the instances that belong to this user
      */
-    public List<TrexServiceInstance> getServiceInstancesBelongingTo(String userName);
+    public List<GrexServiceInstance> getServiceInstancesBelongingTo(String userName);
 }

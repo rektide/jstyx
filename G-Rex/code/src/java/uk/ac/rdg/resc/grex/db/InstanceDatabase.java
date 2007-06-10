@@ -56,8 +56,8 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
     private Environment env;
     private EntityStore store; // This is where we keep TrexServiceInstance objects
     
-    private PrimaryIndex<Integer, TrexServiceInstance> instancesById;
-    private SecondaryIndex<String, Integer, TrexServiceInstance> instancesByServiceId;
+    private PrimaryIndex<Integer, GrexServiceInstance> instancesById;
+    private SecondaryIndex<String, Integer, GrexServiceInstance> instancesByServiceId;
     
     
     /**
@@ -79,7 +79,7 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
         
         // Set up the indices we will use to access instances
         this.instancesById = this.store.getPrimaryIndex(Integer.class,
-            TrexServiceInstance.class);
+            GrexServiceInstance.class);
         this.instancesByServiceId = this.store.getSecondaryIndex(this.instancesById,
             String.class, "serviceID");
     }
@@ -91,11 +91,11 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
      * @return the unique ID of the instance that has been created
      * @throws DatabaseException if there was an error adding the instance
      */
-    public int addServiceInstance(TrexServiceInstance instance)
+    public int addServiceInstance(GrexServiceInstance instance)
         throws DatabaseException
     {
         // The ID will be created automatically from a sequence
-        TrexServiceInstance prevInst = this.instancesById.put(instance);
+        GrexServiceInstance prevInst = this.instancesById.put(instance);
         System.out.println("prevInst = " + prevInst);
         return instance.getId();
     }
@@ -109,7 +109,7 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
      * @return the TrexServiceInstance object, or null if there is no 
      * object with the given ID
      */
-    public TrexServiceInstance getServiceInstance(int instanceID)
+    public GrexServiceInstance getServiceInstance(int instanceID)
         throws DatabaseException
     {
         return this.instancesById.get(instanceID);
@@ -121,16 +121,16 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
      * @return a List of instances that belong to the service.
      * @throws DatabaseException if there was an error retrieving the data
      */
-    public synchronized List<TrexServiceInstance> getServiceInstances(String serviceID)
+    public synchronized List<GrexServiceInstance> getServiceInstances(String serviceID)
         throws DatabaseException
     {
         // EntityCursors are not thread-safe so this method must be synchronized
-        EntityCursor<TrexServiceInstance> cursor = null;
-        ArrayList<TrexServiceInstance> instances = new ArrayList<TrexServiceInstance>();
+        EntityCursor<GrexServiceInstance> cursor = null;
+        ArrayList<GrexServiceInstance> instances = new ArrayList<GrexServiceInstance>();
         try
         {
             cursor = this.instancesByServiceId.subIndex(serviceID).entities();
-            for (TrexServiceInstance instance : cursor)
+            for (GrexServiceInstance instance : cursor)
             {
                 instances.add(instance);
             }
