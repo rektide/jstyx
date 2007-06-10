@@ -20,34 +20,14 @@
         <property name="allowSessionCreation" value="false"/>
     </bean>
     
-    <!-- Set up BASIC authentication -->
-    <bean id="basicProcessingFilter" class="org.acegisecurity.ui.basicauth.BasicProcessingFilter">
+    <!-- Set up BASIC authentication (not used at the moment) -->
+    <!--<bean id="basicProcessingFilter" class="org.acegisecurity.ui.basicauth.BasicProcessingFilter">
         <property name="authenticationManager"><ref local="authenticationManager"/></property>
         <property name="authenticationEntryPoint"><ref local="authenticationEntryPoint"/></property>
     </bean>    
     <bean id="authenticationEntryPoint" class="org.acegisecurity.ui.basicauth.BasicProcessingFilterEntryPoint">
         <property name="realmName"><value>G-Rex realm via BASIC authentication</value></property>
-    </bean>    
-    <bean id="authenticationManager" class="org.acegisecurity.providers.ProviderManager">
-        <property name="providers">
-            <list>
-                <ref local="daoAuthenticationProvider"/>
-            </list>
-        </property>
-    </bean>
-    <bean id="daoAuthenticationProvider" class="org.acegisecurity.providers.dao.DaoAuthenticationProvider">
-        <property name="userDetailsService"><ref local="inMemoryDaoImpl"/></property>
-    </bean>
-    <bean id="inMemoryDaoImpl" class="org.acegisecurity.userdetails.memory.InMemoryDaoImpl">
-        <property name="userMap">
-            <value>
-                marissa=koala,ROLE_TELLER,ROLE_SUPERVISOR
-                dianne=emu,ROLE_TELLER
-                scott=wombat,ROLE_FOO
-                peter=opal,disabled,ROLE_TELLER
-            </value>
-        </property>
-    </bean>
+    </bean>-->
     
     <!-- HTTP Digest Authentication -->
     <bean id="digestProcessingFilter" class="org.acegisecurity.ui.digestauth.DigestProcessingFilter">
@@ -61,6 +41,27 @@
         <property name="nonceValiditySeconds"><value>10</value></property>
     </bean>
     
+    <bean id="authenticationManager" class="org.acegisecurity.providers.ProviderManager">
+        <property name="providers">
+            <list>
+                <ref local="daoAuthenticationProvider"/>
+            </list>
+        </property>
+    </bean>
+    <bean id="daoAuthenticationProvider" class="org.acegisecurity.providers.dao.DaoAuthenticationProvider">
+        <property name="userDetailsService"><ref local="inMemoryDaoImpl"/></property>
+    </bean>
+    <bean id="inMemoryDaoImpl" class="org.acegisecurity.userdetails.memory.InMemoryDaoImpl">
+        <property name="userMap">
+            <value>
+                jon=koala,ROLE_USER,ROLE_SUPERUSER
+                dianne=emu,ROLE_USER
+                scott=wombat,ROLE_USER
+                peter=opal,disabled,ROLE_USER
+            </value>
+        </property>
+    </bean>    
+    
     <bean id="exceptionTranslationFilter" class="org.acegisecurity.ui.ExceptionTranslationFilter">
         <property name="authenticationEntryPoint"><ref local="digestProcessingFilterEntryPoint"/></property>
         <!-- TODO: set error page for redirection -->
@@ -73,7 +74,7 @@
             <value>
                 CONVERT_URL_TO_LOWERCASE_BEFORE_COMPARISON
                 PATTERN_TYPE_APACHE_ANT
-                /**=ROLE_TELLER
+                /**=ROLE_USER
             </value>
         </property>
     </bean>

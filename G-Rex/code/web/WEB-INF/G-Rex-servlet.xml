@@ -12,18 +12,28 @@
        xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
        xsi:schemaLocation='http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd'>
     
-    <!-- Defines a Controller called "mainController" -->
-    <bean id="mainController" class="uk.ac.rdg.resc.trex.servlet.GRexController">
-        <property name="supportedMethods" value="GET,POST,PUT"/>
+    <!-- Defines a configuration object that is used to configure this server.
+         This object is created via GRexConfig.readConfig(), a static factory method -->
+    <bean id="grexConfig" class="uk.ac.rdg.resc.grex.config.GRexConfig"
+          factory-method="readConfig">
+        <!-- We must set the path to the configuration file -->
+        <constructor-arg><value>/path/goes/here</value></constructor-arg>
     </bean>
+           
+    <!-- Defines a Controller that will list the services hosted on this server -->
+    <bean id="listServicesController" class="uk.ac.rdg.resc.trex.servlet.ListServicesController">
+        <property name="supportedMethods" value="GET"/>
+        <!-- Inject the configuration object into this controller -->
+        <property name="grexConfig"><ref local="grexConfig"/></property>
+    </bean>
+    
     <!-- Maps request URLs to controllers -->
     <bean id="controllermap" class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
         <property name="mappings">
             <props>
-                <!-- All URLs will be mapped to the mainController.  We know that
-                all URLs will end in either .xml or .html, because we have set
-                this in WEB-INF/web.xml -->
-                <prop key="/*">mainController</prop>
+                <!-- The file services.[xml,html] lists the services that are
+                     visible to the logged-in user -->
+                <prop key="/services.*">listServicesController</prop>
             </props>
         </property>
     </bean>

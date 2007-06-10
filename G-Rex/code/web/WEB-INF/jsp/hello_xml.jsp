@@ -5,9 +5,8 @@ The taglib directive below imports the JSTL library. If you uncomment it,
 you must also add the JSTL library to the project. The Add Library... action
 on Libraries node in Projects view can be used to add the JSTL 1.1 library.
 --%>
-<%--
-<%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%> 
---%>
+
+<%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%@taglib uri="http://acegisecurity.org/authz" prefix="authz" %>
 
 <html>
@@ -20,6 +19,12 @@ on Libraries node in Projects view can be used to add the JSTL 1.1 library.
     <h1>JSP Page</h1>
     
     <authenticatedAs><authz:authentication operation="username"/></authenticatedAs>
+    
+    <gridservices>
+    <c:forEach var="gridservice" items="${gridservices}">
+        <gridservice name="${gridservice.name}" description="${gridservice.description}"/>
+    </c:forEach>
+    </gridservices>
     
     <%--
     This example uses JSTL, uncomment the taglib directive above.

@@ -49,7 +49,7 @@ import java.util.List;
  * $Log$
  */
 
-public class InstanceDatabase
+public class InstanceDatabase // implements GRexServiceInstancesStore
 {
     private static final String STORE_NAME = "instances";
     
