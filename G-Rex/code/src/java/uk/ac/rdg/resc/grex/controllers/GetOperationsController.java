@@ -26,15 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.grex.servlet;
+package uk.ac.rdg.resc.grex.controllers;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.AbstractController;
+import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
 import uk.ac.rdg.resc.grex.config.GridService;
+import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
+import uk.ac.rdg.resc.grex.db.GrexServiceInstance;
+import uk.ac.rdg.resc.grex.exceptions.GRexException;
 
 // TODO: these instructions are out of date and do not belong here anymore!
 /**
@@ -86,33 +92,80 @@ import uk.ac.rdg.resc.grex.config.GridService;
  */
 
 /**
- * Controller that lists the services hosted on this server
+ * Controller that handles all the GET operations (i.e. requests for information
+ * that do not modify the state of the server)
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class ListServicesController extends AbstractController
+public class GetOperationsController extends MultiActionController
 {
     
     /**
-     * Configuration information for this G-Rex server.  This object will be
-     * injected by the Spring framework
+     * Configuration information for this G-Rex server.
      */
     private GRexConfig config;
+    /**
+     * Store of service instances.
+     */
+    private GRexServiceInstancesStore instancesStore;
     
-    protected ModelAndView handleRequestInternal(HttpServletRequest request,
+    public ModelAndView listServices(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
         // Get the list of services from the config object
         Vector<GridService> gridServices = this.config.getGridServices();
-        // TODO: automatically append the file extension to the view name
         // The gridServices object will appear in the JSPs with the name "gridservices"
         // TODO: restrict viewing of services to certain groups
-        String fileExtension = request.getRequestURI().substring(request.getRequestURI().lastIndexOf(".") + 1);
         // The JSP that will be displayed will be "/WEB-INF/jsp/hello_[fileExtension].jsp"
-        return new ModelAndView("hello_" + fileExtension, "gridservices", gridServices);
+        return new ModelAndView("hello_" + getFileExtension(request.getRequestURI()),
+            "gridservices", gridServices);
+    }
+    
+    public ModelAndView listInstancesForService(HttpServletRequest request,
+        HttpServletResponse response) throws Exception
+    {
+        // Find the name of the service that the user is interested in.  The URL
+        // pattern is /G-Rex/serviceName/instances.[xml,html]
+        String serviceName = request.getRequestURI().split("/")[2];
+        System.out.println("Service name: " + serviceName);
+        // Check that this service actually exists!
+        if (this.config.getGridServiceByName(serviceName) == null)
+        {
+            throw new GRexException("There is no service called " + serviceName);
+        }
+        
+        // Get the list of service instance from the store
+        List<GrexServiceInstance> instances =
+            this.instancesStore.getServiceInstancesByServiceName(serviceName);
+        // TODO: restrict viewing of instances to the correct users
+        
+        // Create the model map that will be passed to the JSPs
+        Map<String, Object> modelMap = new HashMap<String, Object>();
+        modelMap.put("instances", instances);
+        modelMap.put("serviceName", serviceName);
+        return new ModelAndView("instancesForService_" +
+            getFileExtension(request.getRequestURI()), modelMap);
+    }
+    
+    /**
+     * Shows the configuration information for a particular service
+     */
+    public ModelAndView showConfigForService(HttpServletRequest request,
+        HttpServletResponse response) throws Exception
+    {
+        // Find the name of the service that the user is interested in.  The URL
+        // pattern is /G-Rex/serviceName/instances.[xml,html]
+        String serviceName = request.getRequestURI().split("/")[2];
+        GridService gs = this.config.getGridServiceByName(serviceName);
+        if (gs == null)
+        {
+            throw new GRexException("There is no service called " + serviceName);
+        }
+        return new ModelAndView("configForService_" +
+            getFileExtension(request.getRequestURI()), "gridservice", gs);
     }
     
     /**
@@ -124,4 +177,21 @@ public class ListServicesController extends AbstractController
         this.config = config;
     }
     
+    /**
+     * This will be used by the Spring framework to inject an object that can
+     * be used to read the service instances from a database
+     */
+    public void setInstancesStore(GRexServiceInstancesStore instancesStore)
+    {
+        this.instancesStore = instancesStore;
+    }
+    
+    /**
+     * Finds the file extension for the given request URI.  For example, if the 
+     * requestURI is "/foo/bar/baz.html" this method will return "html"
+     */
+    private static final String getFileExtension(String requestURI)
+    {
+        return requestURI.substring(requestURI.lastIndexOf(".") + 1);
+    }
 }

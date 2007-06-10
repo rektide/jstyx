@@ -97,6 +97,22 @@ public class GRexConfig
     }
     
     /**
+     * @return the GridService with the given name, or null if there is no
+     * service with this name
+     */
+    public GridService getGridServiceByName(String serviceName)
+    {
+        for (GridService gs : this.gridServices)
+        {
+            if (gs.getName().equals(serviceName))
+            {
+                return gs;
+            }
+        }
+        return null;
+    }
+    
+    /**
      * Checks that the data we have read are valid.  Checks that there are no
      * duplicate names for GridServices
      */

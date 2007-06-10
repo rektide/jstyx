@@ -49,7 +49,7 @@ import java.util.List;
  * $Log$
  */
 
-public class InstanceDatabase // implements GRexServiceInstancesStore
+public class InstancesStoreBerkeley implements GRexServiceInstancesStore
 {
     private static final String STORE_NAME = "instances";
     
@@ -57,16 +57,16 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
     private EntityStore store; // This is where we keep TrexServiceInstance objects
     
     private PrimaryIndex<Integer, GrexServiceInstance> instancesById;
-    private SecondaryIndex<String, Integer, GrexServiceInstance> instancesByServiceId;
+    private SecondaryIndex<String, Integer, GrexServiceInstance> instancesByServiceName;
     
     
     /**
      * Creates a new InstanceDatabase, or re-attaches to an existing one
-     * @param dbPath File representing the location of the database
+     * @param dbPath Path to the location of the database
      * @throws DatabaseException if there was an error creating or attaching to
      * the database
      */
-    public InstanceDatabase(File dbPath) throws DatabaseException
+    public InstancesStoreBerkeley(String dbPath) throws DatabaseException
     {
         EnvironmentConfig envConfig = new EnvironmentConfig();
         envConfig.setAllowCreate(true);
@@ -74,14 +74,14 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
         storeConfig.setAllowCreate(true);
         // TODO: should we set this to be transactional?
         
-        this.env = new Environment(dbPath, envConfig);
+        this.env = new Environment(new File(dbPath), envConfig);
         this.store = new EntityStore(this.env, STORE_NAME, storeConfig);
         
         // Set up the indices we will use to access instances
         this.instancesById = this.store.getPrimaryIndex(Integer.class,
             GrexServiceInstance.class);
-        this.instancesByServiceId = this.store.getSecondaryIndex(this.instancesById,
-            String.class, "serviceID");
+        this.instancesByServiceName = this.store.getSecondaryIndex(this.instancesById,
+            String.class, "serviceName");
     }
     
     /**
@@ -96,7 +96,6 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
     {
         // The ID will be created automatically from a sequence
         GrexServiceInstance prevInst = this.instancesById.put(instance);
-        System.out.println("prevInst = " + prevInst);
         return instance.getId();
     }
     
@@ -108,8 +107,9 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
      * @param instanceID ID of the instance to be retrieved
      * @return the TrexServiceInstance object, or null if there is no 
      * object with the given ID
+     * @throws DatabaseException if there was an error retrieving the object
      */
-    public GrexServiceInstance getServiceInstance(int instanceID)
+    public GrexServiceInstance getServiceInstanceById(int instanceID)
         throws DatabaseException
     {
         return this.instancesById.get(instanceID);
@@ -117,11 +117,11 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
     
     /**
      * Gets all the service instances that belong to the given service. 
-     * @param serviceID ID of the service to which the instances belong. 
+     * @param serviceName Name of the service to which the instances belong. 
      * @return a List of instances that belong to the service.
      * @throws DatabaseException if there was an error retrieving the data
      */
-    public synchronized List<GrexServiceInstance> getServiceInstances(String serviceID)
+    public synchronized List<GrexServiceInstance> getServiceInstancesByServiceName(String serviceName)
         throws DatabaseException
     {
         // EntityCursors are not thread-safe so this method must be synchronized
@@ -129,7 +129,7 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
         ArrayList<GrexServiceInstance> instances = new ArrayList<GrexServiceInstance>();
         try
         {
-            cursor = this.instancesByServiceId.subIndex(serviceID).entities();
+            cursor = this.instancesByServiceName.subIndex(serviceName).entities();
             for (GrexServiceInstance instance : cursor)
             {
                 instances.add(instance);
@@ -143,11 +143,13 @@ public class InstanceDatabase // implements GRexServiceInstancesStore
     }
     
     /**
-     * Closes the database
+     * Closes the database.  This will be called automatically by the Spring
+     * framework.
      * @throws DatabaseException if an error occurred
      */
     public void close() throws DatabaseException
     {
+        // TODO: check that this is actually being called
         if (this.store != null) this.store.close();
         if (this.env != null) this.env.close();
     }

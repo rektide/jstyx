@@ -33,6 +33,7 @@ import java.util.List;
 /**
  * Defines the methods that must be implemented by a store of G-Rex service
  * instances
+ * @todo "throws Exception" is not very neat.  Can we use a narrower exception class?
  *
  * @author Jon Blower
  * $Revision$
@@ -46,14 +47,15 @@ public interface GRexServiceInstancesStore
      * @param id The id of the instance
      * @return The TrexServiceInstance with this id
      */
-    public GrexServiceInstance getServiceInstanceById(int id);
+    public GrexServiceInstance getServiceInstanceById(int id) throws Exception;
     
     /**
      * Finds all the instances of the service with the given name
      * @param serviceName The name of the service as specified in the config file
      * @return a List of all the instances of this service
      */
-    public List<GrexServiceInstance> getServiceInstancesByServiceName(String serviceName);
+    public List<GrexServiceInstance> getServiceInstancesByServiceName(String serviceName)
+        throws Exception;
     
     /**
      * Finds all the service instances (of any service) that belong to the 
@@ -61,5 +63,6 @@ public interface GRexServiceInstancesStore
      * @param userName The name of the user that owns the service instances
      * @return a List of all the instances that belong to this user
      */
-    public List<GrexServiceInstance> getServiceInstancesBelongingTo(String userName);
+    //public List<GrexServiceInstance> getServiceInstancesBelongingTo(String userName)
+    //    throws Exception;
 }

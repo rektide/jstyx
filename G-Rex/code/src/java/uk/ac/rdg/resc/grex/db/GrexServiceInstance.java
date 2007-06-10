@@ -53,9 +53,12 @@ public class GrexServiceInstance
     @SecondaryKey(relate=Relationship.MANY_TO_ONE) // A service may contain many Instances
     // WARNING! If you change the name of this field, you also need to change
     // the constructor for the secondary key in InstanceDatabase!
-    private String serviceID; // Unique ID of the service to which this instance belongs
+    private String serviceName; // Unique ID of the service to which this instance belongs
     
     private String workingDirectory; // Directory in which all files relating to this instance will be kept
+    
+    // TODO: owner and group information
+    // TODO: permissions 
     
     
     /** Creates a new instance of TrexServiceInstance */
@@ -81,14 +84,14 @@ public class GrexServiceInstance
         this.id = id;
     }
 
-    public String getServiceID()
+    public String getServiceName()
     {
-        return serviceID;
+        return serviceName;
     }
 
-    public void setServiceID(String serviceID)
+    public void setServiceName(String serviceName)
     {
-        this.serviceID = serviceID;
+        this.serviceName = serviceName;
     }
 
     public String getWorkingDirectory()

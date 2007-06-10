@@ -16,15 +16,39 @@
          This object is created via GRexConfig.readConfig(), a static factory method -->
     <bean id="grexConfig" class="uk.ac.rdg.resc.grex.config.GRexConfig"
           factory-method="readConfig">
-        <!-- We must set the path to the configuration file -->
+        <!-- The readConfig() method takes the path to the configuration file as its argument-->
         <constructor-arg><value>/path/goes/here</value></constructor-arg>
     </bean>
-           
-    <!-- Defines a Controller that will list the services hosted on this server -->
-    <bean id="listServicesController" class="uk.ac.rdg.resc.grex.controllers.ListServicesController">
+    
+    <!-- Defines a store of service instances.  This is implemented as a Berkeley
+         database.  When this bean is no longer required, the close() method
+         will be called -->
+    <bean id="instancesStore" class="uk.ac.rdg.resc.grex.db.InstancesStoreBerkeley"
+          destroy-method="close">
+        <!-- We must set the path to the database -->
+        <constructor-arg><value>C:\instancesdb</value></constructor-arg>
+    </bean>
+    
+    <!-- This is a MultiActionController that will handle all the GET methods
+         (i.e. all requests for information that do not change the state of 
+         the server) -->
+    <bean id="getOperationsController" class="uk.ac.rdg.resc.grex.controllers.GetOperationsController">
         <property name="supportedMethods" value="GET"/>
         <!-- Inject the configuration object into this controller -->
         <property name="grexConfig"><ref local="grexConfig"/></property>
+        <!-- Inject the store of instances into this controller -->
+        <property name="instancesStore"><ref local="instancesStore"/></property>
+        <property name="methodNameResolver"><ref local="propsResolver"/></property>
+    </bean>
+    <!-- This maps URL patterns to the methods of the multi-action controller -->
+    <bean id="propsResolver" class="org.springframework.web.servlet.mvc.multiaction.PropertiesMethodNameResolver">
+        <property name="mappings">
+            <value>
+                /services.*=listServices
+                /*/instances.*=listInstancesForService
+                /*/config.*=showConfigForService
+            </value>
+        </property>
     </bean>
     
     <!-- Maps request URLs to controllers -->
@@ -33,7 +57,12 @@
             <props>
                 <!-- The file services.[xml,html] lists the services that are
                      visible to the logged-in user -->
-                <prop key="/services.*">listServicesController</prop>
+                <prop key="/services.*">getOperationsController</prop>
+                <!-- Lists the instances of a given service that are visible to
+                     the logged-in user -->
+                <prop key="/*/instances.*">getOperationsController</prop>
+                <!-- Shows the configuration information for a service -->
+                <prop key="/*/config.*">getOperationsController</prop>
             </props>
         </property>
     </bean>
