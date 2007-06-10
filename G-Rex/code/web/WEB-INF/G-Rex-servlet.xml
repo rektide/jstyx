@@ -21,7 +21,7 @@
     </bean>
            
     <!-- Defines a Controller that will list the services hosted on this server -->
-    <bean id="listServicesController" class="uk.ac.rdg.resc.trex.servlet.ListServicesController">
+    <bean id="listServicesController" class="uk.ac.rdg.resc.grex.servlet.ListServicesController">
         <property name="supportedMethods" value="GET"/>
         <!-- Inject the configuration object into this controller -->
         <property name="grexConfig"><ref local="grexConfig"/></property>
@@ -55,7 +55,7 @@
     <bean id="exceptionResolver" class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
         <property name="exceptionMappings">
             <props>
-                <prop key="uk.ac.rdg.resc.trex.exceptions.GRexException">displayGRexException</prop>
+                <prop key="uk.ac.rdg.resc.grex.exceptions.GRexException">displayGRexException</prop>
             </props>
         </property>
         <!-- If an unexpected error occurs (i.e. one that doesn't get expressed as
