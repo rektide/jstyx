@@ -21,7 +21,7 @@
     </bean>
            
     <!-- Defines a Controller that will list the services hosted on this server -->
-    <bean id="listServicesController" class="uk.ac.rdg.resc.grex.servlet.ListServicesController">
+    <bean id="listServicesController" class="uk.ac.rdg.resc.grex.controllers.ListServicesController">
         <property name="supportedMethods" value="GET"/>
         <!-- Inject the configuration object into this controller -->
         <property name="grexConfig"><ref local="grexConfig"/></property>
