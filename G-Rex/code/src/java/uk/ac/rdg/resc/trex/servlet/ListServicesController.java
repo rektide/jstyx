@@ -28,47 +28,51 @@
 
 package uk.ac.rdg.resc.trex.servlet;
 
+import java.util.Vector;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.AbstractController;
-import uk.ac.rdg.resc.trex.exceptions.GRexException;
+import uk.ac.rdg.resc.grex.config.GRexConfig;
+import uk.ac.rdg.resc.grex.config.GridService;
 
 /**
- * Entry point for the GRex web application.  Handles web requests.
+ * Controller that lists the services hosted on this server
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class GRexController extends AbstractController
+public class ListServicesController extends AbstractController
 {
+    
+    /**
+     * Configuration information for this G-Rex server.  This object will be
+     * injected by the Spring framework
+     */
+    private GRexConfig config;
     
     protected ModelAndView handleRequestInternal(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
-        System.out.print("Supported methods:");
-        for (String method : this.getSupportedMethods())
-        {
-            System.out.print("   " + method);
-        }
-        System.out.println("");
-        //if (true) throw new GRexException("This is an exception!");
+        // Get the list of services from the config object
+        Vector<GridService> gridServices = this.config.getGridServices();
         // TODO: automatically append the file extension to the view name
-        if (request.getRequestURI().endsWith(".html"))
-        {
-            return new ModelAndView("hello_html"); // Maps to hello_html.jsp
-        }
-        else if (request.getRequestURI().endsWith(".xml"))
-        {
-            // Must be XML
-            return new ModelAndView("hello_xml"); // Maps to hello_xml.jsp
-        }
-        else
-        {
-            throw new Exception("Unknown file extension");
-        }
+        // The gridServices object will appear in the JSPs with the name "gridservices"
+        // TODO: restrict viewing of services to certain groups
+        String fileExtension = request.getRequestURI().substring(request.getRequestURI().lastIndexOf(".") + 1);
+        // The JSP that will be displayed will be "/WEB-INF/jsp/hello_[fileExtension].jsp"
+        return new ModelAndView("hello_" + fileExtension, "gridservices", gridServices);
+    }
+    
+    /**
+     * This will be used by the Spring framework to inject the config object
+     * before handleRequestInternal is called
+     */
+    public void setGrexConfig(GRexConfig config)
+    {
+        this.config = config;
     }
     
 }
