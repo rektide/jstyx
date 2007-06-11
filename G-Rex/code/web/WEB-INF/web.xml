@@ -11,10 +11,6 @@
         <servlet-name>G-Rex</servlet-name>
         <url-pattern>*.html</url-pattern>
     </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>G-Rex</servlet-name>
-        <url-pattern>*.xml</url-pattern>
-    </servlet-mapping>
     <listener>
         <description>Required by Spring to integrate with Acegi</description>
         <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
@@ -32,6 +28,14 @@
         <filter-name>Acegi Filter Chain Proxy</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
+    <servlet-mapping>
+        <servlet-name>G-Rex</servlet-name>
+        <url-pattern>*.xml</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>G-Rex</servlet-name>
+        <url-pattern>*.action</url-pattern>
+    </servlet-mapping>
     <session-config>
         <session-timeout>
             30

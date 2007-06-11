@@ -58,6 +58,16 @@ public interface GRexServiceInstancesStore
         throws Exception;
     
     /**
+     * Adds the given instance to the database.  NOTE: this will overwrite
+     * any previous Instance with the same ID.
+     * @param instance the GrexServiceInstance to add to the database
+     * @return the unique ID of the instance that has been created
+     * @throws DatabaseException if there was an error adding the instance
+     */
+    public int addServiceInstance(GrexServiceInstance instance)
+        throws Exception;
+    
+    /**
      * Finds all the service instances (of any service) that belong to the 
      * user with the given username
      * @param userName The name of the user that owns the service instances

@@ -38,6 +38,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
 import uk.ac.rdg.resc.grex.config.GridService;
+import uk.ac.rdg.resc.grex.config.Parameter;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GrexServiceInstance;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
@@ -120,7 +121,7 @@ public class GetOperationsController extends MultiActionController
         // The gridServices object will appear in the JSPs with the name "gridservices"
         // TODO: restrict viewing of services to certain groups
         // The JSP that will be displayed will be "/WEB-INF/jsp/hello_[fileExtension].jsp"
-        return new ModelAndView("hello_" + getFileExtension(request.getRequestURI()),
+        return new ModelAndView("services_" + getFileExtension(request.getRequestURI()),
             "gridservices", gridServices);
     }
     

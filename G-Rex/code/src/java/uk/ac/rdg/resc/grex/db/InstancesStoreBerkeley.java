@@ -39,6 +39,9 @@ import com.sleepycat.persist.StoreConfig;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import uk.ac.rdg.resc.grex.config.GRexConfig;
 
 /**
  * Stores and accesses service instances that are held in a Berkeley database.
@@ -51,7 +54,10 @@ import java.util.List;
 
 public class InstancesStoreBerkeley implements GRexServiceInstancesStore
 {
+    private static final Log log = LogFactory.getLog(InstancesStoreBerkeley.class);
     private static final String STORE_NAME = "instances";
+    
+    private GRexConfig config; // We need this to find the home directory of the G-Rex server
     
     private Environment env;
     private EntityStore store; // This is where we keep TrexServiceInstance objects
@@ -61,12 +67,10 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
     
     
     /**
-     * Creates a new InstanceDatabase, or re-attaches to an existing one
-     * @param dbPath Path to the location of the database
-     * @throws DatabaseException if there was an error creating or attaching to
-     * the database
+     * This is called by the Spring framework to initialize this object
+     * @throws Exception if there was an error initializing the database
      */
-    public InstancesStoreBerkeley(String dbPath) throws DatabaseException
+    public void init() throws Exception
     {
         EnvironmentConfig envConfig = new EnvironmentConfig();
         envConfig.setAllowCreate(true);
@@ -74,7 +78,13 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
         storeConfig.setAllowCreate(true);
         // TODO: should we set this to be transactional?
         
-        this.env = new Environment(new File(dbPath), envConfig);
+        File dbPath = new File(this.config.getHomeDirectory(), "instancesdb");
+        if (!dbPath.exists() && !dbPath.mkdir())
+        {
+            throw new Exception("Instances database could not be created at "
+                + dbPath.getPath());
+        }
+        this.env = new Environment(dbPath, envConfig);
         this.store = new EntityStore(this.env, STORE_NAME, storeConfig);
         
         // Set up the indices we will use to access instances
@@ -82,12 +92,14 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
             GrexServiceInstance.class);
         this.instancesByServiceName = this.store.getSecondaryIndex(this.instancesById,
             String.class, "serviceName");
+        
+        log.debug("Database created in " + dbPath.getPath());
     }
     
     /**
      * Adds the given instance to the database.  NOTE: this will overwrite
      * any previous Instance with the same ID.
-     * @param instance the TrexServiceInstance to add to the database
+     * @param instance the GrexServiceInstance to add to the database
      * @return the unique ID of the instance that has been created
      * @throws DatabaseException if there was an error adding the instance
      */
@@ -149,9 +161,18 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
      */
     public void close() throws DatabaseException
     {
-        // TODO: check that this is actually being called
         if (this.store != null) this.store.close();
         if (this.env != null) this.env.close();
+        log.debug("Instances database closed");
+    }
+    
+    /**
+     * This will be used by the Spring framework to inject the config object
+     * before handleRequestInternal is called
+     */
+    public void setGrexConfig(GRexConfig config)
+    {
+        this.config = config;
     }
     
 }

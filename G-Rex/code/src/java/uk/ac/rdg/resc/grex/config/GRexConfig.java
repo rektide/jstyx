@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Vector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import simple.xml.Element;
 import simple.xml.ElementList;
 import simple.xml.Root;
 import simple.xml.load.PersistenceException;
@@ -56,10 +57,20 @@ public class GRexConfig
     private static final Log log = LogFactory.getLog(GRexConfig.class);
     
     /**
+     * The home directory for this G-Rex server.  This will contain the 
+     * database of service instances and all the working directories of 
+     * the instances.  Defaults to $HOME/.grex
+     */
+    @Element(name="homeDirectory", required=false)
+    private String homeDirectoryStr = System.getProperty("user.home") +
+        System.getProperty("file.separator") + ".grex";
+    private File homeDirectory; // Home directory will be made into a File in validate()
+    
+    /**
      * The services that are exposed by this G-Rex server
      */
     @ElementList(name="gridservices", type=GridService.class)
-    private Vector<GridService> gridServices;
+    private Vector<GridService> gridServices = new Vector<GridService>();
     
     /**
      * Creates a new instance of GRexConfig by reading the config information
@@ -67,7 +78,7 @@ public class GRexConfig
      */
     public static GRexConfig readConfig(String configFilePath) throws Exception
     {
-        File configFile = new File(configFilePath);
+        /**File configFile = new File(configFilePath);
         GRexConfig config = new GRexConfig();
         GridService gs = new GridService();
         gs.setName("foo1");
@@ -79,8 +90,10 @@ public class GRexConfig
         config.gridServices = new Vector<GridService>();
         config.gridServices.add(gs);
         config.gridServices.add(gs2);
-        /*GRexConfig config = new Persister().read(GRexConfig.class, configFile);
-        log.debug("Loaded configuration from " + configFile.getPath());*/
+        config.validate();*/
+        File configFile = new File(configFilePath);
+        GRexConfig config = new Persister().read(GRexConfig.class, configFile);
+        log.debug("Loaded configuration from " + configFile.getPath());
         return config;
     }
     
@@ -113,8 +126,18 @@ public class GRexConfig
     }
     
     /**
+     * @return the home directory for this G-Rex server.  This is guaranteed
+     * to exist.
+     */
+    public File getHomeDirectory()
+    {
+        return this.homeDirectory;
+    }
+    
+    /**
      * Checks that the data we have read are valid.  Checks that there are no
-     * duplicate names for GridServices
+     * duplicate names for GridServices and that the home directory can be
+     * created.
      */
     @Validate
     public void validate() throws PersistenceException
@@ -123,12 +146,31 @@ public class GRexConfig
         for (GridService gs : this.gridServices)
         {
             String name = gs.getName();
-            if (name.contains(name))
+            if (names.contains(name))
             {
                 throw new PersistenceException("Duplicate gridservice name %s", name);
             }
             names.add(name);
         }
+        // Now create the home directory
+        this.homeDirectory = new File(this.homeDirectoryStr);
+        if (this.homeDirectory.exists())
+        {
+            if (!this.homeDirectory.isDirectory())
+            {
+                throw new PersistenceException("Home directory " +
+                    this.homeDirectory.getPath() + " already exists as a file");
+            }
+        }
+        else
+        {
+            boolean created = this.homeDirectory.mkdir();
+            if (!created)
+            {
+                throw new PersistenceException("Home directory " +
+                    this.homeDirectory.getPath() + " could not be created");
+            }
+        }
+        log.debug("GRex config validated successfully.");
     }
-    
 }
