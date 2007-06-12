@@ -81,12 +81,27 @@ public class PostOperationsController extends MultiActionController
         // Create a new instance of the service
         GrexServiceInstance newInstance = new GrexServiceInstance();
         newInstance.setServiceName(serviceName);
+        if (request.getParameter("description") != null)
+        {
+            newInstance.setDescription(request.getParameter("description"));
+        }
         // TODO: set more properties
         
         // Add the instance to the store, getting the new ID
         int id = this.instancesStore.addServiceInstance(newInstance);
         
-        return new ModelAndView("newInstanceCreated_xml", "instance", newInstance);
+        if (request.getParameter("source") != null &&
+            request.getParameter("source").equals("web"))
+        {
+            // We've come from the web so display an HTML page
+            return new ModelAndView("newInstanceCreated_html", "instance", newInstance);
+        }
+        else
+        {
+            // We didn't come from the web, so we assume we've done this programmatically
+            // (i.e. via a REST web service call) and we'll return XML to the client
+            return new ModelAndView("newInstanceCreated_xml", "instance", newInstance);
+        }
     }
     
     /**

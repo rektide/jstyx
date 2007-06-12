@@ -19,14 +19,22 @@ Displays all the instances of a grid service
     
     <form action="clone.action" method="POST">
         <input type="hidden" name="operation" value="create"/>
+        <!-- "source=web" is the signal to the form processor to redirect to
+             another web page instead of returning an XML document -->
+        <input type="hidden" name="source" value="web"/>
+        <input type="text" name="description"/>
         <input type="submit" value="Create new instance"/>
     </form>
     
     <table border="1">
         <tbody>
-            <tr><th>Instance ID</th><th>Working directory</th></tr>
+            <tr><th>Instance ID</th><th>Description</th><th>More details</th></tr>
             <c:forEach var="instance" items="${instances}">
-            <tr><td>${instance.id}</td><td>${instance.workingDirectory}</td></tr>
+            <tr>
+                <td>${instance.id}</td>
+                <td>${instance.description}</td>
+                <td><a href="instances/${instance.id}.html">link</a></td>
+            </tr>
             </c:forEach>
         </tbody>
     </table>

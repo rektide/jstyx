@@ -24,7 +24,8 @@
                 <td>${gridservice.name}</td>
                 <td>${gridservice.description}</td>
                 <td><a href="${gridservice.name}/instances.html">link</a></td>
-                <td><a href="${gridservice.name}/config.html">link</a></td>
+                <!-- TODO: show config as HTML from here? -->
+                <td><a href="${gridservice.name}/config.xml">link</a></td>
             </tr>
             </c:forEach>
         </tbody>

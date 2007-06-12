@@ -3,6 +3,6 @@
     
 <instances serviceName="${serviceName}">
 <c:forEach var="instance" items="${instances}">
-    <instance id="${instance.id}" workingDirectory="${instance.workingDirectory}"/>
+    <instance id="${instance.id}" description="${instance.description}"/>
 </c:forEach>
 </instances>

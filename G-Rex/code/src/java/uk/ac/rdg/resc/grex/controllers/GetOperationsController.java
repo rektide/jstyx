@@ -170,6 +170,40 @@ public class GetOperationsController extends MultiActionController
     }
     
     /**
+     * Show the information about a specific service instance
+     */
+    public ModelAndView showServiceInstance(HttpServletRequest request,
+        HttpServletResponse response) throws Exception
+    {
+        // Find the name of the service that the user is interested in.  The URL
+        // pattern is /G-Rex/serviceName/instances/instanceID.[xml,html]
+        String serviceName = request.getRequestURI().split("/")[2];
+        String instanceIdStr = request.getRequestURI().split("/")[4].split("\\.")[0];
+        try
+        {
+            int instanceId = Integer.parseInt(instanceIdStr);
+            // Retrieve the instance object from the store
+            GrexServiceInstance instance = this.instancesStore.getServiceInstanceById(instanceId);
+            System.out.println("serviceName from URL: " + serviceName);
+            System.out.println("serviceName from instance: " + instance.getServiceName());
+            // Check that the service names match
+            if (instance == null || !instance.getServiceName().equals(serviceName))
+            {
+                throw new GRexException("There is no instance of " + serviceName + 
+                    " with id " + instanceIdStr);
+            }
+            // Display the details of this instance
+            return new ModelAndView("instance_" +
+                getFileExtension(request.getRequestURI()), "instance", instance);
+        }
+        catch(NumberFormatException nfe)
+        {
+            throw new GRexException("There is no instance of " + serviceName + 
+                " with id " + instanceIdStr);
+        }
+    }
+    
+    /**
      * This will be used by the Spring framework to inject the config object
      * before handleRequestInternal is called
      */

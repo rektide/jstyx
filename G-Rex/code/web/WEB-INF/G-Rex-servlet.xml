@@ -49,6 +49,7 @@
                 /services.*=listServices
                 /*/instances.*=listInstancesForService
                 /*/config.*=showConfigForService
+                /*/instances/*.*=showServiceInstance
             </value>
         </property>
     </bean>
@@ -84,6 +85,8 @@
                 <prop key="/*/instances.*">getOperationsController</prop>
                 <!-- Shows the configuration information for a service -->
                 <prop key="/*/config.*">getOperationsController</prop>
+                <!-- Shows the information for a given service instance -->
+                <prop key="/*/instances/*.*">getOperationsController</prop>
                 <!-- Creates a new instance of a service -->
                 <prop key="/*/clone.action">postOperationsController</prop>
             </props>

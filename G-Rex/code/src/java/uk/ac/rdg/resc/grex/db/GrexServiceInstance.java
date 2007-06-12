@@ -39,6 +39,9 @@ import com.sleepycat.persist.model.Relationship;
  * Note that instance IDs are unique to all services, i.e. two instances will never
  * share the same ID, even if they belong to different services.
  *
+ * @todo When this class changes, need to assign a higher version number - how
+ * do we do this?
+ *
  * @author Jon Blower
  * $Revision$
  * $Date$
@@ -54,6 +57,8 @@ public class GrexServiceInstance
     // WARNING! If you change the name of this field, you also need to change
     // the constructor for the secondary key in InstanceDatabase!
     private String serviceName; // Unique ID of the service to which this instance belongs
+    
+    private String description = ""; // Free-text description provided by the creator of the instance
     
     private String workingDirectory; // Directory in which all files relating to this instance will be kept
     
@@ -102,6 +107,16 @@ public class GrexServiceInstance
     public void setWorkingDirectory(String workingDirectory)
     {
         this.workingDirectory = workingDirectory;
+    }
+    
+    public String getDescription()
+    {
+        return this.description;
+    }
+    
+    public void setDescription(String desc)
+    {
+        this.description = desc;
     }
     
 }

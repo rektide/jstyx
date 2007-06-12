@@ -45,7 +45,10 @@ import simple.xml.load.Validate;
 public class Parameter
 {
     /**
-     * The possible types of a Parameter
+     * The possible types of a Parameter.  Note that we can't simply do
+     * "public enum Type { switch, flaggedOption, unflaggedOption }" because
+     * switch is a reserved word in Java.  We want the values to be in lower
+     * case in the XML config information so we jump through a couple of hoops.
      */
     public enum Type
     {
@@ -85,9 +88,12 @@ public class Parameter
     private boolean greedy = false; // True if this is an UnflaggedOption that consumes the
                                     // rest of the command line
     
-    @Attribute(name="paramType") // The type of this parameter ("switch", "flaggedOption" or "unflaggedoption")
-    private String paramType;
-    private Type type; // The paramType will be converted to a Type on validation    
+    @Attribute(name="type") // The type of this parameter ("switch", "flaggedOption" or "unflaggedoption")
+    private String typeStr; // The Type represented as a String
+    private Type type;      // The typeStr will be converted to a Type on validation
+                            // Note that Simple XML supports enums but in our case we want
+                            // to use "switch" as an attribute, which is a reserved word in
+                            // Java.  Hence we use a string then convert in validate()
     
     /** Creates a new instance of Parameter */
     public Parameter()
@@ -140,21 +146,21 @@ public class Parameter
     @Validate
     public void validate() throws PersistenceException
     {
-        if (this.paramType.equals("switch"))
+        if (this.typeStr.trim().equals("switch"))
         {
             this.type = Type.SWITCH;
         }
-        else if (this.paramType.equals("flaggedOption"))
+        else if (this.typeStr.trim().equals("flaggedOption"))
         {
             this.type = Type.FLAGGED_OPTION;
         }
-        else if (this.paramType.equals("unflaggedOption"))
+        else if (this.typeStr.trim().equals("unflaggedOption"))
         {
             this.type = Type.UNFLAGGED_OPTION;
         }
         else
         {
-            throw new PersistenceException("Invalid paramType \"" + this.paramType + "\"");
+            throw new PersistenceException("Invalid paramType \"" + this.typeStr + "\"");
         }
         // Check that the "greedy" option is set correctly
         if (this.greedy && this.type != Type.UNFLAGGED_OPTION)
