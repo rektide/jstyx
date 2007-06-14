@@ -131,7 +131,6 @@ public class GetOperationsController extends MultiActionController
         // Find the name of the service that the user is interested in.  The URL
         // pattern is /G-Rex/serviceName/instances.[xml,html]
         String serviceName = request.getRequestURI().split("/")[2];
-        System.out.println("Service name: " + serviceName);
         // Check that this service actually exists!
         if (this.config.getGridServiceByName(serviceName) == null)
         {
@@ -184,8 +183,6 @@ public class GetOperationsController extends MultiActionController
             int instanceId = Integer.parseInt(instanceIdStr);
             // Retrieve the instance object from the store
             GrexServiceInstance instance = this.instancesStore.getServiceInstanceById(instanceId);
-            System.out.println("serviceName from URL: " + serviceName);
-            System.out.println("serviceName from instance: " + instance.getServiceName());
             // Check that the service names match
             if (instance == null || !instance.getServiceName().equals(serviceName))
             {
@@ -224,6 +221,7 @@ public class GetOperationsController extends MultiActionController
     /**
      * Finds the file extension for the given request URI.  For example, if the 
      * requestURI is "/foo/bar/baz.html" this method will return "html"
+     * @todo Brittle: will not do what is expected for "/foo/baz.bar/hello"
      */
     private static final String getFileExtension(String requestURI)
     {

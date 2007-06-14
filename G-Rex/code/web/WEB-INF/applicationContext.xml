@@ -2,6 +2,10 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd">
+           
+    <!-- We need to import the servlet config file because it contains the definition
+         of the grexConfig bean -->
+    <import resource="G-Rex-servlet.xml"/>
     
     <!-- Acegi Security configuration -->
     <bean id="filterChainProxy" class="org.acegisecurity.util.FilterChainProxy">
@@ -31,9 +35,9 @@
     
     <!-- HTTP Digest Authentication -->
     <bean id="digestProcessingFilter" class="org.acegisecurity.ui.digestauth.DigestProcessingFilter">
-        <property name="userDetailsService"><ref local="inMemoryDaoImpl"/></property>
+        <property name="userDetailsService"><ref bean="grexConfig"/></property>
         <property name="authenticationEntryPoint"><ref local="digestProcessingFilterEntryPoint"/></property>
-        <!-- We don't use a UserCache - no need -->
+        <!-- We don't  eed to use a UserCache -->
     </bean>    
     <bean id="digestProcessingFilterEntryPoint" class="org.acegisecurity.ui.digestauth.DigestProcessingFilterEntryPoint">
         <property name="realmName"><value>G-Rex Realm via Digest Authentication</value></property>
@@ -49,9 +53,9 @@
         </property>
     </bean>
     <bean id="daoAuthenticationProvider" class="org.acegisecurity.providers.dao.DaoAuthenticationProvider">
-        <property name="userDetailsService"><ref local="inMemoryDaoImpl"/></property>
+        <property name="userDetailsService"><ref bean="grexConfig"/></property>
     </bean>
-    <bean id="inMemoryDaoImpl" class="org.acegisecurity.userdetails.memory.InMemoryDaoImpl">
+    <!--<bean id="inMemoryDaoImpl" class="org.acegisecurity.userdetails.memory.InMemoryDaoImpl">
         <property name="userMap">
             <value>
                 jon=koala,ROLE_USER,ROLE_SUPERUSER
@@ -60,7 +64,7 @@
                 peter=opal,disabled,ROLE_USER
             </value>
         </property>
-    </bean>    
+    </bean>-->
     
     <bean id="exceptionTranslationFilter" class="org.acegisecurity.ui.ExceptionTranslationFilter">
         <property name="authenticationEntryPoint"><ref local="digestProcessingFilterEntryPoint"/></property>

@@ -29,11 +29,16 @@
 package uk.ac.rdg.resc.grex.config;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+import org.acegisecurity.userdetails.UserDetails;
+import org.acegisecurity.userdetails.UserDetailsService;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.dao.DataAccessException;
 import simple.xml.Element;
 import simple.xml.ElementList;
 import simple.xml.Root;
@@ -46,15 +51,19 @@ import simple.xml.load.Validate;
  * exposes.  The configuration information is read from an XML file using the
  * Simple XML library.
  *
+ * This also acts as the interface for the Acegi framework to retrieve user
+ * details, hence it implements UserDetailsService.
+ *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
 @Root(name="grex")
-public class GRexConfig
+public class GRexConfig implements UserDetailsService
 {
     private static final Log log = LogFactory.getLog(GRexConfig.class);
+    private static final String DEFAULT_CONFIG_FILENAME = "GRexConfig.xml";
     
     /**
      * The home directory for this G-Rex server.  This will contain the 
@@ -65,6 +74,18 @@ public class GRexConfig
     private String homeDirectoryStr = System.getProperty("user.home") +
         System.getProperty("file.separator") + ".grex";
     private File homeDirectory; // Home directory will be made into a File in validate()
+    
+    /**
+     * The users that can access this G-Rex server
+     */
+    @ElementList(name="users", type=User.class)
+    private Vector<User> users = new Vector<User>();
+    
+    /**
+     * The groups (roles) of users that are used to control access
+     */
+    @ElementList(name="groups", type=Group.class)
+    private Vector<Group> groups = new Vector<Group>();
     
     /**
      * The services that are exposed by this G-Rex server
@@ -78,22 +99,28 @@ public class GRexConfig
      */
     public static GRexConfig readConfig(String configFilePath) throws Exception
     {
-        /**File configFile = new File(configFilePath);
-        GRexConfig config = new GRexConfig();
-        GridService gs = new GridService();
-        gs.setName("foo1");
-        gs.setCommand("/path/to/foo");
-        gs.setDescription("description of foo1");
-        GridService gs2 = new GridService();
-        gs2.setName("bar");
-        gs2.setDescription("description of bar");
-        config.gridServices = new Vector<GridService>();
-        config.gridServices.add(gs);
-        config.gridServices.add(gs2);
-        config.validate();*/
         File configFile = new File(configFilePath);
         GRexConfig config = new Persister().read(GRexConfig.class, configFile);
         log.debug("Loaded configuration from " + configFile.getPath());
+        return config;
+    }
+    
+    /**
+     * Reads the configuration information, looking in the CLASSPATH for 
+     * a file called "GRexConfig.xml"
+     */
+    public static GRexConfig readConfig() throws Exception
+    {
+        InputStream in = Thread.currentThread().getContextClassLoader()
+            .getResourceAsStream(DEFAULT_CONFIG_FILENAME);
+        if (in == null)
+        {
+            throw new Exception("Cannot find " + DEFAULT_CONFIG_FILENAME
+                + " in the CLASSPATH");
+        }
+        GRexConfig config = new Persister().read(GRexConfig.class, in);
+        log.debug("Loaded configuration from " + DEFAULT_CONFIG_FILENAME
+            + " (found in classpath)");
         return config;
     }
     
@@ -135,6 +162,14 @@ public class GRexConfig
     }
     
     /**
+     * @return a Vector of users that have access to the system
+     */
+    public Vector<User> getUsers()
+    {
+        return this.users;
+    }
+    
+    /**
      * Checks that the data we have read are valid.  Checks that there are no
      * duplicate names for GridServices and that the home directory can be
      * created.
@@ -142,6 +177,21 @@ public class GRexConfig
     @Validate
     public void validate() throws PersistenceException
     {
+        // Checks that all Users have unique names
+        List<String> usernames = new ArrayList<String>();
+        for (User user : this.users)
+        {
+            String username = user.getUsername();
+            if (usernames.contains(username))
+            {
+                throw new PersistenceException("Duplicate username %s", username);
+            }
+            usernames.add(username);
+        }
+        // TODO: check that the groups the users belong to are valid
+        // and set the GrantedAuthorities[] property properly
+        
+        // Checks that all GridServices have unique names
         List<String> names = new ArrayList<String>();
         for (GridService gs : this.gridServices)
         {
@@ -172,5 +222,25 @@ public class GRexConfig
             }
         }
         log.debug("GRex config validated successfully.");
+    }
+
+    /**
+     * Retrieves a user's details from his or her username
+     * @throws UsernameNotFoundException if the user does not exist
+     * @throws DataAccessException if there was an error accessing the user
+     * details (will not happen here as the user details are in memory)
+     */
+    public UserDetails loadUserByUsername(String username)
+        throws UsernameNotFoundException, DataAccessException
+    {
+        for (User user : this.users)
+        {
+            if (user.getUsername().equals(username))
+            {
+                return user;
+            }
+        }
+        // If we've got this far we haven't found the user
+        throw new UsernameNotFoundException(username + " not found");
     }
 }
