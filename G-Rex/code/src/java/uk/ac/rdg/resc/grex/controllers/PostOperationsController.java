@@ -30,9 +30,12 @@ package uk.ac.rdg.resc.grex.controllers;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.acegisecurity.context.SecurityContextHolder;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
+import uk.ac.rdg.resc.grex.config.GridService;
+import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GrexServiceInstance;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
@@ -61,14 +64,26 @@ public class PostOperationsController extends MultiActionController
     public ModelAndView createNewServiceInstance(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
+        // Get the user that is logged in
+        User loggedInUser = (User)SecurityContextHolder.getContext()
+            .getAuthentication().getPrincipal();
+        
         // Find the name of the service that the user is interested in.  The URL
         // pattern is /G-Rex/serviceName/clone
         String serviceName = request.getRequestURI().split("/")[2];
-        System.out.println("Doing a CLONE on " + serviceName);
+        
         // Check that the service exists
-        if (this.config.getGridServiceByName(serviceName) == null)
+        GridService gs = this.config.getGridServiceByName(serviceName);
+        if (gs == null)
         {
             throw new GRexException("There is no service called " + serviceName);
+        }
+        
+        // Check that the user is allowed to create a new instance
+        if (!gs.canBeAccessedBy(loggedInUser))
+        {
+            throw new GRexException("User " + loggedInUser.getUsername() +
+                " does not have permission to create a new instance of " + serviceName);
         }
         
         // Check that the user has set "operation=create"
@@ -85,7 +100,8 @@ public class PostOperationsController extends MultiActionController
         {
             newInstance.setDescription(request.getParameter("description"));
         }
-        // TODO: set more properties
+        newInstance.setOwner(loggedInUser.getUsername());
+        newInstance.setGroup(loggedInUser.getDefaultGroup().getName());
         
         // Add the instance to the store, getting the new ID
         int id = this.instancesStore.addServiceInstance(newInstance);

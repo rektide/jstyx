@@ -28,17 +28,18 @@
 
 package uk.ac.rdg.resc.grex.controllers;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.acegisecurity.context.SecurityContextHolder;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
 import uk.ac.rdg.resc.grex.config.GridService;
-import uk.ac.rdg.resc.grex.config.Parameter;
+import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GrexServiceInstance;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
@@ -116,35 +117,61 @@ public class GetOperationsController extends MultiActionController
     public ModelAndView listServices(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
-        // Get the list of services from the config object
-        Vector<GridService> gridServices = this.config.getGridServices();
-        // The gridServices object will appear in the JSPs with the name "gridservices"
-        // TODO: restrict viewing of services to certain groups
-        // The JSP that will be displayed will be "/WEB-INF/jsp/hello_[fileExtension].jsp"
+        User loggedInUser = (User)SecurityContextHolder.getContext()
+            .getAuthentication().getPrincipal();
+        // Create a list of the services that the user can access
+        List<GridService> viewables = new ArrayList<GridService>();
+        for (GridService gridService : this.config.getGridServices())
+        {
+            if (gridService.canBeAccessedBy(loggedInUser))
+            {
+                viewables.add(gridService);
+            }
+        }
+        // The viewables object will appear in the JSPs with the name "gridservices"
+        // The JSP that will be displayed will be "/WEB-INF/jsp/services_[fileExtension].jsp"
         return new ModelAndView("services_" + getFileExtension(request.getRequestURI()),
-            "gridservices", gridServices);
+            "gridservices", viewables);
     }
     
     public ModelAndView listInstancesForService(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
+        User loggedInUser = (User)SecurityContextHolder.getContext()
+            .getAuthentication().getPrincipal();
         // Find the name of the service that the user is interested in.  The URL
         // pattern is /G-Rex/serviceName/instances.[xml,html]
         String serviceName = request.getRequestURI().split("/")[2];
         // Check that this service actually exists!
-        if (this.config.getGridServiceByName(serviceName) == null)
+        GridService gs = this.config.getGridServiceByName(serviceName);
+        if (gs == null)
         {
             throw new GRexException("There is no service called " + serviceName);
         }
         
-        // Get the list of service instance from the store
-        List<GrexServiceInstance> instances =
-            this.instancesStore.getServiceInstancesByServiceName(serviceName);
-        // TODO: restrict viewing of instances to the correct users
+        // Check that the user can access this service
+        if (!gs.canBeAccessedBy(loggedInUser))
+        {
+            throw new GRexException("User " + loggedInUser.getUsername() +
+                " does not have permission to view instances of service "
+                + serviceName);
+        }
+        
+        // Get the list of service instance from the store, checking the
+        // permissions of each one
+        List<GrexServiceInstance> viewables = new ArrayList<GrexServiceInstance>();
+        for (GrexServiceInstance instance : this.instancesStore
+            .getServiceInstancesByServiceName(serviceName))
+        {
+            if (instance.canBeReadBy(loggedInUser))
+            {
+                viewables.add(instance);
+            }
+        }
         
         // Create the model map that will be passed to the JSPs
         Map<String, Object> modelMap = new HashMap<String, Object>();
-        modelMap.put("instances", instances);
+        modelMap.put("instances", viewables);
         modelMap.put("serviceName", serviceName);
         return new ModelAndView("instancesForService_" +
             getFileExtension(request.getRequestURI()), modelMap);
@@ -156,6 +183,8 @@ public class GetOperationsController extends MultiActionController
     public ModelAndView showConfigForService(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
+        User loggedInUser = (User)SecurityContextHolder.getContext()
+            .getAuthentication().getPrincipal();
         // Find the name of the service that the user is interested in.  The URL
         // pattern is /G-Rex/serviceName/instances.[xml,html]
         String serviceName = request.getRequestURI().split("/")[2];
@@ -163,6 +192,12 @@ public class GetOperationsController extends MultiActionController
         if (gs == null)
         {
             throw new GRexException("There is no service called " + serviceName);
+        }
+        if (!gs.canBeAccessedBy(loggedInUser))
+        {
+            throw new GRexException("User " + loggedInUser.getUsername() +
+                " does not have permission to view configuration information for "
+                + serviceName);
         }
         return new ModelAndView("configForService_" +
             getFileExtension(request.getRequestURI()), "gridservice", gs);
@@ -174,6 +209,8 @@ public class GetOperationsController extends MultiActionController
     public ModelAndView showServiceInstance(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
+        User loggedInUser = (User)SecurityContextHolder.getContext()
+            .getAuthentication().getPrincipal();
         // Find the name of the service that the user is interested in.  The URL
         // pattern is /G-Rex/serviceName/instances/instanceID.[xml,html]
         String serviceName = request.getRequestURI().split("/")[2];
@@ -189,12 +226,19 @@ public class GetOperationsController extends MultiActionController
                 throw new GRexException("There is no instance of " + serviceName + 
                     " with id " + instanceIdStr);
             }
+            if (!instance.canBeReadBy(loggedInUser))
+            {
+                throw new GRexException("User " + loggedInUser.getUsername() +
+                    " does not have permission to view information for instance "
+                    + instance.getId() + " of service " + serviceName);
+            }
             // Display the details of this instance
             return new ModelAndView("instance_" +
                 getFileExtension(request.getRequestURI()), "instance", instance);
         }
         catch(NumberFormatException nfe)
         {
+            // thrown by Integer.parseInt(instanceIdStr)
             throw new GRexException("There is no instance of " + serviceName + 
                 " with id " + instanceIdStr);
         }

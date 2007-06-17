@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<grex>
+    
+    <users>
+        <!-- The user's default group is the one that appears first in the groups list.
+             The default group will be applied to new service instances that the user
+             creates. -->
+        <user username="jon" password="koala" fullname="Jon Blower"
+            groups="test,admin"/>
+        <user username="steve" password="wombat" fullname="Stevey Boy"
+            groups="test"/>
+        <user username="helen" password="emu" fullname="Helen Smith"
+            groups="test2,test"/>
+    </users>
+    
+    <groups>
+        <group name="admin" description="Administrators/superusers"/>
+        <group name="test" description="test group 1"/>
+        <group name="test2" description="test group 2"/>
+    </groups>
+    
+    <!-- The Grid Services that will appear under this server -->
+    <gridservices>
+        
+        <!-- On Windows NT, 2000 and XP we must run batch files via cmd.exe.
+             On Windows 95 and 98, you must replace "cmd.exe" with "command.com".
+             On other OSes you can delete "cmd.exe /C"-->
+        <gridservice name="helloworld" command="cmd.exe /C JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.HelloWorld"
+                     description="Prints Hello World to stdout"
+                     allowed-groups="test">
+            <outputs>
+                <output name="stdout"/>
+                <output name="stderr"/>
+            </outputs>
+        </gridservice>
+        
+        <gridservice name="condortest" type="condor" command="hellocondor"
+                     description="Test Condor job: prints Hello World to stdout">
+            <outputs>
+                <output name="stdout"/>
+                <output name="stderr"/>
+            </outputs>
+        </gridservice>
+        
+        <!-- Note that you don't specify "cmd.exe /C" for Condor services -->
+        <gridservice name="gulp" type="condor" command="c:\gulp\gulp.bat" description="Runs GULP via Condor">
+            <options>
+                <option key="transfer_input_files" value="c:\gulp\gulp_win.exe"/>
+            </options>
+            <params>
+                <param name="inputfile" type="unflaggedOption" required="true" description="Name of input file"/>
+                <param name="outputfile" type="unflaggedOption" required="true" description="Name of output file"/>
+            </params>
+            <inputs>
+                <input name="inputfile"/>
+            </inputs>
+            <outputs>
+                <output name="outputfile"/>
+                <output name="stdout"/>
+                <output name="stderr"/>
+            </outputs>
+        </gridservice>
+        
+    </gridservices>
+    
+</grex>
+

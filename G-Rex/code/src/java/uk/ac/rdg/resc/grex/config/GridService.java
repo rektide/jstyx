@@ -28,6 +28,8 @@
 
 package uk.ac.rdg.resc.grex.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 import simple.xml.Attribute;
 import simple.xml.ElementList;
@@ -49,12 +51,27 @@ public class GridService
 {
     @Attribute(name="name")
     private String name; // Unique name for this GridService
+    
     @Attribute(name="type", required=false) // TODO: make an enumeration?
     private String type = "local"; // Type of this service ("local", "condor" etc)
+    
     @Attribute(name="command")
     private String command; // Command that will be run when this service is executed
+    
     @Attribute(name="description", required=false)
     private String description = ""; // Human-readable description for this GridService
+    
+    // Note that we will disallow setting both allowed-users and allowed-groups
+    
+    @Attribute(name="allowed-users", required=false)
+    private String allowedUsersStr = ""; // Set this if we want to restrict access to
+                                         // this service to certain (comma-separated) users
+    private Vector<String> allowedUsers = null; // will be set on validate()
+    
+    @Attribute(name="allowed-groups", required=false)
+    private String allowedGroupsStr = ""; // Set this if we want to restrict access to
+                                         // this service to certain (comma-separated) groups
+    private Vector<String> allowedGroups = null; // will be set on validate
     
     /**
      * The input files and streams that are used by this service
@@ -76,7 +93,7 @@ public class GridService
     
     /**
      * The options that are used to provide more information about how the
-     * service is to be run
+     * service is to be run (e.g. extra properties for a Condor submit file)
      */
     @ElementList(name="options", type=Option.class, required=false)
     private Vector<Option> options = new Vector<Option>();
@@ -138,26 +155,114 @@ public class GridService
     
     /**
      * Checks that all the names are unique and that only zero or one Parameters
-     * are marked greedy
+     * are marked greedy.  Also check that the security settings (allowed-users
+     * and allowed-groups) are sane.
      */
     @Validate
     public void validate() throws PersistenceException
     {
-        // TODO: check that all names are unique
+        // Check that all parameter names are unique and that the greedy tag
+        // is set correctly
         boolean foundGreedy = false;
+        List<String> paramNames = new ArrayList<String>();
         for (Parameter param : this.params)
         {
+            if (paramNames.contains(param.getName()))
+            {
+                throw new PersistenceException("Duplicate parameter name %s", param.getName());
+            }
+            paramNames.add(param.getName());
             // We have already checked (in Parameter) that we only apply the
             // Greedy tag to unflaggedOptions
             if (param.isGreedy())
             {
                 if (foundGreedy)
                 {
-                    throw new PersistenceException("Only one parameter can be marked Greedy");
+                    throw new PersistenceException("Only one parameter can be marked greedy");
                 }
                 foundGreedy = true;
             }
         }
+        
+        // Check that permissions have been set correctly (can't have both 
+        // allowed-users and allowed-groups)
+        if (!this.allowedUsersStr.trim().equals(""))
+        {
+            // We're restricting access by user name
+            this.allowedUsers = new Vector<String>();
+            for (String allowedUser : this.allowedUsersStr.split(","))
+            {
+                this.allowedUsers.add(allowedUser.trim());
+            }
+        }
+        
+        if (!this.allowedGroupsStr.trim().equals(""))
+        {
+            if (this.allowedUsers != null)
+            {
+                throw new PersistenceException("Cannot set both allowed-users " +
+                    "and allowed-groups");
+            }
+            // We're restricting access by group name
+            this.allowedGroups = new Vector<String>();
+            for (String allowedGroup : this.allowedGroupsStr.split(","))
+            {
+                this.allowedGroups.add(allowedGroup.trim());
+            }
+        }
+    }
+
+    /**
+     * @return true if the given user is permitted access to this GridService
+     * (i.e. can view its details and create new instances)
+     */
+    public boolean canBeAccessedBy(User user)
+    {
+        if (user.isAdmin())
+        {
+            return true;
+        }
+        else if (this.allowedUsers != null)
+        {
+            // we are restricting by username
+            return this.allowedUsers.contains(user.getUsername());
+        }
+        else if (this.allowedGroups != null)
+        {
+            // we are restricting by group
+            for (Group group : user.getAuthorities())
+            {
+                if (this.allowedGroups.contains(group.getName()))
+                {
+                    return true;
+                }
+            }
+            // User doesn't belong to any of the required groups
+            return false;
+        }
+        else
+        {
+            // We are not restricting access to this GridService
+            return true;
+        }
+    }
+    
+    /**
+     * @return the usernames that are allowed to access this service,
+     * or null if there is no restriction on usernames
+     */
+    Vector<String> getAllowedUsers()
+    {
+        return this.allowedUsers;
+    }
+    
+    /**
+     * @return the group names that are allowed to access this service,
+     * or null if there is no restriction on groups
+     */
+    Vector<String> getAllowedGroups()
+    {
+        return this.allowedGroups;
     }
     
 }

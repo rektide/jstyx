@@ -32,6 +32,7 @@ import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.PrimaryKey;
 import com.sleepycat.persist.model.SecondaryKey;
 import com.sleepycat.persist.model.Relationship;
+import uk.ac.rdg.resc.grex.config.User;
 
 /**
  * Java Bean that represents the state of a particular service instance.  These
@@ -62,9 +63,14 @@ public class GrexServiceInstance
     
     private String workingDirectory; // Directory in which all files relating to this instance will be kept
     
-    // TODO: owner and group information
-    // TODO: permissions 
+    private String owner = ""; // Name of the user that owns this instance
+    private String group = ""; // Name of the Group to which the user belongs
     
+    // Permissions for this service instance
+    public enum Permissions{NONE, READONLY, FULL};
+    private Permissions ownerPermissions = Permissions.FULL;
+    private Permissions groupPermissions = Permissions.READONLY;
+    private Permissions otherPermissions = Permissions.NONE;
     
     /** Creates a new instance of TrexServiceInstance */
     public GrexServiceInstance()
@@ -118,5 +124,113 @@ public class GrexServiceInstance
     {
         this.description = desc;
     }
+
+    public String getOwner()
+    {
+        return owner;
+    }
+
+    public void setOwner(String owner)
+    {
+        this.owner = owner;
+    }
+
+    public String getGroup()
+    {
+        return group;
+    }
+
+    public void setGroup(String group)
+    {
+        this.group = group;
+    }
+
+    public Permissions getOwnerPermissions()
+    {
+        return ownerPermissions;
+    }
+
+    public void setOwnerPermissions(Permissions ownerPermissions)
+    {
+        this.ownerPermissions = ownerPermissions;
+    }
+
+    public Permissions getGroupPermissions()
+    {
+        return groupPermissions;
+    }
+
+    public void setGroupPermissions(Permissions groupPermissions)
+    {
+        this.groupPermissions = groupPermissions;
+    }
+
+    public Permissions getOtherPermissions()
+    {
+        return otherPermissions;
+    }
+
+    public void setOtherPermissions(Permissions otherPermissions)
+    {
+        this.otherPermissions = otherPermissions;
+    }
     
+    /**
+     * @return true if the given user cen read information from this instance
+     */
+    public boolean canBeReadBy(User user)
+    {
+        if (user.isAdmin())
+        {
+            return true;
+        }
+        else if (this.owner.equals(user.getUsername()) &&
+            this.ownerPermissions != Permissions.NONE)
+        {
+            return true;
+        }
+        else if (user.isMemberOf(this.group) &&
+            this.groupPermissions != Permissions.NONE)
+        {
+            return true;
+        }
+        else if (this.otherPermissions != Permissions.NONE)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    
+    /**
+     * @return true if the given user can modify this service (e.g. change
+     * permissions, start and stop)
+     */
+    public boolean canBeModifiedBy(User user)
+    {
+        if (user.isAdmin())
+        {
+            return true;
+        }
+        else if (this.owner.equals(user.getUsername()) &&
+            this.ownerPermissions == Permissions.FULL)
+        {
+            return true;
+        }
+        else if (user.isMemberOf(this.group) &&
+            this.groupPermissions == Permissions.FULL)
+        {
+            return true;
+        }
+        else if (this.otherPermissions == Permissions.FULL)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 }

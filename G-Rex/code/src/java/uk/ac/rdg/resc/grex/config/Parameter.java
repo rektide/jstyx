@@ -70,10 +70,10 @@ public class Parameter
     private String name; // A unique name for this parameter
     
     @Attribute(name="flag", required=false)
-    private String flag; // The command-line flag that is associated with this parameter
+    private String flag = null; // The command-line flag that is associated with this parameter
     
     @Attribute(name="longFlag", required=false)
-    private String longFlag; // The long command-line flag
+    private String longFlag = null; // The long command-line flag
     
     @Attribute(name="defaultValue", required=false)
     private String defaultValue; // A default value for this parameter
@@ -105,11 +105,19 @@ public class Parameter
         return name;
     }
 
+    /**
+     * @return the (short) flag for this parameter, or null if none has been set or
+     * this is not required
+     */
     public String getFlag()
     {
         return flag;
     }
 
+    /**
+     * @return the long flag for this parameter, or null if none has been set or
+     * this is not required
+     */
     public String getLongFlag()
     {
         return longFlag;
@@ -153,6 +161,11 @@ public class Parameter
         else if (this.typeStr.trim().equals("flaggedOption"))
         {
             this.type = Type.FLAGGED_OPTION;
+            if (this.flag == null && this.longFlag == null)
+            {
+                throw new PersistenceException("Must set a short or long flag (or both)" +
+                    " for flaggedOption " + this.name);
+            }
         }
         else if (this.typeStr.trim().equals("unflaggedOption"))
         {

@@ -28,9 +28,13 @@
 
 package uk.ac.rdg.resc.grex.config;
 
+import java.util.Vector;
 import org.acegisecurity.GrantedAuthority;
 import simple.xml.Attribute;
 import simple.xml.Root;
+import simple.xml.load.Commit;
+import simple.xml.load.PersistenceException;
+import simple.xml.load.Validate;
 
 /**
  * A Group (i.e. a collection of users).  Used by the Acegi security framework
@@ -44,12 +48,39 @@ import simple.xml.Root;
 @Root(name="group")
 public class Group implements GrantedAuthority
 {
+    /**
+     * The name of the admin group (users who can do anything)
+     */
+    private static final String ADMIN = "admin";
+    /**
+     * The name of the group that contains all users.  Note: if you change this
+     * property you will also need to change the settings for the 
+     * filterInvocationInterceptor in applicationContext.xml.
+     * This name must start with "ROLE_"
+     */
+    private static final String ALL_USERS_NAME = "ROLE_ALL_USERS";
+    /**
+     * Group that contains all users
+     */
+    public static final Group ALL_USERS = new Group(ALL_USERS_NAME);
+    
     @Attribute(name="name")
     private String name; // The unique name for the Group
+    
+    @Attribute(name="description", required=false)
+    private String description = "";
     
     /** Creates a new instance of Group */
     public Group()
     {
+    }
+    
+    /**
+     * Constructor for internally-created Groups
+     */
+    private Group(String name)
+    {
+        this.name = name;
     }
 
     /**
@@ -59,6 +90,36 @@ public class Group implements GrantedAuthority
     public String getAuthority()
     {
         return this.name;
+    }
+    
+    /**
+     * @return the name of this Group
+     */
+    public String getName()
+    {
+        return this.name;
+    }
+    
+    /**
+     * @return true if this is the administrators group (i.e. the group of
+     * users who can do anything)
+     */
+    public boolean isAdminGroup()
+    {
+        return this.name.equals(ADMIN);
+    }
+    
+    /**
+     * Checks that we haven't tried to create a group with a reserved name
+     */
+    @Validate
+    public void validate() throws PersistenceException
+    {
+        if (this.name.equals(ALL_USERS_NAME))
+        {
+            throw new PersistenceException("Can't create a group with the name " +
+                ALL_USERS_NAME);
+        }
     }
     
 }

@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.grex.config;
 
-import org.acegisecurity.GrantedAuthority;
+import java.util.Vector;
 import org.acegisecurity.userdetails.UserDetails;
 import simple.xml.Attribute;
 import simple.xml.Root;
@@ -55,17 +55,28 @@ public class User implements UserDetails
     @Attribute(name="fullname")
     private String fullname; // Full name of the user: should this be optional?
     
+    @Attribute(name="groups", required=false)  // Comma-separated list of names of groups to which the
+    private String groupNamesStr = null; // user belongs.  Checked in GRexConfig.validate()
+    
+    @Attribute(name="emailAddress", required=false)
+    private String emailAddress = ""; // Used to notify the user of updates to their jobs
+    
     @Attribute(name="disabled", required = false)
     private boolean disabled = false; // Can be set true to disable a user without
                                       // removing it from the config file
     
-    @Attribute(name="groups") // Should this be optional?
-    private String groupsStr; // Will be converted to GrantedAuthority objects on validation
-    private Group[] groups;
+    // The user's groups (i.e. roles) will be set in GRexConfig.validate()
+    private Vector<Group> groups = new Vector<Group>();
+    
+    private boolean admin = false; // Will be set true if this user is added to the admin group
     
     /** Creates a new instance of User */
     public User()
     {
+        // All users are added to the ALL_USERS group.  This is used
+        // by Acegi security to make sure the user logs in before he or she
+        // can use the system
+        this.groups.add(Group.ALL_USERS);
     }
 
     public String getUsername()
@@ -112,6 +123,39 @@ public class User implements UserDetails
     {
         return true;
     }
+    
+    /**
+     * Add this user to the given Group
+     */
+    void addGroup(Group group)
+    {
+        this.groups.add(group);
+        if (group.isAdminGroup())
+        {
+            this.admin = true;
+        }
+    }
+    
+    /**
+     * Gets the default group for this user.  This will be the first group that
+     * appears in the user's group list in the config file, or the special group
+     * ROLE_ALL_USERS if the user has not been explicitly added to a group.
+     */
+    public Group getDefaultGroup()
+    {
+        Group[] groups = this.getAuthorities();
+        if (groups.length > 1)
+        {
+            return groups[1]; // This will return the first group in the config file,
+                              // remembering that the first group is ROLE_ALL_USERS
+        }
+        else
+        {
+            return groups[0]; // Returns ROLE_ALL_USERS: this happens if the user
+                              // hasn't been explicitly added to any groups in the
+                              // config file
+        }
+    }
 
     /**
      * Required by the UserDetails interface: used to specify the {@link Group}s to
@@ -120,7 +164,53 @@ public class User implements UserDetails
      */
     public Group[] getAuthorities()
     {
-        return this.groups;
+        return (Group[])this.groups.toArray(new Group[0]);
+    }
+    
+    /**
+     * @return true if this user is an administrator (i.e. belongs to the 
+     * "admin" group)
+     */
+    public boolean isAdmin()
+    {
+        return this.admin;
+    }
+    
+    /**
+     * @return true if this user is a member of the given group
+     */
+    public boolean isMemberOf(String groupName)
+    {
+        for (Group group : this.groups)
+        {
+            if (groupName.equals(group.getName()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public String getEmailAddress()
+    {
+        return emailAddress;
+    }
+
+    /**
+     * Gets an array of names of groups to which this user belongs,
+     * as recorded in the config file.  This method should not normally be used
+     * (use getAuthorities() instead).
+     */
+    String[] getGroupNames()
+    {
+        if (this.groupNamesStr == null)
+        {
+            return new String[0];
+        }
+        else
+        {
+            return this.groupNamesStr.split(",");
+        }
     }
     
 }

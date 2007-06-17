@@ -177,7 +177,18 @@ public class GRexConfig implements UserDetailsService
     @Validate
     public void validate() throws PersistenceException
     {
-        // Checks that all Users have unique names
+        // Check that the Group names are unique
+        List<String> groupnames = new ArrayList<String>();
+        for (Group group : this.groups)
+        {
+            if (groupnames.contains(group.getName()))
+            {
+                throw new PersistenceException("Duplicate group name %s", group.getName());
+            }
+            groupnames.add(group.getName());
+        }
+        
+        // Checks that all Users have unique names and belong to valid groups
         List<String> usernames = new ArrayList<String>();
         for (User user : this.users)
         {
@@ -187,9 +198,25 @@ public class GRexConfig implements UserDetailsService
                 throw new PersistenceException("Duplicate username %s", username);
             }
             usernames.add(username);
+            
+            // Check that the groups are valid
+            for (String groupname : user.getGroupNames())
+            {
+                boolean found = false;
+                for (Group group : this.groups)
+                {
+                    if (groupname.trim().equals(group.getName()))
+                    {
+                        user.addGroup(group);
+                        found = true;
+                    }
+                }
+                if (!found)
+                {
+                    throw new PersistenceException("Unknown group name %s", groupname);
+                }
+            }
         }
-        // TODO: check that the groups the users belong to are valid
-        // and set the GrantedAuthorities[] property properly
         
         // Checks that all GridServices have unique names
         List<String> names = new ArrayList<String>();
@@ -202,6 +229,35 @@ public class GRexConfig implements UserDetailsService
             }
             names.add(name);
         }
+        
+        // Check that the security settings for GridServices are correctly formed
+        // (with valid user and group names)
+        for (GridService gs : this.gridServices)
+        {
+            if (gs.getAllowedUsers() != null)
+            {
+                for (String username : gs.getAllowedUsers())
+                {
+                    if (!usernames.contains(username))
+                    {
+                        throw new PersistenceException("Unknown username %s in " +
+                            "allowed-users", username);
+                    }
+                }
+            }            
+            if (gs.getAllowedGroups() != null)
+            {
+                for (String groupname : gs.getAllowedGroups())
+                {
+                    if (!groupnames.contains(groupname))
+                    {
+                        throw new PersistenceException("Unknown group name %s in " +
+                            "allowed-groups", groupname);
+                    }
+                }
+            }
+        }
+        
         // Now create the home directory
         this.homeDirectory = new File(this.homeDirectoryStr);
         if (this.homeDirectory.exists())
@@ -225,7 +281,8 @@ public class GRexConfig implements UserDetailsService
     }
 
     /**
-     * Retrieves a user's details from his or her username
+     * Retrieves a user's details from his or her username.  Required by
+     * Acegi security.
      * @throws UsernameNotFoundException if the user does not exist
      * @throws DataAccessException if there was an error accessing the user
      * details (will not happen here as the user details are in memory)

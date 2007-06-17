@@ -16,8 +16,9 @@
          This object is created via GRexConfig.readConfig(), a static factory method -->
     <bean id="grexConfig" class="uk.ac.rdg.resc.grex.config.GRexConfig"
           factory-method="readConfig">
-        <!-- The readConfig() method takes the path to the configuration file as its argument.-->
-        <!--<constructor-arg><value>c:\GRexConfig.xml</value></constructor-arg>-->
+        <!-- G-Rex will look for the config file in the CLASSPATH unless you
+             uncomment the line below and set the full path to the config file -->
+        <!--<constructor-arg><value>/path/to/GRexConfig.xml</value></constructor-arg>-->
     </bean>
     
     <!-- Defines a store of service instances.  This is implemented as a Berkeley
