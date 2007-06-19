@@ -33,7 +33,7 @@ Displays all the instances of a grid service
             <tr>
                 <td>${instance.id}</td>
                 <td>${instance.description}</td>
-                <td><a href="instances/${instance.id}.html">link</a></td>
+                <td><a href="${instance.url}.html">link</a></td>
             </tr>
             </c:forEach>
         </tbody>

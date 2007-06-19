@@ -61,6 +61,9 @@ public class GrexServiceInstance
     
     private String description = ""; // Free-text description provided by the creator of the instance
     
+    private String baseUrl = ""; // Base of the URL to this instance, e.g.
+                                 // "http://myserver.com/G-Rex/helloworld/instances/"
+    
     private String workingDirectory; // Directory in which all files relating to this instance will be kept
     
     private String owner = ""; // Name of the user that owns this instance
@@ -173,6 +176,24 @@ public class GrexServiceInstance
     public void setOtherPermissions(Permissions otherPermissions)
     {
         this.otherPermissions = otherPermissions;
+    }
+    
+    /**
+     * Sets the base URL for this instance, e.g. "http://myserver.com/G-Rex/helloworld/instances/".
+     * Should not be called directly (this is called by PostOperationsController
+     * when creating a new service instance
+     */
+    public void setBaseUrl(String baseUrl)
+    {
+        this.baseUrl = baseUrl;
+    }
+    
+    /**
+     * @return the URL to this service instance
+     */
+    public String getUrl()
+    {
+        return this.baseUrl + (this.baseUrl.endsWith("/") ? "" : "/") + this.id;
     }
     
     /**

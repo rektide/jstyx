@@ -69,7 +69,7 @@ public class PostOperationsController extends MultiActionController
             .getAuthentication().getPrincipal();
         
         // Find the name of the service that the user is interested in.  The URL
-        // pattern is /G-Rex/serviceName/clone
+        // pattern is /G-Rex/serviceName/clone.action
         String serviceName = request.getRequestURI().split("/")[2];
         
         // Check that the service exists
@@ -102,6 +102,11 @@ public class PostOperationsController extends MultiActionController
         }
         newInstance.setOwner(loggedInUser.getUsername());
         newInstance.setGroup(loggedInUser.getDefaultGroup().getName());
+        
+        // Get the full URL to the new instance (allows for the fact that in future
+        // the instance may be hosted on a remote machine)
+        newInstance.setBaseUrl(request.getRequestURL().toString()
+            .replaceFirst("clone.action", "instances/"));
         
         // Add the instance to the store, getting the new ID
         int id = this.instancesStore.addServiceInstance(newInstance);

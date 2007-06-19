@@ -26,59 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.grex.exceptions;
-
-import simple.xml.Attribute;
-import simple.xml.Root;
+package uk.ac.rdg.resc.grex.client;
 
 /**
- * Superclass for all exceptions that can be thrown within the G-Rex application.
- * TODO: implement subclasses with different error codes?
+ * An object that is used to manipulate a particular instance of a grid service.
+ * Contains methods to upload input files, start the service, download the output
+ * and more.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-@Root(name="exception")
-public class GRexException extends Exception
+public class GRexServiceInstanceClient
 {
+    
     /**
-     * The error code associated with an unexpected error (i.e. a bug on the server)
+     * Creates a new instance of GRexServiceInstanceClient
+     * @param newInstanceUrl Full URL to this service instance, e.g.
+     * "http://myserver.com/G-Rex/helloworld/instances/3"
      */
-    public static final int UNEXPECTED_ERROR = -1;
-    
-    @Attribute(name="code")
-    protected int errorCode = 0;
-    
-    @Attribute(name="message")
-    protected String message = "";
-    
-    @Attribute(name="type") // The type (class name) of the exception
-    protected String type = "";
-    
-    public GRexException()
+    public GRexServiceInstanceClient(String newInstanceUrl)
     {
-    }
-    
-    public GRexException(String message)
-    {
-        this.message = message;
-    }
-    
-    public int getErrorCode()
-    {
-        return this.errorCode;
-    }
-    
-    public String getType()
-    {
-        return this.type;
-    }
-    
-    public String getMessage()
-    {
-        return this.message;
     }
     
 }

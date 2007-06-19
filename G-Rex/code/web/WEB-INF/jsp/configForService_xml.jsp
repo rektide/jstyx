@@ -7,8 +7,7 @@
     <params>
         <%-- "param" is a reserved name so we use "par" --%>
         <c:forEach var="par" items="${gridservice.params}">
-        <param name="${par.name}" paramType="${par.type}" required="${par.required}"
-            description="${par.description}"/>
+        <param name="${par.name}" type="${par.type}" required="${par.required}" description="${par.description}"/>
         </c:forEach>
     </params>
     <inputs>
