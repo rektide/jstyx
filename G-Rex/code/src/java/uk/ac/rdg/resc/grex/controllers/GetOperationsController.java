@@ -38,7 +38,7 @@ import org.acegisecurity.context.SecurityContextHolder;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
-import uk.ac.rdg.resc.grex.config.GridService;
+import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GrexServiceInstance;
@@ -129,8 +129,8 @@ public class GetOperationsController extends MultiActionController
         User loggedInUser = (User)SecurityContextHolder.getContext()
             .getAuthentication().getPrincipal();
         // Create a list of the services that the user can access
-        List<GridService> viewables = new ArrayList<GridService>();
-        for (GridService gridService : this.config.getGridServices())
+        List<GridServiceConfigForServer> viewables = new ArrayList<GridServiceConfigForServer>();
+        for (GridServiceConfigForServer gridService : this.config.getGridServices())
         {
             if (gridService.canBeAccessedBy(loggedInUser))
             {
@@ -152,7 +152,7 @@ public class GetOperationsController extends MultiActionController
         // pattern is /G-Rex/serviceName/instances.[xml,html]
         String serviceName = request.getRequestURI().split("/")[2];
         // Check that this service actually exists!
-        GridService gs = this.config.getGridServiceByName(serviceName);
+        GridServiceConfigForServer gs = this.config.getGridServiceByName(serviceName);
         if (gs == null)
         {
             throw new GRexException("There is no service called " + serviceName);
@@ -197,7 +197,7 @@ public class GetOperationsController extends MultiActionController
         // Find the name of the service that the user is interested in.  The URL
         // pattern is /G-Rex/serviceName/instances.[xml,html]
         String serviceName = request.getRequestURI().split("/")[2];
-        GridService gs = this.config.getGridServiceByName(serviceName);
+        GridServiceConfigForServer gs = this.config.getGridServiceByName(serviceName);
         if (gs == null)
         {
             throw new GRexException("There is no service called " + serviceName);

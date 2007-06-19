@@ -34,7 +34,7 @@ import org.acegisecurity.context.SecurityContextHolder;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
-import uk.ac.rdg.resc.grex.config.GridService;
+import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GrexServiceInstance;
@@ -73,7 +73,7 @@ public class PostOperationsController extends MultiActionController
         String serviceName = request.getRequestURI().split("/")[2];
         
         // Check that the service exists
-        GridService gs = this.config.getGridServiceByName(serviceName);
+        GridServiceConfigForServer gs = this.config.getGridServiceByName(serviceName);
         if (gs == null)
         {
             throw new GRexException("There is no service called " + serviceName);
