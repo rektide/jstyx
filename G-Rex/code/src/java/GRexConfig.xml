@@ -28,7 +28,7 @@
              On other OSes you can delete "cmd.exe /C"-->
         <gridservice name="helloworld" command="cmd.exe /C JStyxRun uk.ac.rdg.resc.jstyx.gridservice.tutorial.HelloWorld"
                      description="Prints Hello World to stdout"
-                     allowed-groups="test">
+                     allowed-groups="test2">
             <outputs>
                 <output name="stdout"/>
                 <output name="stderr"/>

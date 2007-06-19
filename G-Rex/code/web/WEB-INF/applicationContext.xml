@@ -65,11 +65,13 @@
     <bean id="filterInvocationInterceptor" class="org.acegisecurity.intercept.web.FilterSecurityInterceptor">
         <property name="authenticationManager"><ref local="authenticationManager"/></property>
         <property name="accessDecisionManager"><ref local="httpRequestAccessDecisionManager"/></property>
+        <!-- All URLs are secured except welcome.html -->
         <property name="objectDefinitionSource">
             <value>
                 CONVERT_URL_TO_LOWERCASE_BEFORE_COMPARISON
                 PATTERN_TYPE_APACHE_ANT
-                /**=ROLE_ALL_USERS
+                /services.*=ROLE_ALL_USERS
+                /*/*=ROLE_ALL_USERS
             </value>
         </property>
     </bean>

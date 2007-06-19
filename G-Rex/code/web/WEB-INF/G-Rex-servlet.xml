@@ -47,6 +47,7 @@
     <bean id="propsResolverGet" class="org.springframework.web.servlet.mvc.multiaction.PropertiesMethodNameResolver">
         <property name="mappings">
             <value>
+                /welcome.html=showWelcomePage
                 /services.*=listServices
                 /*/instances.*=listInstancesForService
                 /*/config.*=showConfigForService
@@ -78,6 +79,8 @@
     <bean id="controllermap" class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
         <property name="mappings">
             <props>
+                <!-- This shows the welcome page -->
+                <prop key="/welcome.html">getOperationsController</prop>
                 <!-- The file services.[xml,html] lists the services that are
                      visible to the logged-in user -->
                 <prop key="/services.*">getOperationsController</prop>

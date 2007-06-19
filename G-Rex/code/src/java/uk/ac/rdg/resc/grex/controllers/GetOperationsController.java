@@ -114,6 +114,15 @@ public class GetOperationsController extends MultiActionController
      */
     private GRexServiceInstancesStore instancesStore;
     
+    /**
+     * Shows the welcome page (in response to a request for index.html
+     */
+    public ModelAndView showWelcomePage(HttpServletRequest request,
+        HttpServletResponse response) throws Exception
+    {
+        return new ModelAndView("welcomePage");
+    }
+    
     public ModelAndView listServices(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {

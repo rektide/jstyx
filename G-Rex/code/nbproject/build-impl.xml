@@ -394,46 +394,46 @@
     </target>
     <target name="do-dist" depends="init,compile,compile-jsps,-pre-dist,-do-dist-with-manifest,-do-dist-without-manifest"/>
     <target name="library-inclusion-in-manifest" depends="init" if="dist.ear.dir">
-        <basename property="included.lib.libs.BerkeleyDB.classpath" file="${libs.BerkeleyDB.classpath}"/>
-        <copy-ear-war file="${libs.BerkeleyDB.classpath}" propname="included.lib.libs.BerkeleyDB.classpath.X"/>
-        <basename property="included.lib.libs.Spring2.0.classpath" file="${libs.Spring2.0.classpath}"/>
-        <copy-ear-war file="${libs.Spring2.0.classpath}" propname="included.lib.libs.Spring2.0.classpath.X"/>
-        <basename property="included.lib.libs.Acegi.classpath" file="${libs.Acegi.classpath}"/>
-        <copy-ear-war file="${libs.Acegi.classpath}" propname="included.lib.libs.Acegi.classpath.X"/>
         <basename property="included.lib.file.reference.commons-codec.jar" file="${file.reference.commons-codec.jar}"/>
         <copy-ear-war file="${file.reference.commons-codec.jar}" propname="included.lib.file.reference.commons-codec.jar.X"/>
         <basename property="included.lib.file.reference.commons-httpclient.jar" file="${file.reference.commons-httpclient.jar}"/>
         <copy-ear-war file="${file.reference.commons-httpclient.jar}" propname="included.lib.file.reference.commons-httpclient.jar.X"/>
         <basename property="included.lib.file.reference.commons-logging.jar" file="${file.reference.commons-logging.jar}"/>
         <copy-ear-war file="${file.reference.commons-logging.jar}" propname="included.lib.file.reference.commons-logging.jar.X"/>
-        <basename property="included.lib.libs.Simple-XML.classpath" file="${libs.Simple-XML.classpath}"/>
-        <copy-ear-war file="${libs.Simple-XML.classpath}" propname="included.lib.libs.Simple-XML.classpath.X"/>
-        <basename property="included.lib.libs.jstl11.classpath.2" file="${libs.jstl11.classpath.libfile.2}"/>
-        <basename property="included.lib.libs.jstl11.classpath.1" file="${libs.jstl11.classpath.libfile.1}"/>
-        <copy-ear-war file="${libs.jstl11.classpath.libfile.2}" propname="included.lib.libs.jstl11.classpath.2.X"/>
-        <copy-ear-war file="${libs.jstl11.classpath.libfile.1}" propname="included.lib.libs.jstl11.classpath.1.X"/>
-        <basename property="included.lib.file.reference.stax-1.2.0.jar" file="${file.reference.stax-1.2.0.jar}"/>
-        <copy-ear-war file="${file.reference.stax-1.2.0.jar}" propname="included.lib.file.reference.stax-1.2.0.jar.X"/>
         <basename property="included.lib.file.reference.stax-api-1.0.1.jar" file="${file.reference.stax-api-1.0.1.jar}"/>
         <copy-ear-war file="${file.reference.stax-api-1.0.1.jar}" propname="included.lib.file.reference.stax-api-1.0.1.jar.X"/>
+        <basename property="included.lib.file.reference.stax-1.2.0.jar" file="${file.reference.stax-1.2.0.jar}"/>
+        <copy-ear-war file="${file.reference.stax-1.2.0.jar}" propname="included.lib.file.reference.stax-1.2.0.jar.X"/>
+        <basename property="included.lib.file.reference.je-3.2.23.jar" file="${file.reference.je-3.2.23.jar}"/>
+        <copy-ear-war file="${file.reference.je-3.2.23.jar}" propname="included.lib.file.reference.je-3.2.23.jar.X"/>
+        <basename property="included.lib.file.reference.spring-2.0.5.jar" file="${file.reference.spring-2.0.5.jar}"/>
+        <copy-ear-war file="${file.reference.spring-2.0.5.jar}" propname="included.lib.file.reference.spring-2.0.5.jar.X"/>
+        <basename property="included.lib.file.reference.simple-xml-1.1.2.jar" file="${file.reference.simple-xml-1.1.2.jar}"/>
+        <copy-ear-war file="${file.reference.simple-xml-1.1.2.jar}" propname="included.lib.file.reference.simple-xml-1.1.2.jar.X"/>
+        <basename property="included.lib.file.reference.acegi-security-1.0.4.jar" file="${file.reference.acegi-security-1.0.4.jar}"/>
+        <copy-ear-war file="${file.reference.acegi-security-1.0.4.jar}" propname="included.lib.file.reference.acegi-security-1.0.4.jar.X"/>
+        <basename property="included.lib.file.reference.jstl.jar" file="${file.reference.jstl.jar}"/>
+        <copy-ear-war file="${file.reference.jstl.jar}" propname="included.lib.file.reference.jstl.jar.X"/>
+        <basename property="included.lib.file.reference.standard.jar" file="${file.reference.standard.jar}"/>
+        <copy-ear-war file="${file.reference.standard.jar}" propname="included.lib.file.reference.standard.jar.X"/>
         <mkdir dir="${build.web.dir.real}/META-INF"/>
         <manifest file="${build.web.dir.real}/META-INF/MANIFEST.MF" mode="update">
-            <attribute name="Class-Path" value="${included.lib.libs.BerkeleyDB.classpath} ${included.lib.libs.Spring2.0.classpath} ${included.lib.libs.Acegi.classpath} ${included.lib.file.reference.commons-codec.jar} ${included.lib.file.reference.commons-httpclient.jar} ${included.lib.file.reference.commons-logging.jar} ${included.lib.libs.Simple-XML.classpath} ${included.lib.libs.jstl11.classpath.1.X} ${included.lib.libs.jstl11.classpath.2.X} ${included.lib.file.reference.stax-1.2.0.jar} ${included.lib.file.reference.stax-api-1.0.1.jar} "/>
+            <attribute name="Class-Path" value="${included.lib.file.reference.commons-codec.jar} ${included.lib.file.reference.commons-httpclient.jar} ${included.lib.file.reference.commons-logging.jar} ${included.lib.file.reference.stax-api-1.0.1.jar} ${included.lib.file.reference.stax-1.2.0.jar} ${included.lib.file.reference.je-3.2.23.jar} ${included.lib.file.reference.spring-2.0.5.jar} ${included.lib.file.reference.simple-xml-1.1.2.jar} ${included.lib.file.reference.acegi-security-1.0.4.jar} ${included.lib.file.reference.jstl.jar} ${included.lib.file.reference.standard.jar} "/>
         </manifest>
         <delete dir="${dist.ear.dir}/temp"/>
     </target>
     <target name="library-inclusion-in-archive" depends="init" unless="dist.ear.dir">
-        <copy file="${libs.BerkeleyDB.classpath}" todir="${build.web.dir.real}/WEB-INF/lib"/>
-        <copy file="${libs.Spring2.0.classpath}" todir="${build.web.dir.real}/WEB-INF/lib"/>
-        <copy file="${libs.Acegi.classpath}" todir="${build.web.dir.real}/WEB-INF/lib"/>
         <copy file="${file.reference.commons-codec.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
         <copy file="${file.reference.commons-httpclient.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
         <copy file="${file.reference.commons-logging.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
-        <copy file="${libs.Simple-XML.classpath}" todir="${build.web.dir.real}/WEB-INF/lib"/>
-        <copy file="${libs.jstl11.classpath.libfile.2}" todir="${build.web.dir.real}/WEB-INF/lib"/>
-        <copy file="${libs.jstl11.classpath.libfile.1}" todir="${build.web.dir.real}/WEB-INF/lib"/>
-        <copy file="${file.reference.stax-1.2.0.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
         <copy file="${file.reference.stax-api-1.0.1.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${file.reference.stax-1.2.0.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${file.reference.je-3.2.23.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${file.reference.spring-2.0.5.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${file.reference.simple-xml-1.1.2.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${file.reference.acegi-security-1.0.4.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${file.reference.jstl.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${file.reference.standard.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
     </target>
     <target name="do-ear-dist" depends="init,compile,compile-jsps,-pre-dist,library-inclusion-in-manifest">
         <dirname property="dist.jar.dir" file="${dist.ear.war}"/>

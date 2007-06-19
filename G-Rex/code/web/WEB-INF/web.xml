@@ -2,9 +2,9 @@
 <web-app version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
     <servlet>
         <description>Spring Dispatcher Servlet, will handle all requests to .xml and .html files
- (in future, could also handle .rss files).  .action files handle form submission (i.e.
-things that change the state of the server).
-Configured by WEB-INF/G-Rex-servlet.xml.</description>
+            (in future, could also handle .rss files).  .action files handle form submission (i.e.
+            things that change the state of the server).
+        Configured by WEB-INF/G-Rex-servlet.xml.</description>
         <servlet-name>G-Rex</servlet-name>
         <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
     </servlet>
@@ -24,7 +24,7 @@ Configured by WEB-INF/G-Rex-servlet.xml.</description>
             <param-name>targetClass</param-name>
             <param-value>org.acegisecurity.util.FilterChainProxy</param-value>
         </init-param>
-    </filter>    
+    </filter>
     <filter-mapping>
         <filter-name>Acegi Filter Chain Proxy</filter-name>
         <url-pattern>/*</url-pattern>
@@ -42,4 +42,7 @@ Configured by WEB-INF/G-Rex-servlet.xml.</description>
             30
         </session-timeout>
     </session-config>
+    <welcome-file-list>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
 </web-app>
