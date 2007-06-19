@@ -28,6 +28,12 @@
 
 package uk.ac.rdg.resc.grex.client;
 
+import java.io.IOException;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import uk.ac.rdg.resc.grex.exceptions.GRexException;
+
 /**
  * An object that is used to manipulate a particular instance of a grid service.
  * Contains methods to upload input files, start the service, download the output
@@ -40,14 +46,36 @@ package uk.ac.rdg.resc.grex.client;
  */
 public class GRexServiceInstanceClient
 {
+    private static final Log log = LogFactory.getLog(GRexServiceInstanceClient.class);
+    
+    private String url;
+    private GRexServiceClient serviceClient;
     
     /**
      * Creates a new instance of GRexServiceInstanceClient
-     * @param newInstanceUrl Full URL to this service instance, e.g.
-     * "http://myserver.com/G-Rex/helloworld/instances/3"
+     * @param url Full URL to this service instance, e.g.
+     * "http://myserver.com/G-Rex/helloworld/instances/3".  Note there is no
+     * trailing slash (to allow URLs like ".../3.html" and ".../3/wd/input.txt"
+     * @param serviceClient GRexServiceClient (used to make Http calls)
      */
-    public GRexServiceInstanceClient(String newInstanceUrl)
+    GRexServiceInstanceClient(String url, GRexServiceClient serviceClient)
     {
+        this.url = url;
+        this.serviceClient = serviceClient;
+    }
+    
+    /**
+     * Gets the status of this service instance
+     * @throws GRexException if there was an error reading the information from 
+     * the server (e.g. the user does not have permissions to read the config info)
+     * @throws IOException if an i/o error occurred, e.g. cannot connect to server 
+     */
+    public Object getStatus() throws IOException, GRexException
+    {
+        String statusUrl = this.url + "/status.xml";
+        log.debug("Getting status information from " + statusUrl);
+        GetMethod get = new GetMethod(statusUrl);
+        return this.serviceClient.executeMethod(get, Object.class);
     }
     
 }

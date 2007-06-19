@@ -178,7 +178,7 @@ public class GRexServiceClient
         
         String newInstanceUrl = this.executeMethod(post, CreateInstanceResponse.class).getUrl();
         
-        return new GRexServiceInstanceClient(newInstanceUrl);
+        return new GRexServiceInstanceClient(newInstanceUrl, this);
     }
     
     /**
@@ -190,50 +190,58 @@ public class GRexServiceClient
      * @throws GRexException if the server returned an error (e.g. current user
      * cannot perform the given operation)
      */
-    private <T> T executeMethod(HttpMethod method, Class<T> returnType)
+    <T> T executeMethod(HttpMethod method, Class<T> returnType)
         throws IOException, GRexException
     {
-        method.setDoAuthentication(true);
-        int status = client.executeMethod(method);
-        if (status == HttpServletResponse.SC_OK)
+        try
         {
-            // This loads the whole response into memory: OK as will be short
-            String xml = method.getResponseBodyAsString();
-            log.debug("received from server: " + xml);
-            // Parse the XML and return
-            try
+            method.setDoAuthentication(true);
+            int status = client.executeMethod(method);
+            if (status == HttpServletResponse.SC_OK)
             {
-                return new Persister().read(returnType, xml);
-            }
-            catch(Exception e)
-            {
-                // Couldn't parse the XML as an object of the required type,
-                // let's see if it's a GRexException
-                GRexException gre = null;
+                // This loads the whole response into memory: OK as will be short
+                String xml = method.getResponseBodyAsString();
+                log.debug("received from server: " + xml);
+                // Parse the XML and return
                 try
                 {
-                    gre = new Persister().read(GRexException.class, xml);
+                    return new Persister().read(returnType, xml);
                 }
-                catch(Exception ex)
+                catch(Exception e)
                 {
-                    // It's not an exception either.
-                    log.error("unrecognized response from server: " + xml);
-                    throw new RuntimeException("Unrecognized response from server");
+                    // Couldn't parse the XML as an object of the required type,
+                    // let's see if it's a GRexException
+                    GRexException gre = null;
+                    try
+                    {
+                        gre = new Persister().read(GRexException.class, xml);
+                    }
+                    catch(Exception ex)
+                    {
+                        // It's not an exception either.
+                        log.error("unrecognized response from server: " + xml);
+                        throw new RuntimeException("Unrecognized response from server");
+                    }
+                    // If we've got this far, this must be a valid exception
+                    throw gre;
                 }
-                // If we've got this far, this must be a valid exception
-                throw gre;
+            }
+            else if (status == HttpServletResponse.SC_UNAUTHORIZED)
+            {
+                // The user's username/password were not recognized by the server
+                throw new GRexException("User and password are not valid on the server");
+            }
+            else
+            {
+                // TODO: parse more return types explicitly
+                log.error("Operation failed with HTTP error code " + status);
+                throw new GRexException("Operation failed with HTTP error code " + status);
             }
         }
-        else if (status == HttpServletResponse.SC_UNAUTHORIZED)
+        finally
         {
-            // The user's username/password were not recognized by the server
-            throw new GRexException("User and password are not valid on the server");
-        }
-        else
-        {
-            // TODO: parse more return types explicitly
-            log.error("Operation failed with HTTP error code " + status);
-            throw new GRexException("Operation failed with HTTP error code " + status);
+            // Clean up the HttpClient
+            method.releaseConnection();
         }
     }
     
