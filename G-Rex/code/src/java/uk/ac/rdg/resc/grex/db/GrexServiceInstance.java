@@ -69,6 +69,11 @@ public class GrexServiceInstance
     private String owner = ""; // Name of the user that owns this instance
     private String group = ""; // Name of the Group to which the user belongs
     
+    // The state of this service instance
+    // This describes the overall (coarse-grained) state of the instance.
+    public enum State{CREATED, RUNNING, FINISHED, ABORTED, ERROR};
+    private State state;
+    
     // Permissions for this service instance
     public enum Permissions{NONE, READONLY, FULL};
     private Permissions ownerPermissions = Permissions.FULL;
@@ -82,6 +87,7 @@ public class GrexServiceInstance
         this.id = 0; // This is the signal for the database to create a new 
                      // primary key automatically from a sequence.  See the
                      // Javadoc for PrimaryKey.
+        this.setState(State.CREATED);
     }
 
     public int getId()
@@ -253,5 +259,15 @@ public class GrexServiceInstance
         {
             return false;
         }
+    }
+
+    public State getState()
+    {
+        return state;
+    }
+
+    public void setState(State state)
+    {
+        this.state = state;
     }
 }
