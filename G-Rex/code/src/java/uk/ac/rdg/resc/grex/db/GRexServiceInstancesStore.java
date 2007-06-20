@@ -47,24 +47,25 @@ public interface GRexServiceInstancesStore
      * @param id The id of the instance
      * @return The TrexServiceInstance with this id
      */
-    public GrexServiceInstance getServiceInstanceById(int id) throws Exception;
+    public GRexServiceInstance getServiceInstanceById(int id) throws Exception;
     
     /**
      * Finds all the instances of the service with the given name
      * @param serviceName The name of the service as specified in the config file
      * @return a List of all the instances of this service
      */
-    public List<GrexServiceInstance> getServiceInstancesByServiceName(String serviceName)
+    public List<GRexServiceInstance> getServiceInstancesByServiceName(String serviceName)
         throws Exception;
     
     /**
      * Adds the given instance to the database.  NOTE: this will overwrite
      * any previous Instance with the same ID.
-     * @param instance the GrexServiceInstance to add to the database
+     * 
+     * @param instance the GRexServiceInstance to add to the database
      * @return the unique ID of the instance that has been created
      * @throws DatabaseException if there was an error adding the instance
      */
-    public int addServiceInstance(GrexServiceInstance instance)
+    public int addServiceInstance(GRexServiceInstance instance)
         throws Exception;
     
     /**
@@ -73,6 +74,6 @@ public interface GRexServiceInstancesStore
      * @param userName The name of the user that owns the service instances
      * @return a List of all the instances that belong to this user
      */
-    //public List<GrexServiceInstance> getServiceInstancesBelongingTo(String userName)
+    //public List<GRexServiceInstance> getServiceInstancesBelongingTo(String userName)
     //    throws Exception;
 }

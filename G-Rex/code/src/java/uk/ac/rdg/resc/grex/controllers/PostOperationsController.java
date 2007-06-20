@@ -37,7 +37,7 @@ import uk.ac.rdg.resc.grex.config.GRexConfig;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
-import uk.ac.rdg.resc.grex.db.GrexServiceInstance;
+import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
 
 /**
@@ -94,7 +94,7 @@ public class PostOperationsController extends MultiActionController
         }
         
         // Create a new instance of the service
-        GrexServiceInstance newInstance = new GrexServiceInstance();
+        GRexServiceInstance newInstance = new GRexServiceInstance();
         newInstance.setServiceName(serviceName);
         if (request.getParameter("description") != null)
         {

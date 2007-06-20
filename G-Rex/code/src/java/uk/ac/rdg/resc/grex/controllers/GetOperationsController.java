@@ -41,7 +41,7 @@ import uk.ac.rdg.resc.grex.config.GRexConfig;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
-import uk.ac.rdg.resc.grex.db.GrexServiceInstance;
+import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
 
 // TODO: these instructions are out of date and do not belong here anymore!
@@ -115,7 +115,7 @@ public class GetOperationsController extends MultiActionController
     private GRexServiceInstancesStore instancesStore;
     
     /**
-     * Shows the welcome page (in response to a request for index.html
+     * Shows the welcome page (in response to a request for welcome.html)
      */
     public ModelAndView showWelcomePage(HttpServletRequest request,
         HttpServletResponse response) throws Exception
@@ -123,6 +123,9 @@ public class GetOperationsController extends MultiActionController
         return new ModelAndView("welcomePage");
     }
     
+    /**
+     * Lists all the services that the user has permission to see
+     */
     public ModelAndView listServices(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
@@ -143,6 +146,10 @@ public class GetOperationsController extends MultiActionController
             "gridservices", viewables);
     }
     
+    /**
+     * Lists all the instances for the given service that the user has permissions
+     * to see
+     */
     public ModelAndView listInstancesForService(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
@@ -168,8 +175,8 @@ public class GetOperationsController extends MultiActionController
         
         // Get the list of service instance from the store, checking the
         // permissions of each one
-        List<GrexServiceInstance> viewables = new ArrayList<GrexServiceInstance>();
-        for (GrexServiceInstance instance : this.instancesStore
+        List<GRexServiceInstance> viewables = new ArrayList<GRexServiceInstance>();
+        for (GRexServiceInstance instance : this.instancesStore
             .getServiceInstancesByServiceName(serviceName))
         {
             if (instance.canBeReadBy(loggedInUser))
@@ -228,7 +235,7 @@ public class GetOperationsController extends MultiActionController
         {
             int instanceId = Integer.parseInt(instanceIdStr);
             // Retrieve the instance object from the store
-            GrexServiceInstance instance = this.instancesStore.getServiceInstanceById(instanceId);
+            GRexServiceInstance instance = this.instancesStore.getServiceInstanceById(instanceId);
             // Check that the service names match
             if (instance == null || !instance.getServiceName().equals(serviceName))
             {

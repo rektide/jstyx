@@ -46,6 +46,8 @@ import uk.ac.rdg.resc.grex.config.GRexConfig;
 /**
  * Stores and accesses service instances that are held in a Berkeley database.
  *
+ * @todo Sort out thread safety very carefully!
+ *
  * @author Jon Blower
  * $Revision$
  * $Date$
@@ -62,8 +64,8 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
     private Environment env;
     private EntityStore store; // This is where we keep TrexServiceInstance objects
     
-    private PrimaryIndex<Integer, GrexServiceInstance> instancesById;
-    private SecondaryIndex<String, Integer, GrexServiceInstance> instancesByServiceName;
+    private PrimaryIndex<Integer, GRexServiceInstance> instancesById;
+    private SecondaryIndex<String, Integer, GRexServiceInstance> instancesByServiceName;
     
     
     /**
@@ -89,7 +91,7 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
         
         // Set up the indices we will use to access instances
         this.instancesById = this.store.getPrimaryIndex(Integer.class,
-            GrexServiceInstance.class);
+            GRexServiceInstance.class);
         this.instancesByServiceName = this.store.getSecondaryIndex(this.instancesById,
             String.class, "serviceName");
         
@@ -99,15 +101,16 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
     /**
      * Adds the given instance to the database.  NOTE: this will overwrite
      * any previous Instance with the same ID.
-     * @param instance the GrexServiceInstance to add to the database
+     * 
+     * @param instance the GRexServiceInstance to add to the database
      * @return the unique ID of the instance that has been created
      * @throws DatabaseException if there was an error adding the instance
      */
-    public int addServiceInstance(GrexServiceInstance instance)
+    public int addServiceInstance(GRexServiceInstance instance)
         throws DatabaseException
     {
         // The ID will be created automatically from a sequence
-        GrexServiceInstance prevInst = this.instancesById.put(instance);
+        GRexServiceInstance prevInst = this.instancesById.put(instance);
         return instance.getId();
     }
     
@@ -121,7 +124,7 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
      * object with the given ID
      * @throws DatabaseException if there was an error retrieving the object
      */
-    public GrexServiceInstance getServiceInstanceById(int instanceID)
+    public GRexServiceInstance getServiceInstanceById(int instanceID)
         throws DatabaseException
     {
         return this.instancesById.get(instanceID);
@@ -133,16 +136,16 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
      * @return a List of instances that belong to the service.
      * @throws DatabaseException if there was an error retrieving the data
      */
-    public synchronized List<GrexServiceInstance> getServiceInstancesByServiceName(String serviceName)
+    public synchronized List<GRexServiceInstance> getServiceInstancesByServiceName(String serviceName)
         throws DatabaseException
     {
         // EntityCursors are not thread-safe so this method must be synchronized
-        EntityCursor<GrexServiceInstance> cursor = null;
-        ArrayList<GrexServiceInstance> instances = new ArrayList<GrexServiceInstance>();
+        EntityCursor<GRexServiceInstance> cursor = null;
+        ArrayList<GRexServiceInstance> instances = new ArrayList<GRexServiceInstance>();
         try
         {
             cursor = this.instancesByServiceName.subIndex(serviceName).entities();
-            for (GrexServiceInstance instance : cursor)
+            for (GRexServiceInstance instance : cursor)
             {
                 instances.add(instance);
             }
