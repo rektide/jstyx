@@ -76,10 +76,10 @@ public class Parameter
     private String longFlag = null; // The long command-line flag
     
     @Attribute(name="defaultValue", required=false)
-    private String defaultValue; // A default value for this parameter
+    private String defaultValue = null; // A default value for this parameter
     
     @Attribute(name="description", required=false)
-    private String description; // Human-readable description for this parameter
+    private String description = ""; // Human-readable description for this parameter
     
     @Attribute(name="required", required=false)
     private boolean required = false; // True if this parameter must be set before a service is run
@@ -106,8 +106,9 @@ public class Parameter
     }
 
     /**
-     * @return the (short) flag for this parameter, or null if none has been set or
-     * this is not required
+     * @return the (single-character) flag for this parameter, or null if none
+     * has been set or this is not required.  We have already validated that
+     * this flag is only one character long.
      */
     public String getFlag()
     {
@@ -123,11 +124,19 @@ public class Parameter
         return longFlag;
     }
 
+    /**
+     * Gets the default value for this parameter, or null if no default value
+     * has been set
+     */
     public String getDefaultValue()
     {
         return defaultValue;
     }
 
+    /**
+     * Gets a short, human-readable description of the meaning of this parameter.
+     * Will not be null: returns the empty string if no description has been set.
+     */
     public String getDescription()
     {
         return description;
@@ -154,6 +163,10 @@ public class Parameter
     @Validate
     public void validate() throws PersistenceException
     {
+        if (this.flag != null && this.flag.length() != 1)
+        {
+            throw new PersistenceException("Short flags can only be 1 character in length");
+        }
         if (this.typeStr.trim().equals("switch"))
         {
             this.type = Type.SWITCH;
@@ -180,7 +193,6 @@ public class Parameter
         {
             throw new PersistenceException("Only unflaggedOptions can be greedy");
         }
-        // TODO: create a JSAP Parameter object here?
     }
     
 }

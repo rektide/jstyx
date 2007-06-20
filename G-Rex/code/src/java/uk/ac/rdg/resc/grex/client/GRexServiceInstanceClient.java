@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.grex.client;
 
 import java.io.IOException;
 import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.methods.MultipartPostMethod;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
@@ -72,10 +73,25 @@ public class GRexServiceInstanceClient
      */
     public Object getStatus() throws IOException, GRexException
     {
-        String statusUrl = this.url + "/status.xml";
+        String statusUrl = this.getUrl() + "/status.xml";
         log.debug("Getting status information from " + statusUrl);
         GetMethod get = new GetMethod(statusUrl);
         return this.serviceClient.executeMethod(get, Object.class);
+    }
+    
+    /**
+     * Uploads a file to the server
+     */
+    public void uploadFile() throws IOException, GRexException
+    {
+        MultipartPostMethod mPost = new MultipartPostMethod("");
+        //MultipartRequestEntity mre = new MultipartRequestEntity();
+        
+    }
+    
+    public String getUrl()
+    {
+        return this.url;
     }
     
 }
