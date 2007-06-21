@@ -28,10 +28,15 @@
 
 package uk.ac.rdg.resc.grex.client;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
@@ -52,6 +57,35 @@ public class GRexServiceInstanceClient
     
     private String url;
     private GRexServiceClient serviceClient;
+    
+    /**
+     * Map of parameter names and values that we will set on the remote service
+     * instance
+     */
+    private Map<String, String> parameters = new HashMap<String, String>();
+    
+    /**
+     * Contains the files that must be uploaded to the remote server before the
+     * service instance is started.  The keys are File objects and the values are
+     * the paths of the files on the server, relative to the working directory of 
+     * the instance
+     */
+    private Map<File, String> filesToUpload = new HashMap<File, String>();
+    /**
+     * The stream that represents the standard input.  This will be streamed
+     * to the server once the instance has been started.
+     */
+    private InputStream stdinSource = null;
+    /**
+     * The PrintStream that will be used to write the standard output from the
+     * remote service instance.
+     */
+    private PrintStream stdoutDestination = null;
+    /**
+     * The PrintStream that will be used to write the standard error stream from
+     * the remote service instance.
+     */
+    private PrintStream stderrDestination = null;
     
     /**
      * Creates a new instance of GRexServiceInstanceClient
@@ -81,6 +115,113 @@ public class GRexServiceInstanceClient
     }
     
     /**
+     * Sets the name and value of a parameter that will be set on the remote
+     * service instance, prior to the instance being started.  This performs
+     * no checks on whether the name of the parameter is valid (TODO).
+     */
+    public void setParameter(String name, String value)
+    {
+        this.parameters.put(name, value);
+    }
+    
+    /**
+     * Adds a file to the list of files that must be uploaded before the service
+     * instance is started (this method does not actually upload the file).
+     * @param file The File to upload
+     * @param pathOnServer The destination location of the file on the server,
+     * relative to the working directory of the instance.
+     * @throws FileNotFoundException if the file does not exist
+     */
+    public void addFileToUpload(File file, String pathOnServer)
+        throws FileNotFoundException
+    {
+        if (!file.exists())
+        {
+            throw new FileNotFoundException(file.getPath());
+        }
+        this.filesToUpload.put(file, pathOnServer);
+    }
+    
+    /**
+     * Adds a file to the list of files that must be uploaded before the service
+     * instance is started (this method does not actually upload the file).
+     * @param file path to the file to upload
+     * @param pathOnServer The destination location of the file on the server,
+     * relative to the working directory of the instance.
+     * @throws FileNotFoundException if the file does not exist
+     */
+    public void addFileToUpload(String filePath, String pathOnServer)
+        throws FileNotFoundException
+    {
+        this.addFileToUpload(new File(filePath), pathOnServer);
+    }
+    
+    /**
+     * Adds a file to the list of files that must be uploaded before the service
+     * instance is started (this method does not actually upload the file).
+     * Exactly equivalent to addFileToUpload(file, file.getPath()).
+     * @param file The File to upload (the file will have the same path on the
+     * server, relative to the working directory of the instance)
+     * @throws FileNotFoundException if the file does not exist
+     */
+    public void addFileToUpload(File file) throws FileNotFoundException
+    {
+        this.addFileToUpload(file, file.getPath());
+    }
+    
+    /**
+     * Adds a file to the list of files that must be uploaded before the service
+     * instance is started (this method does not actually upload the file).
+     * Exactly equivalent to addFileToUpload(new File(filePath)).
+     * @param file The path to the File to upload (the file will have the same
+     * name on the server and will appear in the working directory of the instance)
+     * @throws FileNotFoundException if the file does not exist
+     */
+    public void addFileToUpload(String filePath) throws FileNotFoundException
+    {
+        this.addFileToUpload(new File(filePath));
+    }
+    
+    /**
+     * Sets the InputStream that will provide data for the standard input
+     * stream of the remote service instance.
+     */
+    public void setStdinSource(InputStream in)
+    {
+        this.stdinSource = in;
+    }
+    
+    /**
+     * Sets the PrintStream that will be used to write data coming from the
+     * standard output of the remote service instance.
+     */
+    public void setStdoutDestination(PrintStream ps)
+    {
+        this.stdoutDestination = ps;
+    }
+    
+    /**
+     * Sets the PrintStream that will be used to write data coming from the
+     * standard output of the remote service instance.
+     */
+    public void setStderrDestination(PrintStream ps)
+    {
+        this.stderrDestination = ps;
+    }
+    
+    /**
+     * Sets the parameters of the service, uploads the required input files,
+     * starts the service running, starts the redirection of the standard streams,
+     * waits for the service to finish, then downloads the output.
+     * @todo Should this return immediately (doing all the stuff in threads
+     * and reporting progress via listeners)?
+     */
+    public void start()
+    {
+        // TODO
+    }
+    
+    /**
      * Uploads a file to the server
      */
     public void uploadFile() throws IOException, GRexException
@@ -94,6 +235,11 @@ public class GRexServiceInstanceClient
     public String getUrl()
     {
         return this.url;
+    }
+
+    public Map<File, String> getFilesToUpload()
+    {
+        return filesToUpload;
     }
     
 }

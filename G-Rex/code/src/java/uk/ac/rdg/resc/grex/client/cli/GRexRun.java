@@ -40,6 +40,7 @@ import uk.ac.rdg.resc.grex.client.GRexServiceClient;
 import uk.ac.rdg.resc.grex.client.GRexServiceInstanceClient;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForClient;
 import uk.ac.rdg.resc.grex.config.Input;
+import uk.ac.rdg.resc.grex.config.Output;
 import uk.ac.rdg.resc.grex.config.Parameter;
 
 /**
@@ -143,28 +144,53 @@ public class GRexRun
                     if (input.isStdin())
                     {
                         // The service is expecting the standard input stream
-                        // TODO: call instanceClient.setStdinStream(System.in)
+                        instanceClient.setStdinSource(System.in);
                     }
-                    // TODO: call instanceClient.setFileToUpload()
+                    else
+                    {
+                        instanceClient.addFileToUpload(input.getName());
+                    }
                 }
             }
             
             // Look through the fixed-name output files and figure out what we
-            // need to download.  Note that non-streamed output files can only
-            // be downloaded once the service is finished.
-            // TODO
+            // need to download.  Note that non-streamed are only downloaded
+            // once the service is finished.
+            for (Output output : config.getOutputs())
+            {
+                // We'll sort out the outputs that are specified by command-line
+                // parameters later
+                if (output.getLinkedParameterName() == null)
+                {
+                    if (output.isStdout())
+                    {
+                        // The service produces output on stdout
+                        instanceClient.setStdoutDestination(System.out);
+                    }
+                    else if (output.isStderr())
+                    {
+                        // The service produces output on stdout
+                        instanceClient.setStderrDestination(System.err);
+                    }
+                    else
+                    {
+                        // TODO: se
+                        // instanceClient.
+                    }
+                }
+            }
             
             // Set all the parameter values
             for (Parameter param : config.getParams())
             {
                 // TODO: check that getString() works for greedy options
                 String paramValue = jsapResult.getString(param.getName());
-                // TODO: call instanceClient.setParameter(param.getName(), paramValue)
+                instanceClient.setParameter(param.getName(), paramValue);
                 if (param.getLinkedInput() != null)
                 {
                     // The value of this parameter specifies an input file that
                     // we must upload
-                    // TODO: call instanceClient.setFileToUpload()
+                    instanceClient.addFileToUpload(paramValue);
                 }
                 if (param.getLinkedOutput() != null)
                 {
@@ -177,7 +203,9 @@ public class GRexRun
             // Now we can start the service.  This will upload all the input files
             // and set the parameters.  After the service has been started,
             // the standard input stream will be redirected to the remote service
-            // instance.
+            // instance and we will start downloading the output streams.
+            // When the service has finished, the output files will be downloaded.
+            
             
         }
         catch(Exception e)

@@ -91,6 +91,24 @@ public class Output
     }
     
     /**
+     * @return true if this is the standard output stream (detected by
+     * name.equals("stdout")
+     */
+    public boolean isStdout()
+    {
+        return this.name.trim().equals("stdout");
+    }
+    
+    /**
+     * @return true if this is the standard error stream (detected by
+     * name.equals("stderr")
+     */
+    public boolean isStderr()
+    {
+        return this.name.trim().equals("stderr");
+    }
+    
+    /**
      * If the name of this output file is given by the value of a parameter,
      * this method returns the name of that parameter.  Otherwise, this returns
      * null.
