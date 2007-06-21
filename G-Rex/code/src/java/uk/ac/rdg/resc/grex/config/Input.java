@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.grex.config;
 
 import simple.xml.Attribute;
 import simple.xml.Root;
+import simple.xml.load.Commit;
 
 /**
  * Class describing an input file for a GridService
@@ -45,6 +46,8 @@ public class Input
     @Attribute(name="name")
     private String name;
     
+    private String linkedParamName = null; // Set on commit
+    
     /** Creates a new instance of Input */
     public Input()
     {
@@ -53,6 +56,39 @@ public class Input
     public String getName()
     {
         return name;
+    }
+    
+    /**
+     * @return true if this is the standard input stream (detected by
+     * name.equals("stdin")
+     */
+    public boolean isStdin()
+    {
+        return this.name.trim().equals("stdin");
+    }
+    
+    /**
+     * Checks to see if the name of this input file links to a parameter
+     */
+    @Commit
+    public void commit()
+    {
+        int i1 = name.indexOf("${");
+        int i2 = name.indexOf("}");
+        if (i1 >= 0 && i2 >= 0 && i1 < i2)
+        {
+            this.linkedParamName = name.substring(i1 + 2, i2);
+        }
+    }
+    
+    /**
+     * If the name of this input file is given by the value of a parameter,
+     * this method returns the name of that parameter.  Otherwise, this returns
+     * null.
+     */
+    public String getLinkedParameterName()
+    {
+        return this.linkedParamName;
     }
     
 }

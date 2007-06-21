@@ -28,8 +28,8 @@
 
 package uk.ac.rdg.resc.grex.config;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 import simple.xml.Attribute;
 import simple.xml.ElementList;
@@ -87,14 +87,14 @@ public class GridServiceConfigForClient
         // Check that all parameter names are unique and that the greedy tag
         // is set correctly
         boolean foundGreedy = false;
-        List<String> paramNames = new ArrayList<String>();
+        Map<String, Parameter> paramsMap = new HashMap<String, Parameter>();
         for (Parameter param : this.params)
         {
-            if (paramNames.contains(param.getName()))
+            if (paramsMap.containsKey(param.getName()))
             {
                 throw new PersistenceException("Duplicate parameter name %s", param.getName());
             }
-            paramNames.add(param.getName());
+            paramsMap.put(param.getName(), param);
             // We have already checked (in Parameter) that we only apply the
             // Greedy tag to unflaggedOptions
             if (param.isGreedy())
@@ -104,6 +104,40 @@ public class GridServiceConfigForClient
                     throw new PersistenceException("Only one parameter can be marked greedy");
                 }
                 foundGreedy = true;
+            }
+        }
+        // Check that input and output files that are linked to parameters
+        // are correctly set
+        for (Input input : this.inputs)
+        {
+            if (input.getLinkedParameterName() != null)
+            {
+                Parameter p = paramsMap.get(input.getLinkedParameterName());
+                if (p == null)
+                {
+                    throw new PersistenceException("Unrecognized parameter name %s for input %s",
+                        input.getLinkedParameterName(), input.getName());
+                }
+                else
+                {
+                    p.setLinkedInput(input);
+                }
+            }
+        }
+        for (Output output : this.outputs)
+        {
+            if (output.getLinkedParameterName() != null)
+            {
+                Parameter p = paramsMap.get(output.getLinkedParameterName());
+                if (p == null)
+                {
+                    throw new PersistenceException("Unrecognized parameter name %s for output %s",
+                        output.getLinkedParameterName(), output.getName());
+                }
+                else
+                {
+                    p.setLinkedOutput(output);
+                }
             }
         }
     }

@@ -52,6 +52,8 @@ public class Output
                             // This will default to "true" if the name of this output
                             // is "stdout" or "stderr"
     
+    private String linkedParamName = null; // Set on commit
+    
     /** Creates a new instance of Output */
     public Output()
     {
@@ -59,14 +61,22 @@ public class Output
     
     /**
      * Called after we have parsed this output.  Sets stream=true for
-     * stdout and stderr
+     * stdout and stderr, and checks to see if the name of this output file
+     * links to a parameter
      */
     @Commit
-    public void setStreams()
+    public void commit()
     {
         if (this.name.equals("stdout") || this.name.equals("stderr"))
         {
             this.stream = true;
+        }
+        // TODO: repeats code in Input: refactor?
+        int i1 = this.name.indexOf("${");
+        int i2 = this.name.indexOf("}");
+        if (i1 >= 0 && i2 >= 0 && i1 < i2)
+        {
+            this.linkedParamName = this.name.substring(i1 + 2, i2);
         }
     }
 
@@ -78,6 +88,16 @@ public class Output
     public boolean isStream()
     {
         return stream;
+    }
+    
+    /**
+     * If the name of this output file is given by the value of a parameter,
+     * this method returns the name of that parameter.  Otherwise, this returns
+     * null.
+     */
+    public String getLinkedParameterName()
+    {
+        return this.linkedParamName;
     }
     
 }

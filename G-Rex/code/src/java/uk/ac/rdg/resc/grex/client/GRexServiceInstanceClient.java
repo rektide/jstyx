@@ -30,7 +30,8 @@ package uk.ac.rdg.resc.grex.client;
 
 import java.io.IOException;
 import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.MultipartPostMethod;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
@@ -84,8 +85,9 @@ public class GRexServiceInstanceClient
      */
     public void uploadFile() throws IOException, GRexException
     {
-        MultipartPostMethod mPost = new MultipartPostMethod("");
+        PostMethod post = new PostMethod("url");
         //MultipartRequestEntity mre = new MultipartRequestEntity();
+        //post.setRequestEntity(mre);
         
     }
     

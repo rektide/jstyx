@@ -44,6 +44,11 @@ import simple.xml.load.Validate;
 @Root(name="param")
 public class Parameter
 {
+    // One of these will be set in GridServiceConfigForClient.validate() if
+    // the value of this parameter gives the name of an input or output file
+    private Input linkedInput = null;
+    private Output linkedOutput = null;
+    
     /**
      * The possible types of a Parameter.  Note that we can't simply do
      * "public enum Type { switch, flaggedOption, unflaggedOption }" because
@@ -165,11 +170,16 @@ public class Parameter
     {
         if (this.flag != null && this.flag.length() != 1)
         {
-            throw new PersistenceException("Short flags can only be 1 character in length");
+            throw new PersistenceException("Short flags must only be 1 character in length");
         }
         if (this.typeStr.trim().equals("switch"))
         {
             this.type = Type.SWITCH;
+            if (this.flag == null && this.longFlag == null)
+            {
+                throw new PersistenceException("Must set a short or long flag (or both)" +
+                    " for switch " + this.name);
+            }
         }
         else if (this.typeStr.trim().equals("flaggedOption"))
         {
@@ -183,6 +193,11 @@ public class Parameter
         else if (this.typeStr.trim().equals("unflaggedOption"))
         {
             this.type = Type.UNFLAGGED_OPTION;
+            if (this.flag != null || this.longFlag != null)
+            {
+                throw new PersistenceException("Must not set a flag" +
+                    " for unflaggedOption " + this.name);
+            }
         }
         else
         {
@@ -193,6 +208,44 @@ public class Parameter
         {
             throw new PersistenceException("Only unflaggedOptions can be greedy");
         }
+    }
+
+    /**
+     * @return the Input that is given by the value of this parameter, or null
+     * if this parameter is not linked to an Input.
+     */
+    public Input getLinkedInput()
+    {
+        return linkedInput;
+    }
+
+    /**
+     * Called by GridServiceConfigForClient.validate() to set the Input that is
+     * given by the value of this parameter.  This method should not be called
+     * directly.
+     */
+    void setLinkedInput(Input linkedInput)
+    {
+        this.linkedInput = linkedInput;
+    }
+
+    /**
+     * @return the Output that is given by the value of this parameter, or null
+     * if this parameter is not linked to an Output.
+     */
+    public Output getLinkedOutput()
+    {
+        return linkedOutput;
+    }
+
+    /**
+     * Called by GridServiceConfigForClient.validate() to set the Output that is
+     * given by the value of this parameter.  This method should not be called
+     * directly.
+     */
+    void setLinkedOutput(Output linkedOutput)
+    {
+        this.linkedOutput = linkedOutput;
     }
     
 }
