@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.grex.config;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import simple.xml.Attribute;
@@ -152,17 +153,17 @@ public class GridServiceConfigForClient
         return description;
     }
 
-    public Vector<Input> getInputs()
+    public List<Input> getInputs()
     {
         return inputs;
     }
 
-    public Vector<Output> getOutputs()
+    public List<Output> getOutputs()
     {
         return outputs;
     }
 
-    public Vector<Parameter> getParams()
+    public List<Parameter> getParams()
     {
         return params;
     }

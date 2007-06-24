@@ -28,9 +28,12 @@
 
 package uk.ac.rdg.resc.grex.controllers;
 
+import java.io.File;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
@@ -51,6 +54,7 @@ import uk.ac.rdg.resc.grex.exceptions.GRexException;
  */
 public class PostOperationsController extends MultiActionController
 {
+    private static final Log log = LogFactory.getLog(PostOperationsController.class);
     
     /**
      * Configuration information for this G-Rex server.
@@ -102,14 +106,17 @@ public class PostOperationsController extends MultiActionController
         }
         newInstance.setOwner(loggedInUser.getUsername());
         newInstance.setGroup(loggedInUser.getDefaultGroup().getName());
-        
-        // Get the full URL to the new instance (allows for the fact that in future
-        // the instance may be hosted on a remote machine)
+        // Set the base of the URL to the new instance (allows for the fact that
+        // in future versions the instance may be hosted on a remote machine,
+        // although I haven't really thought that through... ;-)
+        // The full url will be retrievable through getUrl() when the instance
+        // is added to the store (and hence the instance id is known)
         newInstance.setBaseUrl(request.getRequestURL().toString()
             .replaceFirst("clone.action", "instances/"));
         
-        // Add the instance to the store, getting the new ID
-        int id = this.instancesStore.addServiceInstance(newInstance);
+        // Add the instance to the store
+        this.instancesStore.addServiceInstance(newInstance,
+            gs.getWorkingDirectory());
         
         if (request.getParameter("source") != null &&
             request.getParameter("source").equals("web"))
@@ -127,7 +134,7 @@ public class PostOperationsController extends MultiActionController
     
     /**
      * This will be used by the Spring framework to inject the config object
-     * before handleRequestInternal is called
+     * before this object is available for use.
      */
     public void setGrexConfig(GRexConfig config)
     {

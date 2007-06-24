@@ -64,6 +64,15 @@ public class GRexConfig implements UserDetailsService
 {
     private static final Log log = LogFactory.getLog(GRexConfig.class);
     private static final String DEFAULT_CONFIG_FILENAME = "GRexConfig.xml";
+    /**
+     * The name of the directory that will contain the GRexServiceInstancesStore
+     */
+    private static final String INSTANCES_STORE_DIRECTORY_NAME = "db";
+    /**
+     * The name of the directory that will contain the working directory of
+     * the service instances
+     */
+    private static final String WORKING_DIRECTORY_NAME = "wd";
     
     /**
      * The home directory for this G-Rex server.  This will contain the 
@@ -74,6 +83,8 @@ public class GRexConfig implements UserDetailsService
     private String homeDirectoryStr = System.getProperty("user.home") +
         System.getProperty("file.separator") + ".grex";
     private File homeDirectory; // Home directory will be made into a File in validate()
+    private File instancesStoreDirectory;
+    private File masterWorkingDirectory;
     
     /**
      * The users that can access this G-Rex server
@@ -131,7 +142,7 @@ public class GRexConfig implements UserDetailsService
     {
     }
 
-    public Vector<GridServiceConfigForServer> getGridServices()
+    public List<GridServiceConfigForServer> getGridServices()
     {
         return this.gridServices;
     }
@@ -162,9 +173,9 @@ public class GRexConfig implements UserDetailsService
     }
     
     /**
-     * @return a Vector of users that have access to the system
+     * @return a List of users that have access to the system
      */
-    public Vector<User> getUsers()
+    public List<User> getUsers()
     {
         return this.users;
     }
@@ -177,6 +188,18 @@ public class GRexConfig implements UserDetailsService
     @Validate
     public void validate() throws PersistenceException
     {
+        // Now create the home directory
+        this.homeDirectory = new File(this.homeDirectoryStr);
+        mkdir(this.homeDirectory);
+        
+        // Create the directories for the database and the working directories
+        this.instancesStoreDirectory = new File(this.homeDirectory,
+            INSTANCES_STORE_DIRECTORY_NAME);
+        mkdir(this.instancesStoreDirectory);
+        this.masterWorkingDirectory = new File(this.homeDirectory,
+            WORKING_DIRECTORY_NAME);
+        mkdir(this.masterWorkingDirectory);
+        
         // Check that the Group names are unique
         List<String> groupnames = new ArrayList<String>();
         for (Group group : this.groups)
@@ -228,6 +251,11 @@ public class GRexConfig implements UserDetailsService
                 throw new PersistenceException("Duplicate gridservice name %s", name);
             }
             names.add(name);
+            
+            // Create a working directory for this service
+            File wdForService = new File(this.masterWorkingDirectory, name);
+            mkdir(wdForService);
+            gs.setWorkingDirectory(wdForService);
         }
         
         // Check that the security settings for GridServices are correctly formed
@@ -258,26 +286,33 @@ public class GRexConfig implements UserDetailsService
             }
         }
         
-        // Now create the home directory
-        this.homeDirectory = new File(this.homeDirectoryStr);
-        if (this.homeDirectory.exists())
+        log.debug("GRex config validated successfully.");
+    }
+    
+    /**
+     * Creates a directory with the given path.  If the directory already
+     * exists this does nothing.  If the directory cannot be created, or if a
+     * file with the same name already exists, this throws a PersistenceException.
+     */
+    private static void mkdir(File dir) throws PersistenceException
+    {
+        if (dir.exists())
         {
-            if (!this.homeDirectory.isDirectory())
+            if (!dir.isDirectory())
             {
-                throw new PersistenceException("Home directory " +
-                    this.homeDirectory.getPath() + " already exists as a file");
+                throw new PersistenceException("A file with the name " +
+                    dir.getPath() + " already exists: directory not created");
             }
         }
         else
         {
-            boolean created = this.homeDirectory.mkdir();
+            boolean created = dir.mkdir();
             if (!created)
             {
-                throw new PersistenceException("Home directory " +
-                    this.homeDirectory.getPath() + " could not be created");
+                throw new PersistenceException("Directory " +
+                    dir.getPath() + " could not be created");
             }
         }
-        log.debug("GRex config validated successfully.");
     }
 
     /**
@@ -299,5 +334,23 @@ public class GRexConfig implements UserDetailsService
         }
         // If we've got this far we haven't found the user
         throw new UsernameNotFoundException(username + " not found");
+    }
+
+    /**
+     * @return the directory that will contain the database of service instances
+     * (the GRexServiceInstancesStore)
+     */
+    public File getInstancesStoreDirectory()
+    {
+        return this.instancesStoreDirectory;
+    }
+
+    /**
+     * @return the directory that will contain all the working directories of
+     * the service instances
+     */
+    public File getMasterWorkingDirectory()
+    {
+        return this.masterWorkingDirectory;
     }
 }

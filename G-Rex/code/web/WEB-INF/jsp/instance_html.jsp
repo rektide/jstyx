@@ -20,6 +20,7 @@ Displays the details of a particular service instance
         <tbody>
             <tr><th>ID</th><td>${instance.id}</td></tr>
             <tr><th>Description</th><td>${instance.description}</td></tr>
+            <tr><th>Working directory</th><td>${instance.workingDirectory}</td></tr>
             <tr><th>State</th><td>${instance.state}</td></tr>
             <tr><th>Owner</th><td>${instance.owner}</td></tr>
             <tr><th>Group</th><td>${instance.group}</td></tr>

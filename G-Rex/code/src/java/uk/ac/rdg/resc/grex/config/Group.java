@@ -28,11 +28,9 @@
 
 package uk.ac.rdg.resc.grex.config;
 
-import java.util.Vector;
 import org.acegisecurity.GrantedAuthority;
 import simple.xml.Attribute;
 import simple.xml.Root;
-import simple.xml.load.Commit;
 import simple.xml.load.PersistenceException;
 import simple.xml.load.Validate;
 

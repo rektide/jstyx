@@ -32,6 +32,7 @@ import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.PrimaryKey;
 import com.sleepycat.persist.model.SecondaryKey;
 import com.sleepycat.persist.model.Relationship;
+import java.io.File;
 import uk.ac.rdg.resc.grex.config.User;
 
 /**
@@ -56,6 +57,7 @@ public class GRexServiceInstance
     private int id; // Unique ID for this instance
     
     @SecondaryKey(relate=Relationship.MANY_TO_ONE) // A service may contain many Instances
+    
     // WARNING! If you change the name of this field, you also need to change
     // the constructor for the secondary key in InstancesStoreBerkeley!
     private String serviceName; // Unique ID of the service to which this instance belongs
@@ -65,7 +67,9 @@ public class GRexServiceInstance
     private String baseUrl = ""; // Base of the URL to this instance, e.g.
                                  // "http://myserver.com/G-Rex/helloworld/instances/"
     
-    private String workingDirectory; // Directory in which all files relating to this instance will be kept
+    // Directory in which all files relating to this instance will be kept
+    // Note that the database doesn't know how to persist java.io.File
+    private String workingDirectory;
     
     private String owner = ""; // Name of the user that owns this instance
     private String group = ""; // Name of the Group to which the user belongs
@@ -198,7 +202,7 @@ public class GRexServiceInstance
     }
     
     /**
-     * @return the URL to this service instance
+     * @return the full URL to this service instance
      */
     public String getUrl()
     {

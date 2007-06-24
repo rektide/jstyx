@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.grex.config;
 
-import java.util.ArrayList;
+import java.io.File;
 import java.util.List;
 import java.util.Vector;
 import simple.xml.Attribute;
@@ -77,6 +77,10 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
      */
     @ElementList(name="options", type=Option.class, required=false)
     private Vector<Option> options = new Vector<Option>();
+    
+    // The directory that contains all the working directories of instances
+    // of this service.  This is set by GRexConfig.validate()
+    private File workingDirectory;
 
     public String getCommand()
     {
@@ -88,7 +92,7 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
         return type;
     }
 
-    public Vector<Option> getOptions()
+    public List<Option> getOptions()
     {
         return options;
     }
@@ -173,7 +177,7 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
      * @return the usernames that are allowed to access this service,
      * or null if there is no restriction on usernames
      */
-    Vector<String> getAllowedUsers()
+    List<String> getAllowedUsers()
     {
         return this.allowedUsers;
     }
@@ -182,9 +186,28 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
      * @return the group names that are allowed to access this service,
      * or null if there is no restriction on groups
      */
-    Vector<String> getAllowedGroups()
+    List<String> getAllowedGroups()
     {
         return this.allowedGroups;
+    }
+
+    /**
+     * @return the directory that contains all the working directories
+     * for the instances of this service
+     */
+    public File getWorkingDirectory()
+    {
+        return workingDirectory;
+    }
+
+    /**
+     * Sets the directory that contains all the working directories
+     * for the instances of this service.  This is called by
+     * GRexConfig.validate() and should not be called otherwise.
+     */
+    public void setWorkingDirectory(File workingDirectory)
+    {
+        this.workingDirectory = workingDirectory;
     }
     
 }

@@ -28,6 +28,7 @@
 
 package uk.ac.rdg.resc.grex.db;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -58,14 +59,31 @@ public interface GRexServiceInstancesStore
         throws Exception;
     
     /**
-     * Adds the given instance to the database.  NOTE: this will overwrite
-     * any previous Instance with the same ID.
+     * Adds the given instance to the database, creates a unique ID for this instance
+     * and creates the working directory for the instance.  The creation of the
+     * working directory must take place in this method because the id of the
+     * service is not known until the instance has been added to the store
+     * (TODO: is there a better structure for this?)
      * 
      * @param instance the GRexServiceInstance to add to the database
+     * @param parentWorkingDirectory The directory in which the working directory
+     * will be created
      * @return the unique ID of the instance that has been created
      * @throws DatabaseException if there was an error adding the instance
+     * (e.g. an instance with the same id already exists)
      */
-    public int addServiceInstance(GRexServiceInstance instance)
+    public int addServiceInstance(GRexServiceInstance instance,
+        File parentWorkingDirectory) throws Exception;
+    
+    /**
+     * Updates the copy of the given instance object in the database
+     * (identified by its id).
+     * 
+     * @param instance the GRexServiceInstance to update
+     * @throws DatabaseException if there was an error updating the instance
+     * (e.g. there is no existing instance with the same id)
+     */
+    public void updateServiceInstance(GRexServiceInstance instance)
         throws Exception;
     
     /**
