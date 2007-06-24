@@ -32,7 +32,8 @@ import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.PrimaryKey;
 import com.sleepycat.persist.model.SecondaryKey;
 import com.sleepycat.persist.model.Relationship;
-import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import uk.ac.rdg.resc.grex.config.User;
 
 /**
@@ -70,6 +71,9 @@ public class GRexServiceInstance
     // Directory in which all files relating to this instance will be kept
     // Note that the database doesn't know how to persist java.io.File
     private String workingDirectory;
+    
+    // Contains the names and values of all parameters that are set on this instance
+    private Map<String, String> params = new HashMap<String, String>();
     
     private String owner = ""; // Name of the user that owns this instance
     private String group = ""; // Name of the Group to which the user belongs
@@ -276,5 +280,26 @@ public class GRexServiceInstance
     public void setState(State state)
     {
         this.state = state;
+    }
+    
+    /**
+     * @return a Map of the parameters that have been set on this service instance
+     */
+    public Map<String, String> getParams()
+    {
+        return this.params;
+    }
+    
+    public String getParamValue(String name)
+    {
+        return this.params.get(name);
+    }
+    
+    /**
+     * Sets a value of a parameter on this service instance
+     */
+    public void setParam(String name, String value)
+    {
+        this.params.put(name, value);
     }
 }

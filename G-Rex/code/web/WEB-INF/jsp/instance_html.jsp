@@ -3,6 +3,7 @@
 <%--
 Displays the details of a particular service instance
 --%>
+<%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%> 
 
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
    "http://www.w3.org/TR/html4/loose.dtd">
@@ -27,6 +28,16 @@ Displays the details of a particular service instance
             <tr><th>Owner Permissions</th><td>${instance.ownerPermissions}</td></tr>
             <tr><th>Group Permissions</th><td>${instance.groupPermissions}</td></tr>
             <tr><th>Other Permissions</th><td>${instance.otherPermissions}</td></tr>
+        </tbody>
+    </table>
+    
+    <p><strong>Parameters:</strong></p>
+    <table border="1">
+        <tbody>
+            <tr><th>Key</th><th>Value</th></tr>
+            <c:forEach var="par" items="${instance.params}">
+            <tr><td>${par.key}</td><td>${par.value}</td></tr>
+            </c:forEach>
         </tbody>
     </table>
     
