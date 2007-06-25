@@ -71,6 +71,7 @@
         <property name="mappings">
             <value>
                 /*/clone.action=createNewServiceInstance
+                /*/instances/*/setup.action=setupServiceInstance
             </value>
         </property>
     </bean>  
@@ -93,6 +94,8 @@
                 <prop key="/*/instances/*.*">getOperationsController</prop>
                 <!-- Creates a new instance of a service -->
                 <prop key="/*/clone.action">postOperationsController</prop>
+                <!-- Sets parameters and input files for a service instance -->
+                <prop key="/*/instances/*/setup.action">postOperationsController</prop>
             </props>
         </property>
     </bean>

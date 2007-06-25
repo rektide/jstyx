@@ -65,6 +65,9 @@ public class PostOperationsController extends MultiActionController
      */
     private GRexServiceInstancesStore instancesStore;
     
+    /**
+     * Creates a new instance of a particular service
+     */
     public ModelAndView createNewServiceInstance(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
@@ -114,7 +117,8 @@ public class PostOperationsController extends MultiActionController
         newInstance.setBaseUrl(request.getRequestURL().toString()
             .replaceFirst("clone.action", "instances/"));
         
-        // Add the instance to the store
+        // Add the instance to the store.  This also creates the unique ID of
+        // the instance and creates the working directory for the instance
         this.instancesStore.addServiceInstance(newInstance,
             gs.getWorkingDirectory());
         
@@ -130,6 +134,57 @@ public class PostOperationsController extends MultiActionController
             // (i.e. via a REST web service call) and we'll return XML to the client
             return new ModelAndView("newInstanceCreated_xml", "instance", newInstance);
         }
+    }
+    
+    /**
+     * Sets up a service instance by setting parameter values, uploading input
+     * files, etc.  This method can be called many times: each invocation will
+     * overwrite any existing data.
+     */
+    public ModelAndView setupServiceInstance(HttpServletRequest request,
+        HttpServletResponse response) throws Exception
+    {
+        User loggedInUser = (User)SecurityContextHolder.getContext()
+            .getAuthentication().getPrincipal();
+        
+        // Work out which service instance we're interested in.  The URL
+        // pattern is /G-Rex/serviceName/instances/instanceId/setup.action
+        String serviceName = request.getRequestURI().split("/")[2];
+        String instanceIdStr = request.getRequestURI().split("/")[4];
+        
+        // TODO: repetitive of code in GetOperationsController.showServiceInstance(): refactor?
+        try
+        {
+            int instanceId = Integer.parseInt(instanceIdStr);
+            // Retrieve the instance object from the store
+            GRexServiceInstance instance = this.instancesStore.getServiceInstanceById(instanceId);
+            // Check that the instance exists and that the service names match
+            if (instance == null || !instance.getServiceName().equals(serviceName))
+            {
+                throw new GRexException("There is no instance of " + serviceName + 
+                    " with id " + instanceIdStr);
+            }
+            if (!instance.canBeModifiedBy(loggedInUser))
+            {
+                throw new GRexException("User " + loggedInUser.getUsername() +
+                    " does not have permission to modify for instance "
+                    + instance.getId() + " of service " + serviceName);
+            }
+            
+            // Set parameters on the instance
+            
+            // Upload the input files (TODO: allow URLs to be set)
+            // TODO: allow progress to be monitored for uploads?
+            
+            // Return a document confirming success
+        }
+        catch(NumberFormatException nfe)
+        {
+            // thrown by Integer.parseInt(instanceIdStr)
+            throw new GRexException("There is no instance of " + serviceName + 
+                " with id " + instanceIdStr);
+        }
+        
     }
     
     /**
