@@ -198,7 +198,7 @@ public class GRexServiceInstance
     /**
      * Sets the base URL for this instance, e.g. "http://myserver.com/G-Rex/helloworld/instances/".
      * Should not be called directly (this is called by PostOperationsController
-     * when creating a new service instance
+     * when creating a new service instance)
      */
     public void setBaseUrl(String baseUrl)
     {
@@ -285,7 +285,7 @@ public class GRexServiceInstance
     /**
      * @return a Map of the parameters that have been set on this service instance
      */
-    public Map<String, String> getParams()
+    public Map<String, String> getParameters()
     {
         return this.params;
     }
@@ -298,7 +298,7 @@ public class GRexServiceInstance
     /**
      * Sets a value of a parameter on this service instance
      */
-    public void setParam(String name, String value)
+    public void setParameter(String name, String value)
     {
         this.params.put(name, value);
     }

@@ -33,10 +33,16 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.multipart.FilePart;
+import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
+import org.apache.commons.httpclient.methods.multipart.Part;
+import org.apache.commons.httpclient.methods.multipart.StringPart;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
@@ -62,7 +68,7 @@ public class GRexServiceInstanceClient
      * Map of parameter names and values that we will set on the remote service
      * instance
      */
-    private Map<String, String> parameters = new HashMap<String, String>();
+    private Map<String, String> params = new HashMap<String, String>();
     
     /**
      * Contains the files that must be uploaded to the remote server before the
@@ -101,27 +107,13 @@ public class GRexServiceInstanceClient
     }
     
     /**
-     * Gets the status of this service instance
-     * @throws GRexException if there was an error reading the information from 
-     * the server (e.g. the user does not have permissions to read the config info)
-     * @throws IOException if an i/o error occurred, e.g. cannot connect to server 
-     */
-    public Object getStatus() throws IOException, GRexException
-    {
-        String statusUrl = this.getUrl() + "/status.xml";
-        log.debug("Getting status information from " + statusUrl);
-        GetMethod get = new GetMethod(statusUrl);
-        return this.serviceClient.executeMethod(get, Object.class);
-    }
-    
-    /**
      * Sets the name and value of a parameter that will be set on the remote
      * service instance, prior to the instance being started.  This performs
      * no checks on whether the name of the parameter is valid (TODO).
      */
     public void setParameter(String name, String value)
     {
-        this.parameters.put(name, value);
+        this.params.put(name, value);
     }
     
     /**
@@ -159,14 +151,14 @@ public class GRexServiceInstanceClient
     /**
      * Adds a file to the list of files that must be uploaded before the service
      * instance is started (this method does not actually upload the file).
-     * Exactly equivalent to addFileToUpload(file, file.getPath()).
-     * @param file The File to upload (the file will have the same path on the
-     * server, relative to the working directory of the instance)
+     * Exactly equivalent to addFileToUpload(file, file.getName()).
+     * @param file The File to upload (the file will have the same name on the
+     * server inside the working directory of the instance)
      * @throws FileNotFoundException if the file does not exist
      */
     public void addFileToUpload(File file) throws FileNotFoundException
     {
-        this.addFileToUpload(file, file.getPath());
+        this.addFileToUpload(file, file.getName());
     }
     
     /**
@@ -216,20 +208,44 @@ public class GRexServiceInstanceClient
      * @todo Should this return immediately (doing all the stuff in threads
      * and reporting progress via listeners)?
      */
-    public void start()
+    public void start() throws IOException, GRexException
     {
-        // TODO
+        // Setup the job by setting the parameters and uploading the input files
+        PostMethod setupJob = new PostMethod(this.url + "/setup.action");
+        List<Part> parts = new ArrayList<Part>();
+        // Add the parameters
+        for (String paramName : this.params.keySet())
+        {
+            parts.add(new StringPart(paramName, this.params.get(paramName)));
+        }
+        // Add the input files to the parts
+        for (File fileToUpload : this.filesToUpload.keySet())
+        {
+            String pathOnServer = this.filesToUpload.get(fileToUpload);
+            parts.add(new FilePart(pathOnServer, fileToUpload));
+        }
+        Part[] partsArray = parts.toArray(new Part[0]);
+        MultipartRequestEntity mre = new MultipartRequestEntity(partsArray, setupJob.getParams());
+        setupJob.setRequestEntity(mre);
+        InstanceResponse resp = this.serviceClient.executeMethod(setupJob, InstanceResponse.class);
+        
+        // Now start the service instance
+        
     }
     
     /**
-     * Uploads a file to the server
+     * Gets the status of this service instance
+     * @todo return object of correct type
+     * @throws GRexException if there was an error reading the information from 
+     * the server (e.g. the user does not have permissions to read the config info)
+     * @throws IOException if an i/o error occurred, e.g. cannot connect to server 
      */
-    public void uploadFile() throws IOException, GRexException
+    public Object getStatus() throws IOException, GRexException
     {
-        PostMethod post = new PostMethod("url");
-        //MultipartRequestEntity mre = new MultipartRequestEntity();
-        //post.setRequestEntity(mre);
-        
+        String statusUrl = this.url + "/status.xml";
+        log.debug("Getting status information from " + statusUrl);
+        GetMethod get = new GetMethod(statusUrl);
+        return this.serviceClient.executeMethod(get, Object.class);
     }
     
     public String getUrl()

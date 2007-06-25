@@ -32,22 +32,30 @@ import simple.xml.Attribute;
 import simple.xml.Root;
 
 /**
- * Simple class used to deserialize the response from the server when
- * creating a new service instance.  Matches up with newInstanceCreated_xml.jsp.
+ * A Parameter name-value pair that is contained in an InstanceResponse.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-@Root(name="instance")
-class CreateInstanceResponse
+@Root(name="param")
+class Parameter
 {
-    @Attribute(name="url")
-    private String url;
+    @Attribute(name="name")
+    private String name;
     
-    public String getUrl()
+    @Attribute(name="value")
+    private String value;
+
+    public String getName()
     {
-        return this.url;
+        return name;
     }
+
+    public String getValue()
+    {
+        return value;
+    }
+    
 }

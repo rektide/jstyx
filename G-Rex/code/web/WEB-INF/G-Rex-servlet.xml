@@ -32,6 +32,18 @@
         <property name="grexConfig"><ref local="grexConfig"/></property>
     </bean>
     
+    <!-- An object that is used to create JobRunners.  This object needs a Map
+         of key-value pairs that map job types ("local", "condor", etc) to
+         classes that extend JobRunner -->
+    <bean id="jobRunnerFactory" class="uk.ac.rdg.resc.grex.server.JobRunnerFactory">
+        <property name="runnerClasses">
+            <map>
+                <entry key="local" value="classForLocal"/>
+                <entry key="condor" value="classForCondor"/>
+            </map>
+        </property>
+    </bean>
+    
     <!-- This is a MultiActionController that will handle all the GET methods
          (i.e. all requests for information that do not change the state of 
          the server) -->
@@ -64,6 +76,8 @@
         <property name="grexConfig"><ref local="grexConfig"/></property>
         <!-- Inject the store of instances into this controller -->
         <property name="instancesStore"><ref local="instancesStore"/></property>
+        <!-- Inject the JobRunnerFactory into this controller -->
+        <property name="jobRunnerFactory"><ref local="jobRunnerFactory"/></property>
         <property name="methodNameResolver"><ref local="propsResolverPost"/></property>
     </bean>
     <!-- This maps URL patterns to the methods of the multi-action controller -->

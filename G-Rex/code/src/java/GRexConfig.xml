@@ -53,10 +53,10 @@
                 <param name="outputfile" type="unflaggedOption" required="true" description="Name of output file"/>
             </params>
             <inputs>
-                <input name="inputfile"/>
+                <input name="${inputfile}"/>
             </inputs>
             <outputs>
-                <output name="outputfile"/>
+                <output name="${outputfile}"/>
                 <output name="stdout"/>
                 <output name="stderr"/>
             </outputs>

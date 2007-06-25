@@ -29,9 +29,17 @@
 package uk.ac.rdg.resc.grex.controllers;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.apache.commons.fileupload.FileItemIterator;
+import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.web.servlet.ModelAndView;
@@ -42,6 +50,7 @@ import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
+import uk.ac.rdg.resc.grex.server.JobRunnerFactory;
 
 /**
  * Controller that handles all the POST operations (i.e. requests for information
@@ -64,6 +73,10 @@ public class PostOperationsController extends MultiActionController
      * Store of service instances.
      */
     private GRexServiceInstancesStore instancesStore;
+    /**
+     * Factory for JobRunner objects
+     */
+    private JobRunnerFactory jobRunnerFactory;
     
     /**
      * Creates a new instance of a particular service
@@ -125,14 +138,18 @@ public class PostOperationsController extends MultiActionController
         if (request.getParameter("source") != null &&
             request.getParameter("source").equals("web"))
         {
-            // We've come from the web so display an HTML page
+            // We've come from the web so display an HTML page that redirects
+            // to the information page for the instance.  We do the redirect
+            // to prevent the user from accidentally creating more instances by
+            // pressing refresh
             return new ModelAndView("newInstanceCreated_html", "instance", newInstance);
         }
         else
         {
             // We didn't come from the web, so we assume we've done this programmatically
             // (i.e. via a REST web service call) and we'll return XML to the client
-            return new ModelAndView("newInstanceCreated_xml", "instance", newInstance);
+            // We just show the information about the new instance
+            return new ModelAndView("instance_xml", "instance", newInstance);
         }
     }
     
@@ -167,16 +184,67 @@ public class PostOperationsController extends MultiActionController
             if (!instance.canBeModifiedBy(loggedInUser))
             {
                 throw new GRexException("User " + loggedInUser.getUsername() +
-                    " does not have permission to modify for instance "
+                    " does not have permission to modify instance "
                     + instance.getId() + " of service " + serviceName);
             }
             
-            // Set parameters on the instance
+            // Create a new file upload handler
+            // See http://jakarta.apache.org/commons/fileupload/streaming.html
+            ServletFileUpload upload = new ServletFileUpload();            
+            FileItemIterator iter = upload.getItemIterator(request);
+            while (iter.hasNext())
+            {
+                FileItemStream item = iter.next();
+                String name = item.getFieldName();
+                InputStream stream = item.openStream();
+                if (item.isFormField())
+                {
+                    instance.setParameter(name, Streams.asString(stream));
+                }
+                else
+                {
+                    // This is a file to upload and we can now process the input
+                    // stream.  In future we could send this stream to a database,
+                    // or to a remote file store.
+                    log.debug("Detected upload of file called " + name);
+                    // Make sure we only save files in the working directory itself
+                    // (otherwise a client could set the name to "..\..\123\wd\foo.dat"
+                    // and overwrite data in another instance
+                    File targetFile = new File(instance.getWorkingDirectory(), name);
+                    if (!isChild(instance.getWorkingDirectory(), targetFile))
+                    {
+                        log.error("Not allowed to write a file to " + targetFile.getCanonicalPath());
+                        throw new GRexException("Not allowed to write a file to this location");
+                    }
+                    // Create the directory to hold this input file if it doesn't
+                    // already exist
+                    if (!targetFile.getParentFile().exists() && !targetFile.getParentFile().mkdirs())
+                    {
+                        log.error("Could not create directory for " + targetFile.getPath());
+                        throw new GRexException("Internal error: could not create directory" +
+                            " for input file " + name);
+                    }
+                    // Copy the input stream to the target file
+                    log.debug("Saving file " + name + " to " + targetFile.getPath());
+                    // TODO: monitor progress somehow?
+                    OutputStream fout = new FileOutputStream(targetFile);
+                    byte[] buf = new byte[1024];
+                    int len;
+                    while ((len = stream.read(buf)) > 0)
+                    {
+                        fout.write(buf, 0, len);
+                    }
+                    stream.close();
+                    fout.close();
+                }
+            }
             
-            // Upload the input files (TODO: allow URLs to be set)
-            // TODO: allow progress to be monitored for uploads?
+            // Update the service instance object in the store
+            this.instancesStore.updateServiceInstance(instance);
             
-            // Return a document confirming success
+            // Return a document describing the new instance
+            // TODO: do something else if we've come from a web page
+            return new ModelAndView("instance_xml", "instance", instance);
         }
         catch(NumberFormatException nfe)
         {
@@ -184,12 +252,29 @@ public class PostOperationsController extends MultiActionController
             throw new GRexException("There is no instance of " + serviceName + 
                 " with id " + instanceIdStr);
         }
-        
+    }
+    
+    /**
+     * Checks to see if one file is contained within a given directory
+     * (as a direct child or in a sub-directory), by comparing their canonical
+     * paths.
+     * @throws IOException (might be thrown when calculating the canonical path)
+     */
+    private static boolean isChild(String parent, File child)
+        throws IOException
+    {
+        File parentFile = new File(parent);
+        if (parentFile.isDirectory())
+        {
+            String parentPath = parentFile.getCanonicalPath();
+            String childPath = child.getCanonicalPath();
+            return childPath.startsWith(parentPath);
+        }
+        return false;
     }
     
     /**
      * This will be used by the Spring framework to inject the config object
-     * before this object is available for use.
      */
     public void setGrexConfig(GRexConfig config)
     {
@@ -203,5 +288,14 @@ public class PostOperationsController extends MultiActionController
     public void setInstancesStore(GRexServiceInstancesStore instancesStore)
     {
         this.instancesStore = instancesStore;
+    }
+    
+    /**
+     * This will be called by the Spring framework to inject an object that
+     * can be used to get and create JobRunners
+     */
+    public void setJobRunnerFactory(JobRunnerFactory factory)
+    {
+        this.jobRunnerFactory = factory;
     }
 }

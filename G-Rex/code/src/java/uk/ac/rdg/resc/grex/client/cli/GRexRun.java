@@ -34,6 +34,7 @@ import com.martiansoftware.jsap.JSAPException;
 import com.martiansoftware.jsap.JSAPResult;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
+import java.io.File;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.client.GRexServiceClient;
@@ -190,7 +191,14 @@ public class GRexRun
                 {
                     // The value of this parameter specifies an input file that
                     // we must upload
-                    instanceClient.addFileToUpload(paramValue);
+                    File fileToUpload = new File(paramValue);
+                    // We upload it to the working directory of the instance
+                    // on the server
+                    instanceClient.addFileToUpload(fileToUpload, fileToUpload.getName());
+                    // We make sure the parameter is set correctly by omitting the
+                    // path to the file, telling the server that the file will be
+                    // in the working directory of the instance
+                    instanceClient.setParameter(param.getName(), fileToUpload.getName());
                 }
                 if (param.getLinkedOutput() != null)
                 {
@@ -205,7 +213,7 @@ public class GRexRun
             // the standard input stream will be redirected to the remote service
             // instance and we will start downloading the output streams.
             // When the service has finished, the output files will be downloaded.
-            
+            instanceClient.start();
             
         }
         catch(Exception e)
@@ -252,7 +260,7 @@ public class GRexRun
             String description = param.getDescription();
             char shortFlag = param.getFlag() == null ? JSAP.NO_SHORTFLAG : param.getFlag().charAt(0);
             String longFlag = param.getLongFlag() == null ? JSAP.NO_LONGFLAG : param.getLongFlag();
-            boolean required = param.isRequired() ? JSAP.NOT_REQUIRED : JSAP.REQUIRED;
+            boolean required = param.isRequired() ? JSAP.REQUIRED : JSAP.NOT_REQUIRED;
             boolean greedy = param.isGreedy();
             String defaultValue = param.getDefaultValue() == null ? JSAP.NO_DEFAULT : param.getDefaultValue();
             

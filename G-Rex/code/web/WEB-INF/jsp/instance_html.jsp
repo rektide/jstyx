@@ -21,7 +21,6 @@ Displays the details of a particular service instance
         <tbody>
             <tr><th>ID</th><td>${instance.id}</td></tr>
             <tr><th>Description</th><td>${instance.description}</td></tr>
-            <tr><th>Working directory</th><td>${instance.workingDirectory}</td></tr>
             <tr><th>State</th><td>${instance.state}</td></tr>
             <tr><th>Owner</th><td>${instance.owner}</td></tr>
             <tr><th>Group</th><td>${instance.group}</td></tr>
@@ -35,7 +34,7 @@ Displays the details of a particular service instance
     <table border="1">
         <tbody>
             <tr><th>Key</th><th>Value</th></tr>
-            <c:forEach var="par" items="${instance.params}">
+            <c:forEach var="par" items="${instance.parameters}">
             <tr><td>${par.key}</td><td>${par.value}</td></tr>
             </c:forEach>
         </tbody>

@@ -176,7 +176,7 @@ public class GRexServiceClient
             post.setParameter("description", description); // The instruction to create a new instance
         }
         
-        String newInstanceUrl = this.executeMethod(post, CreateInstanceResponse.class).getUrl();
+        String newInstanceUrl = this.executeMethod(post, InstanceResponse.class).getUrl();
         
         return new GRexServiceInstanceClient(newInstanceUrl, this);
     }
