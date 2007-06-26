@@ -209,12 +209,13 @@ public class PostOperationsController extends MultiActionController
                     log.debug("Detected upload of file called " + name);
                     // Make sure we only save files in the working directory itself
                     // (otherwise a client could set the name to "..\..\123\wd\foo.dat"
-                    // and overwrite data in another instance
+                    // and overwrite data in another instance)
                     File targetFile = new File(instance.getWorkingDirectory(), name);
                     if (!isChild(instance.getWorkingDirectory(), targetFile))
                     {
                         log.error("Not allowed to write a file to " + targetFile.getCanonicalPath());
-                        throw new GRexException("Not allowed to write a file to this location");
+                        throw new GRexException("Not allowed to write a file that" +
+                            " is not in the working directory of the service instance");
                     }
                     // Create the directory to hold this input file if it doesn't
                     // already exist

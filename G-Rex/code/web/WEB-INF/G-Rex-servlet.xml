@@ -12,6 +12,18 @@
        xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
        xsi:schemaLocation='http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd'>
     
+    <!-- An object that is used to create JobRunners.  This object needs a Map
+         of key-value pairs that map job types ("local", "condor", etc) to
+         classes that extend JobRunner -->
+    <bean id="jobRunnerFactory" class="uk.ac.rdg.resc.grex.server.JobRunnerFactory">
+        <property name="runnerClasses">
+            <map>
+                <entry key="local" value="uk.ac.rdg.resc.grex.server.LocalJobRunner"/>
+                <entry key="condor" value="uk.ac.rdg.resc.grex.server.CondorJobRunner"/>
+            </map>
+        </property>
+    </bean>
+    
     <!-- Defines a configuration object that is used to configure this server.
          This object is created via GRexConfig.readConfig(), a static factory method -->
     <bean id="grexConfig" class="uk.ac.rdg.resc.grex.config.GRexConfig"
@@ -19,6 +31,9 @@
         <!-- G-Rex will look for the config file in the CLASSPATH unless you
              uncomment the line below and set the full path to the config file -->
         <!--<constructor-arg><value>/path/to/GRexConfig.xml</value></constructor-arg>-->
+        <!-- We need to inject the JobRunnerFactory into this object because we
+             use it to check the validity of job types set in the config file -->
+       <constructor-arg><ref local="jobRunnerFactory"/></constructor-arg>
     </bean>
     
     <!-- Defines a store of service instances.  This is implemented as a Berkeley
@@ -30,18 +45,6 @@
              used to find the home directory, which is where the database
              will be created -->
         <property name="grexConfig"><ref local="grexConfig"/></property>
-    </bean>
-    
-    <!-- An object that is used to create JobRunners.  This object needs a Map
-         of key-value pairs that map job types ("local", "condor", etc) to
-         classes that extend JobRunner -->
-    <bean id="jobRunnerFactory" class="uk.ac.rdg.resc.grex.server.JobRunnerFactory">
-        <property name="runnerClasses">
-            <map>
-                <entry key="local" value="classForLocal"/>
-                <entry key="condor" value="classForCondor"/>
-            </map>
-        </property>
     </bean>
     
     <!-- This is a MultiActionController that will handle all the GET methods

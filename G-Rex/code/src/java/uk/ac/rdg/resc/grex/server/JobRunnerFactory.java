@@ -28,9 +28,12 @@
 
 package uk.ac.rdg.resc.grex.server;
 
+import java.lang.reflect.Constructor;
 import java.util.Hashtable;
 import java.util.Map;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
+import uk.ac.rdg.resc.grex.exceptions.InvalidJobRunnerException;
+import uk.ac.rdg.resc.grex.exceptions.JobTypeNotSupportedException;
 
 /**
  * Bean that will be set up by the Spring framework and can be used to create
@@ -51,53 +54,88 @@ public class JobRunnerFactory
     private final Map<Integer, JobRunner> jobRunners = new Hashtable<Integer, JobRunner>();
     
     /**
-     * Maps job types ("local", "condor" etc) to concrete implementations of
-     * JobRunner.  Will be populated by the Spring framework
+     * Maps job types ("local", "condor" etc) to constructors for JobRunners.
+     * This will be populated by setRunnerClasses(), which is called by the
+     * Spring framework.
      */
-    private Map<String, Class> runnerClasses;
+    private Map<String, Constructor<JobRunner>> runnerConstructors;
     
     /**
      * Called by the Spring framework to set the Map of job types ("local", 
      * "condor", etc) as set in the configuration file to Classes of
      * JobRunner.
+     * @throws InvalidJobRunnerException if one of the Classes is not a valid
+     * JobRunner, or if a class does not provide a valid no-argument constructor
      */
     public void setRunnerClasses(Map<String, Class> runnerClasses)
+        throws InvalidJobRunnerException
     {
+        this.runnerConstructors = new Hashtable<String, Constructor<JobRunner>>();
         // Check that the Classes are of the correct type
-        for (Class clazz : runnerClasses.values())
+        for (String jobType : runnerClasses.keySet())
         {
+            Class clazz = runnerClasses.get(jobType);
             if (!JobRunner.class.isAssignableFrom(clazz))
             {
-                // TODO: throw an Exception
+                throw new InvalidJobRunnerException(clazz + " is not a valid JobRunner");
+            }
+            // Get the no-argument constructor for this class
+            try
+            {
+                Constructor<JobRunner> constructor = clazz.getConstructor();
+                this.runnerConstructors.put(jobType, constructor);
+            }
+            catch(Exception e)
+            {
+                throw new InvalidJobRunnerException(clazz + " does not provide"
+                    + " an accessible no-argument constructor");
             }
         }
-        this.runnerClasses = runnerClasses;
     }
     
     /**
      * Gets a JobRunner of the given type ("local", "condor", etc) for the given
      * GRexServiceInstance.  If a JobRunner already exists for this instance,
      * it will be returned, otherwise a new one will be created.
+     * @throws JobTypeNotSupportedException if the given job type is not supported
      */
     public synchronized final JobRunner getRunnerForInstance(GRexServiceInstance instance,
-        String jobType)
+        String jobType) throws JobTypeNotSupportedException
     {
         JobRunner runner = this.jobRunners.get(instance.getId());
         if (runner == null)
         {
-            Class runnerClass = this.runnerClasses.get(jobType);
-            if (runnerClass == null)
+            Constructor<JobRunner> constructor = this.runnerConstructors.get(jobType);
+            if (constructor == null)
             {
-                // TODO: throw an Exception
+                throw new JobTypeNotSupportedException(jobType);
             }
-            Object runnerObj = runnerClass.newInstance();
-            // We know that the cast in the line below is safe because we have
-            // checked in setJobRunners.
-            runner = (JobRunner)runnerObj;
-            // Now add the new job runner to the store
-            this.jobRunners.put(instance.getId(), runner);
+            try
+            {
+                runner = constructor.newInstance();
+                // Now add the new job runner to the store
+                this.jobRunners.put(instance.getId(), runner);
+            }
+            catch(Exception e)
+            {
+                // Shouldn't happen: we've checked in setRunnerClasses() that
+                // the constructor is accessible.
+                throw new AssertionError("Could not instantiate JobRunner of type "
+                    + constructor.getDeclaringClass() + " due to a "
+                    + e.getClass());
+            }
         }
         return runner;
     }
+    
+    /**
+     * @return true if the given job type ("local", "condor" etc) is supported.
+     */
+    public boolean supportsJobType(String jobType)
+    {
+        return this.runnerConstructors.containsKey(jobType);
+    }
+    
+    // TODO: need a method to remove a jobrunner from the store
     
 }

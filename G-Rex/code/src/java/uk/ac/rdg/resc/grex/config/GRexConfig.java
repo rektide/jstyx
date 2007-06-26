@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.grex.config;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +46,7 @@ import simple.xml.Root;
 import simple.xml.load.PersistenceException;
 import simple.xml.load.Persister;
 import simple.xml.load.Validate;
+import uk.ac.rdg.resc.grex.server.JobRunnerFactory;
 
 /**
  * Class that configures a G-Rex server by describing all the services it
@@ -90,28 +92,30 @@ public class GRexConfig implements UserDetailsService
      * The users that can access this G-Rex server
      */
     @ElementList(name="users", type=User.class)
-    private Vector<User> users = new Vector<User>();
+    private List<User> users = new Vector<User>();
     
     /**
      * The groups (roles) of users that are used to control access
      */
     @ElementList(name="groups", type=Group.class)
-    private Vector<Group> groups = new Vector<Group>();
+    private List<Group> groups = new Vector<Group>();
     
     /**
      * The services that are exposed by this G-Rex server
      */
     @ElementList(name="gridservices", type=GridServiceConfigForServer.class)
-    private Vector<GridServiceConfigForServer> gridServices = new Vector<GridServiceConfigForServer>();
+    private List<GridServiceConfigForServer> gridServices = new Vector<GridServiceConfigForServer>();
     
     /**
      * Creates a new instance of GRexConfig by reading the config information
      * from the file with the given path
      */
-    public static GRexConfig readConfig(String configFilePath) throws Exception
+    public static GRexConfig readConfig(String configFilePath,
+        JobRunnerFactory jobRunnerFactory) throws Exception
     {
         File configFile = new File(configFilePath);
         GRexConfig config = new Persister().read(GRexConfig.class, configFile);
+        config.validateJobTypes(jobRunnerFactory);
         log.debug("Loaded configuration from " + configFile.getPath());
         return config;
     }
@@ -120,19 +124,38 @@ public class GRexConfig implements UserDetailsService
      * Reads the configuration information, looking in the CLASSPATH for 
      * a file called "GRexConfig.xml"
      */
-    public static GRexConfig readConfig() throws Exception
+    public static GRexConfig readConfig(JobRunnerFactory jobRunnerFactory) throws Exception
     {
         InputStream in = Thread.currentThread().getContextClassLoader()
             .getResourceAsStream(DEFAULT_CONFIG_FILENAME);
         if (in == null)
         {
-            throw new Exception("Cannot find " + DEFAULT_CONFIG_FILENAME
+            throw new FileNotFoundException("Cannot find " + DEFAULT_CONFIG_FILENAME
                 + " in the CLASSPATH");
         }
         GRexConfig config = new Persister().read(GRexConfig.class, in);
+        config.validateJobTypes(jobRunnerFactory);
         log.debug("Loaded configuration from " + DEFAULT_CONFIG_FILENAME
             + " (found in classpath)");
         return config;
+    }
+    
+    /**
+     * Validates the job types of all the GridServices to make sure that they
+     * have equivalent JobRunners.
+     * @throws Exception if a grid service does not have an equivalent JobRunner
+     */
+    private void validateJobTypes(JobRunnerFactory jobRunnerFactory)
+        throws Exception
+    {
+        for (GridServiceConfigForServer gs : this.gridServices)
+        {
+            if (!jobRunnerFactory.supportsJobType(gs.getType()))
+            {
+                throw new Exception("Job type \"" + gs.getType() + "\" for grid service \""
+                    + gs.getName() + "\" is not supported");
+            }
+        }
     }
     
     /**
