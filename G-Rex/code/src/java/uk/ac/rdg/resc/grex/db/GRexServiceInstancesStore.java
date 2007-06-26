@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.grex.db;
 
 import java.io.File;
 import java.util.List;
+import uk.ac.rdg.resc.grex.exceptions.InstancesStoreException;
 
 /**
  * Defines the methods that must be implemented by a store of G-Rex service
@@ -48,7 +49,7 @@ public interface GRexServiceInstancesStore
      * @param id The id of the instance
      * @return The TrexServiceInstance with this id
      */
-    public GRexServiceInstance getServiceInstanceById(int id) throws Exception;
+    public GRexServiceInstance getServiceInstanceById(int id) throws InstancesStoreException;
     
     /**
      * Finds all the instances of the service with the given name
@@ -56,7 +57,7 @@ public interface GRexServiceInstancesStore
      * @return a List of all the instances of this service
      */
     public List<GRexServiceInstance> getServiceInstancesByServiceName(String serviceName)
-        throws Exception;
+        throws InstancesStoreException;
     
     /**
      * Adds the given instance to the database, creates a unique ID for this instance
@@ -73,7 +74,7 @@ public interface GRexServiceInstancesStore
      * (e.g. an instance with the same id already exists)
      */
     public int addServiceInstance(GRexServiceInstance instance,
-        File parentWorkingDirectory) throws Exception;
+        File parentWorkingDirectory) throws InstancesStoreException;
     
     /**
      * Updates the copy of the given instance object in the database
@@ -84,7 +85,7 @@ public interface GRexServiceInstancesStore
      * (e.g. there is no existing instance with the same id)
      */
     public void updateServiceInstance(GRexServiceInstance instance)
-        throws Exception;
+        throws InstancesStoreException;
     
     /**
      * Finds all the service instances (of any service) that belong to the 

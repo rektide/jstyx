@@ -231,26 +231,41 @@ public class GetOperationsController extends MultiActionController
         // pattern is /G-Rex/serviceName/instances/instanceID.[xml,html]
         String serviceName = request.getRequestURI().split("/")[2];
         String instanceIdStr = request.getRequestURI().split("/")[4].split("\\.")[0];
+        
+        GRexServiceInstance instance = findAndCheckServiceInstance(instanceIdStr,
+            serviceName, this.instancesStore);
+        if (!instance.canBeReadBy(loggedInUser))
+        {
+            throw new GRexException("User " + loggedInUser.getUsername() +
+                " does not have permission to view information for instance "
+                + instance.getId() + " of service " + serviceName);
+        }
+        // Display the details of this instance
+        return new ModelAndView("instance_" +
+            getFileExtension(request.getRequestURI()), "instance", instance);
+    }
+    
+    /**
+     * Searches the given GRexServiceInstancesStore for the requested service
+     * instance and checks that it belongs to the correct service
+     * @throws Exception if the service instance could not be found
+     */
+    static GRexServiceInstance findAndCheckServiceInstance(String instanceIdStr,
+        String serviceName, GRexServiceInstancesStore instancesStore)
+        throws Exception
+    {
         try
         {
             int instanceId = Integer.parseInt(instanceIdStr);
             // Retrieve the instance object from the store
-            GRexServiceInstance instance = this.instancesStore.getServiceInstanceById(instanceId);
+            GRexServiceInstance instance = instancesStore.getServiceInstanceById(instanceId);
             // Check that the service names match
             if (instance == null || !instance.getServiceName().equals(serviceName))
             {
                 throw new GRexException("There is no instance of " + serviceName + 
                     " with id " + instanceIdStr);
             }
-            if (!instance.canBeReadBy(loggedInUser))
-            {
-                throw new GRexException("User " + loggedInUser.getUsername() +
-                    " does not have permission to view information for instance "
-                    + instance.getId() + " of service " + serviceName);
-            }
-            // Display the details of this instance
-            return new ModelAndView("instance_" +
-                getFileExtension(request.getRequestURI()), "instance", instance);
+            return instance;
         }
         catch(NumberFormatException nfe)
         {

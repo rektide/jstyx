@@ -227,10 +227,14 @@ public class GRexServiceInstanceClient
         Part[] partsArray = parts.toArray(new Part[0]);
         MultipartRequestEntity mre = new MultipartRequestEntity(partsArray, setupJob.getParams());
         setupJob.setRequestEntity(mre);
-        InstanceResponse resp = this.serviceClient.executeMethod(setupJob, InstanceResponse.class);
+        InstanceResponse respSetup = this.serviceClient.executeMethod(setupJob, InstanceResponse.class);
+        // TODO: do something with the response object?
         
         // Now start the service instance
-        
+        PostMethod startJob = new PostMethod(this.url + "/control.action");
+        startJob.setParameter("operation", "start");
+        InstanceResponse respStart = this.serviceClient.executeMethod(startJob, InstanceResponse.class);
+        // TODO: do something with the response object?
     }
     
     /**

@@ -26,24 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.ac.rdg.resc.grex.server;
+package uk.ac.rdg.resc.grex.exceptions;
 
 /**
- * Runs a job on a Condor pool.  For this to work, the G-Rex server must be a 
- * Condor submit host.
- * @todo: implement!
+ * Exception that is thrown when an error occurs reading from or writing to the
+ * persistent store of service instances
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class CondorJobRunner extends LocalJobRunner
+public class InstancesStoreException extends Exception
 {
     
-    /** Creates a new instance of CondorJobRunner */
-    public CondorJobRunner()
+    public InstancesStoreException(String message, Throwable cause)
     {
+        super(message, cause);
+    }
+    
+    public InstancesStoreException(String message)
+    {
+        super(message);
+    }
+    
+    public InstancesStoreException(Throwable cause)
+    {
+        super(cause);
     }
     
 }

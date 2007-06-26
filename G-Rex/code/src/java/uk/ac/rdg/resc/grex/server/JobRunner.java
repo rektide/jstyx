@@ -28,10 +28,13 @@
 
 package uk.ac.rdg.resc.grex.server;
 
+import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
+import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
+import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
+
 /**
  * Interface describing the methods exposed by all JobRunners (classes that
  * execute a given GRexServiceInstance).
- * 
  * 
  * @author Jon Blower
  * $Revision$
@@ -40,5 +43,50 @@ package uk.ac.rdg.resc.grex.server;
  */
 public interface JobRunner
 {
+    /**
+     * Sets the service instance that this JobRunner will execute
+     */
+    public void setServiceInstance(GRexServiceInstance instance);
     
+    /**
+     * Gets the service instance that this JobRunner is executing
+     */
+    public GRexServiceInstance getServiceInstance();
+    
+    /**
+     * Sets the configuration information for the service that this instance
+     * belongs to.
+     */
+    public void setGridServiceConfig(GridServiceConfigForServer gsConfig);
+    
+    /**
+     * Gets the configuration information for the service that this instance
+     * belongs to.
+     */
+    public GridServiceConfigForServer getGridServiceConfig();
+
+    /**
+     * Sets the persistent store of service instances, used to persist changes
+     * to state
+     */
+    public void setInstancesStore(GRexServiceInstancesStore instancesStore);
+
+    /**
+     * Gets the persistent store of service instances, used to persist changes
+     * to state
+     */
+    public GRexServiceInstancesStore getInstancesStore();
+    
+    /**
+     * Starts the JobRunner.  This method should return immediately in order to
+     * provide the user with a timely response.  Subclasses should run lengthy
+     * tasks in separate threads.
+     * @todo Exceptions, return codes?
+     */
+    public void start() throws Exception;
+    
+    /**
+     * Forcibly stops the JobRunner (in response to an abort message from a user)
+     */
+    public void abort();
 }

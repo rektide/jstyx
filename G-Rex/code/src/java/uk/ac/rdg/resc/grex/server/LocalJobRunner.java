@@ -28,6 +28,16 @@
 
 package uk.ac.rdg.resc.grex.server;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import uk.ac.rdg.resc.grex.config.Parameter;
+import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
+
 /**
  * Runs a job on the G-Rex server itself.
  *
@@ -36,12 +46,157 @@ package uk.ac.rdg.resc.grex.server;
  * $Date$
  * $Log$
  */
-public class LocalJobRunner implements JobRunner
+public class LocalJobRunner extends AbstractJobRunner
 {
+    private static final Log log = LogFactory.getLog(LocalJobRunner.class);
     
-    /** Creates a new instance of LocalJobRunner */
-    public LocalJobRunner()
+    private Process proc; // The Process that we are running in this job
+ 
+    /**
+     * The task of the start() method is to prepare the job, then kick it off, 
+     * setting the state of the job to RUNNING or ERROR before returning
+     */
+    public void start() throws IOException
     {
+        log.debug("Starting execution of service instance " + this.instance.getId());
+        
+        // Prepare the command line that will be executed
+        String cmdLine = this.constructCommmandLine();
+        log.debug("Command line that will be executed: \"" + cmdLine + "\"");
+        
+        // Now execute the command line and start threads to consume the output
+        // streams.  TODO: deal with standard input
+        this.proc = Runtime.getRuntime().exec(cmdLine);
+        File stdoutFile = new File(this.instance.getWorkingDirectory(), "stdout");
+        File stderrFile = new File(this.instance.getWorkingDirectory(), "stderr");
+        new RedirectStream(this.proc.getInputStream(), new FileOutputStream(stdoutFile)).start();
+        new RedirectStream(this.proc.getErrorStream(), new FileOutputStream(stderrFile)).start();
+        // TODO: start a thread that waits for the process to finish and grabs
+        // the error code
+        log.debug("Process started");
+        
+        // Update the status of the instance and persist to the database
+        this.instance.setState(GRexServiceInstance.State.RUNNING);
+        this.instancesStore.updateServiceInstance(this.instance);
+    }
+    
+    /**
+     * Constructs the full command line that will be executed
+     */
+    private String constructCommmandLine()
+    {
+        StringBuffer cmdLine = new StringBuffer(this.gsConfig.getCommand());
+        
+        // Look through all the command-line parameters, inserting the values
+        for (Parameter param : this.gsConfig.getParams())
+        {
+            String paramValue = this.instance.getParamValue(param.getName()).trim();
+            if (paramValue == null)
+            {
+                if (param.isRequired())
+                {
+                    // TODO: throw an InvalidInstanceStateException or similar
+                }
+            }
+            else
+            {
+                cmdLine.append(" ");
+                if (param.getType() == Parameter.Type.SWITCH)
+                {
+                    if (paramValue.equalsIgnoreCase("true"))
+                    {
+                        if (param.getLongFlag() == null)
+                        {
+                            // We have already validated (in Parameter.validate)
+                            // that either the short or long flag (or both) is set
+                            cmdLine.append("-" + param.getFlag());
+                        }
+                        else
+                        {
+                            cmdLine.append("--" + param.getLongFlag());
+                        }
+                    }
+                }
+                else if (param.getType() == Parameter.Type.FLAGGED_OPTION)
+                {
+                    if (param.getLongFlag() == null)
+                    {
+                        cmdLine.append("-" + param.getFlag() + " " + paramValue);
+                    }
+                    else
+                    {
+                        cmdLine.append("--" + param.getLongFlag() + " " + paramValue);
+                    }
+                }
+                else if (param.getType() == Parameter.Type.UNFLAGGED_OPTION)
+                {
+                    cmdLine.append(paramValue);
+                }
+                else
+                {
+                    // Shouldn't happen
+                    throw new AssertionError("Unrecognized parameter type");
+                }
+            }
+        }
+        return cmdLine.toString();
+    }
+    
+    /**
+     * Simple class to read an input stream and write it directly to a file
+     */
+    private class RedirectStream extends Thread
+    {
+        private InputStream in;
+        private OutputStream out;
+        
+        public RedirectStream(InputStream in, OutputStream out)
+        {
+            this.in = in;
+            this.out = out;
+        }
+        
+        public void run()
+        {
+            try
+            {
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0)
+                {
+                    out.write(buf, 0, len);
+                }
+            }
+            catch(IOException ioe)
+            {
+                // Unlikely to happen
+                log.error("Error redirecting stream in LocalJobRunner.RedirectStream");
+                instance.setState(GRexServiceInstance.State.ERROR);
+                instancesStore.updateServiceInstance(instance);
+                // TODO: store the error message?
+            }
+            finally
+            {
+                try
+                {
+                    in.close();
+                    out.close();
+                }
+                catch(IOException ioe)
+                {
+                    log.error("Error closing input or output stream in RedirectStream");
+                }
+            }
+        }
+    }
+    
+    public void abort()
+    {
+        // TODO - something with this.proc
+        log.debug("Destroying process for service instance " + this.instance.getId());
+        this.proc.destroy();
+        this.instance.setState(GRexServiceInstance.State.ABORTED);
+        this.instancesStore.updateServiceInstance(this.instance);
     }
     
 }

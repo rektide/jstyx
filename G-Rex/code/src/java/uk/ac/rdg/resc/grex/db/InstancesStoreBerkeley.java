@@ -43,6 +43,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
+import uk.ac.rdg.resc.grex.exceptions.InstancesStoreException;
 
 /**
  * Stores and accesses service instances that are held in a Berkeley database.
@@ -111,25 +112,27 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
      * @param parentWorkingDirectory The directory in which the working directory
      * will be created
      * @return the unique ID of the instance that has been created
-     * @throws DatabaseException if there was an error adding the instance
+     * @throws InstancesStoreException if there was an error adding the instance
      * (e.g. an instance with the same id already exists)
      */
     public int addServiceInstance(GRexServiceInstance instance,
-        File parentWorkingDirectory) throws DatabaseException
+        File parentWorkingDirectory) throws InstancesStoreException
     {
+        
         // Create the new instance, get the id, then create the working
         // directory for the instance in a transaction (so that if one of these
         // operations fails, the whole transaction will be aborted).
-        Transaction txn = this.env.beginTransaction(null, null);
-        
-        // Check to see if this instance already exists
-        if (this.instancesById.contains(instance.getId()))
-        {
-            throw new DatabaseException("Instance with id " +
-                instance.getId() + " already exists");
-        }
+        Transaction txn = null;
         try
         {
+            // Check to see if this instance already exists
+            if (this.instancesById.contains(instance.getId()))
+            {
+                throw new InstancesStoreException("Instance with id " +
+                    instance.getId() + " already exists");
+            }
+            
+            txn = this.env.beginTransaction(null, null);
             // Add the new instance to the store
             // The ID will be created automatically from a sequence
             GRexServiceInstance prevInst = this.instancesById.put(txn, instance);
@@ -158,9 +161,19 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
         }
         catch (DatabaseException dbe)
         {
-            txn.abort();
+            if (txn != null)
+            {
+                try
+                {
+                    txn.abort();
+                }
+                catch(DatabaseException dbe2)
+                {
+                    throw new InstancesStoreException(dbe2);
+                }
+            }
             log.error("Aborted creation of new service instance", dbe);
-            throw dbe;
+            throw new InstancesStoreException(dbe);
         }
     }
     
@@ -193,15 +206,16 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
      * (identified by its id).
      * 
      * @param instance the GRexServiceInstance to update
-     * @throws DatabaseException if there was an error updating the instance
+     * @throws InstancesStoreException if there was an error updating the instance
      * (e.g. there is no existing instance with the same id)
      */
     public void updateServiceInstance(GRexServiceInstance instance)
-        throws DatabaseException
+        throws InstancesStoreException
     {
-        Transaction txn = this.env.beginTransaction(null, null);
+        Transaction txn = null;
         try
         {
+            txn = this.env.beginTransaction(null, null);
             // Check to see if this instance exists
             if (!this.instancesById.contains(txn, instance.getId(), null))
             {
@@ -214,9 +228,19 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
         }
         catch(DatabaseException dbe)
         {
-            txn.abort();
+            if (txn != null)
+            {
+                try
+                {
+                    txn.abort();
+                }
+                catch(DatabaseException dbe2)
+                {
+                    throw new InstancesStoreException(dbe2);
+                }
+            }
             log.error("Aborted update of service instance", dbe);
-            throw dbe;
+            throw new InstancesStoreException(dbe);
         }
     }
     
@@ -228,22 +252,29 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
      * @param instanceID ID of the instance to be retrieved
      * @return the GRexServiceInstance object, or null if there is no 
      * object with the given ID
-     * @throws DatabaseException if there was an error retrieving the object
+     * @throws InstancesStoreException if there was an error retrieving the object
      */
     public GRexServiceInstance getServiceInstanceById(int instanceID)
-        throws DatabaseException
+        throws InstancesStoreException
     {
-        return this.instancesById.get(instanceID);
+        try
+        {
+            return this.instancesById.get(instanceID);
+        }
+        catch(DatabaseException dbe)
+        {
+            throw new InstancesStoreException(dbe);
+        }
     }
     
     /**
      * Gets all the service instances that belong to the given service. 
      * @param serviceName Name of the service to which the instances belong. 
      * @return a List of instances that belong to the service.
-     * @throws DatabaseException if there was an error retrieving the data
+     * @throws InstancesStoreException if there was an error retrieving the data
      */
     public synchronized List<GRexServiceInstance> getServiceInstancesByServiceName(String serviceName)
-        throws DatabaseException
+        throws InstancesStoreException
     {
         // EntityCursors are not thread-safe so this method must be synchronized
         EntityCursor<GRexServiceInstance> cursor = null;
@@ -257,9 +288,23 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
             }
             return instances;
         }
+        catch (DatabaseException dbe)
+        {
+            throw new InstancesStoreException(dbe);
+        }
         finally
         {
-            if (cursor != null) cursor.close();
+            if (cursor != null)
+            {
+                try
+                {
+                    cursor.close();
+                }
+                catch(DatabaseException dbe)
+                {
+                    throw new InstancesStoreException(dbe);
+                }
+            }
         }        
     }
     

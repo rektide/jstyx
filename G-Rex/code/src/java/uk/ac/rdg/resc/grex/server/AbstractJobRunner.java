@@ -28,22 +28,60 @@
 
 package uk.ac.rdg.resc.grex.server;
 
+import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
+import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
+import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
+
 /**
- * Runs a job on a Condor pool.  For this to work, the G-Rex server must be a 
- * Condor submit host.
- * @todo: implement!
+ * Convenience abstract class that implements the common methods of the JobRunner interface.
+ * In particular this implements get- and setServiceInstance()
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-public class CondorJobRunner extends LocalJobRunner
+public abstract class AbstractJobRunner implements JobRunner
 {
+    protected GRexServiceInstance instance;
+    protected GridServiceConfigForServer gsConfig;
+    protected GRexServiceInstancesStore instancesStore;
     
-    /** Creates a new instance of CondorJobRunner */
-    public CondorJobRunner()
+    /**
+     * Creates a new instance of AbstractJobRunner
+     */
+    protected AbstractJobRunner()
     {
+    }
+
+    public void setServiceInstance(GRexServiceInstance instance)
+    {
+        this.instance = instance;
+    }
+
+    public GRexServiceInstance getServiceInstance()
+    {
+        return this.instance;
+    }
+
+    public void setGridServiceConfig(GridServiceConfigForServer gsConfig)
+    {
+        this.gsConfig = gsConfig;
+    }
+
+    public GridServiceConfigForServer getGridServiceConfig()
+    {
+        return this.gsConfig;
+    }
+
+    public GRexServiceInstancesStore getInstancesStore()
+    {
+        return instancesStore;
+    }
+
+    public void setInstancesStore(GRexServiceInstancesStore instancesStore)
+    {
+        this.instancesStore = instancesStore;
     }
     
 }

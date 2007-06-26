@@ -50,6 +50,7 @@ import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
+import uk.ac.rdg.resc.grex.server.JobRunner;
 import uk.ac.rdg.resc.grex.server.JobRunnerFactory;
 
 /**
@@ -169,90 +170,74 @@ public class PostOperationsController extends MultiActionController
         String serviceName = request.getRequestURI().split("/")[2];
         String instanceIdStr = request.getRequestURI().split("/")[4];
         
-        // TODO: repetitive of code in GetOperationsController.showServiceInstance(): refactor?
-        try
+        GRexServiceInstance instance =
+            GetOperationsController.findAndCheckServiceInstance(instanceIdStr,
+            serviceName, this.instancesStore);
+        if (!instance.canBeModifiedBy(loggedInUser))
         {
-            int instanceId = Integer.parseInt(instanceIdStr);
-            // Retrieve the instance object from the store
-            GRexServiceInstance instance = this.instancesStore.getServiceInstanceById(instanceId);
-            // Check that the instance exists and that the service names match
-            if (instance == null || !instance.getServiceName().equals(serviceName))
-            {
-                throw new GRexException("There is no instance of " + serviceName + 
-                    " with id " + instanceIdStr);
-            }
-            if (!instance.canBeModifiedBy(loggedInUser))
-            {
-                throw new GRexException("User " + loggedInUser.getUsername() +
-                    " does not have permission to modify instance "
-                    + instance.getId() + " of service " + serviceName);
-            }
-            
-            // Create a new file upload handler
-            // See http://jakarta.apache.org/commons/fileupload/streaming.html
-            ServletFileUpload upload = new ServletFileUpload();            
-            FileItemIterator iter = upload.getItemIterator(request);
-            while (iter.hasNext())
-            {
-                FileItemStream item = iter.next();
-                String name = item.getFieldName();
-                InputStream stream = item.openStream();
-                if (item.isFormField())
-                {
-                    instance.setParameter(name, Streams.asString(stream));
-                }
-                else
-                {
-                    // This is a file to upload and we can now process the input
-                    // stream.  In future we could send this stream to a database,
-                    // or to a remote file store.
-                    log.debug("Detected upload of file called " + name);
-                    // Make sure we only save files in the working directory itself
-                    // (otherwise a client could set the name to "..\..\123\wd\foo.dat"
-                    // and overwrite data in another instance)
-                    File targetFile = new File(instance.getWorkingDirectory(), name);
-                    if (!isChild(instance.getWorkingDirectory(), targetFile))
-                    {
-                        log.error("Not allowed to write a file to " + targetFile.getCanonicalPath());
-                        throw new GRexException("Not allowed to write a file that" +
-                            " is not in the working directory of the service instance");
-                    }
-                    // Create the directory to hold this input file if it doesn't
-                    // already exist
-                    if (!targetFile.getParentFile().exists() && !targetFile.getParentFile().mkdirs())
-                    {
-                        log.error("Could not create directory for " + targetFile.getPath());
-                        throw new GRexException("Internal error: could not create directory" +
-                            " for input file " + name);
-                    }
-                    // Copy the input stream to the target file
-                    log.debug("Saving file " + name + " to " + targetFile.getPath());
-                    // TODO: monitor progress somehow?
-                    OutputStream fout = new FileOutputStream(targetFile);
-                    byte[] buf = new byte[1024];
-                    int len;
-                    while ((len = stream.read(buf)) > 0)
-                    {
-                        fout.write(buf, 0, len);
-                    }
-                    stream.close();
-                    fout.close();
-                }
-            }
-            
-            // Update the service instance object in the store
-            this.instancesStore.updateServiceInstance(instance);
-            
-            // Return a document describing the new instance
-            // TODO: do something else if we've come from a web page
-            return new ModelAndView("instance_xml", "instance", instance);
+            throw new GRexException("User " + loggedInUser.getUsername() +
+                " does not have permission to modify instance "
+                + instance.getId() + " of service " + serviceName);
         }
-        catch(NumberFormatException nfe)
+
+        // Create a new file upload handler
+        // See http://jakarta.apache.org/commons/fileupload/streaming.html
+        ServletFileUpload upload = new ServletFileUpload();            
+        FileItemIterator iter = upload.getItemIterator(request);
+        while (iter.hasNext())
         {
-            // thrown by Integer.parseInt(instanceIdStr)
-            throw new GRexException("There is no instance of " + serviceName + 
-                " with id " + instanceIdStr);
+            FileItemStream item = iter.next();
+            String name = item.getFieldName();
+            InputStream stream = item.openStream();
+            if (item.isFormField())
+            {
+                instance.setParameter(name, Streams.asString(stream));
+            }
+            else
+            {
+                // This is a file to upload and we can now process the input
+                // stream.  In future we could send this stream to a database,
+                // or to a remote file store.
+                log.debug("Detected upload of file called " + name);
+                // Make sure we only save files in the working directory itself
+                // (otherwise a client could set the name to "..\..\123\wd\foo.dat"
+                // and overwrite data in another instance)
+                File targetFile = new File(instance.getWorkingDirectory(), name);
+                if (!isChild(instance.getWorkingDirectory(), targetFile))
+                {
+                    log.error("Not allowed to write a file to " + targetFile.getCanonicalPath());
+                    throw new GRexException("Not allowed to write a file that" +
+                        " is not in the working directory of the service instance");
+                }
+                // Create the directory to hold this input file if it doesn't
+                // already exist
+                if (!targetFile.getParentFile().exists() && !targetFile.getParentFile().mkdirs())
+                {
+                    log.error("Could not create directory for " + targetFile.getPath());
+                    throw new GRexException("Internal error: could not create directory" +
+                        " for input file " + name);
+                }
+                // Copy the input stream to the target file
+                log.debug("Saving file " + name + " to " + targetFile.getPath());
+                // TODO: monitor progress somehow?
+                OutputStream fout = new FileOutputStream(targetFile);
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = stream.read(buf)) > 0)
+                {
+                    fout.write(buf, 0, len);
+                }
+                stream.close();
+                fout.close();
+            }
         }
+
+        // Update the service instance object in the store
+        this.instancesStore.updateServiceInstance(instance);
+
+        // Return a document describing the new instance
+        // TODO: do something else if we've come from a web page
+        return new ModelAndView("instance_xml", "instance", instance);
     }
     
     /**
@@ -272,6 +257,59 @@ public class PostOperationsController extends MultiActionController
             return childPath.startsWith(parentPath);
         }
         return false;
+    }
+    
+    /**
+     * Controls a service instance: starts it running or aborts it.  In future
+     * we might be able to support pausing of a run (if required).  Users must
+     * set the parameter "operation" to "start" or "abort" (using a 
+     * straightforward POST operation).
+     * Returns a view of the service instance (which contains the new state, etc)
+     */
+    public ModelAndView controlServiceInstance(HttpServletRequest request,
+        HttpServletResponse response) throws Exception
+    {
+        User loggedInUser = (User)SecurityContextHolder.getContext()
+            .getAuthentication().getPrincipal();
+        // Work out which service instance we're interested in.  The URL
+        // pattern is /G-Rex/serviceName/instances/instanceId/control.action
+        String serviceName = request.getRequestURI().split("/")[2];
+        String instanceIdStr = request.getRequestURI().split("/")[4];
+        
+        GRexServiceInstance instance =
+            GetOperationsController.findAndCheckServiceInstance(instanceIdStr,
+            serviceName, this.instancesStore);
+        if (!instance.canBeModifiedBy(loggedInUser))
+        {
+            throw new GRexException("User " + loggedInUser.getUsername() +
+                " does not have permission to modify instance "
+                + instance.getId() + " of service " + serviceName);
+        }
+        
+        // Get the JobRunner for this instance
+        JobRunner jobRunner = this.jobRunnerFactory.getRunnerForInstance(instance);
+        
+        // Check the operation that the user wants to perform
+        if (request.getParameter("operation") == null)
+        {
+            throw new GRexException("Must provide a parameter called \"operation\"");
+        }
+        else if (request.getParameter("operation").trim().equals("start"))
+        {
+            jobRunner.start();
+        }
+        else if (request.getParameter("operation").trim().equals("abort"))
+        {
+            jobRunner.abort();
+        }
+        // TODO: add a method for cleanup
+        else
+        {
+            throw new GRexException("Invalid value for \"operation\" parameter");
+        }
+        
+        // TODO: do something else if we've come from a web page
+        return new ModelAndView("instance_xml", "instance", instance);
     }
     
     /**

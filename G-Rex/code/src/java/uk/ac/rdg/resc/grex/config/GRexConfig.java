@@ -110,12 +110,10 @@ public class GRexConfig implements UserDetailsService
      * Creates a new instance of GRexConfig by reading the config information
      * from the file with the given path
      */
-    public static GRexConfig readConfig(String configFilePath,
-        JobRunnerFactory jobRunnerFactory) throws Exception
+    public static GRexConfig readConfig(String configFilePath) throws Exception
     {
         File configFile = new File(configFilePath);
         GRexConfig config = new Persister().read(GRexConfig.class, configFile);
-        config.validateJobTypes(jobRunnerFactory);
         log.debug("Loaded configuration from " + configFile.getPath());
         return config;
     }
@@ -124,7 +122,7 @@ public class GRexConfig implements UserDetailsService
      * Reads the configuration information, looking in the CLASSPATH for 
      * a file called "GRexConfig.xml"
      */
-    public static GRexConfig readConfig(JobRunnerFactory jobRunnerFactory) throws Exception
+    public static GRexConfig readConfig() throws Exception
     {
         InputStream in = Thread.currentThread().getContextClassLoader()
             .getResourceAsStream(DEFAULT_CONFIG_FILENAME);
@@ -134,28 +132,9 @@ public class GRexConfig implements UserDetailsService
                 + " in the CLASSPATH");
         }
         GRexConfig config = new Persister().read(GRexConfig.class, in);
-        config.validateJobTypes(jobRunnerFactory);
         log.debug("Loaded configuration from " + DEFAULT_CONFIG_FILENAME
             + " (found in classpath)");
         return config;
-    }
-    
-    /**
-     * Validates the job types of all the GridServices to make sure that they
-     * have equivalent JobRunners.
-     * @throws Exception if a grid service does not have an equivalent JobRunner
-     */
-    private void validateJobTypes(JobRunnerFactory jobRunnerFactory)
-        throws Exception
-    {
-        for (GridServiceConfigForServer gs : this.gridServices)
-        {
-            if (!jobRunnerFactory.supportsJobType(gs.getType()))
-            {
-                throw new Exception("Job type \"" + gs.getType() + "\" for grid service \""
-                    + gs.getName() + "\" is not supported");
-            }
-        }
     }
     
     /**

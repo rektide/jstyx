@@ -290,6 +290,10 @@ public class GRexServiceInstance
         return this.params;
     }
     
+    /**
+     * @return the value of the parameter with the given name, or null if a
+     * value has not been set
+     */
     public String getParamValue(String name)
     {
         return this.params.get(name);

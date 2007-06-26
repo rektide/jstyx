@@ -12,18 +12,6 @@
        xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
        xsi:schemaLocation='http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd'>
     
-    <!-- An object that is used to create JobRunners.  This object needs a Map
-         of key-value pairs that map job types ("local", "condor", etc) to
-         classes that extend JobRunner -->
-    <bean id="jobRunnerFactory" class="uk.ac.rdg.resc.grex.server.JobRunnerFactory">
-        <property name="runnerClasses">
-            <map>
-                <entry key="local" value="uk.ac.rdg.resc.grex.server.LocalJobRunner"/>
-                <entry key="condor" value="uk.ac.rdg.resc.grex.server.CondorJobRunner"/>
-            </map>
-        </property>
-    </bean>
-    
     <!-- Defines a configuration object that is used to configure this server.
          This object is created via GRexConfig.readConfig(), a static factory method -->
     <bean id="grexConfig" class="uk.ac.rdg.resc.grex.config.GRexConfig"
@@ -31,9 +19,6 @@
         <!-- G-Rex will look for the config file in the CLASSPATH unless you
              uncomment the line below and set the full path to the config file -->
         <!--<constructor-arg><value>/path/to/GRexConfig.xml</value></constructor-arg>-->
-        <!-- We need to inject the JobRunnerFactory into this object because we
-             use it to check the validity of job types set in the config file -->
-       <constructor-arg><ref local="jobRunnerFactory"/></constructor-arg>
     </bean>
     
     <!-- Defines a store of service instances.  This is implemented as a Berkeley
@@ -45,6 +30,28 @@
              used to find the home directory, which is where the database
              will be created -->
         <property name="grexConfig"><ref local="grexConfig"/></property>
+    </bean>
+    
+    <!-- An object that is used to create JobRunners.  This object needs a Map
+         of key-value pairs that map job types ("local", "condor", etc) to
+         classes that extend JobRunner -->
+    <bean id="jobRunnerFactory" class="uk.ac.rdg.resc.grex.server.JobRunnerFactory">
+        <!-- We have coded JobRunnerFactory so that the order in which runnerClasses
+             and grexConfig are injected does not matter. -->
+        <!-- This map defines the JobRunner classes that will be used to handle
+             different jobTypes that are defined in the grexConfig object -->
+        <property name="runnerClasses">
+            <map>
+                <entry key="local" value="uk.ac.rdg.resc.grex.server.LocalJobRunner"/>
+                <entry key="condor" value="uk.ac.rdg.resc.grex.server.CondorJobRunner"/>
+            </map>
+        </property>
+        <!-- Inject the configuration object into this controller.  This is 
+             used to validate that the jobRunnerFactory can handle all the job
+             types in the configuration object and to access configuration info -->
+        <property name="grexConfig"><ref local="grexConfig"/></property>
+        <!-- Inject the persistent store of service instances -->
+        <property name="instancesStore"><ref local="instancesStore"/></property>
     </bean>
     
     <!-- This is a MultiActionController that will handle all the GET methods
@@ -89,6 +96,7 @@
             <value>
                 /*/clone.action=createNewServiceInstance
                 /*/instances/*/setup.action=setupServiceInstance
+                /*/instances/*/control.action=controlServiceInstance
             </value>
         </property>
     </bean>  
@@ -113,6 +121,8 @@
                 <prop key="/*/clone.action">postOperationsController</prop>
                 <!-- Sets parameters and input files for a service instance -->
                 <prop key="/*/instances/*/setup.action">postOperationsController</prop>
+                <!-- Starts, aborts or destroys a service instance -->
+                <prop key="/*/instances/*/control.action">postOperationsController</prop>
             </props>
         </property>
     </bean>
