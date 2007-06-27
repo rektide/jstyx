@@ -53,8 +53,8 @@ class InstanceResponse
     @Element(name="url")
     private String url;
     
-    @Element(name="description")
-    private String description;
+    @Element(name="description", required=false)
+    private String description = "";
     
     @ElementList(name="parameters", type=Parameter.class)
     private List<Parameter> params;

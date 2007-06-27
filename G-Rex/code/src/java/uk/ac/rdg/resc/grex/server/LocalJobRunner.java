@@ -51,6 +51,7 @@ public class LocalJobRunner extends AbstractJobRunner
     private static final Log log = LogFactory.getLog(LocalJobRunner.class);
     
     private Process proc; // The Process that we are running in this job
+    private boolean aborted = false;
  
     /**
      * The task of the start() method is to prepare the job, then kick it off, 
@@ -64,20 +65,26 @@ public class LocalJobRunner extends AbstractJobRunner
         String cmdLine = this.constructCommmandLine();
         log.debug("Command line that will be executed: \"" + cmdLine + "\"");
         
-        // Now execute the command line and start threads to consume the output
-        // streams.  TODO: deal with standard input
-        this.proc = Runtime.getRuntime().exec(cmdLine);
-        File stdoutFile = new File(this.instance.getWorkingDirectory(), "stdout");
-        File stderrFile = new File(this.instance.getWorkingDirectory(), "stderr");
+        // TODO: deal with standard input
+        File wdFile = new File(this.instance.getWorkingDirectory());
+        
+        // Start the process running, setting the working directory
+        this.proc = Runtime.getRuntime().exec(cmdLine, null, wdFile);
+        
+        // Start threads to consume the output streams
+        File stdoutFile = new File(wdFile, "stdout");
+        File stderrFile = new File(wdFile, "stderr");
         new RedirectStream(this.proc.getInputStream(), new FileOutputStream(stdoutFile)).start();
         new RedirectStream(this.proc.getErrorStream(), new FileOutputStream(stderrFile)).start();
-        // TODO: start a thread that waits for the process to finish and grabs
-        // the error code
+        
+        // Start a thread that waits for the process to finish and grabs the exit code
+        new WaitProcess().start();
+        
         log.debug("Process started");
         
-        // Update the status of the instance and persist to the database
+        // Update the state of the instance and persist to the database
         this.instance.setState(GRexServiceInstance.State.RUNNING);
-        this.instancesStore.updateServiceInstance(this.instance);
+        this.saveInstance();
     }
     
     /**
@@ -172,7 +179,7 @@ public class LocalJobRunner extends AbstractJobRunner
                 // Unlikely to happen
                 log.error("Error redirecting stream in LocalJobRunner.RedirectStream");
                 instance.setState(GRexServiceInstance.State.ERROR);
-                instancesStore.updateServiceInstance(instance);
+                saveInstance();
                 // TODO: store the error message?
             }
             finally
@@ -190,13 +197,43 @@ public class LocalJobRunner extends AbstractJobRunner
         }
     }
     
+    /**
+     * Thread that waits for the process to finish, setting the state and the
+     * exit code
+     */
+    private class WaitProcess extends Thread
+    {
+        public void run()
+        {
+            boolean done = false;
+            while (!done)
+            {
+                try
+                {
+                    int exitCode = proc.waitFor();
+                    done = true;
+                    if (!aborted)
+                    {
+                        instance.setState(GRexServiceInstance.State.FINISHED);
+                    }
+                    instance.setExitCode(exitCode);
+                    saveInstance();
+                }
+                catch(InterruptedException ie)
+                {
+                    log.warn("waitFor() interrupted");
+                }
+            }
+        }
+    }
+    
     public void abort()
     {
-        // TODO - something with this.proc
         log.debug("Destroying process for service instance " + this.instance.getId());
+        this.aborted = true;
         this.proc.destroy();
         this.instance.setState(GRexServiceInstance.State.ABORTED);
-        this.instancesStore.updateServiceInstance(this.instance);
+        this.saveInstance();
     }
     
 }

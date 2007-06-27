@@ -23,10 +23,21 @@
     <!-- The Grid Services that will appear under this server -->
     <gridservices>
         
-        <!-- TODO: Unix version should use a different command -->
+        <!-- Should work under Unix and Windows -->
         <gridservice name="helloworld" command="echo Hello World!"
-                     description="Prints Hello World to stdout"
-                     allowed-groups="test2">
+                     description="Prints Hello World to stdout">
+            <outputs>
+                <output name="stdout"/>
+                <output name="stderr"/>
+            </outputs>
+        </gridservice>
+        
+        <!-- Should work under Unix and Windows -->
+        <gridservice name="echo" command="echo" description="Prints a string to standard output">
+            <params>
+                <param name="stringToPrint" type="unflaggedOption" greedy="true"
+                    required="true" description="the string to echo"/>
+            </params>
             <outputs>
                 <output name="stdout"/>
                 <output name="stderr"/>

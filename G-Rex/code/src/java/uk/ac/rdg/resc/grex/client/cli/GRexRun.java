@@ -184,8 +184,24 @@ public class GRexRun
             // Set all the parameter values
             for (Parameter param : config.getParams())
             {
-                // TODO: check that getString() works for greedy options
+                // Get the parameter value from the command line
                 String paramValue = jsapResult.getString(param.getName());
+                // Need to treat greedy unflagged options as a special case as
+                // they may contain an array of values
+                if (jsap.getByID(param.getName()) instanceof UnflaggedOption)
+                {
+                    UnflaggedOption uo = (UnflaggedOption)jsap.getByID(param.getName());
+                    if (uo.isGreedy())
+                    {
+                        String[] values = jsapResult.getStringArray(param.getName());
+                        paramValue = values[0];
+                        for (int i = 1; i < values.length; i++)
+                        {
+                            paramValue += " " + values[i];
+                        }
+                    }
+                }
+                // Set the parameter in the instance client
                 instanceClient.setParameter(param.getName(), paramValue);
                 if (param.getLinkedInput() != null)
                 {

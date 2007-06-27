@@ -220,7 +220,7 @@ public class GRexServiceClient
                     {
                         // It's not an exception either.
                         log.error("unrecognized response from server: " + xml);
-                        throw new RuntimeException("Unrecognized response from server");
+                        throw new RuntimeException("Unrecognized response from server: " + xml);
                     }
                     // If we've got this far, this must be a valid exception
                     throw gre;

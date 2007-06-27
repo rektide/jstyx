@@ -7,7 +7,11 @@
     <params>
         <%-- "param" is a reserved name so we use "par" --%>
         <c:forEach var="par" items="${gridservice.params}">
-        <param name="${par.name}" type="${par.type}" required="${par.required}" description="${par.description}"/>
+        <param name="${par.name}" type="${par.type}" required="${par.required}"
+            greedy="${par.greedy}" description="${par.description}"
+            <c:if test="${par.flag != null}">flag="${par.flag}"</c:if>
+            <c:if test="${par.longFlag != null}">longFlag="${par.longFlag}"</c:if>
+            <c:if test="${par.defaultValue != null}">defaultValue="${par.defaultValue}"</c:if> />
         </c:forEach>
     </params>
     <inputs>

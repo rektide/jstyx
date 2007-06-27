@@ -58,7 +58,6 @@ public class GRexServiceInstance
     private int id; // Unique ID for this instance
     
     @SecondaryKey(relate=Relationship.MANY_TO_ONE) // A service may contain many Instances
-    
     // WARNING! If you change the name of this field, you also need to change
     // the constructor for the secondary key in InstancesStoreBerkeley!
     private String serviceName; // Unique ID of the service to which this instance belongs
@@ -82,6 +81,8 @@ public class GRexServiceInstance
     // This describes the overall (coarse-grained) state of the instance.
     public enum State{CREATED, RUNNING, FINISHED, ABORTED, ERROR};
     private State state;
+    
+    private Integer exitCode = null; // Will be set when the instance has finished
     
     // Permissions for this service instance
     public enum Permissions{NONE, READONLY, FULL};
@@ -305,5 +306,19 @@ public class GRexServiceInstance
     public void setParameter(String name, String value)
     {
         this.params.put(name, value);
+    }
+
+    /**
+     * Gets the exit code as an Integer, or null if the exit code has not yet
+     * been set
+     */
+    public Integer getExitCode()
+    {
+        return this.exitCode;
+    }
+
+    public void setExitCode(Integer exitCode)
+    {
+        this.exitCode = exitCode;
     }
 }

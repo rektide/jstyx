@@ -28,13 +28,18 @@
 
 package uk.ac.rdg.resc.grex.server;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
+import uk.ac.rdg.resc.grex.exceptions.InstancesStoreException;
 
 /**
- * Convenience abstract class that implements the common methods of the JobRunner interface.
- * In particular this implements get- and setServiceInstance()
+ * Convenience abstract class that implements the common methods of the JobRunner
+ * interface and some other convenience methods.  It is suggested that implementations
+ * of JobRunner should extend this class instead of implementing the JobRunner
+ * interface directly.
  *
  * @author Jon Blower
  * $Revision$
@@ -43,6 +48,8 @@ import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
  */
 public abstract class AbstractJobRunner implements JobRunner
 {
+    private static final Log log = LogFactory.getLog(AbstractJobRunner.class);
+    
     protected GRexServiceInstance instance;
     protected GridServiceConfigForServer gsConfig;
     protected GRexServiceInstancesStore instancesStore;
@@ -82,6 +89,28 @@ public abstract class AbstractJobRunner implements JobRunner
     public void setInstancesStore(GRexServiceInstancesStore instancesStore)
     {
         this.instancesStore = instancesStore;
+    }
+    
+    /**
+     * Stores any changes to the instance in the persistent store.
+     */
+    protected void saveInstance()
+    {
+        try
+        {
+            this.instancesStore.updateServiceInstance(this.instance);
+        }
+        catch (InstancesStoreException ise)
+        {
+            // TODO: what should we do here?  This error is very unlikely to 
+            // happen but if it does it will mean that the status of the instance
+            // is not recorded correctly in the database, and hence the user 
+            // might get inconsistent information.  However, if there is a problem
+            // with the database almost every call to this server will fail.
+            // For now, we swallow the error and log it.
+            log.error("Can't persist instance " + this.instance.getId() +
+                " to store", ise);
+        }
     }
     
 }

@@ -235,6 +235,8 @@ public class GRexServiceInstanceClient
         startJob.setParameter("operation", "start");
         InstanceResponse respStart = this.serviceClient.executeMethod(startJob, InstanceResponse.class);
         // TODO: do something with the response object?
+        
+        // TODO: start reading from all the streams that are available
     }
     
     /**

@@ -4,6 +4,7 @@
 <instance id="${instance.id}">
     <url>${instance.url}</url>
     <description>${instance.description}</description>
+    <exitCode>${instance.exitCode}</exitCode>
     <parameters>
         <c:forEach var="par" items="${instance.parameters}">
         <param name="${par.key}" value="${par.value}"/>
