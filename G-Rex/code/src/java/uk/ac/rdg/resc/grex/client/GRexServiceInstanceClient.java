@@ -218,50 +218,33 @@ public class GRexServiceInstanceClient
         {
             parts.add(new StringPart(paramName, this.params.get(paramName)));
         }
-        // Add the input files to the parts
+        // Add the input files
         for (File fileToUpload : this.filesToUpload.keySet())
         {
             String pathOnServer = this.filesToUpload.get(fileToUpload);
             parts.add(new FilePart(pathOnServer, fileToUpload));
         }
         Part[] partsArray = parts.toArray(new Part[0]);
-        MultipartRequestEntity mre = new MultipartRequestEntity(partsArray, setupJob.getParams());
+        MultipartRequestEntity mre = new MultipartRequestEntity(partsArray,
+            setupJob.getParams());
         setupJob.setRequestEntity(mre);
-        InstanceResponse respSetup = this.serviceClient.executeMethod(setupJob, InstanceResponse.class);
+        InstanceResponse respSetup = this.serviceClient.executeMethod(setupJob,
+            InstanceResponse.class);
         // TODO: do something with the response object?
         
         // Now start the service instance
         PostMethod startJob = new PostMethod(this.url + "/control.action");
         startJob.setParameter("operation", "start");
-        InstanceResponse respStart = this.serviceClient.executeMethod(startJob, InstanceResponse.class);
+        InstanceResponse respStart = this.serviceClient.executeMethod(startJob,
+            InstanceResponse.class);
         // TODO: do something with the response object?
         
         // TODO: start reading from all the streams that are available
     }
     
-    /**
-     * Gets the status of this service instance
-     * @todo return object of correct type
-     * @throws GRexException if there was an error reading the information from 
-     * the server (e.g. the user does not have permissions to read the config info)
-     * @throws IOException if an i/o error occurred, e.g. cannot connect to server 
-     */
-    public Object getStatus() throws IOException, GRexException
-    {
-        String statusUrl = this.url + "/status.xml";
-        log.debug("Getting status information from " + statusUrl);
-        GetMethod get = new GetMethod(statusUrl);
-        return this.serviceClient.executeMethod(get, Object.class);
-    }
-    
     public String getUrl()
     {
         return this.url;
-    }
-
-    public Map<File, String> getFilesToUpload()
-    {
-        return filesToUpload;
     }
     
 }

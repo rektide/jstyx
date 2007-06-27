@@ -36,8 +36,8 @@ import simple.xml.Root;
 
 /**
  * Simple class used to deserialize the response from the server when
- * getting information about an instance (having just created it, or changed
- * its state).  Matches up with instance_xml.jsp
+ * getting information about an instance (having just created it, changed
+ * its state, or simply getting updates).  Matches up with instance_xml.jsp
  *
  * @author Jon Blower
  * $Revision$

@@ -3,8 +3,8 @@
 <%-- Shows the state of a service instance --%>
 <instance id="${instance.id}">
     <url>${instance.url}</url>
-    <description>${instance.description}</description>
-    <exitCode>${instance.exitCode}</exitCode>
+    <c:if test="${instance.description != null}"><description>${instance.description}</description></c:if>
+    <c:if test="${instance.exitCode != null}"><exitCode>${instance.exitCode}</exitCode></c:if>
     <parameters>
         <c:forEach var="par" items="${instance.parameters}">
         <param name="${par.key}" value="${par.value}"/>

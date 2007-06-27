@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.grex.server;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,13 +52,12 @@ public class LocalJobRunner extends AbstractJobRunner
     private static final Log log = LogFactory.getLog(LocalJobRunner.class);
     
     private Process proc; // The Process that we are running in this job
-    private boolean aborted = false;
  
     /**
      * The task of the start() method is to prepare the job, then kick it off, 
      * setting the state of the job to RUNNING or ERROR before returning
      */
-    public void start() throws IOException
+    public void start()
     {
         log.debug("Starting execution of service instance " + this.instance.getId());
         
@@ -68,22 +68,38 @@ public class LocalJobRunner extends AbstractJobRunner
         // TODO: deal with standard input
         File wdFile = new File(this.instance.getWorkingDirectory());
         
-        // Start the process running, setting the working directory
-        this.proc = Runtime.getRuntime().exec(cmdLine, null, wdFile);
+        try
+        {
+            // Start the process running, setting the working directory
+            this.proc = Runtime.getRuntime().exec(cmdLine, null, wdFile);
+            log.debug("Process started");
         
-        // Start threads to consume the output streams
-        File stdoutFile = new File(wdFile, "stdout");
-        File stderrFile = new File(wdFile, "stderr");
-        new RedirectStream(this.proc.getInputStream(), new FileOutputStream(stdoutFile)).start();
-        new RedirectStream(this.proc.getErrorStream(), new FileOutputStream(stderrFile)).start();
+            // Start a thread that waits for the process to finish and grabs the exit code
+            new WaitProcess().start();
+
+            // Start threads to consume the output streams
+            File stdoutFile = new File(wdFile, "stdout");
+            File stderrFile = new File(wdFile, "stderr");
+            new RedirectStream(this.proc.getInputStream(), new FileOutputStream(stdoutFile)).start();
+            new RedirectStream(this.proc.getErrorStream(), new FileOutputStream(stderrFile)).start();
         
-        // Start a thread that waits for the process to finish and grabs the exit code
-        new WaitProcess().start();
-        
-        log.debug("Process started");
-        
-        // Update the state of the instance and persist to the database
-        this.instance.setState(GRexServiceInstance.State.RUNNING);
+            // Update the state of the instance
+            this.instance.setState(GRexServiceInstance.State.RUNNING);
+        }
+        catch(FileNotFoundException fnfe)
+        {
+            // Unlikely to happen
+            log.error("Can't create file for output stream", fnfe);
+            // TODO: save the error message
+            this.instance.setState(GRexServiceInstance.State.ERROR);
+        }
+        catch(IOException ioe)
+        {
+            log.error("Error starting process for instance " + this.instance.getId());
+            // TODO: save the error message
+            this.instance.setState(GRexServiceInstance.State.ERROR);
+        }
+        // Save the new state of the instance to the persistent store
         this.saveInstance();
     }
     
@@ -97,7 +113,7 @@ public class LocalJobRunner extends AbstractJobRunner
         // Look through all the command-line parameters, inserting the values
         for (Parameter param : this.gsConfig.getParams())
         {
-            String paramValue = this.instance.getParamValue(param.getName()).trim();
+            String paramValue = this.instance.getParamValue(param.getName());
             if (paramValue == null)
             {
                 if (param.isRequired())
@@ -212,7 +228,8 @@ public class LocalJobRunner extends AbstractJobRunner
                 {
                     int exitCode = proc.waitFor();
                     done = true;
-                    if (!aborted)
+                    // Only change the state if this service was running normally
+                    if (instance.getState() == GRexServiceInstance.State.RUNNING)
                     {
                         instance.setState(GRexServiceInstance.State.FINISHED);
                     }
@@ -230,9 +247,10 @@ public class LocalJobRunner extends AbstractJobRunner
     public void abort()
     {
         log.debug("Destroying process for service instance " + this.instance.getId());
-        this.aborted = true;
-        this.proc.destroy();
+        // Must change the state before destroying the process otherwise there
+        // will be a race condition with the WaitProcess() thread
         this.instance.setState(GRexServiceInstance.State.ABORTED);
+        this.proc.destroy();
         this.saveInstance();
     }
     

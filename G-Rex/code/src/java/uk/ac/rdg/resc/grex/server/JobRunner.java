@@ -81,12 +81,17 @@ public interface JobRunner
      * Starts the JobRunner.  This method should return immediately in order to
      * provide the user with a timely response.  Subclasses should run lengthy
      * tasks in separate threads.
-     * @todo Exceptions, return codes?
      */
-    public void start() throws Exception;
+    public void start();
     
     /**
      * Forcibly stops the JobRunner (in response to an abort message from a user)
      */
     public void abort();
+    
+    /**
+     * Cleans up the service, i.e. removes all files from the working directory.
+     * Can only be called once the service has finished (or been aborted).
+     */
+    // TODO
 }

@@ -28,11 +28,13 @@ Displays all the instances of a grid service
     
     <table border="1">
         <tbody>
-            <tr><th>Instance ID</th><th>Description</th><th>More details</th></tr>
+            <tr><th>Instance ID</th><th>Description</th><th>State</th><th>Owner</th><th>More details</th></tr>
             <c:forEach var="instance" items="${instances}">
             <tr>
                 <td>${instance.id}</td>
                 <td>${instance.description}</td>
+                <td>${instance.state}</td>
+                <td>${instance.owner}</td>
                 <td><a href="${instance.url}.html">link</a></td>
             </tr>
             </c:forEach>

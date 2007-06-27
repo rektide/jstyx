@@ -62,7 +62,7 @@ public class GRexServiceInstance
     // the constructor for the secondary key in InstancesStoreBerkeley!
     private String serviceName; // Unique ID of the service to which this instance belongs
     
-    private String description = ""; // Free-text description provided by the creator of the instance
+    private String description = null; // Free-text description provided by the creator of the instance
     
     private String baseUrl = ""; // Base of the URL to this instance, e.g.
                                  // "http://myserver.com/G-Rex/helloworld/instances/"
@@ -136,6 +136,9 @@ public class GRexServiceInstance
         this.workingDirectory = workingDirectory;
     }
     
+    /**
+     * @return the description of this instance, or null if none has been set
+     */
     public String getDescription()
     {
         return this.description;
