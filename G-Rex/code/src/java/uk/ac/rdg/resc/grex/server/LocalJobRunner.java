@@ -81,8 +81,8 @@ public class LocalJobRunner extends AbstractJobRunner
             new WaitProcess().start();
 
             // Start threads to consume the output streams
-            File stdoutFile = new File(wdFile, "stdout");
-            File stderrFile = new File(wdFile, "stderr");
+            File stdoutFile = new File(wdFile, STDOUT);
+            File stderrFile = new File(wdFile, STDERR);
             new RedirectStream(this.proc.getInputStream(), new FileOutputStream(stdoutFile)).start();
             new RedirectStream(this.proc.getErrorStream(), new FileOutputStream(stderrFile)).start();
         

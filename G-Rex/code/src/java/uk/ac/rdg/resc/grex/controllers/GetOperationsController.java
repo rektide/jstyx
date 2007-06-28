@@ -28,6 +28,7 @@
 
 package uk.ac.rdg.resc.grex.controllers;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -243,6 +244,51 @@ public class GetOperationsController extends MultiActionController
         // Display the details of this instance
         return new ModelAndView("instance_" +
             getFileExtension(request.getRequestURI()), "instance", instance);
+    }
+    
+    /**
+     * Downloads an output file from this instance.
+     */
+    public ModelAndView downloadOutputFile(HttpServletRequest request,
+        HttpServletResponse response) throws Exception
+    {
+        System.out.println("URI = " + request.getRequestURI());
+        User loggedInUser = (User)SecurityContextHolder.getContext()
+            .getAuthentication().getPrincipal();
+        // Find the name of the service and the instance that the user is
+        // interested in.  The URL pattern is
+        // /G-Rex/serviceName/instances/instanceID/outputs/path/to/file
+        String[] urlEls = request.getRequestURI().split("/");
+        String serviceName = urlEls[2];
+        String instanceIdStr = urlEls[4];
+        
+        GRexServiceInstance instance = findAndCheckServiceInstance(instanceIdStr,
+            serviceName, this.instancesStore);
+        if (!instance.canBeReadBy(loggedInUser))
+        {
+            // TODO: should this be an HTTP error code for compatibility with
+            // general HTTP clients like wget?
+            throw new GRexException("User " + loggedInUser.getUsername() +
+                " does not have permission to read output files from instance "
+                + instance.getId() + " of service " + serviceName);
+        }
+        
+        // Find the path to the file, relative to the working directory
+        // TODO: must be a neater way of doing this...
+        StringBuffer pathBuf = new StringBuffer();
+        for (int i = urlEls.length - 6; i < urlEls.length; i++)
+        {
+            pathBuf.append(urlEls[i]);
+            pathBuf.append(System.getProperty("file.separator"));
+        }
+        File fileToDownload = new File(instance.getWorkingDirectory(), pathBuf.toString());
+        if (!fileToDownload.exists())
+        {
+            // Again, perhaps an HTTP file not found error is more appropriate here
+            throw new GRexException("File " + pathBuf.toString() + " not found!");
+        }
+        
+        return null;
     }
     
     /**

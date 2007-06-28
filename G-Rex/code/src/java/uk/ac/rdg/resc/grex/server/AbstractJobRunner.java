@@ -50,6 +50,17 @@ public abstract class AbstractJobRunner implements JobRunner
 {
     private static final Log log = LogFactory.getLog(AbstractJobRunner.class);
     
+    /**
+     * The name of the file in the working directory that will represent the
+     * standard output stream
+     */
+    protected static final String STDOUT = "stdout";
+    /**
+     * The name of the file in the working directory that will represent the
+     * standard error stream
+     */
+    protected static final String STDERR = "stderr";
+    
     protected GRexServiceInstance instance;
     protected GridServiceConfigForServer gsConfig;
     protected GRexServiceInstancesStore instancesStore;

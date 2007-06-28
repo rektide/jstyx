@@ -32,9 +32,17 @@ import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.PrimaryKey;
 import com.sleepycat.persist.model.SecondaryKey;
 import com.sleepycat.persist.model.Relationship;
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import org.apache.oro.io.GlobFilenameFilter;
+import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
+import uk.ac.rdg.resc.grex.config.Output;
 import uk.ac.rdg.resc.grex.config.User;
+import uk.ac.rdg.resc.grex.server.OutputFile;
 
 /**
  * Java Bean that represents the state of a particular service instance.  These
@@ -90,6 +98,12 @@ public class GRexServiceInstance
     private Permissions ownerPermissions = Permissions.FULL;
     private Permissions groupPermissions = Permissions.READONLY;
     private Permissions otherPermissions = Permissions.NONE;
+    
+    /**
+     * The configuration information for the service to which this instance
+     * belongs.  This is not persisted to the database.
+     */
+    private transient GridServiceConfigForServer gsConfig;
     
     /**
      * Creates a new instance of GRexServiceInstance
@@ -323,5 +337,77 @@ public class GRexServiceInstance
     public void setExitCode(Integer exitCode)
     {
         this.exitCode = exitCode;
+    }
+    
+    /**
+     * @return true if this instance has finished running (i.e. if state is
+     * FINISHED, ERROR or ABORTED
+     */
+    public boolean isFinished()
+    {
+        return this.state == State.FINISHED || this.state == State.ABORTED
+            || this.state == State.ERROR;
+    }
+
+    public void setGridServiceConfig(GridServiceConfigForServer gsConfig)
+    {
+        this.gsConfig = gsConfig;
+    }
+
+    public GridServiceConfigForServer getGridServiceConfig()
+    {
+        return this.gsConfig;
+    }
+    
+    /**
+     * @return a List of OutputFiles in the working directory of this
+     * instance that are available for downloading now, or will be available for
+     * downloading when the job has finished.  This method is called by the JSPs
+     * that provide XML and HTML output to the web.
+     * @todo What happens with directories?
+     */
+    public List<OutputFile> getCurrentOutputFiles()
+    {
+        List<OutputFile> files = new ArrayList<OutputFile>();
+        File wd = new File(this.workingDirectory);
+        
+        // Search through all output patterns specified in this configuration and
+        // see which files in the working directory match
+        for (Output op : this.gsConfig.getOutputs())
+        {
+            String name = op.getName();
+            if (op.getLinkedParameterName() != null)
+            {
+                // The name of the file comes from the value of this parameter
+                name = this.getParamValue(op.getLinkedParameterName());
+            }
+            // Treat the name of the output as a glob pattern
+            FilenameFilter filter = new GlobFilenameFilter(name);
+            // Loop over all the files that match the glob pattern
+            // TODO does this iterate over subdirectories?
+            for (File f : wd.listFiles(filter))
+            {
+                // Note that this will overwrite previous entries if a file
+                // with the same path has already been recorded.  Therefore
+                // entries lower in the list of outputs in the config file
+                // have priority.  TODO: is this intuitive?
+                
+                // Note: this is an O(N2) algorithm, but hopefully this isn't
+                // important in the grand scheme of things.
+                OutputFile opf = new OutputFile(f, this, op.isAppendOnly());
+                for (OutputFile existingFile : files)
+                {
+                    if (opf.getFile().equals(existingFile.getFile()))
+                    {
+                        // remove the previous file before adding the new one
+                        files.remove(existingFile);
+                        break;
+                    }
+                }
+                files.add(opf);
+            }
+        }
+        
+        return files;
     }
 }

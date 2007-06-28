@@ -40,5 +40,17 @@ Displays the details of a particular service instance
         </tbody>
     </table>
     
+    <p><strong>Output files:</strong></p>
+    <table border="1">
+        <tbody>
+            <tr><th>Output file</th><th>Size (bytes)</th><th>Last Modified</th><th>Ready for download?</th></tr>
+            <c:forEach var="file" items="${instance.currentOutputFiles}">
+            <c:set var="fileUrl" value="${instance.url}/outputs/${file.relativePath}"/>
+            <!-- TODO: should only add the full URL when the file is ready for download -->
+            <tr><td><a href="${fileUrl}">${file.relativePath}</a></td><td>${file.lengthBytes}</td><td>${file.lastModified}</td><td>${file.readyForDownload}</td></tr>
+            </c:forEach>
+        </tbody>
+    </table>
+    
     </body>
 </html>

@@ -64,19 +64,19 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
     @Attribute(name="allowed-users", required=false)
     private String allowedUsersStr = ""; // Set this if we want to restrict access to
                                          // this service to certain (comma-separated) users
-    private Vector<String> allowedUsers = null; // will be set on validate()
+    private List<String> allowedUsers = null; // will be set on validate()
     
     @Attribute(name="allowed-groups", required=false)
     private String allowedGroupsStr = ""; // Set this if we want to restrict access to
                                          // this service to certain (comma-separated) groups
-    private Vector<String> allowedGroups = null; // will be set on validate
+    private List<String> allowedGroups = null; // will be set on validate
     
     /**
      * The options that are used to provide more information about how the
      * service is to be run (e.g. extra properties for a Condor submit file)
      */
     @ElementList(name="options", type=Option.class, required=false)
-    private Vector<Option> options = new Vector<Option>();
+    private List<Option> options = new Vector<Option>();
     
     // The directory that contains all the working directories of instances
     // of this service.  This is set by GRexConfig.validate()

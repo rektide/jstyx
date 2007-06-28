@@ -54,7 +54,7 @@ class InstanceResponse
     private String url;
     
     @Element(name="description", required=false)
-    private String description = "";
+    private String description = null;
     
     @ElementList(name="parameters", type=Parameter.class)
     private List<Parameter> params;

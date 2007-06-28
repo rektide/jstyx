@@ -43,6 +43,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
+import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.exceptions.InstancesStoreException;
 
 /**
@@ -257,7 +258,16 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
     {
         try
         {
-            return this.instancesById.get(instanceID);
+            GRexServiceInstance inst = this.instancesById.get(instanceID);
+            // Add the configuration object for this instance
+            GridServiceConfigForServer gsConfig = this.config.getGridServiceByName(inst.getServiceName());
+            if (gsConfig == null)
+            {
+                throw new InstancesStoreException("Internal error: cannot find" +
+                    " configuration information for service " + inst.getServiceName());
+            }
+            inst.setGridServiceConfig(gsConfig);
+            return inst;
         }
         catch(DatabaseException dbe)
         {

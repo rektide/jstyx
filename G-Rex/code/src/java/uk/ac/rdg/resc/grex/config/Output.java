@@ -45,10 +45,10 @@ public class Output
 {
     @Attribute(name="name")
     private String name;
-    @Attribute(name="stream", required=false)
-    private boolean stream = false; // True if this is a stream, i.e. a file that is only
+    @Attribute(name="appendOnly", required=false)
+    private boolean appendOnly = false; // True if this is a file that is only
                             // ever appended to: not a random-access file.  This allows
-                            // clients to begin downloading this file during execution
+                            // clients to begin downloading this file during execution.
                             // This will default to "true" if the name of this output
                             // is "stdout" or "stderr"
     
@@ -69,7 +69,7 @@ public class Output
     {
         if (this.name.equals("stdout") || this.name.equals("stderr"))
         {
-            this.stream = true;
+            this.appendOnly = true;
         }
         // TODO: repeats code in Input: refactor?
         int i1 = this.name.indexOf("${");
@@ -85,9 +85,9 @@ public class Output
         return name;
     }
 
-    public boolean isStream()
+    public boolean isAppendOnly()
     {
-        return stream;
+        return this.appendOnly;
     }
     
     /**
