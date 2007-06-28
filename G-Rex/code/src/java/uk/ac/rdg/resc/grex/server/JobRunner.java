@@ -31,6 +31,7 @@ package uk.ac.rdg.resc.grex.server;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
+import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
 
 /**
  * Interface describing the methods exposed by all JobRunners (classes that
@@ -81,8 +82,13 @@ public interface JobRunner
      * Starts the JobRunner.  This method should return immediately in order to
      * provide the user with a timely response.  Subclasses should run lengthy
      * tasks in separate threads.
+     *
+     * The task of the start() method is to prepare the job, then kick it off, 
+     * setting the state of the job to RUNNING or ERROR before returning
+     * @throws InstanceNotReadyException if the instance is not ready to be
+     * started, perhaps because a required parameter has not been set.
      */
-    public void start();
+    public void start() throws InstanceNotReadyException;
     
     /**
      * Forcibly stops the JobRunner (in response to an abort message from a user)

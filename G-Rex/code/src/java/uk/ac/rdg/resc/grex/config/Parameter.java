@@ -87,7 +87,7 @@ public class Parameter
     private String description = ""; // Human-readable description for this parameter
     
     @Attribute(name="required", required=false)
-    private boolean required = false; // True if this parameter must be set before a service is run
+    private boolean required = true; // True if this parameter must be set before a service is run
     
     @Attribute(name="greedy", required=false)
     private boolean greedy = false; // True if this is an UnflaggedOption that consumes the

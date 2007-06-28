@@ -52,6 +52,18 @@ public interface GRexServiceInstancesStore
     public GRexServiceInstance getServiceInstanceById(int id) throws InstancesStoreException;
     
     /**
+     * Gets a GRexServiceInstance object representing the instance with the 
+     * given id and checks that it belongs to the service with the given name.
+     * @param instanceID ID of the instance to be retrieved
+     * @param serviceName Name of the service to which the instance should belong
+     * @return the GRexServiceInstance object, or null if there is no 
+     * object with the given ID that belongs to the given service
+     * @throws InstancesStoreException if there was an error retrieving the object
+     */
+    public GRexServiceInstance getServiceInstanceById(int instanceID, String serviceName)
+        throws InstancesStoreException;
+    
+    /**
      * Finds all the instances of the service with the given name
      * @param serviceName The name of the service as specified in the config file
      * @return a List of all the instances of this service

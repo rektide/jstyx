@@ -38,6 +38,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.config.Parameter;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
+import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
 
 /**
  * Runs a job on the G-Rex server itself.
@@ -56,8 +57,10 @@ public class LocalJobRunner extends AbstractJobRunner
     /**
      * The task of the start() method is to prepare the job, then kick it off, 
      * setting the state of the job to RUNNING or ERROR before returning
+     * @throws InstanceNotReadyException if the instance is not ready to be
+     * started, perhaps because a required parameter has not been set.
      */
-    public void start()
+    public void start() throws InstanceNotReadyException
     {
         log.debug("Starting execution of service instance " + this.instance.getId());
         
@@ -105,8 +108,10 @@ public class LocalJobRunner extends AbstractJobRunner
     
     /**
      * Constructs the full command line that will be executed
+     * @throws InstanceNotReadyException if a required command-line parameter
+     * has not been set
      */
-    private String constructCommmandLine()
+    private String constructCommmandLine() throws InstanceNotReadyException
     {
         StringBuffer cmdLine = new StringBuffer(this.gsConfig.getCommand());
         
@@ -118,7 +123,8 @@ public class LocalJobRunner extends AbstractJobRunner
             {
                 if (param.isRequired())
                 {
-                    // TODO: throw an InvalidInstanceStateException or similar
+                    throw new InstanceNotReadyException("Parameter " +
+                        param.getName() + " must have a value");
                 }
             }
             else

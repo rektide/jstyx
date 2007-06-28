@@ -235,7 +235,8 @@ public class GRexRun
         catch(Exception e)
         {
             log.error("Error running GRex service", e);
-            e.printStackTrace(); // TODO: not very user-friendly!
+            System.err.println("Error running G-Rex service: " + e.getMessage());
+            // TODO: exit with special code?
         }
     }
     
@@ -258,7 +259,7 @@ public class GRexRun
         // Add a flagged option to allow the user to attach a description to
         // the service instance that will be created
         jsap.registerParameter(new FlaggedOption(DESCRIPTION, JSAP.STRING_PARSER,
-            "", false, JSAP.NO_SHORTFLAG, DESCRIPTION, 
+            null, false, JSAP.NO_SHORTFLAG, DESCRIPTION, 
             "A short description of the service instance that will be created"));
     }
     

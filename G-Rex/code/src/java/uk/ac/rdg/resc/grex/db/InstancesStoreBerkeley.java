@@ -246,9 +246,7 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
     
     /**
      * Gets a GRexServiceInstance object representing the instance with the 
-     * given id.  This method should only be used for reading the instance
-     * object.  If you want to update the instance, use (TODO) in order to
-     * guarantee thread safety.
+     * given id.
      * @param instanceID ID of the instance to be retrieved
      * @return the GRexServiceInstance object, or null if there is no 
      * object with the given ID
@@ -265,6 +263,26 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
         {
             throw new InstancesStoreException(dbe);
         }
+    }
+    
+    /**
+     * Gets a GRexServiceInstance object representing the instance with the 
+     * given id and checks that it belongs to the service with the given name.
+     * @param instanceID ID of the instance to be retrieved
+     * @param serviceName Name of the service to which the instance should belong
+     * @return the GRexServiceInstance object, or null if there is no 
+     * object with the given ID that belongs to the given service
+     * @throws InstancesStoreException if there was an error retrieving the object
+     */
+    public GRexServiceInstance getServiceInstanceById(int instanceID, String serviceName)
+        throws InstancesStoreException
+    {
+        GRexServiceInstance instance = this.getServiceInstanceById(instanceID);
+        if (instance != null && instance.getServiceName().equals(serviceName))
+        {
+            return instance;
+        }
+        return null;
     }
     
     /**
