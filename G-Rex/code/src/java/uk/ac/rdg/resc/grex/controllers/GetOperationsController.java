@@ -430,19 +430,10 @@ public class GetOperationsController extends MultiActionController
     /**
      * Decodes the given request URI by replacing HTML escape sequences with
      * their proper characters
+     * @todo Implement properly: only handles spaces at the moment
      */
     private static final String decode(String uri)
     {
-        // TODO: check that this is really the right method: it's really intended
-        // for form encoding
-        try
-        {
-            return URLDecoder.decode(uri, "UTF-8");
-        }
-        catch(UnsupportedEncodingException uee)
-        {
-            // Shouldn't happen
-            throw new AssertionError("UTF-8 encoding not supported!");
-        }
+        return uri.replaceAll("%20", " ");
     }
 }

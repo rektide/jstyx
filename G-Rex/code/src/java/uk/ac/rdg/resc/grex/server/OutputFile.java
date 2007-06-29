@@ -29,9 +29,6 @@
 package uk.ac.rdg.resc.grex.server;
 
 import java.io.File;
-import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 
 /**
@@ -111,6 +108,16 @@ public class OutputFile
     public String getRelativePath()
     {
         return this.relativePath;
+    }
+    
+    /**
+     * @return the path of the file relative to the working directory of the
+     * instance, encoded as a URL
+     * @todo Implement properly: only handles spaces at the moment
+     */
+    public String getRelativePathUrlEncoded()
+    {
+        return this.relativePath.replaceAll(" ", "%20");
     }
     
     /**
