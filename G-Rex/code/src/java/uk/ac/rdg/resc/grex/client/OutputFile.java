@@ -28,58 +28,64 @@
 
 package uk.ac.rdg.resc.grex.client;
 
-import java.util.List;
 import simple.xml.Attribute;
-import simple.xml.Element;
-import simple.xml.ElementList;
 import simple.xml.Root;
 
 /**
- * Simple class used to deserialize the response from the server when
- * getting information about an instance (having just created it, changed
- * its state, or simply getting updates).  Matches up with instance_xml.jsp
+ * Client-side representation of an output file that can be downloaded from a
+ * remote service instance, as contained in an InstanceResponse.  Matches up
+ * with instance_xml.jsp.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-@Root(name="instance")
-class InstanceResponse
+@Root(name="outputFile")
+class OutputFile
 {
-    @Attribute(name="id")
-    private String id;
+    @Attribute(name="relPath")
+    private String relativePath;
     
-    @Element(name="url")
-    private String url;
+    @Attribute(name="lengthBytes")
+    private long fileLength;
     
-    @Element(name="description", required=false)
-    private String description = null;
+    @Attribute(name="lastModified")
+    private long lastModified;  // TODO: change to proper, interoperable date type
     
-    @ElementList(name="parameters", type=Parameter.class)
-    private List<Parameter> params;
+    @Attribute(name="readyForDownload")
+    private boolean readyForDownload;
     
-    // TODO: how do we decode the "baseUrl" attribute of the <outputFiles> element?
-    @ElementList(name="outputFiles", type=OutputFile.class)
-    private List<OutputFile> outputFiles;
-    
-    public String getUrl()
+    /** Creates a new instance of OutputFile */
+    public OutputFile()
     {
-        return this.url;
     }
 
-    public String getId()
+    /**
+     * @return the path to the output file, relative to the base URL of the
+     * service instance
+     */
+    public String getRelativePath()
     {
-        return id;
+        return relativePath;
     }
 
-    public String getDescription()
+    public long getFileLengthBytes()
     {
-        return description;
+        return fileLength;
     }
 
-    public List<Parameter> getParams()
+    /**
+     * @todo replace with proper interoperable date string
+     */
+    public long getLastModified()
     {
-        return params;
+        return lastModified;
     }
+
+    public boolean isReadyForDownload()
+    {
+        return readyForDownload;
+    }
+    
 }

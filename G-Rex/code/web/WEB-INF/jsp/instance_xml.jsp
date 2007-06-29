@@ -10,4 +10,10 @@
         <param name="${par.key}" value="${par.value}"/>
         </c:forEach>
     </parameters>
+    <outputFiles>
+        <c:forEach var="file" items="${instance.currentOutputFiles}">
+        <outputFile relPath="/outputs/${file.relativePath}" lengthBytes="${file.lengthBytes}"
+            lastModified="${file.lastModified}" readyForDownload="${file.readyForDownload}"/>
+        </c:forEach>
+    </outputFiles>
 </instance>
