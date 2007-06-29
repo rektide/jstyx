@@ -21,7 +21,7 @@
     </inputs>
     <outputs>
         <c:forEach var="output" items="${gridservice.outputs}">
-        <output name="${output.name}" stream="${output.stream}"/>
+        <output name="${output.name}" appendOnly="${output.appendOnly}"/>
         </c:forEach>
     </outputs>
 </gridservice>

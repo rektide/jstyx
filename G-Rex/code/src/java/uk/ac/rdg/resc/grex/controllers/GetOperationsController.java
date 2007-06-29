@@ -29,6 +29,11 @@
 package uk.ac.rdg.resc.grex.controllers;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +41,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
@@ -105,6 +112,7 @@ import uk.ac.rdg.resc.grex.exceptions.GRexException;
  */
 public class GetOperationsController extends MultiActionController
 {
+    private static final Log log = LogFactory.getLog(GetOperationsController.class);
     
     /**
      * Configuration information for this G-Rex server.
@@ -247,12 +255,12 @@ public class GetOperationsController extends MultiActionController
     }
     
     /**
-     * Downloads an output file from this instance.
+     * Downloads an output file from this instance.  Writes the output directly
+     * to the response's output stream.
      */
-    public ModelAndView downloadOutputFile(HttpServletRequest request,
+    public void downloadOutputFile(HttpServletRequest request,
         HttpServletResponse response) throws Exception
     {
-        System.out.println("URI = " + request.getRequestURI());
         User loggedInUser = (User)SecurityContextHolder.getContext()
             .getAuthentication().getPrincipal();
         // Find the name of the service and the instance that the user is
@@ -266,29 +274,79 @@ public class GetOperationsController extends MultiActionController
             serviceName, this.instancesStore);
         if (!instance.canBeReadBy(loggedInUser))
         {
-            // TODO: should this be an HTTP error code for compatibility with
-            // general HTTP clients like wget?
-            throw new GRexException("User " + loggedInUser.getUsername() +
-                " does not have permission to read output files from instance "
-                + instance.getId() + " of service " + serviceName);
+            // TODO: how do we get this sent to the client, avoiding the servlet
+            // container's interception?
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         }
         
         // Find the path to the file, relative to the working directory
-        // TODO: must be a neater way of doing this...
-        StringBuffer pathBuf = new StringBuffer();
-        for (int i = urlEls.length - 6; i < urlEls.length; i++)
+        StringBuffer pathBuf = new StringBuffer(urlEls[6]);
+        for (int i = 7; i < urlEls.length; i++)
         {
-            pathBuf.append(urlEls[i]);
             pathBuf.append(System.getProperty("file.separator"));
+            pathBuf.append(urlEls[i]);
         }
         File fileToDownload = new File(instance.getWorkingDirectory(), pathBuf.toString());
-        if (!fileToDownload.exists())
+        
+        // TODO: check that this file is ready to be downloaded
+        
+        // Now output the file to the client.  This logic works for both
+        // "live" streams and static files.
+        // TODO: set the MIME type correctly (how?)
+        // TODO: does this set the file size correctly for a stream?
+        InputStream in = null;
+        OutputStream out = null;
+        try
         {
-            // Again, perhaps an HTTP file not found error is more appropriate here
-            throw new GRexException("File " + pathBuf.toString() + " not found!");
+            in = new FileInputStream(fileToDownload);
+            out = response.getOutputStream();
+            byte[] buf = new byte[1024];
+            int len;
+            while (true) // Loop until the instance is finished and the file has been read completely
+            {
+                while ((len = in.read(buf)) > 0)
+                {
+                    out.write(buf, 0, len);
+                    out.flush();
+                }
+                // We've now reached EOF, but we'll check the status of the instance,
+                // then pause and carry on if the instance is still running
+                
+                // Make sure our view of the instance is up to date
+                // TODO: any way of getting the state without refreshing the whole object?
+                instance = this.instancesStore.getServiceInstanceById(instance.getId());
+                if (instance.isFinished())
+                {
+                    break;
+                }
+                try { Thread.sleep(2000); } catch (InterruptedException ie) {}
+            }
+        }
+        catch(FileNotFoundException fnfe)
+        {
+            // TODO: how do we get this sent to the client, avoiding the servlet
+            // container's interception?
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        }
+        catch(IOException ioe)
+        {
+            // This is most likely to happen if the client disconnects unexpectedly
+            log.error("Error downloading file " + pathBuf.toString(), ioe);
+            // TODO: report this to the client?
+        }
+        finally
+        {
+            try
+            {
+                if (in != null) in.close();
+                if (out != null) out.close();
+            }
+            catch (IOException ioe)
+            {
+                // Unlikely to happen and we don't really care anyway
+            }
         }
         
-        return null;
     }
     
     /**

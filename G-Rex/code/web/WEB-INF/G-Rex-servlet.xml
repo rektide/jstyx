@@ -74,7 +74,7 @@
                 /*/instances.*=listInstancesForService
                 /*/config.*=showConfigForService
                 /*/instances/*.*=showServiceInstance
-                /*/instances/*/outputs/*=downloadOutputFile
+                /*/instances/*/outputs/**=downloadOutputFile
             </value>
         </property>
     </bean>
@@ -119,7 +119,7 @@
                 <!-- Shows the information for a given service instance -->
                 <prop key="/*/instances/*.*">getOperationsController</prop>
                 <!-- Downloads an output file -->
-                <prop key="/*/instances/*/outputs/*">getOperationsController</prop>
+                <prop key="/*/instances/*/outputs/**">getOperationsController</prop>
                 <!-- Creates a new instance of a service -->
                 <prop key="/*/clone.action">postOperationsController</prop>
                 <!-- Sets parameters and input files for a service instance -->

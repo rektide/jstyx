@@ -44,6 +44,15 @@
             </outputs>
         </gridservice>
         
+        <!-- Should work under Unix and Windows -->
+        <gridservice name="longrunning" command="python c:\longrunning.py"
+                description="Long-running service: prints out lots of data to stdout">
+            <outputs>
+                <output name="stdout"/>
+                <output name="stderr"/>
+            </outputs>
+        </gridservice>
+        
         <gridservice name="condortest" type="condor" command="hellocondor"
                      description="Test Condor job: prints Hello World to stdout">
             <outputs>
