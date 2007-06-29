@@ -49,20 +49,22 @@ import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
  */
 public class OutputFile
 {
-    private File file; // The file itself
+    private String relativePath; // Path relative to the working directory of the instance
+    private File file; // underlying File
     private GRexServiceInstance instance;
     private boolean appendOnly;
     
     /**
      * Creates a new instance of OutputFile
-     * @param file The File object representing this output file
+     * @param relativePath Path relative to the working directory of the instance
      * @param instance The instance to which this output file belongs
      * @param appendOnly True if this file represents a file that is only ever
      * appended to during a run
      */
-    public OutputFile(File file, GRexServiceInstance instance, boolean appendOnly)
+    public OutputFile(String relativePath, GRexServiceInstance instance, boolean appendOnly)
     {
-        this.file = file;
+        this.relativePath = relativePath;
+        this.file = new File(instance.getWorkingDirectoryFile(), relativePath);
         this.instance = instance;
         this.appendOnly = appendOnly;
     }
@@ -108,17 +110,7 @@ public class OutputFile
      */
     public String getRelativePath()
     {
-        try
-        {
-            // This is pretty crude but effective
-            String wdPath = new File(this.instance.getWorkingDirectory()).getCanonicalPath();
-            return this.file.getCanonicalPath().substring(wdPath.length() + 1);
-        }
-        catch(IOException ioe)
-        {
-            // Very unlikely to happen!
-            return "ERROR";
-        }
+        return this.relativePath;
     }
     
     /**

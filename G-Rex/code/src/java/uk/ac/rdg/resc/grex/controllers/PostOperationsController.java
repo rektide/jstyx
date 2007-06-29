@@ -179,6 +179,12 @@ public class PostOperationsController extends MultiActionController
                 " does not have permission to modify instance "
                 + instance.getId() + " of service " + serviceName);
         }
+        
+        if (instance.getState() != GRexServiceInstance.State.CREATED)
+        {
+            throw new GRexException("Cannot modify an instance in state " +
+                instance.getState());
+        }
 
         // Create a new file upload handler
         // See http://jakarta.apache.org/commons/fileupload/streaming.html
@@ -296,10 +302,20 @@ public class PostOperationsController extends MultiActionController
         }
         else if (request.getParameter("operation").trim().equals("start"))
         {
+            if (instance.getState() != GRexServiceInstance.State.CREATED)
+            {
+                throw new GRexException("Cannot start an instance in state " +
+                    instance.getState());
+            }
             jobRunner.start();
         }
         else if (request.getParameter("operation").trim().equals("abort"))
         {
+            if (instance.getState() != GRexServiceInstance.State.RUNNING)
+            {
+                throw new GRexException("Cannot abort an instance in state " +
+                    instance.getState());
+            }
             jobRunner.abort();
         }
         // TODO: add a method for cleanup

@@ -33,12 +33,12 @@ import com.sleepycat.persist.model.PrimaryKey;
 import com.sleepycat.persist.model.SecondaryKey;
 import com.sleepycat.persist.model.Relationship;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.oro.io.GlobFilenameFilter;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.util.PathMatcher;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.config.Output;
 import uk.ac.rdg.resc.grex.config.User;
@@ -62,6 +62,8 @@ import uk.ac.rdg.resc.grex.server.OutputFile;
 @Entity
 public class GRexServiceInstance
 {
+    private static final String FILE_SEPARATOR = System.getProperty("file.separator");
+    
     @PrimaryKey(sequence="ID") // Auto-generate the ID
     private int id; // Unique ID for this instance
     
@@ -148,6 +150,15 @@ public class GRexServiceInstance
     public void setWorkingDirectory(String workingDirectory)
     {
         this.workingDirectory = workingDirectory;
+    }
+    
+    /**
+     * @return a java.io.File representation of the working directory of this
+     * instance.  A new File object is created with each invocation.
+     */
+    public File getWorkingDirectoryFile()
+    {
+        return new File(this.workingDirectory);
     }
     
     /**
@@ -369,45 +380,76 @@ public class GRexServiceInstance
     public List<OutputFile> getCurrentOutputFiles()
     {
         List<OutputFile> files = new ArrayList<OutputFile>();
-        File wd = new File(this.workingDirectory);
-        
-        // Search through all output patterns specified in this configuration and
-        // see which files in the working directory match
-        for (Output op : this.gsConfig.getOutputs())
+        // Start the recursive process of searching the working directory for
+        // files that match the output patterns as defined in the config file
+        this.getCurrentOutputFiles("", files);
+        return files;
+    }
+    
+    /**
+     * Recursive method to get the output files in the the directory whose
+     * path (relative to the instance's working directory) is given by
+     * relativeDirPath.  The results are added to the given List of OutputFiles.
+     * If relativeDirPath is not the empty string, it must end with a forward
+     * slash (irrespective of operating system).
+     */
+    private void getCurrentOutputFiles(String relativeDirPath, List<OutputFile> files)
+    {
+        File dir = new File(this.getWorkingDirectoryFile(), relativeDirPath);
+        for (String filename : dir.list())
         {
-            String name = op.getName();
-            if (op.getLinkedParameterName() != null)
+            String relativePath = relativeDirPath + filename;
+            File f = new File(dir, relativePath);
+            if (f.isDirectory())
             {
-                // The name of the file comes from the value of this parameter
-                name = this.getParamValue(op.getLinkedParameterName());
+                // recursively call this method
+                // We must always use forward slashes even on Windows for the
+                // pattern matching in getOutputFile() to work
+                this.getCurrentOutputFiles(relativePath + "/", files);
             }
-            // Treat the name of the output as a glob pattern
-            FilenameFilter filter = new GlobFilenameFilter(name);
-            // Loop over all the files that match the glob pattern
-            // TODO does this iterate over subdirectories?
-            for (File f : wd.listFiles(filter))
+            else
             {
-                // Note that this will overwrite previous entries if a file
-                // with the same path has already been recorded.  Therefore
-                // entries lower in the list of outputs in the config file
-                // have priority.  TODO: is this intuitive?
-                
-                // Note: this is an O(N2) algorithm, but hopefully this isn't
-                // important in the grand scheme of things.
-                OutputFile opf = new OutputFile(f, this, op.isAppendOnly());
-                for (OutputFile existingFile : files)
-                {
-                    if (opf.getFile().equals(existingFile.getFile()))
-                    {
-                        // remove the previous file before adding the new one
-                        files.remove(existingFile);
-                        break;
-                    }
-                }
-                files.add(opf);
+                // Check to see if this file is downloadable
+                OutputFile opFile = this.getOutputFile(relativePath);
+                if (opFile != null) files.add(opFile);
             }
         }
-        
-        return files;
+    }
+    
+    /**
+     * @return an OutputFile corresponding with the given path relative to the 
+     * working directory of this instance, or null if the
+     * service configuration says that the given file cannot be downloaded
+     * through the web interface.  Note that the relativeFilePath must be delimited
+     * by forward slashes ("/") on all platforms for the pattern matching to work.
+     * relativeFilePath must not start with a slash.
+     * Matches according to Ant syntax.
+     * @see AntPathMatcher in the Spring libraries
+     */
+    public OutputFile getOutputFile(String relativeFilePath)
+    {
+        // Look through all the output definitions in the configuration and
+        // see if we have a match.  Note that if this path matches more than one
+        // pattern the later patterns take priority
+        OutputFile opFile = null;
+        for (Output op : this.gsConfig.getOutputs())
+        {
+            String pattern = op.getName();
+            if (op.getLinkedParameterName() != null)
+            {
+                // The pattern to match comes from the value of this parameter
+                pattern = this.getParamValue(op.getLinkedParameterName());
+            }
+            PathMatcher pathMatcher = new AntPathMatcher();
+            if (pathMatcher.match(pattern, relativeFilePath))
+            {
+                File f = new File(this.getWorkingDirectoryFile(), relativeFilePath);
+                if (!f.isDirectory())
+                {
+                    opFile = new OutputFile(relativeFilePath, this, op.isAppendOnly());
+                }
+            }
+        }
+        return opFile;
     }
 }

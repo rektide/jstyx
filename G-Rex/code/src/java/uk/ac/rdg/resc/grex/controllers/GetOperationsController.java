@@ -34,6 +34,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +53,7 @@ import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
+import uk.ac.rdg.resc.grex.server.OutputFile;
 
 // TODO: these instructions are out of date and do not belong here anymore!
 /**
@@ -257,6 +260,8 @@ public class GetOperationsController extends MultiActionController
     /**
      * Downloads an output file from this instance.  Writes the output directly
      * to the response's output stream.
+     * @todo maybe adapt error codes based on the user-agent?  HTTP error codes
+     * for browsers, XML error messages for custom clients?
      */
     public void downloadOutputFile(HttpServletRequest request,
         HttpServletResponse response) throws Exception
@@ -266,7 +271,7 @@ public class GetOperationsController extends MultiActionController
         // Find the name of the service and the instance that the user is
         // interested in.  The URL pattern is
         // /G-Rex/serviceName/instances/instanceID/outputs/path/to/file
-        String[] urlEls = request.getRequestURI().split("/");
+        String[] urlEls = decode(request.getRequestURI()).split("/");
         String serviceName = urlEls[2];
         String instanceIdStr = urlEls[4];
         
@@ -277,28 +282,44 @@ public class GetOperationsController extends MultiActionController
             // TODO: how do we get this sent to the client, avoiding the servlet
             // container's interception?
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return;
         }
         
         // Find the path to the file, relative to the working directory
         StringBuffer pathBuf = new StringBuffer(urlEls[6]);
         for (int i = 7; i < urlEls.length; i++)
         {
-            pathBuf.append(System.getProperty("file.separator"));
+            pathBuf.append("/"); // We use a forward slash even on Windows because
+                                 // this is necessary for pattern matching in
+                                 // instance.getOutputFile()
             pathBuf.append(urlEls[i]);
         }
         File fileToDownload = new File(instance.getWorkingDirectory(), pathBuf.toString());
         
-        // TODO: check that this file is ready to be downloaded
+        // Check that this file is ready to be downloaded
+        OutputFile opFile = instance.getOutputFile(pathBuf.toString());
+        if (opFile == null || !opFile.isReadyForDownload())
+        {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        
+        // Set the content-length in the file header if this is not a stream, or
+        // if the instance has finished
+        if (!opFile.isAppendOnly() || instance.isFinished())
+        {
+            // Why won't setContentLength() accept a long integer?
+            response.setContentLength((int)opFile.getLengthBytes());
+        }
+        // TODO: set the MIME type correctly (how?)
         
         // Now output the file to the client.  This logic works for both
         // "live" streams and static files.
-        // TODO: set the MIME type correctly (how?)
-        // TODO: does this set the file size correctly for a stream?
         InputStream in = null;
         OutputStream out = null;
         try
         {
-            in = new FileInputStream(fileToDownload);
+            in = new FileInputStream(opFile.getFile());
             out = response.getOutputStream();
             byte[] buf = new byte[1024];
             int len;
@@ -346,7 +367,6 @@ public class GetOperationsController extends MultiActionController
                 // Unlikely to happen and we don't really care anyway
             }
         }
-        
     }
     
     /**
@@ -405,5 +425,24 @@ public class GetOperationsController extends MultiActionController
     private static final String getFileExtension(String requestURI)
     {
         return requestURI.substring(requestURI.lastIndexOf(".") + 1);
+    }
+    
+    /**
+     * Decodes the given request URI by replacing HTML escape sequences with
+     * their proper characters
+     */
+    private static final String decode(String uri)
+    {
+        // TODO: check that this is really the right method: it's really intended
+        // for form encoding
+        try
+        {
+            return URLDecoder.decode(uri, "UTF-8");
+        }
+        catch(UnsupportedEncodingException uee)
+        {
+            // Shouldn't happen
+            throw new AssertionError("UTF-8 encoding not supported!");
+        }
     }
 }
