@@ -196,7 +196,7 @@ public class GRexServiceClient
         try
         {
             method.setDoAuthentication(true);
-            int status = client.executeMethod(method);
+            int status = this.client.executeMethod(method);
             if (status == HttpServletResponse.SC_OK)
             {
                 // This loads the whole response into memory: OK as will be short
@@ -341,27 +341,10 @@ public class GRexServiceClient
         buf.append(this.getUser());
         return buf.toString();
     }
-    
-    /**
-     * Simple test routine
-     */
-    public static void main(String[] args) throws Exception
-    {
-        try
-        {
-            String url = new String("http://helen:emu@localhost:8084/G-Rex/helloworld");
-            GRexServiceClient client = new GRexServiceClient(url);
-            System.out.println(client.toString());
 
-            GridServiceConfigForClient config = client.getConfig();
-            System.out.println(config.getName());
-            
-            client.createNewServiceInstance("a short description");
-        }
-        catch(GRexException gre)
-        {
-            System.err.println("GRexException: " + gre.getMessage());
-        }
+    HttpClient getHttpClient()
+    {
+        return client;
     }
     
 }

@@ -30,88 +30,35 @@ package uk.ac.rdg.resc.grex.client;
 
 import java.util.List;
 import simple.xml.Attribute;
-import simple.xml.Element;
 import simple.xml.ElementList;
 import simple.xml.Root;
-import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 
 /**
- * Simple class used to deserialize the response from the server when
- * getting information about an instance (having just created it, changed
- * its state, or simply getting updates).  Matches up with instance_xml.jsp
+ * The "outputFiles" element in the instance status document.  Belongs to 
+ * InstanceResponse.
  *
  * @author Jon Blower
  * $Revision$
  * $Date$
  * $Log$
  */
-@Root(name="instance")
-class InstanceResponse
+@Root(name="outputFiles")
+class OutputFiles
 {
-    @Attribute(name="id")
-    private String id;
+    @Attribute(name="baseUrl")
+    private String baseUrl;
     
-    @Element(name="url")
-    private String url;
-    
-    @Element(name="description", required=false)
-    private String description = null;
-    
-    @Element(name="state")
-    private GRexServiceInstance.State state;
-    
-    @Element(name="exitCode", required=false)
-    private Integer exitCode = null;
-    
-    @ElementList(name="parameters", type=Parameter.class)
-    private List<Parameter> params;
-    
-    @Element(name="outputFiles")
-    private OutputFiles outputFiles;
-    
-    public String getUrl()
+    @ElementList(name="list", type=OutputFile.class)
+    private List<OutputFile> outputFileList;
+
+    public String getBaseUrl()
     {
-        return this.url;
+        return baseUrl;
     }
 
-    public String getId()
+    public List<OutputFile> getOutputFileList()
     {
-        return id;
-    }
-
-    public String getDescription()
-    {
-        return description;
-    }
-
-    public List<Parameter> getParams()
-    {
-        return params;
-    }
-
-    public GRexServiceInstance.State getState()
-    {
-        return state;
-    }
-
-    public Integer getExitCode()
-    {
-        return exitCode;
-    }
-
-    /**
-     * @return the base url for all the output files that are currently available
-     */
-    public String getOutputFilesBaseUrl()
-    {
-        return this.outputFiles.getBaseUrl();
+        return outputFileList;
     }
     
-    /**
-     * @return a list of all the output files that are currently available
-     */
-    public List<OutputFile> getOutputFiles()
-    {
-        return this.outputFiles.getOutputFileList();
-    }
 }

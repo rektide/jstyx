@@ -331,7 +331,7 @@ public class GetOperationsController extends MultiActionController
                 done = instance.isFinished();
                 // Even if the instance has finished we make sure we've read
                 // the entire file
-                while ((len = in.read(buf)) > 0)
+                while ((len = in.read(buf)) >= 0)
                 {
                     out.write(buf, 0, len);
                     out.flush();

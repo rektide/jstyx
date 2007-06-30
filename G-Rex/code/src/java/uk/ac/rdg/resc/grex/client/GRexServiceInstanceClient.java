@@ -30,15 +30,15 @@ package uk.ac.rdg.resc.grex.client;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.multipart.FilePart;
@@ -48,6 +48,7 @@ import org.apache.commons.httpclient.methods.multipart.StringPart;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
+import uk.ac.rdg.resc.grex.server.AbstractJobRunner;
 
 /**
  * An object that is used to manipulate a particular instance of a grid service.
@@ -72,6 +73,8 @@ public class GRexServiceInstanceClient
     private String url;
     private GRexServiceClient serviceClient;
     private long updateIntervalMs = DEFAULT_UPDATE_INTERVAL_MS;
+    private InstanceResponse instanceState;  // The state of the instance as
+                                             // read from the server
     
     /**
      * Map of parameter names and values that we will set on the remote service
@@ -92,15 +95,15 @@ public class GRexServiceInstanceClient
      */
     private InputStream stdinSource = null;
     /**
-     * The PrintStream that will be used to write the standard output from the
+     * The OutputStream that will be used to write the standard output from the
      * remote service instance.
      */
-    private PrintStream stdoutDestination = null;
+    private OutputStream stdoutDestination = System.out;
     /**
-     * The PrintStream that will be used to write the standard error stream from
+     * The OutputStream that will be used to write the standard error stream from
      * the remote service instance.
      */
-    private PrintStream stderrDestination = null;
+    private OutputStream stderrDestination = System.err;
     
     /**
      * Creates a new instance of GRexServiceInstanceClient
@@ -193,21 +196,21 @@ public class GRexServiceInstanceClient
     }
     
     /**
-     * Sets the PrintStream that will be used to write data coming from the
+     * Sets the OutputStream that will be used to write data coming from the
      * standard output of the remote service instance.
      */
-    public void setStdoutDestination(PrintStream ps)
+    public void setStdoutDestination(OutputStream out)
     {
-        this.stdoutDestination = ps;
+        this.stdoutDestination = out;
     }
     
     /**
-     * Sets the PrintStream that will be used to write data coming from the
+     * Sets the OutputStream that will be used to write data coming from the
      * standard output of the remote service instance.
      */
-    public void setStderrDestination(PrintStream ps)
+    public void setStderrDestination(OutputStream err)
     {
-        this.stderrDestination = ps;
+        this.stderrDestination = err;
     }
     
     public String getUrl()
@@ -226,10 +229,8 @@ public class GRexServiceInstanceClient
     
     /**
      * Sets the parameters of the service, uploads the required input files,
-     * starts the service running, starts the redirection of the standard streams,
-     * waits for the service to finish, then downloads the output.
-     * @todo Should this return immediately (doing all the stuff in threads
-     * and reporting progress via listeners)?
+     * starts the service running, then starts threads to monitor the status
+     * of the service and download the output files.
      */
     public void start() throws IOException, GRexException
     {
@@ -251,51 +252,145 @@ public class GRexServiceInstanceClient
         MultipartRequestEntity mre = new MultipartRequestEntity(partsArray,
             setupJob.getParams());
         setupJob.setRequestEntity(mre);
-        InstanceResponse respSetup = this.serviceClient.executeMethod(setupJob,
+        this.instanceState = this.serviceClient.executeMethod(setupJob,
             InstanceResponse.class);
-        // TODO: do something with the response object?
         
         // Now start the service instance
         PostMethod startJob = new PostMethod(this.url + "/control.action");
         startJob.setParameter("operation", "start");
-        InstanceResponse respStart = this.serviceClient.executeMethod(startJob,
+        this.instanceState = this.serviceClient.executeMethod(startJob,
             InstanceResponse.class);
-        // TODO: do something with the response object?
         
         // Start a regular process of polling the server for status updates
         // and discovering new output files to download
-        // TODO: must remember to stop this process once the job has finished
-        new Timer().schedule(new StatusUpdater(), 0, this.updateIntervalMs);
+        new StatusUpdater().start();
     }
     
     /**
-     * Class that polls the server at regular intervals for updates to status
-     * and finds new output files to download
+     * Thread that polls the server at regular intervals for updates to status,
+     * saving the results in the <code>instanceState</code> field.
      */
-    private class StatusUpdater extends TimerTask
+    private class StatusUpdater extends Thread
     {
         public void run()
         {
-            // Get the latest information about the service instance from the server
+            // Will store the files that are currently being downloaded
+            List<String> filesBeingDownloaded = new ArrayList<String>();
+            // Method to get the latest information about the service instance
+            // from the server
             GetMethod getStatus = new GetMethod(url + ".xml");
             try
             {
-                InstanceResponse instanceState = serviceClient.executeMethod(getStatus,
-                    InstanceResponse.class);
-                System.out.println("State = " + instanceState.getState());
-                // TODO: look through the list of output files, looking for new
-                // ones to download
-                
-                // TODO: check the status.  If finished, make sure that all the
-                // output files have been downloaded before stopping
+                do
+                {
+                    instanceState = serviceClient.executeMethod(getStatus,
+                        InstanceResponse.class);
+                    
+                    // Look through the list of output files and kick off a thread
+                    // to download each new one
+                    String baseUrl = instanceState.getOutputFilesBaseUrl();
+                    for (OutputFile outFile : instanceState.getOutputFiles())
+                    {
+                        if (outFile.isReadyForDownload() &&
+                            !filesBeingDownloaded.contains(outFile.getRelativePath()))
+                        {
+                            filesBeingDownloaded.add(outFile.getRelativePath());
+                            new FileDownloader(baseUrl, outFile.getRelativePath()).start();
+                        }
+                    }
+                    
+                    // Wait for the required time before getting the next update
+                    try { Thread.sleep(updateIntervalMs); } catch (InterruptedException ie) {}
+                    
+                } while (!instanceState.getState().meansFinished());
             }
             catch(Exception e)
             {
                 e.printStackTrace();
                 log.error("Error getting status of instance", e);
-                // TODO: abort the timer task?
+                // TODO: what do we do here?
             }
-            
+        }
+    }
+    
+    /**
+     * Thread that handles the downloading of an output file from the server.
+     */
+    private class FileDownloader extends Thread
+    {
+        private String baseUrl;
+        private String relativePath;
+        
+        public FileDownloader(String baseUrl, String relativePath)
+        {
+            this.baseUrl = baseUrl;
+            this.relativePath = relativePath;
+        }
+        
+        public void run()
+        {
+            String fileUrl = this.baseUrl + this.relativePath;
+            log.debug("Downloading from " + fileUrl);
+            InputStream in = null;
+            OutputStream out = null;
+            GetMethod downloader = new GetMethod(fileUrl);
+            try
+            {
+                int status = serviceClient.getHttpClient().executeMethod(downloader);
+                if (status == HttpServletResponse.SC_OK)
+                {
+                    in = downloader.getResponseBodyAsStream();
+                    // Set the output stream
+                    if (this.relativePath.equals(AbstractJobRunner.STDOUT))
+                    {
+                        out = stdoutDestination;
+                    }
+                    else if (this.relativePath.equals(AbstractJobRunner.STDERR))
+                    {
+                        out = stderrDestination;
+                    }
+                    else
+                    {
+                        File fout = new File(this.relativePath);
+                        fout.getParentFile().mkdirs();
+                        out = new FileOutputStream(fout);
+                    }
+                    
+                    // Now read the contents of the stream
+                    int len;
+                    byte[] buf = new byte[1024];
+                    while ((len = in.read(buf)) >= 0)
+                    {
+                        out.write(buf, 0, len);
+                    }
+                    out.flush();
+                    log.debug("Finished downloading from " + fileUrl);
+                }
+                else
+                {
+                    // TODO: do something better here
+                    log.error("Got status " + status + " from " + fileUrl);
+                }
+            }
+            catch(IOException ioe)
+            {
+                // TODO: do something more friendly here
+                ioe.printStackTrace();
+                log.error("Error downloading from " + fileUrl, ioe);
+            }
+            finally
+            {
+                try
+                {
+                    if (in != null) in.close();
+                    if (out != null && out != System.out && out != System.err) out.close();
+                }
+                catch (IOException ioe)
+                {
+                    // Unlikely to happen and we don't really care anyway
+                }
+                downloader.releaseConnection();
+            }
         }
     }
     

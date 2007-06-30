@@ -99,8 +99,18 @@ public class GRexServiceInstance
         RUNNING,  // The instance is running
         FINISHED, // The instance has completed normally
         ABORTED,  // The instance has been aborted by the user
-        ERROR     // The instance has failed due to an error
+        ERROR;    // The instance has failed due to an error
+            
+        /**
+         * @return true if this state means that the service instance has finished,
+         * either normally or due to an error or being aborted
+         */
+        public boolean meansFinished()
+        {
+            return this == FINISHED || this == ABORTED || this == ERROR;
+        }
     };
+    
     private State state;
     
     private Integer exitCode = null; // Will be set when the instance has finished
@@ -362,13 +372,12 @@ public class GRexServiceInstance
     }
     
     /**
-     * @return true if this instance has finished running (i.e. if state is
-     * FINISHED, ERROR or ABORTED
+     * @return true if this instance has finished running (delegates to 
+     * this.state.meansFinished())
      */
     public boolean isFinished()
     {
-        return this.state == State.FINISHED || this.state == State.ABORTED
-            || this.state == State.ERROR;
+        return this.state.meansFinished();
     }
 
     public void setGridServiceConfig(GridServiceConfigForServer gsConfig)

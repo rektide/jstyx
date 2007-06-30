@@ -54,12 +54,12 @@ public abstract class AbstractJobRunner implements JobRunner
      * The name of the file in the working directory that will represent the
      * standard output stream
      */
-    protected static final String STDOUT = "stdout";
+    public static final String STDOUT = "stdout";
     /**
      * The name of the file in the working directory that will represent the
      * standard error stream
      */
-    protected static final String STDERR = "stderr";
+    public static final String STDERR = "stderr";
     
     protected GRexServiceInstance instance;
     protected GridServiceConfigForServer gsConfig;
