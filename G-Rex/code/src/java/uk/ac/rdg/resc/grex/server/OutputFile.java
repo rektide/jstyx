@@ -68,11 +68,14 @@ public class OutputFile
     
     /**
      * @return true if the file can be downloaded immediately, which will be the
-     * case if this is an append-only file or if the service instance has finished.
+     * case if this is an append-only file, if the service instance has finished
+     * or if this is one of the standard streams (stdout or stderr).
      */
     public boolean isReadyForDownload()
     {
-        return this.appendOnly || this.instance.isFinished();
+        return this.appendOnly || this.instance.isFinished() ||
+            this.relativePath.equals(AbstractJobRunner.STDOUT) ||
+            this.relativePath.equals(AbstractJobRunner.STDERR);
     }
     
     /**

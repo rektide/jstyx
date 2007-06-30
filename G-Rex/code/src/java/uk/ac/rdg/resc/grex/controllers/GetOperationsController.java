@@ -323,25 +323,26 @@ public class GetOperationsController extends MultiActionController
             out = response.getOutputStream();
             byte[] buf = new byte[1024];
             int len;
-            while (true) // Loop until the instance is finished and the file has been read completely
+            boolean done = false;
+            do // Loop until the instance is finished and the file has been read completely
             {
+                // Make sure our view of the instance is up to date
+                instance = this.instancesStore.getServiceInstanceById(instance.getId());
+                done = instance.isFinished();
+                // Even if the instance has finished we make sure we've read
+                // the entire file
                 while ((len = in.read(buf)) > 0)
                 {
                     out.write(buf, 0, len);
                     out.flush();
                 }
-                // We've now reached EOF, but we'll check the status of the instance,
-                // then pause and carry on if the instance is still running
-                
-                // Make sure our view of the instance is up to date
-                // TODO: any way of getting the state without refreshing the whole object?
-                instance = this.instancesStore.getServiceInstanceById(instance.getId());
-                if (instance.isFinished())
+                // We've now reached EOF, but if the instance is still running,
+                // we'll pause and carry on
+                if (!done)
                 {
-                    break;
+                    try { Thread.sleep(2000); } catch (InterruptedException ie) {}
                 }
-                try { Thread.sleep(2000); } catch (InterruptedException ie) {}
-            }
+            } while (!done);
         }
         catch(FileNotFoundException fnfe)
         {

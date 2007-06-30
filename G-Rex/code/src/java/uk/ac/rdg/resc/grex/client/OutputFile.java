@@ -63,7 +63,7 @@ class OutputFile
 
     /**
      * @return the path to the output file, relative to the base URL of the
-     * service instance
+     * service instance (e.g. "/outputs/stdout")
      */
     public String getRelativePath()
     {

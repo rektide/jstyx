@@ -89,7 +89,18 @@ public class GRexServiceInstance
     
     // The state of this service instance
     // This describes the overall (coarse-grained) state of the instance.
-    public enum State{CREATED, RUNNING, FINISHED, ABORTED, ERROR};
+    // WARNING!  The state is stored in the database as an index number, not a string
+    // so if you add a new state to the start or middle of this list the indices
+    // will change and the database will appear to contain the wrong state!
+    public enum State
+    {
+        CREATED,  // The instance has been created
+        PENDING,  // The instance has been submitted to the underlying system but is not yet running
+        RUNNING,  // The instance is running
+        FINISHED, // The instance has completed normally
+        ABORTED,  // The instance has been aborted by the user
+        ERROR     // The instance has failed due to an error
+    };
     private State state;
     
     private Integer exitCode = null; // Will be set when the instance has finished

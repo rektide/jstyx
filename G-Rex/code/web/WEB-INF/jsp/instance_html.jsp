@@ -22,6 +22,7 @@ Displays the details of a particular service instance
             <tr><th>ID</th><td>${instance.id}</td></tr>
             <tr><th>Description</th><td>${instance.description}</td></tr>
             <tr><th>State</th><td>${instance.state}</td></tr>
+            <tr><th>Exit code</th><td>${instance.exitCode}</td></tr>
             <tr><th>Owner</th><td>${instance.owner}</td></tr>
             <tr><th>Group</th><td>${instance.group}</td></tr>
             <tr><th>Owner Permissions</th><td>${instance.ownerPermissions}</td></tr>

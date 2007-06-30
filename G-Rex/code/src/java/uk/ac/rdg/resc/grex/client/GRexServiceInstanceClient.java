@@ -37,6 +37,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.multipart.FilePart;
@@ -60,9 +62,16 @@ import uk.ac.rdg.resc.grex.exceptions.GRexException;
 public class GRexServiceInstanceClient
 {
     private static final Log log = LogFactory.getLog(GRexServiceInstanceClient.class);
+ 
+    /**
+     * Default interval in milliseconds between polling the server for updates
+     * to status
+     */
+    public static final long DEFAULT_UPDATE_INTERVAL_MS = 2000;
     
     private String url;
     private GRexServiceClient serviceClient;
+    private long updateIntervalMs = DEFAULT_UPDATE_INTERVAL_MS;
     
     /**
      * Map of parameter names and values that we will set on the remote service
@@ -201,6 +210,20 @@ public class GRexServiceInstanceClient
         this.stderrDestination = ps;
     }
     
+    public String getUrl()
+    {
+        return this.url;
+    }
+
+    /**
+     * Sets the interval in milliseconds between polling the server for status
+     * updates.
+     */
+    public void setUpdateIntervalMs(long updateIntervalMs)
+    {
+        this.updateIntervalMs = updateIntervalMs;
+    }
+    
     /**
      * Sets the parameters of the service, uploads the required input files,
      * starts the service running, starts the redirection of the standard streams,
@@ -239,12 +262,41 @@ public class GRexServiceInstanceClient
             InstanceResponse.class);
         // TODO: do something with the response object?
         
-        // TODO: start reading from all the streams that are available
+        // Start a regular process of polling the server for status updates
+        // and discovering new output files to download
+        // TODO: must remember to stop this process once the job has finished
+        new Timer().schedule(new StatusUpdater(), 0, this.updateIntervalMs);
     }
     
-    public String getUrl()
+    /**
+     * Class that polls the server at regular intervals for updates to status
+     * and finds new output files to download
+     */
+    private class StatusUpdater extends TimerTask
     {
-        return this.url;
+        public void run()
+        {
+            // Get the latest information about the service instance from the server
+            GetMethod getStatus = new GetMethod(url + ".xml");
+            try
+            {
+                InstanceResponse instanceState = serviceClient.executeMethod(getStatus,
+                    InstanceResponse.class);
+                System.out.println("State = " + instanceState.getState());
+                // TODO: look through the list of output files, looking for new
+                // ones to download
+                
+                // TODO: check the status.  If finished, make sure that all the
+                // output files have been downloaded before stopping
+            }
+            catch(Exception e)
+            {
+                e.printStackTrace();
+                log.error("Error getting status of instance", e);
+                // TODO: abort the timer task?
+            }
+            
+        }
     }
     
 }

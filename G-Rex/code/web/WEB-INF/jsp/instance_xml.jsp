@@ -4,6 +4,7 @@
 <instance id="${instance.id}">
     <url>${instance.url}</url>
     <c:if test="${instance.description != null}"><description>${instance.description}</description></c:if>
+    <state>${instance.state}</state>
     <c:if test="${instance.exitCode != null}"><exitCode>${instance.exitCode}</exitCode></c:if>
     <parameters>
         <c:forEach var="par" items="${instance.parameters}">

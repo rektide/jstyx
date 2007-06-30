@@ -311,7 +311,8 @@ public class PostOperationsController extends MultiActionController
         }
         else if (request.getParameter("operation").trim().equals("abort"))
         {
-            if (instance.getState() != GRexServiceInstance.State.RUNNING)
+            if (instance.getState() != GRexServiceInstance.State.RUNNING &&
+                instance.getState() != GRexServiceInstance.State.PENDING)
             {
                 throw new GRexException("Cannot abort an instance in state " +
                     instance.getState());

@@ -33,6 +33,7 @@ import simple.xml.Attribute;
 import simple.xml.Element;
 import simple.xml.ElementList;
 import simple.xml.Root;
+import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 
 /**
  * Simple class used to deserialize the response from the server when
@@ -56,10 +57,15 @@ class InstanceResponse
     @Element(name="description", required=false)
     private String description = null;
     
+    @Element(name="state")
+    private GRexServiceInstance.State state;
+    
+    @Element(name="exitCode", required=false)
+    private Integer exitCode = null;
+    
     @ElementList(name="parameters", type=Parameter.class)
     private List<Parameter> params;
     
-    // TODO: how do we decode the "baseUrl" attribute of the <outputFiles> element?
     @ElementList(name="outputFiles", type=OutputFile.class)
     private List<OutputFile> outputFiles;
     
@@ -81,5 +87,20 @@ class InstanceResponse
     public List<Parameter> getParams()
     {
         return params;
+    }
+
+    public GRexServiceInstance.State getState()
+    {
+        return state;
+    }
+
+    public Integer getExitCode()
+    {
+        return exitCode;
+    }
+
+    public List<OutputFile> getOutputFiles()
+    {
+        return outputFiles;
     }
 }
