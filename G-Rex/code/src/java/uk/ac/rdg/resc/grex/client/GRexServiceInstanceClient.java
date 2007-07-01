@@ -41,9 +41,11 @@ import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource;
 import org.apache.commons.httpclient.methods.multipart.FilePart;
 import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
 import org.apache.commons.httpclient.methods.multipart.Part;
+import org.apache.commons.httpclient.methods.multipart.PartSource;
 import org.apache.commons.httpclient.methods.multipart.StringPart;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -255,6 +257,13 @@ public class GRexServiceInstanceClient
         this.instanceState = this.serviceClient.executeMethod(setupJob,
             InstanceResponse.class);
         
+        // Upload the data to standard input.  Note that we are doing this before
+        // we start the job because we are not yet supporting interactive jobs.
+        if (this.stdinSource != null)
+        {
+            this.uploadStdin();
+        }
+        
         // Now start the service instance
         PostMethod startJob = new PostMethod(this.url + "/control.action");
         startJob.setParameter("operation", "start");
@@ -264,6 +273,42 @@ public class GRexServiceInstanceClient
         // Start a regular process of polling the server for status updates
         // and discovering new output files to download
         new StatusUpdater().start();
+    }
+    
+    /**
+     * Uploads data to the standard input of the service.  We have to do this in
+     * chunks because we don't know in advance how big the standard input stream
+     * will be.
+     * @todo: this method is not very efficient because we will parse the XML
+     * response with every chunk we upload.
+     */
+    private void uploadStdin() throws IOException, GRexException
+    {
+        log.debug("Uploading data to standard input");
+        int len;
+        byte[] buf = new byte[8192];
+        long totalSize = 0;
+        while ((len = this.stdinSource.read(buf)) >= 0)
+        {
+            if (len > 0)
+            {
+                // We have to copy the data into a new array because
+                // ByteArrayPartSource will use the whole provided data buffer
+                byte[] data = new byte[len];
+                System.arraycopy(buf, 0, data, 0, len);
+                // We still use the setup.action endpoint
+                PostMethod uploadStdin = new PostMethod(this.url + "/setup.action");
+                PartSource dataSource = new ByteArrayPartSource(AbstractJobRunner.STDIN, data);
+                Part dataPart = new FilePart(AbstractJobRunner.STDIN, dataSource);
+                MultipartRequestEntity mre = new MultipartRequestEntity(new Part[]{dataPart},
+                    uploadStdin.getParams());
+                uploadStdin.setRequestEntity(mre);
+                this.instanceState = this.serviceClient.executeMethod(uploadStdin,
+                    InstanceResponse.class);
+                totalSize += len;
+            }
+        }
+        log.debug("Completed upload of " + totalSize +" bytes of data to standard input");
     }
     
     /**
@@ -362,8 +407,12 @@ public class GRexServiceInstanceClient
                     while ((len = in.read(buf)) >= 0)
                     {
                         out.write(buf, 0, len);
+                        // Make sure the standard streams are kept up to date
+                        if (out == System.out || out == System.err)
+                        {
+                            out.flush();
+                        }
                     }
-                    out.flush();
                     log.debug("Finished downloading from " + fileUrl);
                 }
                 else
@@ -383,6 +432,7 @@ public class GRexServiceInstanceClient
                 try
                 {
                     if (in != null) in.close();
+                    // Don't close the standard streams
                     if (out != null && out != System.out && out != System.err) out.close();
                 }
                 catch (IOException ioe)

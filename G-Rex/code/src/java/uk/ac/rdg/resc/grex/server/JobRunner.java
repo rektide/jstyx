@@ -88,7 +88,7 @@ public interface JobRunner
      * @throws InstanceNotReadyException if the instance is not ready to be
      * started, perhaps because a required parameter has not been set.
      */
-    public void start() throws InstanceNotReadyException;
+    public void start();
     
     /**
      * Forcibly stops the JobRunner (in response to an abort message from a user)

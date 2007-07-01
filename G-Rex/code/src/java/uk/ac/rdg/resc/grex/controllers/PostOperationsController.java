@@ -46,10 +46,13 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
+import uk.ac.rdg.resc.grex.config.Parameter;
 import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
+import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
+import uk.ac.rdg.resc.grex.server.AbstractJobRunner;
 import uk.ac.rdg.resc.grex.server.JobRunner;
 import uk.ac.rdg.resc.grex.server.JobRunnerFactory;
 
@@ -179,12 +182,6 @@ public class PostOperationsController extends MultiActionController
                 " does not have permission to modify instance "
                 + instance.getId() + " of service " + serviceName);
         }
-        
-        if (instance.getState() != GRexServiceInstance.State.CREATED)
-        {
-            throw new GRexException("Cannot modify an instance in state " +
-                instance.getState());
-        }
 
         // Create a new file upload handler
         // See http://jakarta.apache.org/commons/fileupload/streaming.html
@@ -197,6 +194,11 @@ public class PostOperationsController extends MultiActionController
             InputStream stream = item.openStream();
             if (item.isFormField())
             {
+                if (instance.getState() != GRexServiceInstance.State.CREATED)
+                {
+                    throw new GRexException("Cannot change a parameter of an" +
+                        " instance in state " + instance.getState());
+                }
                 instance.setParameter(name, Streams.asString(stream));
             }
             else
@@ -204,6 +206,11 @@ public class PostOperationsController extends MultiActionController
                 // This is a file to upload and we can now process the input
                 // stream.  In future we could send this stream to a database,
                 // or to a remote file store.
+                
+                // TODO: check we're allowed to upload a file.  If the service
+                // has already started we can only upload a file if it's the 
+                // standard input and the job is interactive
+                
                 log.debug("Detected upload of file called " + name);
                 // Make sure we only save files in the working directory itself
                 // (otherwise a client could set the name to "..\..\123\wd\foo.dat"
@@ -226,7 +233,9 @@ public class PostOperationsController extends MultiActionController
                 // Copy the input stream to the target file
                 log.debug("Saving file " + name + " to " + targetFile.getPath());
                 // TODO: monitor progress somehow?
-                OutputStream fout = new FileOutputStream(targetFile);
+                // Append to the existing file if this is the standard input stream
+                OutputStream fout = new FileOutputStream(targetFile,
+                    name.equals(AbstractJobRunner.STDIN));
                 byte[] buf = new byte[1024];
                 int len;
                 while ((len = stream.read(buf)) > 0)
@@ -307,17 +316,41 @@ public class PostOperationsController extends MultiActionController
                 throw new GRexException("Cannot start an instance in state " +
                     instance.getState());
             }
+            // Check that all the required parameters have been set
+            for (Parameter param : instance.getGridServiceConfig().getParams())
+            {
+                String paramValue = instance.getParamValue(param.getName());
+                if (paramValue == null && param.isRequired())
+                {
+                    throw new InstanceNotReadyException("Parameter " +
+                        param.getName() + " must have a value");
+                }
+            }
+            
+            // Check that all the required input files have been uploaded
+            // TODO: this is a bit complicated because:
+            //    1) The user might have set URLs to the input files.
+            //    2) If the name of the input file is given by a parameter
+            //       that uses wildcards (e.g. "*.txt") we don't know at this
+            //       stage how many files to expect.
+            //    3) In future we might support interactive jobs and therefore
+            //       the standard input file might not exist.
+            
             jobRunner.start();
         }
         else if (request.getParameter("operation").trim().equals("abort"))
         {
-            if (instance.getState() != GRexServiceInstance.State.RUNNING &&
-                instance.getState() != GRexServiceInstance.State.PENDING)
+            if (instance.getState() == GRexServiceInstance.State.CREATED ||
+                instance.getState() == GRexServiceInstance.State.FINISHED)
             {
                 throw new GRexException("Cannot abort an instance in state " +
                     instance.getState());
             }
-            jobRunner.abort();
+            else if (instance.getState() == GRexServiceInstance.State.ABORTED)
+            {
+                // We ignore the request if the job has already been aborted
+                jobRunner.abort();
+            }
         }
         // TODO: add a method for cleanup
         else

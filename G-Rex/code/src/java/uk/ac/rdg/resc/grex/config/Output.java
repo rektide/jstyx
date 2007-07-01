@@ -31,6 +31,7 @@ package uk.ac.rdg.resc.grex.config;
 import simple.xml.Attribute;
 import simple.xml.Root;
 import simple.xml.load.Commit;
+import uk.ac.rdg.resc.grex.server.AbstractJobRunner;
 
 /**
  * Class describing an output file from a service instance
@@ -92,20 +93,20 @@ public class Output
     
     /**
      * @return true if this is the standard output stream (detected by
-     * name.equals("stdout")
+     * name.equals("stdout"))
      */
     public boolean isStdout()
     {
-        return this.name.trim().equals("stdout");
+        return this.name.trim().equals(AbstractJobRunner.STDOUT);
     }
     
     /**
      * @return true if this is the standard error stream (detected by
-     * name.equals("stderr")
+     * name.equals("stderr"))
      */
     public boolean isStderr()
     {
-        return this.name.trim().equals("stderr");
+        return this.name.trim().equals(AbstractJobRunner.STDERR);
     }
     
     /**

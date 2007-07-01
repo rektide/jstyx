@@ -60,6 +60,11 @@ public abstract class AbstractJobRunner implements JobRunner
      * standard error stream
      */
     public static final String STDERR = "stderr";
+    /**
+     * The name of the file in the working directory that will represent the
+     * standard input stream
+     */
+    public static final String STDIN = "stdin";
     
     protected GRexServiceInstance instance;
     protected GridServiceConfigForServer gsConfig;

@@ -31,6 +31,7 @@ package uk.ac.rdg.resc.grex.config;
 import simple.xml.Attribute;
 import simple.xml.Root;
 import simple.xml.load.Commit;
+import uk.ac.rdg.resc.grex.server.AbstractJobRunner;
 
 /**
  * Class describing an input file for a GridService
@@ -64,7 +65,7 @@ public class Input
      */
     public boolean isStdin()
     {
-        return this.name.trim().equals("stdin");
+        return this.name.trim().equals(AbstractJobRunner.STDIN);
     }
     
     /**

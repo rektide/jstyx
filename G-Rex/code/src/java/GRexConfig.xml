@@ -23,7 +23,6 @@
     <!-- The Grid Services that will appear under this server -->
     <gridservices>
         
-        <!-- Should work under Unix and Windows -->
         <gridservice name="helloworld" command="echo Hello World!"
                      description="Prints Hello World to stdout">
             <outputs>
@@ -32,7 +31,6 @@
             </outputs>
         </gridservice>
         
-        <!-- Should work under Unix and Windows -->
         <gridservice name="echo" command="echo" description="Prints a string to standard output">
             <params>
                 <param name="stringToPrint" type="unflaggedOption" greedy="true"
@@ -44,7 +42,20 @@
             </outputs>
         </gridservice>
         
-        <!-- Should work under Unix and Windows -->
+        <gridservice name="grep" command="grep" description="searches for a string in input">
+            <params>
+                <param name="pattern" type="unflaggedOption" required="true"
+                    description="the pattern to search for"/>
+            </params>
+            <inputs>
+                <input name="stdin"/>
+            </inputs>
+            <outputs>
+                <output name="stdout"/>
+                <output name="stderr"/>
+            </outputs>
+        </gridservice>
+        
         <gridservice name="longrunning" command="python c:\longrunning.py"
                 description="Long-running service: prints out lots of data to stdout">
             <outputs>

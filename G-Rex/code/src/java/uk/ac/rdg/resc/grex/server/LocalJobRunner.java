@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.grex.server;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -60,7 +61,7 @@ public class LocalJobRunner extends AbstractJobRunner
      * @throws InstanceNotReadyException if the instance is not ready to be
      * started, perhaps because a required parameter has not been set.
      */
-    public void start() throws InstanceNotReadyException
+    public void start()
     {
         log.debug("Starting execution of service instance " + this.instance.getId());
         
@@ -68,7 +69,6 @@ public class LocalJobRunner extends AbstractJobRunner
         String cmdLine = this.constructCommmandLine();
         log.debug("Command line that will be executed: \"" + cmdLine + "\"");
         
-        // TODO: deal with standard input
         File wdFile = new File(this.instance.getWorkingDirectory());
         
         try
@@ -77,6 +77,15 @@ public class LocalJobRunner extends AbstractJobRunner
             this.proc = Runtime.getRuntime().exec(cmdLine, null, wdFile);
             log.debug("Process started");
         
+            // Start a thread that redirects the standard input data to the process
+            File stdinFile = new File(wdFile, AbstractJobRunner.STDIN);
+            // TODO: should we check at an earlier stage whether this exists?
+            if (stdinFile.exists())
+            {
+                FileInputStream fin = new FileInputStream(stdinFile);
+                new RedirectStream(fin, this.proc.getOutputStream()).start();
+            }
+            
             // Start a thread that waits for the process to finish and grabs the exit code
             new WaitProcess().start();
 
@@ -111,7 +120,7 @@ public class LocalJobRunner extends AbstractJobRunner
      * @throws InstanceNotReadyException if a required command-line parameter
      * has not been set
      */
-    private String constructCommmandLine() throws InstanceNotReadyException
+    private String constructCommmandLine()
     {
         StringBuffer cmdLine = new StringBuffer(this.gsConfig.getCommand());
         
@@ -123,13 +132,19 @@ public class LocalJobRunner extends AbstractJobRunner
             {
                 if (param.isRequired())
                 {
-                    throw new InstanceNotReadyException("Parameter " +
+                    // Shouldn't happen: we've checked in
+                    // PostOperationController.controlServiceInstance()
+                    throw new AssertionError("Internal error: parameter " +
                         param.getName() + " must have a value");
                 }
             }
             else
             {
                 cmdLine.append(" ");
+                if (paramValue.contains(" ") && !param.isGreedy())
+                {
+                    paramValue = "\"" + paramValue + "\"";
+                }
                 if (param.getType() == Parameter.Type.SWITCH)
                 {
                     if (paramValue.equalsIgnoreCase("true"))
@@ -172,7 +187,7 @@ public class LocalJobRunner extends AbstractJobRunner
     }
     
     /**
-     * Simple class to read an input stream and write it directly to a file
+     * Simple class to read an input stream and write it to an output stream
      */
     private class RedirectStream extends Thread
     {

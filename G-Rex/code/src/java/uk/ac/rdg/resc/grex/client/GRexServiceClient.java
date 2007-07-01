@@ -50,7 +50,7 @@ import uk.ac.rdg.resc.grex.exceptions.GRexException;
 
 /**
  * A client for a G-Rex service.  Allows the configuration information to be
- * downloaded and new GRexServiceInstanceClietn to be created.
+ * downloaded and new GRexServiceInstanceClients to be created.
  *
  * @author Jon Blower
  * $Revision$

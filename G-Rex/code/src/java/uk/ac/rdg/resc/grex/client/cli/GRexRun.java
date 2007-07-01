@@ -175,7 +175,8 @@ public class GRexRun
                     }
                     else
                     {
-                        // TODO: se
+                        // TODO: see if the client has specified an alternative
+                        // destination for this output file
                         // instanceClient.
                     }
                 }
@@ -219,8 +220,10 @@ public class GRexRun
                 if (param.getLinkedOutput() != null)
                 {
                     // The value of this parameter specifies an output file that
-                    // we must download
-                    // TODO
+                    // we must download.
+                    // We don't need to do anything here because the file will be
+                    // downloaded automatically.  In future we could add the
+                    // capability to download this file to a different location.
                 }
             }
             
@@ -230,6 +233,8 @@ public class GRexRun
             // instance and we will start downloading the output streams.
             // When the service has finished, the output files will be downloaded.
             instanceClient.start();
+            
+            // TODO: make sure we exit with the right error code
             
         }
         catch(Exception e)

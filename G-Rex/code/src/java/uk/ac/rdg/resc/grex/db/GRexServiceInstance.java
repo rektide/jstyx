@@ -87,6 +87,8 @@ public class GRexServiceInstance
     private String owner = ""; // Name of the user that owns this instance
     private String group = ""; // Name of the Group to which the user belongs
     
+    private boolean interactive = false; // TODO: in future, support interactive jobs
+    
     // The state of this service instance
     // This describes the overall (coarse-grained) state of the instance.
     // WARNING!  The state is stored in the database as an index number, not a string
@@ -95,6 +97,7 @@ public class GRexServiceInstance
     public enum State
     {
         CREATED,  // The instance has been created
+        DOWNLOADING_INPUTS, // The instance is downloading its input files
         PENDING,  // The instance has been submitted to the underlying system but is not yet running
         RUNNING,  // The instance is running
         FINISHED, // The instance has completed normally
@@ -471,5 +474,24 @@ public class GRexServiceInstance
             }
         }
         return opFile;
+    }
+
+    /** 
+     * @return true if this is an interactive job.  This does nothing currently:
+     * interactive jobs are not yet supported.
+     */
+    public boolean isInteractive()
+    {
+        return interactive;
+    }
+
+    /** 
+     * Use this method to declare the job to be interactive, i.e. will allow the
+     * user to enter data on the standard input during job execution.  (Does
+     * nothing currently: interactive jobs are not yet supported.)
+     */
+    public void setInteractive(boolean interactive)
+    {
+        this.interactive = interactive;
     }
 }
