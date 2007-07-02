@@ -420,9 +420,11 @@
         <copy-ear-war file="${file.reference.JSAP-2.1.jar}" propname="included.lib.file.reference.JSAP-2.1.jar.X"/>
         <basename property="included.lib.file.reference.commons-fileupload-1.2.jar" file="${file.reference.commons-fileupload-1.2.jar}"/>
         <copy-ear-war file="${file.reference.commons-fileupload-1.2.jar}" propname="included.lib.file.reference.commons-fileupload-1.2.jar.X"/>
+        <basename property="included.lib.file.reference.log4j-1.2.14.jar" file="${file.reference.log4j-1.2.14.jar}"/>
+        <copy-ear-war file="${file.reference.log4j-1.2.14.jar}" propname="included.lib.file.reference.log4j-1.2.14.jar.X"/>
         <mkdir dir="${build.web.dir.real}/META-INF"/>
         <manifest file="${build.web.dir.real}/META-INF/MANIFEST.MF" mode="update">
-            <attribute name="Class-Path" value="${included.lib.file.reference.commons-codec.jar} ${included.lib.file.reference.commons-httpclient.jar} ${included.lib.file.reference.commons-logging.jar} ${included.lib.file.reference.stax-api-1.0.1.jar} ${included.lib.file.reference.stax-1.2.0.jar} ${included.lib.file.reference.je-3.2.23.jar} ${included.lib.file.reference.spring-2.0.5.jar} ${included.lib.file.reference.simple-xml-1.1.2.jar} ${included.lib.file.reference.acegi-security-1.0.4.jar} ${included.lib.file.reference.jstl.jar} ${included.lib.file.reference.standard.jar} ${included.lib.file.reference.JSAP-2.1.jar} ${included.lib.file.reference.commons-fileupload-1.2.jar} "/>
+            <attribute name="Class-Path" value="${included.lib.file.reference.commons-codec.jar} ${included.lib.file.reference.commons-httpclient.jar} ${included.lib.file.reference.commons-logging.jar} ${included.lib.file.reference.stax-api-1.0.1.jar} ${included.lib.file.reference.stax-1.2.0.jar} ${included.lib.file.reference.je-3.2.23.jar} ${included.lib.file.reference.spring-2.0.5.jar} ${included.lib.file.reference.simple-xml-1.1.2.jar} ${included.lib.file.reference.acegi-security-1.0.4.jar} ${included.lib.file.reference.jstl.jar} ${included.lib.file.reference.standard.jar} ${included.lib.file.reference.JSAP-2.1.jar} ${included.lib.file.reference.commons-fileupload-1.2.jar} ${included.lib.file.reference.log4j-1.2.14.jar} "/>
         </manifest>
         <delete dir="${dist.ear.dir}/temp"/>
     </target>
@@ -440,6 +442,7 @@
         <copy file="${file.reference.standard.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
         <copy file="${file.reference.JSAP-2.1.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
         <copy file="${file.reference.commons-fileupload-1.2.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
+        <copy file="${file.reference.log4j-1.2.14.jar}" todir="${build.web.dir.real}/WEB-INF/lib"/>
     </target>
     <target name="do-ear-dist" depends="init,compile,compile-jsps,-pre-dist,library-inclusion-in-manifest">
         <dirname property="dist.jar.dir" file="${dist.ear.war}"/>

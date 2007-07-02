@@ -77,6 +77,7 @@ public class GRexServiceInstanceClient
     private long updateIntervalMs = DEFAULT_UPDATE_INTERVAL_MS;
     private InstanceResponse instanceState;  // The state of the instance as
                                              // read from the server
+    private int exitCode;  // The exit code from the remote service
     
     /**
      * Map of parameter names and values that we will set on the remote service
@@ -106,6 +107,9 @@ public class GRexServiceInstanceClient
      * the remote service instance.
      */
     private OutputStream stderrDestination = System.err;
+    
+    private Thread statusUpdater;
+    private List<Thread> fileDownloadThreads = new ArrayList<Thread>();
     
     /**
      * Creates a new instance of GRexServiceInstanceClient
@@ -272,7 +276,8 @@ public class GRexServiceInstanceClient
         
         // Start a regular process of polling the server for status updates
         // and discovering new output files to download
-        new StatusUpdater().start();
+        this.statusUpdater = new StatusUpdater();
+        this.statusUpdater.start();
     }
     
     /**
@@ -308,7 +313,53 @@ public class GRexServiceInstanceClient
                 totalSize += len;
             }
         }
-        log.debug("Completed upload of " + totalSize +" bytes of data to standard input");
+        log.debug("Completed upload of " + totalSize + " bytes of data to standard input");
+    }
+    
+    /**
+     * This method waits (blocks) until the service instance has completed running
+     * and all the files have been downloaded. This method must be called
+     * <i>after</i> start().
+     * @return the exit code from the service instance.
+     */
+    public int waitUntilComplete()
+    {
+        log.debug("Waiting for service instance to complete");
+        // Wait for the status updater thread to complete: when this happens
+        // the job has finished.
+        waitThread(this.statusUpdater);
+        // Now wait for all the file downloader threads to finish
+        // We know that no more file downloader threads will be created after
+        // the status updater thread has finished.
+        for (Thread thread : this.fileDownloadThreads)
+        {
+            waitThread(thread);
+        }
+        log.debug("Service instance complete");
+        // The exit code will have been set from the status updater thread
+        return this.exitCode;
+    }
+        
+    /**
+     * Waits until a thread has finished, swallowing all InterruptedExceptions
+     */
+    private static void waitThread(Thread thread)
+    {
+        log.debug("Waiting for thread " + thread.getName() + " to finish");
+        boolean finished = false;
+        while (!finished)
+        {
+            try
+            {
+                thread.join();
+                finished = true;
+            }
+            catch(InterruptedException ie)
+            {
+                log.debug("Thread " + thread.getName() + " interrupted");
+            }
+        }
+        log.debug("Thread " + thread.getName() + " finished");
     }
     
     /**
@@ -317,6 +368,10 @@ public class GRexServiceInstanceClient
      */
     private class StatusUpdater extends Thread
     {
+        public StatusUpdater()
+        {
+            super("status-updater");
+        }
         public void run()
         {
             // Will store the files that are currently being downloaded
@@ -340,12 +395,23 @@ public class GRexServiceInstanceClient
                             !filesBeingDownloaded.contains(outFile.getRelativePath()))
                         {
                             filesBeingDownloaded.add(outFile.getRelativePath());
-                            new FileDownloader(baseUrl, outFile.getRelativePath()).start();
+                            Thread downloader = new FileDownloader(baseUrl, outFile.getRelativePath());
+                            fileDownloadThreads.add(downloader);
+                            downloader.start();
                         }
                     }
                     
-                    // Wait for the required time before getting the next update
-                    try { Thread.sleep(updateIntervalMs); } catch (InterruptedException ie) {}
+                    if (instanceState.getState().meansFinished())
+                    {
+                        // TODO: getExitCode() could return null, but this would
+                        // be an internal error.  Code defensively for this?
+                        exitCode = instanceState.getExitCode();
+                    }
+                    else
+                    {
+                        // Wait for the required time before getting the next update
+                        try { Thread.sleep(updateIntervalMs); } catch (InterruptedException ie) {}
+                    }
                     
                 } while (!instanceState.getState().meansFinished());
             }
@@ -368,6 +434,7 @@ public class GRexServiceInstanceClient
         
         public FileDownloader(String baseUrl, String relativePath)
         {
+            super("download-" + relativePath);
             this.baseUrl = baseUrl;
             this.relativePath = relativePath;
         }

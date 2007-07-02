@@ -79,6 +79,7 @@ public class GRexRun
         {
             // Download the configuration information from the server
             GRexServiceClient serviceClient = new GRexServiceClient(args[0]);
+            log.info("Connected to G-Rex service " + args[0]);
             GridServiceConfigForClient config = serviceClient.getConfig();
             
             // Create a new object to parse the command-line arguments
@@ -121,6 +122,8 @@ public class GRexRun
                     " " + jsap.getUsage());
                 return; // TODO: what is the best error code here?
             }
+            
+            log.debug("Parsing of command line arguments was successful");
             
             // See if we're going to print debug messages
             boolean debug = jsapResult.getBoolean(DEBUG);
@@ -234,8 +237,11 @@ public class GRexRun
             // When the service has finished, the output files will be downloaded.
             instanceClient.start();
             
-            // TODO: make sure we exit with the right error code
-            
+            // Wait until the service is complete and all files have been downloaded
+            int exitCode = instanceClient.waitUntilComplete();
+            // Exit with the correct code
+            log.info("Exiting with code " + exitCode);
+            System.exit(exitCode);
         }
         catch(Exception e)
         {
