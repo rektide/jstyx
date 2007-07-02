@@ -30,7 +30,9 @@ package uk.ac.rdg.resc.grex.config;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
@@ -46,7 +48,6 @@ import simple.xml.Root;
 import simple.xml.load.PersistenceException;
 import simple.xml.load.Persister;
 import simple.xml.load.Validate;
-import uk.ac.rdg.resc.grex.server.JobRunnerFactory;
 
 /**
  * Class that configures a G-Rex server by describing all the services it
@@ -65,7 +66,14 @@ import uk.ac.rdg.resc.grex.server.JobRunnerFactory;
 public class GRexConfig implements UserDetailsService
 {
     private static final Log log = LogFactory.getLog(GRexConfig.class);
+    private static final String DEFAULT_HOME_DIRECTORY =
+        System.getProperty("user.home") + System.getProperty("file.separator") + ".grex";
     private static final String DEFAULT_CONFIG_FILENAME = "GRexConfig.xml";
+    
+    /**
+     * The name of the directory that will contain configuration information
+     */
+    private static final String CONFIG_DIRECTORY_NAME = "conf";
     /**
      * The name of the directory that will contain the GRexServiceInstancesStore
      */
@@ -82,8 +90,7 @@ public class GRexConfig implements UserDetailsService
      * the instances.  Defaults to $HOME/.grex
      */
     @Element(name="homeDirectory", required=false)
-    private String homeDirectoryStr = System.getProperty("user.home") +
-        System.getProperty("file.separator") + ".grex";
+    private String homeDirectoryStr = DEFAULT_HOME_DIRECTORY;
     private File homeDirectory; // Home directory will be made into a File in validate()
     private File instancesStoreDirectory;
     private File masterWorkingDirectory;
@@ -119,21 +126,46 @@ public class GRexConfig implements UserDetailsService
     }
     
     /**
-     * Reads the configuration information, looking in the CLASSPATH for 
-     * a file called "GRexConfig.xml"
+     * Reads the configuration information, looking first in $HOME/.grex/conf, 
+     * then in the CLASSPATH for a file called "GRexConfig.xml".
      */
     public static GRexConfig readConfig() throws Exception
     {
-        InputStream in = Thread.currentThread().getContextClassLoader()
-            .getResourceAsStream(DEFAULT_CONFIG_FILENAME);
-        if (in == null)
+        // Look for the config file in the home directory
+        File confDir = new File(DEFAULT_HOME_DIRECTORY, CONFIG_DIRECTORY_NAME);
+        File confFile = new File(confDir, DEFAULT_CONFIG_FILENAME);
+        if (!confFile.exists())
         {
-            throw new FileNotFoundException("Cannot find " + DEFAULT_CONFIG_FILENAME
-                + " in the CLASSPATH");
+            // We have to create this file and its parent directories
+            confDir.mkdirs();
+            // Look for the default config file in the classpath
+            InputStream in = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream(DEFAULT_CONFIG_FILENAME);
+            if (in == null)
+            {
+                throw new FileNotFoundException("Cannot find " + DEFAULT_CONFIG_FILENAME
+                    + " in the CLASSPATH");
+            }
+            OutputStream out = new FileOutputStream(confFile);
+            try
+            {
+                log.debug("Copying config information from classpath to " +
+                    confFile.getPath());
+                int len;
+                byte[] buf = new byte[8192];
+                while ((len = in.read(buf)) >= 0)
+                {
+                    out.write(buf, 0, len);
+                }
+            }
+            finally
+            {
+                in.close();
+                out.close();
+            }
         }
-        GRexConfig config = new Persister().read(GRexConfig.class, in);
-        log.debug("Loaded configuration from " + DEFAULT_CONFIG_FILENAME
-            + " (found in classpath)");
+        GRexConfig config = new Persister().read(GRexConfig.class, confFile);
+        log.debug("Loaded configuration from " + confFile.getPath());
         return config;
     }
     
