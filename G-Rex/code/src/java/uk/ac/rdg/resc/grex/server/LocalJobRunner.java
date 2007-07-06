@@ -247,15 +247,20 @@ public class LocalJobRunner extends AbstractJobRunner
             {
                 try
                 {
+                    log.debug("Waiting for process to finish");
                     int exitCode = proc.waitFor();
+                    log.debug("Process finished with exit code " + exitCode);
                     done = true;
-                    // Only change the state if this service was running normally
-                    if (instance.getState() == GRexServiceInstance.State.RUNNING)
+                    // Don't change state to FINISHED if already aborted or an
+                    // error has occurred
+                    if (!instance.getState().meansFinished())
                     {
                         instance.setState(GRexServiceInstance.State.FINISHED);
+                        log.debug("changed instance state to " + instance.getState());
                     }
                     instance.setExitCode(exitCode);
                     saveInstance();
+                    log.debug("saved instance state");
                 }
                 catch(InterruptedException ie)
                 {

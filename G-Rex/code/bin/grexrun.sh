@@ -16,6 +16,4 @@ for i in `find ${0%/*}/../build/web/WEB-INF/lib -name '*.jar'`; do
     CP="$CP$_s$i"
 done
 
-echo $CP
-
 java -cp $CP uk.ac.rdg.resc.grex.client.cli.GRexRun $*
