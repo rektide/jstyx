@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/*
+ * Copyright (c) 2007 The University of Reading
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the University of Reading, nor the names of the
+ *    authors or contributors may be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+-->
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN" "http://forrest.apache.org/dtd/document-v20.dtd">
+<document>
+  <header>
+    <title>G-Rex REST API</title>
+  </header>
+  <body>
+    <section id="introduction">
+      <title>Introduction to the REST API</title>
+      <p>
+        G-Rex clients and servers communicate with each other using standard HTTP
+        operations.  Clients use the GET operation for retrieving information from a server,
+        POST for sending information and so forth.  This means that it would be
+        straightforward to develop G-Rex clients in new languages and avoids the
+        perennial cross-language interoperability problems that are commonly experienced with
+        <a href="ext:soap">SOAP</a> messaging (yes, I know this is exactly the sort of thing that SOAP is supposed
+        to avoid but practical experience suggests otherwise).  G-Rex therefore follows the
+        <a href="ext:rest">REST</a> philosophy for Web Services.
+      </p>
+    </section>
+    <section id="resources">
+      <title>Resources</title>
+      <p>
+        Each resource on a G-Rex server is represented by a <a href="ext:uri">URI</a>
+        relative to the root of the server. The table below shows the resources 
+        that a G-Rex server exposes.  Note that all resources require the user to
+        authenticate, except from the public welcome page.  Many resources can be
+        viewed in different formats (e.g. XML or HTML), distinguished by their
+        file extensions.  A web browser client would typically request data in 
+        HTML format, whereas a programmatic client would request data in XML.
+      </p>
+      <table>
+        <tr><th>URI pattern</th><th>Description</th><th>Allowed HTTP methods</th></tr>
+        <tr><td>/G-Rex/welcome.html</td><td>Public welcome page (authentication not required)</td><td>GET</td></tr>
+        <tr><td>/G-Rex/services.[xml,html]</td><td>List of the services that are visible to the authenticated user</td><td>GET</td></tr>
+        <tr>
+            <td>/G-Rex/<em>servicename</em>/config.xml</td>
+            <td>Configuration information for <em>servicename</em></td>
+            <td>GET</td>
+        </tr>
+        <tr>
+            <td>/G-Rex/<em>servicename</em>/clone</td>
+            <td>Endpoint that is used to create new instances of <em>servicename</em></td>
+            <td>POST</td>
+        </tr>
+        <tr>
+            <td>/G-Rex/<em>servicename</em>/instances.[xml,html]</td>
+            <td>List of the instances of <em>servicename</em> that are visible to the authenticated user</td>
+            <td>GET</td>
+        </tr>
+        <tr>
+            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>.[xml,html]</td>
+            <td>Describes the current state of instance <em>instanceId</em> of <em>serviceName</em></td>
+            <td>GET</td>
+        </tr>
+        <tr>
+            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>/params</td>
+            <td>Endpoint that is used to set the parameters of <em>instanceId</em> of <em>serviceName</em>
+            as name-value pairs</td>
+            <td>POST</td>
+        </tr>
+        <tr>
+            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>/wd/*</td>
+            <td>A file in the working directory of instance <em>instanceId</em> of <em>serviceName</em></td>
+            <td>GET, PUT</td>
+        </tr>
+        <tr>
+            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>/control</td>
+            <td>Endpoint that is used to control instance <em>instanceId</em> of <em>serviceName</em>
+            by sending start, stop and cleanup messages</td>
+            <td>POST</td>
+        </tr>
+      </table>
+    </section>
+    <section id="client">
+      <title>Developing a G-Rex client with the REST API</title>
+      <p>
+        If you are developing in Java, there is no need to call the REST API
+        directly: in this case you can use the Java classes in the package
+        <code>uk.ac.rdg.resc.grex.client</code>.
+      </p>
+      <fixme author="JDB">Add documentation about using the client Java classes
+      and links to the cross-referenced source code!</fixme>
+      <p>
+        If you are developing a client in another language (or you don't want to
+        use the supplied Java client classes for some reason) you can use the REST
+        API directly.
+      </p>
+      <note>
+        It should even be possible to create a client in a shell scripting
+        language through the use of the <a href="ext:curl"><code>curl</code></a>
+        command-line tool!  Of course, you'd need to parse the XML responses
+        somehow...
+      </note>
+      <p>
+        These are the steps a client must go through to run a job through G-Rex
+        using the REST API:
+      </p>
+      <ol>
+        <li>TODO</li>
+      </ol>
+    </section>
+  </body>
+</document>
