@@ -37,7 +37,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
@@ -80,46 +79,10 @@ public class GRexServiceInstance
     private String baseUrl = ""; // Base of the URL to this instance, e.g.
                                  // "http://myserver.com/G-Rex/helloworld/instances/"
     
-    // Directory in which all files relating to this instance will be kept
-    // Note that the database engine doesn't know how to persist java.io.File
-    private String workingDirectory;
-    
-    // Contains the names and values of all parameters that are set on this instance
-    private Map<String, String> params = new HashMap<String, String>();
-    
     private String owner = ""; // Name of the user that owns this instance
     private String group = ""; // Name of the Group that owns this instance
     
     private boolean interactive = false; // TODO: in future, support interactive jobs
-    
-    // The state of this service instance
-    // This describes the overall (coarse-grained) state of the instance.
-    // WARNING!  The state is stored in the database as an index number, not a string
-    // so if you add a new state to the start or middle of this list the indices
-    // will change and the database will appear to contain the wrong state!
-    public enum State
-    {
-        CREATED,  // The instance has been created
-        DOWNLOADING_INPUTS, // The instance is downloading its input files
-        PENDING,  // The instance has been submitted to the underlying system but is not yet running
-        RUNNING,  // The instance is running
-        FINISHED, // The instance has completed normally
-        ABORTED,  // The instance has been aborted by the user
-        ERROR;    // The instance has failed due to an error
-            
-        /**
-         * @return true if this state means that the service instance has finished,
-         * either normally or due to an error or being aborted
-         */
-        public boolean meansFinished()
-        {
-            return this == FINISHED || this == ABORTED || this == ERROR;
-        }
-    };
-    
-    private State state = State.CREATED;
-    
-    private Integer exitCode = null; // Will be set when the instance has finished
     
     // Permissions for this service instance
     public enum Permissions{NONE, READONLY, FULL};
@@ -129,9 +92,16 @@ public class GRexServiceInstance
     private Permissions otherPermissions = Permissions.NONE;
     
     /**
+     * The master Job for this instance.  In many cases this will be the only
+     * Job that exists, but for composite jobs the master job contains the files
+     * and parameters that are common to all sub-jobs.
+     */
+    private Job masterJob = new Job();
+    
+    /**
      * The sub-jobs (if any) that belong to this instance
      */
-    private List<SubJob> subJobs = new Vector<SubJob>();
+    private List<Job> subJobs = new ArrayList<Job>();
     
     /**
      * The configuration information for the service to which this instance
@@ -165,21 +135,21 @@ public class GRexServiceInstance
 
     public String getWorkingDirectory()
     {
-        return workingDirectory;
+        return this.masterJob.getWorkingDirectory();
     }
 
     public void setWorkingDirectory(String workingDirectory)
     {
-        this.workingDirectory = workingDirectory;
+        this.masterJob.setWorkingDirectory(workingDirectory);
     }
     
     /**
      * @return a java.io.File representation of the working directory of this
-     * instance.  A new File object is created with each invocation.
+     * job.  A new File object is created with each invocation.
      */
     public File getWorkingDirectoryFile()
     {
-        return new File(this.workingDirectory);
+        return this.masterJob.getWorkingDirectoryFile();
     }
     
     /**
@@ -322,14 +292,17 @@ public class GRexServiceInstance
         }
     }
 
-    public State getState()
+    /**
+     * @return the overall state of this service instance.
+     */
+    public Job.State getState()
     {
-        return state;
+        return this.masterJob.getState();
     }
 
-    public void setState(State state)
+    public void setState(Job.State state)
     {
-        this.state = state;
+        this.masterJob.setState(state);
     }
     
     /**
@@ -337,7 +310,7 @@ public class GRexServiceInstance
      */
     public Map<String, String> getParameters()
     {
-        return this.params;
+        return this.masterJob.getParameters();
     }
     
     /**
@@ -346,7 +319,7 @@ public class GRexServiceInstance
      */
     public String getParamValue(String name)
     {
-        return this.params.get(name);
+        return this.masterJob.getParamValue(name);
     }
     
     /**
@@ -354,7 +327,7 @@ public class GRexServiceInstance
      */
     public void setParameter(String name, String value)
     {
-        this.params.put(name, value);
+        this.getParameters().put(name, value);
     }
 
     /**
@@ -363,21 +336,21 @@ public class GRexServiceInstance
      */
     public Integer getExitCode()
     {
-        return this.exitCode;
+        return this.masterJob.getExitCode();
     }
 
     public void setExitCode(Integer exitCode)
     {
-        this.exitCode = exitCode;
+        this.masterJob.setExitCode(exitCode);
     }
     
     /**
      * @return true if this instance has finished running (delegates to 
-     * this.state.meansFinished())
+     * this.masterJob.isFinished())
      */
     public boolean isFinished()
     {
-        return this.state.meansFinished();
+        return this.masterJob.isFinished();
     }
 
     public void setGridServiceConfig(GridServiceConfigForServer gsConfig)
@@ -409,17 +382,17 @@ public class GRexServiceInstance
         this.interactive = interactive;
     }
 
-    public List<SubJob> getSubJobs()
+    public List<Job> getSubJobs()
     {
         return subJobs;
     }
 
     /**
-     * @return the SubJob with the given id
-     * @throws ArrayIndexOutOfBoundsException if there is no SubJob with the 
+     * @return the sub-job with the given id
+     * @throws ArrayIndexOutOfBoundsException if there is no sub-job with the 
      * given id
      */
-    public SubJob getSubJob(int subJobId)
+    public Job getSubJob(int subJobId)
     {
         return this.subJobs.get(subJobId);
     }
@@ -427,88 +400,5 @@ public class GRexServiceInstance
     public int getNumSubJobs()
     {
         return this.subJobs.size();
-    }
-    
-    /**
-     * @return a List of OutputFiles in the working directory of this
-     * instance that are available for downloading now, or will be available for
-     * downloading when the job has finished.  This method is called by the JSPs
-     * that provide XML and HTML output to the web.
-     * @todo What happens with directories?
-     */
-    public List<OutputFile> getCurrentOutputFiles()
-    {
-        List<OutputFile> files = new ArrayList<OutputFile>();
-        // Start the recursive process of searching the working directory for
-        // files that match the output patterns as defined in the config file
-        this.getCurrentOutputFiles("", files);
-        return files;
-    }
-    
-    /**
-     * Recursive method to get the output files in the the directory whose
-     * path (relative to the instance's working directory) is given by
-     * relativeDirPath.  The results are added to the given List of OutputFiles.
-     * If relativeDirPath is not the empty string, it must end with a forward
-     * slash (irrespective of operating system).
-     */
-    private void getCurrentOutputFiles(String relativeDirPath, List<OutputFile> files)
-    {
-        File dir = new File(this.getWorkingDirectoryFile(), relativeDirPath);
-        for (String filename : dir.list())
-        {
-            String relativePath = relativeDirPath + filename;
-            File f = new File(dir, relativePath);
-            if (f.isDirectory())
-            {
-                // recursively call this method
-                // We must always use forward slashes even on Windows for the
-                // pattern matching in getOutputFile() to work
-                this.getCurrentOutputFiles(relativePath + "/", files);
-            }
-            else
-            {
-                // Check to see if this file is downloadable
-                OutputFile opFile = this.getOutputFile(relativePath);
-                if (opFile != null) files.add(opFile);
-            }
-        }
-    }
-    
-    /**
-     * @return an OutputFile corresponding with the given path relative to the 
-     * working directory of this instance, or null if the
-     * service configuration says that the given file cannot be downloaded
-     * through the web interface.  Note that the relativeFilePath must be delimited
-     * by forward slashes ("/") on all platforms for the pattern matching to work.
-     * relativeFilePath must not start with a slash.
-     * Matches according to Ant syntax.
-     * @see AntPathMatcher in the Spring libraries
-     */
-    public OutputFile getOutputFile(String relativeFilePath)
-    {
-        // Look through all the output definitions in the configuration and
-        // see if we have a match.  Note that if this path matches more than one
-        // pattern the later patterns take priority
-        OutputFile opFile = null;
-        for (Output op : this.gsConfig.getOutputs())
-        {
-            String pattern = op.getName();
-            if (op.getLinkedParameterName() != null)
-            {
-                // The pattern to match comes from the value of this parameter
-                pattern = this.getParamValue(op.getLinkedParameterName());
-            }
-            PathMatcher pathMatcher = new AntPathMatcher();
-            if (pathMatcher.match(pattern, relativeFilePath))
-            {
-                File f = new File(this.getWorkingDirectoryFile(), relativeFilePath);
-                if (!f.isDirectory())
-                {
-                    opFile = new OutputFile(relativeFilePath, this, op.isAppendOnly());
-                }
-            }
-        }
-        return opFile;
     }
 }

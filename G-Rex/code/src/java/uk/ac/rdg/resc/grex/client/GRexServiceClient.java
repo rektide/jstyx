@@ -166,7 +166,7 @@ public class GRexServiceClient
     {
         // Construct the URL to the clone file to which we will POST a request
         // to create a new instance
-        String cloneUrl = this.getRootUrl() + "clone.action";
+        String cloneUrl = this.getRootUrl() + "clone";
         log.debug("Creating new service instance using " + cloneUrl);
         
         PostMethod post = new PostMethod(cloneUrl);

@@ -50,6 +50,7 @@ import uk.ac.rdg.resc.grex.config.Parameter;
 import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
+import uk.ac.rdg.resc.grex.db.Job;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
 import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
 import uk.ac.rdg.resc.grex.server.AbstractJobRunner;
@@ -68,6 +69,12 @@ import uk.ac.rdg.resc.grex.server.JobRunnerFactory;
 public class PostOperationsController extends MultiActionController
 {
     private static final Log log = LogFactory.getLog(PostOperationsController.class);
+    
+    /**
+     * The name of the parameter that the user can set to give the number of
+     * sub-jobs in a service instance
+     */
+    private static final String NUMSUBJOBS_PARAMETER_NAME = "numSubJobs";
     
     /**
      * Configuration information for this G-Rex server.
@@ -93,7 +100,7 @@ public class PostOperationsController extends MultiActionController
             .getAuthentication().getPrincipal();
         
         // Find the name of the service that the user is interested in.  The URL
-        // pattern is /G-Rex/serviceName/clone.action
+        // pattern is /G-Rex/serviceName/clone
         String serviceName = request.getRequestURI().split("/")[2];
         
         // Check that the service exists
@@ -132,7 +139,7 @@ public class PostOperationsController extends MultiActionController
         // The full url will be retrievable through getUrl() when the instance
         // is added to the store (and hence the instance id is known)
         newInstance.setBaseUrl(request.getRequestURL().toString()
-            .replaceFirst("clone.action", "instances/"));
+            .replaceFirst("clone", "instances/"));
         
         // Add the instance to the store.  This also creates the unique ID of
         // the instance and creates the working directory for the instance
@@ -158,9 +165,9 @@ public class PostOperationsController extends MultiActionController
     }
     
     /**
-     * Sets up a service instance by setting parameter values, uploading input
-     * files, etc.  This method can be called many times: each invocation will
-     * overwrite any existing data.
+     * Sets up a service instance by setting parameter values, creating sub-jobs,
+     * uploading input files, etc.  This method can be called many times: each
+     * invocation will overwrite any existing data.
      */
     public ModelAndView setupServiceInstance(HttpServletRequest request,
         HttpServletResponse response) throws Exception
@@ -169,7 +176,7 @@ public class PostOperationsController extends MultiActionController
             .getAuthentication().getPrincipal();
         
         // Work out which service instance we're interested in.  The URL
-        // pattern is /G-Rex/serviceName/instances/instanceId/setup.action
+        // pattern is /G-Rex/serviceName/instances/instanceId/setup
         String serviceName = request.getRequestURI().split("/")[2];
         String instanceIdStr = request.getRequestURI().split("/")[4];
         
@@ -194,12 +201,58 @@ public class PostOperationsController extends MultiActionController
             InputStream stream = item.openStream();
             if (item.isFormField())
             {
-                if (instance.getState() != GRexServiceInstance.State.CREATED)
+                if (instance.getState() != Job.State.CREATED)
                 {
                     throw new GRexException("Cannot change a parameter of an" +
                         " instance in state " + instance.getState());
                 }
-                instance.setParameter(name, Streams.asString(stream));
+                String value = Streams.asString(stream);
+                if (name.trim().equals(NUMSUBJOBS_PARAMETER_NAME))
+                {
+                    // We're being asked to create a number of sub-jobs for
+                    // this service instance
+                    try
+                    {
+                        int numSubJobsToCreate = Integer.parseInt(value);
+                        if (numSubJobsToCreate <= 0)
+                        {
+                            throw new GRexException("Parameter " + 
+                                NUMSUBJOBS_PARAMETER_NAME + " must be a positive integer");
+                        }
+                        if (instance.getNumSubJobs() != 0 && 
+                            instance.getNumSubJobs() != numSubJobsToCreate)
+                        {
+                            throw new GRexException("Already created sub-jobs for instance "
+                                + instance.getId());
+                        }
+                        for (int i = 0; i < numSubJobsToCreate; i++)
+                        {
+                            Job subJob = new Job();
+                            subJob.setId(i);
+                            // Create the working directory for this sub-job
+                            File subJobWd = new File(instance.getWorkingDirectoryFile()
+                                .getParentFile(), "" + i);
+                            if (!subJobWd.mkdir())
+                            {
+                                throw new GRexException("Error creating working "
+                                    + "directory for sub-job " + i + " of instance "
+                                    + instance.getId());
+                            }
+                            subJob.setWorkingDirectory(subJobWd.getPath());
+                            instance.getSubJobs().add(subJob);
+                        }
+                        log.debug("Created " + numSubJobsToCreate + " sub-jobs");
+                    }
+                    catch(NumberFormatException nfe)
+                    {
+                        throw new GRexException("Invalid integer for parameter "
+                            + NUMSUBJOBS_PARAMETER_NAME);
+                    }
+                }
+                else
+                {
+                    instance.setParameter(name, value);
+                }
             }
             else
             {
@@ -287,7 +340,7 @@ public class PostOperationsController extends MultiActionController
         User loggedInUser = (User)SecurityContextHolder.getContext()
             .getAuthentication().getPrincipal();
         // Work out which service instance we're interested in.  The URL
-        // pattern is /G-Rex/serviceName/instances/instanceId/control.action
+        // pattern is /G-Rex/serviceName/instances/instanceId/control
         String serviceName = request.getRequestURI().split("/")[2];
         String instanceIdStr = request.getRequestURI().split("/")[4];
         
@@ -311,7 +364,7 @@ public class PostOperationsController extends MultiActionController
         }
         else if (request.getParameter("operation").trim().equals("start"))
         {
-            if (instance.getState() != GRexServiceInstance.State.CREATED)
+            if (instance.getState() != Job.State.CREATED)
             {
                 throw new GRexException("Cannot start an instance in state " +
                     instance.getState());
@@ -340,13 +393,13 @@ public class PostOperationsController extends MultiActionController
         }
         else if (request.getParameter("operation").trim().equals("abort"))
         {
-            if (instance.getState() == GRexServiceInstance.State.CREATED ||
-                instance.getState() == GRexServiceInstance.State.FINISHED)
+            if (instance.getState() == Job.State.CREATED ||
+                instance.getState() == Job.State.FINISHED)
             {
                 throw new GRexException("Cannot abort an instance in state " +
                     instance.getState());
             }
-            else if (instance.getState() == GRexServiceInstance.State.ABORTED)
+            else if (instance.getState() == Job.State.ABORTED)
             {
                 // We ignore the request if the job has already been aborted
                 jobRunner.abort();

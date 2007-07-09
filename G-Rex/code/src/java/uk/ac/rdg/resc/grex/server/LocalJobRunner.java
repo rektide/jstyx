@@ -38,7 +38,7 @@ import java.io.OutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.config.Parameter;
-import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
+import uk.ac.rdg.resc.grex.db.Job;
 import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
 
 /**
@@ -96,20 +96,20 @@ public class LocalJobRunner extends AbstractJobRunner
             new RedirectStream(this.proc.getErrorStream(), new FileOutputStream(stderrFile)).start();
         
             // Update the state of the instance
-            this.instance.setState(GRexServiceInstance.State.RUNNING);
+            this.instance.setState(Job.State.RUNNING);
         }
         catch(FileNotFoundException fnfe)
         {
             // Unlikely to happen
             log.error("Can't create file for output stream", fnfe);
             // TODO: save the error message
-            this.instance.setState(GRexServiceInstance.State.ERROR);
+            this.instance.setState(Job.State.ERROR);
         }
         catch(IOException ioe)
         {
             log.error("Error starting process for instance " + this.instance.getId());
             // TODO: save the error message
-            this.instance.setState(GRexServiceInstance.State.ERROR);
+            this.instance.setState(Job.State.ERROR);
         }
         // Save the new state of the instance to the persistent store
         this.saveInstance();
@@ -215,7 +215,7 @@ public class LocalJobRunner extends AbstractJobRunner
             {
                 // Unlikely to happen
                 log.error("Error redirecting stream in LocalJobRunner.RedirectStream");
-                instance.setState(GRexServiceInstance.State.ERROR);
+                instance.setState(Job.State.ERROR);
                 saveInstance();
                 // TODO: store the error message?
             }
@@ -255,7 +255,7 @@ public class LocalJobRunner extends AbstractJobRunner
                     // error has occurred
                     if (!instance.getState().meansFinished())
                     {
-                        instance.setState(GRexServiceInstance.State.FINISHED);
+                        instance.setState(Job.State.FINISHED);
                         log.debug("changed instance state to " + instance.getState());
                     }
                     instance.setExitCode(exitCode);
@@ -275,7 +275,7 @@ public class LocalJobRunner extends AbstractJobRunner
         log.debug("Destroying process for service instance " + this.instance.getId());
         // Must change the state before destroying the process otherwise there
         // will be a race condition with the WaitProcess() thread
-        this.instance.setState(GRexServiceInstance.State.ABORTED);
+        this.instance.setState(Job.State.ABORTED);
         this.proc.destroy();
         this.saveInstance();
     }

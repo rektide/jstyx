@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.grex.server;
 
 import java.io.File;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
+import uk.ac.rdg.resc.grex.db.Job;
 
 /**
  * Java Bean representing an output file that belongs to a service instance and
@@ -48,21 +49,21 @@ public class OutputFile
 {
     private String relativePath; // Path relative to the working directory of the instance
     private File file; // underlying File
-    private GRexServiceInstance instance;
+    private Job job;
     private boolean appendOnly;
     
     /**
      * Creates a new instance of OutputFile
      * @param relativePath Path relative to the working directory of the instance
-     * @param instance The instance to which this output file belongs
+     * @param job The job to which this output file belongs
      * @param appendOnly True if this file represents a file that is only ever
      * appended to during a run
      */
-    public OutputFile(String relativePath, GRexServiceInstance instance, boolean appendOnly)
+    public OutputFile(String relativePath, Job job, boolean appendOnly)
     {
         this.relativePath = relativePath;
-        this.file = new File(instance.getWorkingDirectoryFile(), relativePath);
-        this.instance = instance;
+        this.file = new File(job.getWorkingDirectoryFile(), relativePath);
+        this.job = job;
         this.appendOnly = appendOnly;
     }
     
@@ -73,7 +74,7 @@ public class OutputFile
      */
     public boolean isReadyForDownload()
     {
-        return this.appendOnly || this.instance.isFinished() ||
+        return this.appendOnly || this.job.isFinished() ||
             this.relativePath.equals(AbstractJobRunner.STDOUT) ||
             this.relativePath.equals(AbstractJobRunner.STDERR);
     }

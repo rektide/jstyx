@@ -17,7 +17,7 @@ Displays all the instances of a grid service
 
     <h1>Instances of ${serviceName}</h1>
     
-    <form action="clone.action" method="POST">
+    <form action="clone" method="POST">
         <input type="hidden" name="operation" value="create"/>
         <!-- "source=web" is the signal to the form processor to redirect to
              another web page instead of returning an XML document -->

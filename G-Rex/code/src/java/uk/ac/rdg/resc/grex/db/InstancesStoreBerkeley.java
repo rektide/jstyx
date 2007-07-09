@@ -62,6 +62,8 @@ import uk.ac.rdg.resc.grex.exceptions.InstancesStoreException;
 public class InstancesStoreBerkeley implements GRexServiceInstancesStore
 {
     private static final Log log = LogFactory.getLog(InstancesStoreBerkeley.class);
+    
+    private static final String FILE_SEPARATOR = System.getProperty("file.separator");
     private static final String STORE_NAME = "instances";
     
     private GRexConfig config; // We need this to find the home directory of the G-Rex server
@@ -139,13 +141,14 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
             GRexServiceInstance prevInst = this.instancesById.put(txn, instance);
             int id = instance.getId();
             // Create the working directory for this instance
-            File instanceWd = new File(parentWorkingDirectory, "" + id);
+            File instanceWd = new File(parentWorkingDirectory, id + 
+                FILE_SEPARATOR + "master");
             // If the directory already exists, delete the contents
             if (instanceWd.exists())
             {
                 deleteDir(instanceWd);
             }
-            boolean success = instanceWd.mkdir();
+            boolean success = instanceWd.mkdirs();
             if (!success)
             {
                 throw new DatabaseException("Error creating working directory "

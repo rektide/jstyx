@@ -241,7 +241,7 @@ public class GRexServiceInstanceClient
     public void start() throws IOException, GRexException
     {
         // Setup the job by setting the parameters and uploading the input files
-        PostMethod setupJob = new PostMethod(this.url + "/setup.action");
+        PostMethod setupJob = new PostMethod(this.url + "/setup");
         List<Part> parts = new ArrayList<Part>();
         // Add the parameters
         for (String paramName : this.params.keySet())
@@ -269,7 +269,7 @@ public class GRexServiceInstanceClient
         }
         
         // Now start the service instance
-        PostMethod startJob = new PostMethod(this.url + "/control.action");
+        PostMethod startJob = new PostMethod(this.url + "/control");
         startJob.setParameter("operation", "start");
         this.instanceState = this.serviceClient.executeMethod(startJob,
             InstanceResponse.class);
@@ -301,8 +301,8 @@ public class GRexServiceInstanceClient
                 // ByteArrayPartSource will use the whole provided data buffer
                 byte[] data = new byte[len];
                 System.arraycopy(buf, 0, data, 0, len);
-                // We still use the setup.action endpoint
-                PostMethod uploadStdin = new PostMethod(this.url + "/setup.action");
+                // We still use the setup endpoint
+                PostMethod uploadStdin = new PostMethod(this.url + "/setup");
                 PartSource dataSource = new ByteArrayPartSource(AbstractJobRunner.STDIN, data);
                 Part dataPart = new FilePart(AbstractJobRunner.STDIN, dataSource);
                 MultipartRequestEntity mre = new MultipartRequestEntity(new Part[]{dataPart},

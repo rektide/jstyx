@@ -95,9 +95,9 @@
     <bean id="propsResolverPost" class="org.springframework.web.servlet.mvc.multiaction.PropertiesMethodNameResolver">
         <property name="mappings">
             <value>
-                /*/clone.action=createNewServiceInstance
-                /*/instances/*/setup.action=setupServiceInstance
-                /*/instances/*/control.action=controlServiceInstance
+                /*/clone=createNewServiceInstance
+                /*/instances/*/setup=setupServiceInstance
+                /*/instances/*/control=controlServiceInstance
             </value>
         </property>
     </bean>  
@@ -121,11 +121,11 @@
                 <!-- Downloads an output file -->
                 <prop key="/*/instances/*/outputs/**">getOperationsController</prop>
                 <!-- Creates a new instance of a service -->
-                <prop key="/*/clone.action">postOperationsController</prop>
+                <prop key="/*/clone">postOperationsController</prop>
                 <!-- Sets parameters and input files for a service instance -->
-                <prop key="/*/instances/*/setup.action">postOperationsController</prop>
+                <prop key="/*/instances/*/setup">postOperationsController</prop>
                 <!-- Starts, aborts or destroys a service instance -->
-                <prop key="/*/instances/*/control.action">postOperationsController</prop>
+                <prop key="/*/instances/*/control">postOperationsController</prop>
             </props>
         </property>
     </bean>

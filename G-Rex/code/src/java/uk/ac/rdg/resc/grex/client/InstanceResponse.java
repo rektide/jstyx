@@ -33,7 +33,7 @@ import simple.xml.Attribute;
 import simple.xml.Element;
 import simple.xml.ElementList;
 import simple.xml.Root;
-import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
+import uk.ac.rdg.resc.grex.db.Job;
 
 /**
  * Simple class used to deserialize the response from the server when
@@ -58,7 +58,7 @@ class InstanceResponse
     private String description = null;
     
     @Element(name="state")
-    private GRexServiceInstance.State state;
+    private Job.State state;
     
     @Element(name="exitCode", required=false)
     private Integer exitCode = null;
@@ -89,7 +89,7 @@ class InstanceResponse
         return params;
     }
 
-    public GRexServiceInstance.State getState()
+    public Job.State getState()
     {
         return state;
     }
