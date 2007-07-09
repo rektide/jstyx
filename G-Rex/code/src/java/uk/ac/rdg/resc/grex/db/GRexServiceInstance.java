@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
@@ -62,10 +63,12 @@ import uk.ac.rdg.resc.grex.server.OutputFile;
 @Entity
 public class GRexServiceInstance
 {
-    private static final String FILE_SEPARATOR = System.getProperty("file.separator");
     
     @PrimaryKey(sequence="ID") // Auto-generate the ID
-    private int id; // Unique ID for this instance
+    private int id = 0; // Unique ID for this instance.  Setting id = 0
+                     // is the signal for the database to create a new 
+                     // primary key automatically from a sequence.  See the
+                     // Javadoc for PrimaryKey.
     
     @SecondaryKey(relate=Relationship.MANY_TO_ONE) // A service may contain many Instances
     // WARNING! If you change the name of this field, you also need to change
@@ -78,14 +81,14 @@ public class GRexServiceInstance
                                  // "http://myserver.com/G-Rex/helloworld/instances/"
     
     // Directory in which all files relating to this instance will be kept
-    // Note that the database doesn't know how to persist java.io.File
+    // Note that the database engine doesn't know how to persist java.io.File
     private String workingDirectory;
     
     // Contains the names and values of all parameters that are set on this instance
     private Map<String, String> params = new HashMap<String, String>();
     
     private String owner = ""; // Name of the user that owns this instance
-    private String group = ""; // Name of the Group to which the user belongs
+    private String group = ""; // Name of the Group that owns this instance
     
     private boolean interactive = false; // TODO: in future, support interactive jobs
     
@@ -114,7 +117,7 @@ public class GRexServiceInstance
         }
     };
     
-    private State state;
+    private State state = State.CREATED;
     
     private Integer exitCode = null; // Will be set when the instance has finished
     
@@ -126,21 +129,15 @@ public class GRexServiceInstance
     private Permissions otherPermissions = Permissions.NONE;
     
     /**
+     * The sub-jobs (if any) that belong to this instance
+     */
+    private List<SubJob> subJobs = new Vector<SubJob>();
+    
+    /**
      * The configuration information for the service to which this instance
      * belongs.  This is not persisted to the database.
      */
     private transient GridServiceConfigForServer gsConfig;
-    
-    /**
-     * Creates a new instance of GRexServiceInstance
-     */
-    public GRexServiceInstance()
-    {
-        this.id = 0; // This is the signal for the database to create a new 
-                     // primary key automatically from a sequence.  See the
-                     // Javadoc for PrimaryKey.
-        this.setState(State.CREATED);
-    }
 
     public int getId()
     {
@@ -392,6 +389,45 @@ public class GRexServiceInstance
     {
         return this.gsConfig;
     }
+
+    /** 
+     * @return true if this is an interactive job.  This does nothing currently:
+     * interactive jobs are not yet supported.
+     */
+    public boolean isInteractive()
+    {
+        return interactive;
+    }
+
+    /** 
+     * Use this method to declare the job to be interactive, i.e. will allow the
+     * user to enter data on the standard input during job execution.  (Does
+     * nothing currently: interactive jobs are not yet supported.)
+     */
+    public void setInteractive(boolean interactive)
+    {
+        this.interactive = interactive;
+    }
+
+    public List<SubJob> getSubJobs()
+    {
+        return subJobs;
+    }
+
+    /**
+     * @return the SubJob with the given id
+     * @throws ArrayIndexOutOfBoundsException if there is no SubJob with the 
+     * given id
+     */
+    public SubJob getSubJob(int subJobId)
+    {
+        return this.subJobs.get(subJobId);
+    }
+
+    public int getNumSubJobs()
+    {
+        return this.subJobs.size();
+    }
     
     /**
      * @return a List of OutputFiles in the working directory of this
@@ -474,24 +510,5 @@ public class GRexServiceInstance
             }
         }
         return opFile;
-    }
-
-    /** 
-     * @return true if this is an interactive job.  This does nothing currently:
-     * interactive jobs are not yet supported.
-     */
-    public boolean isInteractive()
-    {
-        return interactive;
-    }
-
-    /** 
-     * Use this method to declare the job to be interactive, i.e. will allow the
-     * user to enter data on the standard input during job execution.  (Does
-     * nothing currently: interactive jobs are not yet supported.)
-     */
-    public void setInteractive(boolean interactive)
-    {
-        this.interactive = interactive;
     }
 }

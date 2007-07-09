@@ -395,6 +395,8 @@ public class GRexServiceInstanceClient
                             !filesBeingDownloaded.contains(outFile.getRelativePath()))
                         {
                             filesBeingDownloaded.add(outFile.getRelativePath());
+                            // TODO: get the threads from a limited pool to prevent
+                            // downloading of too many files at once?
                             Thread downloader = new FileDownloader(baseUrl, outFile.getRelativePath());
                             fileDownloadThreads.add(downloader);
                             downloader.start();

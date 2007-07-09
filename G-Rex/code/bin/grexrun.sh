@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# ${0%/*} holds the directory containing this (JStyxRun) script: see 
+# ${0%/*} holds the directory containing this (grexrun.sh) script: see 
 # http://www.codecomments.com/archive287-2004-5-194770.html
 
 # Sets the classpath
