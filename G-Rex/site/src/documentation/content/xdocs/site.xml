@@ -46,6 +46,9 @@ See http://forrest.apache.org/docs/linking.html for more info
   <tutorial label="Tutorial" href="tutorial/" tab="tutorial">
     <index label="Start here" href="index.html"/>
   </tutorial>
+  <installguide label="Installation Guide" href="installation/" tab="installation">
+    <index label="Installation" href="index.html"/>
+  </installguide>
   <developerguide label="Developer Guide" href="developer/" tab="developer">
     <index label="Introduction" href="index.html"/>
     <rest-api label="REST API" href="rest-api.html"/>
@@ -56,6 +59,7 @@ See http://forrest.apache.org/docs/linking.html for more info
     <rest href="http://en.wikipedia.org/wiki/Representational_State_Transfer"/>
     <uri href="http://en.wikipedia.org/wiki/Uniform_Resource_Identifier"/>
     <curl href="http://curl.haxx.se/"/>
+    <tomcat href="http://tomcat.apache.org/"/>
     <forrest href="http://forrest.apache.org/">
       <linking href="docs/linking.html"/>
       <validation href="docs/validation.html"/>

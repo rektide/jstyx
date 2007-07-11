@@ -32,6 +32,7 @@
   -->
   <tab id="" label="Home" dir="" indexfile="index.html"/>
   <tab id="tutorial" label="Tutorial" dir="tutorial" indexfile="index.html"/>
+  <tab id="installation" label="Installation Guide" dir="installation" indexfile="index.html"/>
   <tab id="developer" label="Developer Guide" dir="developer" indexfile="index.html"/>
 <!-- Add new tabs here, eg:
   <tab label="How-Tos" dir="community/howto/"/>
