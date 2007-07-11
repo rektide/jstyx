@@ -43,6 +43,7 @@ import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
 
 /**
  * Runs a job on the G-Rex server itself.
+ * @todo Adapt for sub-jobs or disallow somehow
  *
  * @author Jon Blower
  * $Revision$

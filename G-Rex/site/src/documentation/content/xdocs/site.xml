@@ -37,12 +37,12 @@ See http://forrest.apache.org/docs/linking.html for more info
   See FAQ: "How can I use a start-up-page other than index.html?"
 -->
 <site label="G-Rex" href="" xmlns="http://apache.org/forrest/linkmap/1.0" tab="">
-  <about label="About">
+  <overview label="Overview">
     <index label="Welcome" href="index.html" description="Welcome to G-Rex"/>
     <linkmap label="Site map" href="linkmap.html" description="Table of Contents for this site"/>
-    <all_site label="Whole site in HTML" href="wholesite.html"/>
-    <all_sitePDF label="Whole site as PDF" href="wholesite.pdf"/>
-  </about>
+    <whole_site_html label="Whole Site (HTML)" href="wholesite.html"/>
+    <whole_site_pdf label="Whole Site (PDF)" href="wholesite.pdf"/>
+  </overview>
   <tutorial label="Tutorial" href="tutorial/" tab="tutorial">
     <index label="Start here" href="index.html"/>
   </tutorial>
@@ -50,57 +50,7 @@ See http://forrest.apache.org/docs/linking.html for more info
     <index label="Introduction" href="index.html"/>
     <rest-api label="REST API" href="rest-api.html"/>
   </developerguide>
-  <samples label="Samples" href="samples/" tab="samples">
-    <index label="Overview" href="index.html"/>
-    <sample label="Apache doc v2.0" href="sample.html" description="A nonsense
-      document using all possible elements in the current document v2.0">
-      <top href="#top"/>
-      <section href="#section"/>
-    </sample>
-    <static label="Static content" href="static.html" description="Static raw
-      un-processed content"/>
-    <linking label="Linking" href="linking.html" description="Linking explained
-      and demonstrated"/>
-    <sample-howto label="How To" href="howto-howto.html"
-      description="Test of How To documents"/>
-    <sample-html label="Embedded HTML" href="embedded_html.html"
-      description="Test of Embedded HTML"/>
-    <sample-ascii-art label="ascii-art page" href="ascii-art.html"
-      description="Sample Ascii Art page"/>
-    <svg label="Using SVG" href="svg.html" description="Using Scalable Vector Graphics (SVG)"/>
-    <sample-usemap label="usemap" href="usemap.html" description="Client-side
-      imagemap"/>
-    <i18n label="Internationalisation (i18n)" href="i18n.html"/>
-    <i18n-demo label="i18n demonstration" href="demo-i18n.html"/>
-    <sample-custom label="Custom Schema" href="customSchema.html"
-      description="Custom XML schema and doctypes"/>
-    <custom-example href="custom.html" description="A custom XML file"/>
-    <xml-entities label="XML entities" href="xml-entities.html"
-      description="Using XML entities for character replacements"/>
-    <faq label="FAQ" href="faq.html" description="Frequently Asked Questions"/>
-    <locationmap label="Locationmap" href="locationmap/index.html"
-      description="Locationmaps allow the user URL space to be different from
-      the storage URL Space"/>
-    <subdir label="Subdir" href="subdir/">
-      <index label="Index" href="index.html" description="Page generated from a
-        sub-directory"/>
-    </subdir>
-    <showonlywhenselected label="Conditional display of menuitems" href="showonlywhenselected/">
-      <page1 label="Always visible page" href="page1.html"/>
-      <page2 label="Visible only when current" href="page2.html" type="showWhenSelected"/>
-    </showonlywhenselected>
-  </samples>
-  <files>
-    <hello_print href="hello.pdf"/>
-    <test1 href="test1.html"/>
-  </files>
-<!--
-  The href must be wholesite.html/pdf  You can change the labels and node names
-  <all label="All">
-    <whole_site_html label="Whole Site HTML" href="wholesite.html"/>
-    <whole_site_pdf label="Whole Site PDF" href="wholesite.pdf"/>
-  </all>
-  -->
+  
   <external-refs>
     <soap href="http://en.wikipedia.org/wiki/SOAP"/>
     <rest href="http://en.wikipedia.org/wiki/Representational_State_Transfer"/>

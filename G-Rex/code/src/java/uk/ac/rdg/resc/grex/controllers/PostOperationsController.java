@@ -370,6 +370,7 @@ public class PostOperationsController extends MultiActionController
                     instance.getState());
             }
             // Check that all the required parameters have been set
+            // TODO: should be checked for every sub-job or not at all
             for (Parameter param : instance.getGridServiceConfig().getParams())
             {
                 String paramValue = instance.getParamValue(param.getName());
@@ -394,12 +395,13 @@ public class PostOperationsController extends MultiActionController
         else if (request.getParameter("operation").trim().equals("abort"))
         {
             if (instance.getState() == Job.State.CREATED ||
-                instance.getState() == Job.State.FINISHED)
+                instance.getState() == Job.State.FINISHED ||
+                instance.getState() == Job.State.ERROR)
             {
                 throw new GRexException("Cannot abort an instance in state " +
                     instance.getState());
             }
-            else if (instance.getState() == Job.State.ABORTED)
+            else if (instance.getState() != Job.State.ABORTED)
             {
                 // We ignore the request if the job has already been aborted
                 jobRunner.abort();
