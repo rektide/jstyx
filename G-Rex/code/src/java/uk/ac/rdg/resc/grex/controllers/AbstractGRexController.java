@@ -89,7 +89,9 @@ public abstract class AbstractGRexController extends MultiActionController
     /**
      * Searches the store of service instances for the requested service
      * instance and checks that it belongs to the correct service.  Does not 
-     * check permissions of the instance.
+     * check permissions of the instance.  This method also makes sure that all
+     * the transient (i.e. non-persistent) properties of the instances and sub-jobs
+     * are set correctly.
      * @throws GRexException if the service instance could not be retrieved
      */
     protected GRexServiceInstance getServiceInstance(String requestURI)
@@ -134,6 +136,11 @@ public abstract class AbstractGRexController extends MultiActionController
             // not stored in the database.
             instance.setGridServiceConfig(gsConfig);
             
+            // We need to set the instance property of the sub-jobs because
+            // the database does not remember this.
+            instance.getMasterJob().setInstance(instance);
+            // TODO: set this for all sub-jobs too
+            
             if (subJobId != null)
             {
                 // We're interested in a particular sub-job
@@ -144,6 +151,7 @@ public abstract class AbstractGRexController extends MultiActionController
                         subJobId + " in instance " + instanceId + " of service "
                         + gsConfig.getName());
                 }
+                subJob.setInstance(instance);
             }
             
             return instance;
@@ -191,109 +199,6 @@ public abstract class AbstractGRexController extends MultiActionController
     // TODO: method for getting a particular job
     
     /**
-     * <p>Parses the given request URI, returning an object that contains, as
-     * appropriate, the grid service config object, the service instance,
-     * the job, the path to a file in the working directory of the job and the
-     * file format.
-     * If any of these is not represented in the URI, their values will be null.</p>
-     *
-     * <p>The general pattern of the URI is
-     * <code>/G-Rex/servicename/instances/instanceId.jobId/wd/path/to/file</code>,
-     * although not all URIs will have all of these things present.</p>
-     *
-     * <p>The logic of this method must tally with the mapping between URIs and
-     * methods in G-Rex-servlet.xml.</p>
-     *
-     * @throws GRexException if the URI refers to a service, instance or job
-     * that doesn't exist.
-     */
-    /*protected ParseResult parseRequestURI(String requestURI)
-        throws GRexException
-    {
-        ParseResult result = new ParseResult();
-        
-        String[] uriEls = decode(requestURI).split("/");
-        
-        if (uriEls.length < 3) return result; // No config specified
-        
-        // We're interested in a particular service
-        String serviceName = uriEls[2];
-        result.gsConfig = this.config.getGridServiceByName(serviceName);
-        if (result.gsConfig == null)
-        {
-            throw new GRexException("There is no service called " + serviceName);
-        }
-        
-        if (uriEls.length < 5) return result; // No service instance specified
-        
-        // We're interested in a particular instance.  We separate the instance
-        // id from the suffix, which might be the job ID, or the file format
-        String instanceIdStr = uriEls[4].split("\\.")[0];
-        try
-        {
-            int instanceId = Integer.parseInt(instanceIdStr);
-            // Retrieve the instance object from the store
-            GRexServiceInstance instance = this.instancesStore.getServiceInstanceById(instanceId);
-            // Check that the service names match
-            if (instance == null || !instance.getServiceName().equals(result.gsConfig.getName()))
-            {
-                throw new GRexException("There is no instance of " + result.gsConfig.getName()
-                    + " with id " + instanceIdStr);
-            }
-            // Make sure the configuration information is set, because this is
-            // not stored in the database.
-            instance.setGridServiceConfig(result.gsConfig);
-            result.instance = instance;
-        }
-        catch(NumberFormatException nfe)
-        {
-            // thrown by Integer.parseInt(instanceIdStr)
-            throw new GRexException("There is no instance of " + result.gsConfig.getName()
-                + " with id " + instanceIdStr);
-        }
-        catch(InstancesStoreException ise)
-        {
-            String message = "Error retrieving instance with id " + instanceIdStr
-                + " from database";
-            log.error(message, ise);
-            throw new GRexException(message + ": " + ise.getMessage());
-        }
-        
-        
-        
-        if (uriEls.length < 7) return result; // No file path in this URI
-        
-        // Find the path to the file, relative to the working directory
-        StringBuffer pathBuf = new StringBuffer(uriEls[6]);
-        for (int i = 7; i < uriEls.length; i++)
-        {
-            pathBuf.append("/"); // We use a forward slash even on Windows because
-                                 // this is necessary for pattern matching in
-                                 // instance.getOutputFile()
-            pathBuf.append(uriEls[i]);
-        }
-        result.filePath = pathBuf.toString();
-        
-        return result;
-    }*/
-    
-    /**
-     * The result of parsing a request URI.  Contains (where appropriate),
-     * the grid service config object, the service instance, the job, the format
-     * of the information (xml, html etc) and the 
-     * path to a file in the working directory of the job.  If any of these is
-     * not set in the URI, their values will be null
-     */
-    /*protected static class ParseResult
-    {
-        private GridServiceConfigForServer gsConfig = null;
-        private GRexServiceInstance instance = null;
-        private Job job = null;
-        private String format = null;
-        private String filePath = null;
-    }*/
-    
-    /**
      * This will be used by the Spring framework to inject the config object
      */
     public void setGrexConfig(GRexConfig config)
@@ -329,6 +234,9 @@ public abstract class AbstractGRexController extends MultiActionController
         }
     }
     
+    /**
+     * Decodes the requestURI and splits into individual elements
+     */
     private static final String[] getRequestUriEls(String requestURI)
     {
         return decode(requestURI).split("/");
@@ -342,11 +250,6 @@ public abstract class AbstractGRexController extends MultiActionController
     private static final String decode(String uri)
     {
         return uri.replaceAll("%20", " ");
-    }
-    
-    public static void main(String[] args)
-    {
-        System.out.println(getFileExtension("hello/asdfas.fdf/"));
     }
     
 }

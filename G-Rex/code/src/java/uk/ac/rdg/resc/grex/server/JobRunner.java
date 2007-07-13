@@ -35,7 +35,8 @@ import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
 
 /**
  * Interface describing the methods exposed by all JobRunners (classes that
- * execute a given GRexServiceInstance).
+ * execute a given GRexServiceInstance).  A JobRunner updates the state of the
+ * service instance and any sub-jobs.
  * 
  * @author Jon Blower
  * $Revision$
@@ -84,9 +85,7 @@ public interface JobRunner
      * tasks in separate threads.
      *
      * The task of the start() method is to prepare the job, then kick it off, 
-     * setting the state of the job to RUNNING or ERROR before returning
-     * @throws InstanceNotReadyException if the instance is not ready to be
-     * started, perhaps because a required parameter has not been set.
+     * setting the state of the job to RUNNING or ERROR before returning.
      */
     public void start();
     

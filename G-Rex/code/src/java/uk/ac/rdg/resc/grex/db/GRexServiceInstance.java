@@ -353,6 +353,11 @@ public class GRexServiceInstance
     {
         return this.getMasterJob().isFinished();
     }
+    
+    public List<OutputFile> getCurrentOutputFiles()
+    {
+        return this.masterJob.getCurrentOutputFiles();
+    }
 
     public void setGridServiceConfig(GridServiceConfigForServer gsConfig)
     {
@@ -397,31 +402,22 @@ public class GRexServiceInstance
 
     /**
      * @return a List of all the sub-jobs belonging to this instance.  Returns
-     * an empty list if there are no sub-jobs (does not return null).  Makes sure
-     * that the instance property is set on all sub-jobs in the list (this is not
-     * stored in the database).
+     * an empty list if there are no sub-jobs (does not return null).
      */
     public List<Job> getSubJobs()
     {
-        for (Job subJob : this.subJobs)
-        {
-            subJob.setInstance(this);
-        }
         return this.subJobs;
     }
 
     /**
      * @return the sub-job with the given id, or null if there is no sub-job
-     * with the given identifier.  Makes sure that the instance property is set
-     * before the subJob is returned.
+     * with the given identifier.
      */
     public Job getSubJob(int subJobId)
     {
         try
         {
-            Job subJob = this.subJobs.get(subJobId);
-            subJob.setInstance(this);
-            return subJob;
+            return this.subJobs.get(subJobId);
         }
         catch(ArrayIndexOutOfBoundsException aioobe)
         {

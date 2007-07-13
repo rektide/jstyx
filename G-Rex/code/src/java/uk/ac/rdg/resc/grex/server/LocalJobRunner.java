@@ -44,6 +44,8 @@ import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
 /**
  * Runs a job on the G-Rex server itself.
  * @todo Adapt for sub-jobs or disallow somehow
+ * @todo Think very carefully about race conditions between state updates, 
+ * particularly when erroring out.
  *
  * @author Jon Blower
  * $Revision$
@@ -59,8 +61,6 @@ public class LocalJobRunner extends AbstractJobRunner
     /**
      * The task of the start() method is to prepare the job, then kick it off, 
      * setting the state of the job to RUNNING or ERROR before returning
-     * @throws InstanceNotReadyException if the instance is not ready to be
-     * started, perhaps because a required parameter has not been set.
      */
     public void start()
     {
@@ -77,27 +77,30 @@ public class LocalJobRunner extends AbstractJobRunner
             // Start the process running, setting the working directory
             this.proc = Runtime.getRuntime().exec(cmdLine, null, wdFile);
             log.debug("Process started");
+            
+            // Update the state of the instance
+            this.instance.setState(Job.State.RUNNING);
+            
+            // Start a thread that waits for the process to finish and grabs the
+            // exit code
+            new WaitProcess().start();
         
             // Start a thread that redirects the standard input data to the process
-            File stdinFile = new File(wdFile, AbstractJobRunner.STDIN);
+            File stdinFile = new File(wdFile, STDIN);
             // TODO: should we check at an earlier stage whether this exists?
             if (stdinFile.exists())
             {
                 FileInputStream fin = new FileInputStream(stdinFile);
-                new RedirectStream(fin, this.proc.getOutputStream()).start();
+                new RedirectStream(fin, this.proc.getOutputStream(), STDIN).start();
             }
-            
-            // Start a thread that waits for the process to finish and grabs the exit code
-            new WaitProcess().start();
 
             // Start threads to consume the output streams
             File stdoutFile = new File(wdFile, STDOUT);
             File stderrFile = new File(wdFile, STDERR);
-            new RedirectStream(this.proc.getInputStream(), new FileOutputStream(stdoutFile)).start();
-            new RedirectStream(this.proc.getErrorStream(), new FileOutputStream(stderrFile)).start();
-        
-            // Update the state of the instance
-            this.instance.setState(Job.State.RUNNING);
+            new RedirectStream(this.proc.getInputStream(),
+                new FileOutputStream(stdoutFile), STDOUT).start();
+            new RedirectStream(this.proc.getErrorStream(),
+                new FileOutputStream(stderrFile), STDERR).start();
         }
         catch(FileNotFoundException fnfe)
         {
@@ -112,14 +115,15 @@ public class LocalJobRunner extends AbstractJobRunner
             // TODO: save the error message
             this.instance.setState(Job.State.ERROR);
         }
-        // Save the new state of the instance to the persistent store
-        this.saveInstance();
+        finally
+        {
+            // Save the new state of the instance to the persistent store
+            this.saveInstance();
+        }
     }
     
     /**
      * Constructs the full command line that will be executed
-     * @throws InstanceNotReadyException if a required command-line parameter
-     * has not been set
      */
     private String constructCommmandLine()
     {
@@ -195,14 +199,16 @@ public class LocalJobRunner extends AbstractJobRunner
         private InputStream in;
         private OutputStream out;
         
-        public RedirectStream(InputStream in, OutputStream out)
+        public RedirectStream(InputStream in, OutputStream out, String name)
         {
+            super("redirect-stream-" + instance.getId() + "-" + name);
             this.in = in;
             this.out = out;
         }
         
         public void run()
         {
+            log.debug("Redirecting stream");
             try
             {
                 byte[] buf = new byte[1024];
@@ -215,7 +221,7 @@ public class LocalJobRunner extends AbstractJobRunner
             catch(IOException ioe)
             {
                 // Unlikely to happen
-                log.error("Error redirecting stream in LocalJobRunner.RedirectStream");
+                log.error("Error redirecting stream", ioe);
                 instance.setState(Job.State.ERROR);
                 saveInstance();
                 // TODO: store the error message?
@@ -232,6 +238,7 @@ public class LocalJobRunner extends AbstractJobRunner
                     log.error("Error closing input or output stream in RedirectStream");
                 }
             }
+            log.debug("Finished redirecting stream");
         }
     }
     
@@ -241,6 +248,11 @@ public class LocalJobRunner extends AbstractJobRunner
      */
     private class WaitProcess extends Thread
     {
+        public WaitProcess()
+        {
+            // TODO: should be the instance and job ID
+            super("wait-" + instance.getId());
+        }
         public void run()
         {
             boolean done = false;
@@ -254,6 +266,7 @@ public class LocalJobRunner extends AbstractJobRunner
                     done = true;
                     // Don't change state to FINISHED if already aborted or an
                     // error has occurred
+                    // TODO: read the state from the persistent store, just to be safe?
                     if (!instance.getState().meansFinished())
                     {
                         instance.setState(Job.State.FINISHED);

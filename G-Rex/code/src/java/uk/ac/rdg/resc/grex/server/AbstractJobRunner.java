@@ -70,9 +70,6 @@ public abstract class AbstractJobRunner implements JobRunner
     protected GridServiceConfigForServer gsConfig;
     protected GRexServiceInstancesStore instancesStore;
     
-    /**
-     * Creates a new instance of AbstractJobRunner
-     */
     protected AbstractJobRunner()
     {
     }

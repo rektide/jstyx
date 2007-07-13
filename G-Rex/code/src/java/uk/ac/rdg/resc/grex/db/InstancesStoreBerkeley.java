@@ -249,7 +249,8 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
     
     /**
      * Gets a GRexServiceInstance object representing the instance with the 
-     * given id.
+     * given id.  This always returns a newly-created object (see the Javadoc
+     * for com.sleepycat.persist.PrimaryIndex).
      * @param instanceID ID of the instance to be retrieved
      * @return the GRexServiceInstance object, or null if there is no 
      * object with the given ID

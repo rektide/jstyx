@@ -94,7 +94,7 @@
             <td>GET, PUT</td>
         </tr>
         <tr>
-            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>[.<em>subJobId</em>]/control</td>
+            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>/control</td>
             <td>Endpoint that is used to control instance <em>instanceId</em> of <em>serviceName</em>
             by sending start, stop and cleanup messages</td>
             <td>POST</td>
