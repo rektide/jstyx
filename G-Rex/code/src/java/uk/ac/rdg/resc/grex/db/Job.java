@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
+import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.config.Output;
 import uk.ac.rdg.resc.grex.server.OutputFile;
 
@@ -65,6 +66,8 @@ public class Job
     
     private Integer exitCode = null; // Will be set when the job has finished
     
+    private transient GRexServiceInstance instance; // The instance to which this job belongs
+    
     // WARNING!  The state is stored in the database as an index number, not a string
     // so if you add a new state to the start or middle of this list the indices
     // will change and the database will appear to contain the wrong state!
@@ -91,6 +94,15 @@ public class Job
     // The state of this particular job.  For the master job this describes
     // the state of the whole service instance.
     private State state = State.CREATED;
+    
+    public Job()
+    {
+    }
+    
+    Job(GRexServiceInstance instance)
+    {
+        this.instance = instance;
+    }
 
     public int getId()
     {
@@ -249,7 +261,7 @@ public class Job
         // see if we have a match.  Note that if this path matches more than one
         // pattern the later patterns take priority
         OutputFile opFile = null;
-        for (Output op : this.gsConfig.getOutputs())
+        for (Output op : this.instance.getGridServiceConfig().getOutputs())
         {
             String pattern = op.getName();
             if (op.getLinkedParameterName() != null)
@@ -269,5 +281,10 @@ public class Job
             }
         }
         return opFile;
+    }
+
+    public void setInstance(GRexServiceInstance instance)
+    {
+        this.instance = instance;
     }
 }

@@ -96,7 +96,7 @@ public class GRexServiceInstance
      * Job that exists, but for composite jobs the master job contains the files
      * and parameters that are common to all sub-jobs.
      */
-    private Job masterJob = new Job();
+    private Job masterJob = new Job(this);
     
     /**
      * The sub-jobs (if any) that belong to this instance
@@ -105,7 +105,8 @@ public class GRexServiceInstance
     
     /**
      * The configuration information for the service to which this instance
-     * belongs.  This is not persisted to the database.
+     * belongs.  This is not persisted to the database.  This is set in 
+     * AbstractGRexController when the instance is read from the database.
      */
     private transient GridServiceConfigForServer gsConfig;
 
@@ -135,12 +136,12 @@ public class GRexServiceInstance
 
     public String getWorkingDirectory()
     {
-        return this.masterJob.getWorkingDirectory();
+        return this.getMasterJob().getWorkingDirectory();
     }
 
     public void setWorkingDirectory(String workingDirectory)
     {
-        this.masterJob.setWorkingDirectory(workingDirectory);
+        this.getMasterJob().setWorkingDirectory(workingDirectory);
     }
     
     /**
@@ -149,7 +150,7 @@ public class GRexServiceInstance
      */
     public File getWorkingDirectoryFile()
     {
-        return this.masterJob.getWorkingDirectoryFile();
+        return this.getMasterJob().getWorkingDirectoryFile();
     }
     
     /**
@@ -297,12 +298,12 @@ public class GRexServiceInstance
      */
     public Job.State getState()
     {
-        return this.masterJob.getState();
+        return this.getMasterJob().getState();
     }
 
     public void setState(Job.State state)
     {
-        this.masterJob.setState(state);
+        this.getMasterJob().setState(state);
     }
     
     /**
@@ -310,7 +311,7 @@ public class GRexServiceInstance
      */
     public Map<String, String> getParameters()
     {
-        return this.masterJob.getParameters();
+        return this.getMasterJob().getParameters();
     }
     
     /**
@@ -319,7 +320,7 @@ public class GRexServiceInstance
      */
     public String getParamValue(String name)
     {
-        return this.masterJob.getParamValue(name);
+        return this.getMasterJob().getParamValue(name);
     }
     
     /**
@@ -336,12 +337,12 @@ public class GRexServiceInstance
      */
     public Integer getExitCode()
     {
-        return this.masterJob.getExitCode();
+        return this.getMasterJob().getExitCode();
     }
 
     public void setExitCode(Integer exitCode)
     {
-        this.masterJob.setExitCode(exitCode);
+        this.getMasterJob().setExitCode(exitCode);
     }
     
     /**
@@ -350,7 +351,7 @@ public class GRexServiceInstance
      */
     public boolean isFinished()
     {
-        return this.masterJob.isFinished();
+        return this.getMasterJob().isFinished();
     }
 
     public void setGridServiceConfig(GridServiceConfigForServer gsConfig)
@@ -382,19 +383,50 @@ public class GRexServiceInstance
         this.interactive = interactive;
     }
 
-    public List<Job> getSubJobs()
+    /**
+     * @return the "master job" for this instance.  If this instance contains
+     * sub-jobs, the master job contains the files and parameters that are
+     * common to all jobs.  If the instance does not contain sub-jobs, the
+     * master job will be run directly.  The state of the master job is the
+     * overall state of the instance.
+     */
+    public Job getMasterJob()
     {
-        return subJobs;
+        return this.masterJob;
     }
 
     /**
-     * @return the sub-job with the given id
-     * @throws ArrayIndexOutOfBoundsException if there is no sub-job with the 
-     * given id
+     * @return a List of all the sub-jobs belonging to this instance.  Returns
+     * an empty list if there are no sub-jobs (does not return null).  Makes sure
+     * that the instance property is set on all sub-jobs in the list (this is not
+     * stored in the database).
+     */
+    public List<Job> getSubJobs()
+    {
+        for (Job subJob : this.subJobs)
+        {
+            subJob.setInstance(this);
+        }
+        return this.subJobs;
+    }
+
+    /**
+     * @return the sub-job with the given id, or null if there is no sub-job
+     * with the given identifier.  Makes sure that the instance property is set
+     * before the subJob is returned.
      */
     public Job getSubJob(int subJobId)
     {
-        return this.subJobs.get(subJobId);
+        try
+        {
+            Job subJob = this.subJobs.get(subJobId);
+            subJob.setInstance(this);
+            return subJob;
+        }
+        catch(ArrayIndexOutOfBoundsException aioobe)
+        {
+            return null;
+        }
     }
 
     public int getNumSubJobs()

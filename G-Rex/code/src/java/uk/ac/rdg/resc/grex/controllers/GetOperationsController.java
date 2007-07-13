@@ -34,8 +34,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,7 +44,6 @@ import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.config.User;
@@ -113,18 +110,9 @@ import uk.ac.rdg.resc.grex.server.OutputFile;
  * $Date$
  * $Log$
  */
-public class GetOperationsController extends MultiActionController
+public class GetOperationsController extends AbstractGRexController
 {
     private static final Log log = LogFactory.getLog(GetOperationsController.class);
-    
-    /**
-     * Configuration information for this G-Rex server.
-     */
-    private GRexConfig config;
-    /**
-     * Store of service instances.
-     */
-    private GRexServiceInstancesStore instancesStore;
     
     /**
      * Shows the welcome page (in response to a request for welcome.html)
@@ -167,29 +155,24 @@ public class GetOperationsController extends MultiActionController
     {
         User loggedInUser = (User)SecurityContextHolder.getContext()
             .getAuthentication().getPrincipal();
-        // Find the name of the service that the user is interested in.  The URL
+        
+        // Find the service that the user is interested in.  The URI
         // pattern is /G-Rex/serviceName/instances.[xml,html]
-        String serviceName = request.getRequestURI().split("/")[2];
-        // Check that this service actually exists!
-        GridServiceConfigForServer gs = this.config.getGridServiceByName(serviceName);
-        if (gs == null)
-        {
-            throw new GRexException("There is no service called " + serviceName);
-        }
+        GridServiceConfigForServer gs = this.getServiceConfig(request.getRequestURI());
         
         // Check that the user can access this service
         if (!gs.canBeAccessedBy(loggedInUser))
         {
             throw new GRexException("User " + loggedInUser.getUsername() +
                 " does not have permission to view instances of service "
-                + serviceName);
+                + gs.getName());
         }
         
         // Get the list of service instance from the store, checking the
         // permissions of each one
         List<GRexServiceInstance> viewables = new ArrayList<GRexServiceInstance>();
         for (GRexServiceInstance instance : this.instancesStore
-            .getServiceInstancesByServiceName(serviceName))
+            .getServiceInstancesByServiceName(gs.getName()))
         {
             if (instance.canBeReadBy(loggedInUser))
             {
@@ -200,7 +183,7 @@ public class GetOperationsController extends MultiActionController
         // Create the model map that will be passed to the JSPs
         Map<String, Object> modelMap = new HashMap<String, Object>();
         modelMap.put("instances", viewables);
-        modelMap.put("serviceName", serviceName);
+        modelMap.put("serviceName", gs.getName());
         return new ModelAndView("instancesForService_" +
             getFileExtension(request.getRequestURI()), modelMap);
     }
@@ -213,19 +196,16 @@ public class GetOperationsController extends MultiActionController
     {
         User loggedInUser = (User)SecurityContextHolder.getContext()
             .getAuthentication().getPrincipal();
-        // Find the name of the service that the user is interested in.  The URL
+        
+        // Find the service that the user is interested in.  The URL
         // pattern is /G-Rex/serviceName/instances.[xml,html]
-        String serviceName = request.getRequestURI().split("/")[2];
-        GridServiceConfigForServer gs = this.config.getGridServiceByName(serviceName);
-        if (gs == null)
-        {
-            throw new GRexException("There is no service called " + serviceName);
-        }
+        GridServiceConfigForServer gs = this.getServiceConfig(request.getRequestURI());
+        
         if (!gs.canBeAccessedBy(loggedInUser))
         {
             throw new GRexException("User " + loggedInUser.getUsername() +
                 " does not have permission to view configuration information for "
-                + serviceName);
+                + gs.getName());
         }
         return new ModelAndView("configForService_" +
             getFileExtension(request.getRequestURI()), "gridservice", gs);
@@ -239,18 +219,15 @@ public class GetOperationsController extends MultiActionController
     {
         User loggedInUser = (User)SecurityContextHolder.getContext()
             .getAuthentication().getPrincipal();
-        // Find the name of the service that the user is interested in.  The URL
+        // Find the service instance that the user is interested in.  The URL
         // pattern is /G-Rex/serviceName/instances/instanceID.[xml,html]
-        String serviceName = request.getRequestURI().split("/")[2];
-        String instanceIdStr = request.getRequestURI().split("/")[4].split("\\.")[0];
+        GRexServiceInstance instance = this.getServiceInstance(request.getRequestURI());
         
-        GRexServiceInstance instance = findAndCheckServiceInstance(instanceIdStr,
-            serviceName, this.instancesStore);
         if (!instance.canBeReadBy(loggedInUser))
         {
             throw new GRexException("User " + loggedInUser.getUsername() +
                 " does not have permission to view information for instance "
-                + instance.getId() + " of service " + serviceName);
+                + instance.getId() + " of service " + instance.getServiceName());
         }
         // Display the details of this instance
         return new ModelAndView("instance_" +
@@ -271,12 +248,7 @@ public class GetOperationsController extends MultiActionController
         // Find the name of the service and the instance that the user is
         // interested in.  The URL pattern is
         // /G-Rex/serviceName/instances/instanceID/outputs/path/to/file
-        String[] urlEls = decode(request.getRequestURI()).split("/");
-        String serviceName = urlEls[2];
-        String instanceIdStr = urlEls[4];
-        
-        GRexServiceInstance instance = findAndCheckServiceInstance(instanceIdStr,
-            serviceName, this.instancesStore);
+        GRexServiceInstance instance = this.getServiceInstance(request.getRequestURI());
         if (!instance.canBeReadBy(loggedInUser))
         {
             // TODO: how do we get this sent to the client, avoiding the servlet
@@ -285,19 +257,11 @@ public class GetOperationsController extends MultiActionController
             return;
         }
         
-        // Find the path to the file, relative to the working directory
-        StringBuffer pathBuf = new StringBuffer(urlEls[6]);
-        for (int i = 7; i < urlEls.length; i++)
-        {
-            pathBuf.append("/"); // We use a forward slash even on Windows because
-                                 // this is necessary for pattern matching in
-                                 // instance.getOutputFile()
-            pathBuf.append(urlEls[i]);
-        }
-        File fileToDownload = new File(instance.getWorkingDirectory(), pathBuf.toString());
+        String filePath = this.getFilePath(request.getRequestURI());
+        File fileToDownload = new File(instance.getWorkingDirectory(), filePath);
         
         // Check that this file is ready to be downloaded
-        OutputFile opFile = instance.getOutputFile(pathBuf.toString());
+        OutputFile opFile = instance.getMasterJob().getOutputFile(filePath);
         if (opFile == null || !opFile.isReadyForDownload())
         {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -353,7 +317,7 @@ public class GetOperationsController extends MultiActionController
         catch(IOException ioe)
         {
             // This is most likely to happen if the client disconnects unexpectedly
-            log.error("Error downloading file " + pathBuf.toString(), ioe);
+            log.error("Error downloading file " + filePath, ioe);
             // TODO: report this to the client?
         }
         finally
@@ -368,73 +332,5 @@ public class GetOperationsController extends MultiActionController
                 // Unlikely to happen and we don't really care anyway
             }
         }
-    }
-    
-    /**
-     * Searches the given GRexServiceInstancesStore for the requested service
-     * instance and checks that it belongs to the correct service
-     * @throws Exception if the service instance could not be found
-     */
-    static GRexServiceInstance findAndCheckServiceInstance(String instanceIdStr,
-        String serviceName, GRexServiceInstancesStore instancesStore)
-        throws Exception
-    {
-        try
-        {
-            int instanceId = Integer.parseInt(instanceIdStr);
-            // Retrieve the instance object from the store
-            GRexServiceInstance instance = instancesStore.getServiceInstanceById(instanceId);
-            // Check that the service names match
-            if (instance == null || !instance.getServiceName().equals(serviceName))
-            {
-                throw new GRexException("There is no instance of " + serviceName + 
-                    " with id " + instanceIdStr);
-            }
-            return instance;
-        }
-        catch(NumberFormatException nfe)
-        {
-            // thrown by Integer.parseInt(instanceIdStr)
-            throw new GRexException("There is no instance of " + serviceName + 
-                " with id " + instanceIdStr);
-        }
-    }
-    
-    /**
-     * This will be used by the Spring framework to inject the config object
-     * before handleRequestInternal is called
-     */
-    public void setGrexConfig(GRexConfig config)
-    {
-        this.config = config;
-    }
-    
-    /**
-     * This will be used by the Spring framework to inject an object that can
-     * be used to read the service instances from a database
-     */
-    public void setInstancesStore(GRexServiceInstancesStore instancesStore)
-    {
-        this.instancesStore = instancesStore;
-    }
-    
-    /**
-     * Finds the file extension for the given request URI.  For example, if the 
-     * requestURI is "/foo/bar/baz.html" this method will return "html"
-     * @todo Brittle: will not do what is expected for "/foo/baz.bar/hello"
-     */
-    private static final String getFileExtension(String requestURI)
-    {
-        return requestURI.substring(requestURI.lastIndexOf(".") + 1);
-    }
-    
-    /**
-     * Decodes the given request URI by replacing HTML escape sequences with
-     * their proper characters
-     * @todo Implement properly: only handles spaces at the moment
-     */
-    private static final String decode(String uri)
-    {
-        return uri.replaceAll("%20", " ");
     }
 }

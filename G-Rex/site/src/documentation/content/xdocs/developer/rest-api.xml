@@ -61,7 +61,7 @@
       <table>
         <tr><th>URI pattern</th><th>Description</th><th>Allowed HTTP methods</th></tr>
         <tr><td>/G-Rex/welcome.html</td><td>Public welcome page (authentication not required)</td><td>GET</td></tr>
-        <tr><td>/G-Rex/services.[xml,html]</td><td>List of the services that are visible to the authenticated user</td><td>GET</td></tr>
+        <tr><td>/G-Rex/services.{xml,html}</td><td>List of the services that are visible to the authenticated user</td><td>GET</td></tr>
         <tr>
             <td>/G-Rex/<em>servicename</em>/config.xml</td>
             <td>Configuration information for <em>servicename</em></td>
@@ -73,28 +73,28 @@
             <td>POST</td>
         </tr>
         <tr>
-            <td>/G-Rex/<em>servicename</em>/instances.[xml,html]</td>
+            <td>/G-Rex/<em>servicename</em>/instances.{xml,html}</td>
             <td>List of the instances of <em>servicename</em> that are visible to the authenticated user</td>
             <td>GET</td>
         </tr>
         <tr>
-            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>.[xml,html]</td>
+            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>[.<em>subJobId</em>].{xml,html}</td>
             <td>Describes the current state of instance <em>instanceId</em> of <em>serviceName</em></td>
             <td>GET</td>
         </tr>
         <tr>
-            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>/params</td>
+            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>[.<em>subJobId</em>]/params</td>
             <td>Endpoint that is used to set the parameters of <em>instanceId</em> of <em>serviceName</em>
             as name-value pairs</td>
             <td>POST</td>
         </tr>
         <tr>
-            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>/wd/*</td>
+            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>[.<em>subJobId</em>]/wd/*</td>
             <td>A file in the working directory of instance <em>instanceId</em> of <em>serviceName</em></td>
             <td>GET, PUT</td>
         </tr>
         <tr>
-            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>/control</td>
+            <td>/G-Rex/<em>servicename</em>/instances/<em>instanceId</em>[.<em>subJobId</em>]/control</td>
             <td>Endpoint that is used to control instance <em>instanceId</em> of <em>serviceName</em>
             by sending start, stop and cleanup messages</td>
             <td>POST</td>

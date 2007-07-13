@@ -43,12 +43,9 @@ import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.multiaction.MultiActionController;
-import uk.ac.rdg.resc.grex.config.GRexConfig;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.config.Parameter;
 import uk.ac.rdg.resc.grex.config.User;
-import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.db.Job;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
@@ -66,7 +63,7 @@ import uk.ac.rdg.resc.grex.server.JobRunnerFactory;
  * $Date$
  * $Log$
  */
-public class PostOperationsController extends MultiActionController
+public class PostOperationsController extends AbstractGRexController
 {
     private static final Log log = LogFactory.getLog(PostOperationsController.class);
     
@@ -75,15 +72,6 @@ public class PostOperationsController extends MultiActionController
      * sub-jobs in a service instance
      */
     private static final String NUMSUBJOBS_PARAMETER_NAME = "numSubJobs";
-    
-    /**
-     * Configuration information for this G-Rex server.
-     */
-    private GRexConfig config;
-    /**
-     * Store of service instances.
-     */
-    private GRexServiceInstancesStore instancesStore;
     /**
      * Factory for JobRunner objects
      */
@@ -101,20 +89,13 @@ public class PostOperationsController extends MultiActionController
         
         // Find the name of the service that the user is interested in.  The URL
         // pattern is /G-Rex/serviceName/clone
-        String serviceName = request.getRequestURI().split("/")[2];
-        
-        // Check that the service exists
-        GridServiceConfigForServer gs = this.config.getGridServiceByName(serviceName);
-        if (gs == null)
-        {
-            throw new GRexException("There is no service called " + serviceName);
-        }
+        GridServiceConfigForServer gs = this.getServiceConfig(request.getRequestURI());
         
         // Check that the user is allowed to create a new instance
         if (!gs.canBeAccessedBy(loggedInUser))
         {
             throw new GRexException("User " + loggedInUser.getUsername() +
-                " does not have permission to create a new instance of " + serviceName);
+                " does not have permission to create a new instance of " + gs.getName());
         }
         
         // Check that the user has set "operation=create"
@@ -126,7 +107,7 @@ public class PostOperationsController extends MultiActionController
         
         // Create a new instance of the service
         GRexServiceInstance newInstance = new GRexServiceInstance();
-        newInstance.setServiceName(serviceName);
+        newInstance.setServiceName(gs.getName());
         if (request.getParameter("description") != null)
         {
             newInstance.setDescription(request.getParameter("description"));
@@ -177,17 +158,13 @@ public class PostOperationsController extends MultiActionController
         
         // Work out which service instance we're interested in.  The URL
         // pattern is /G-Rex/serviceName/instances/instanceId/setup
-        String serviceName = request.getRequestURI().split("/")[2];
-        String instanceIdStr = request.getRequestURI().split("/")[4];
+        GRexServiceInstance instance = this.getServiceInstance(request.getRequestURI());
         
-        GRexServiceInstance instance =
-            GetOperationsController.findAndCheckServiceInstance(instanceIdStr,
-            serviceName, this.instancesStore);
         if (!instance.canBeModifiedBy(loggedInUser))
         {
             throw new GRexException("User " + loggedInUser.getUsername() +
                 " does not have permission to modify instance "
-                + instance.getId() + " of service " + serviceName);
+                + instance.getId() + " of service " + instance.getServiceName());
         }
 
         // Create a new file upload handler
@@ -341,17 +318,13 @@ public class PostOperationsController extends MultiActionController
             .getAuthentication().getPrincipal();
         // Work out which service instance we're interested in.  The URL
         // pattern is /G-Rex/serviceName/instances/instanceId/control
-        String serviceName = request.getRequestURI().split("/")[2];
-        String instanceIdStr = request.getRequestURI().split("/")[4];
+        GRexServiceInstance instance = this.getServiceInstance(request.getRequestURI());
         
-        GRexServiceInstance instance =
-            GetOperationsController.findAndCheckServiceInstance(instanceIdStr,
-            serviceName, this.instancesStore);
         if (!instance.canBeModifiedBy(loggedInUser))
         {
             throw new GRexException("User " + loggedInUser.getUsername() +
                 " does not have permission to modify instance "
-                + instance.getId() + " of service " + serviceName);
+                + instance.getId() + " of service " + instance.getServiceName());
         }
         
         // Get the JobRunner for this instance
@@ -415,23 +388,6 @@ public class PostOperationsController extends MultiActionController
         
         // TODO: do something else if we've come from a web page
         return new ModelAndView("instance_xml", "instance", instance);
-    }
-    
-    /**
-     * This will be used by the Spring framework to inject the config object
-     */
-    public void setGrexConfig(GRexConfig config)
-    {
-        this.config = config;
-    }
-    
-    /**
-     * This will be used by the Spring framework to inject an object that can
-     * be used to read the service instances from a database
-     */
-    public void setInstancesStore(GRexServiceInstancesStore instancesStore)
-    {
-        this.instancesStore = instancesStore;
     }
     
     /**
