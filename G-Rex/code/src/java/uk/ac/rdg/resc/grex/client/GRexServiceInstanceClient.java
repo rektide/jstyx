@@ -467,7 +467,7 @@ public class GRexServiceInstanceClient
                     {
                         File fout = new File(this.relativePath);
                         // Make the directory(-ies) to contain the output file
-                        fout.getCanonicalPath().getParentFile().mkdirs();
+                        fout.getCanonicalFile().getParentFile().mkdirs();
                         out = new FileOutputStream(fout);
                     }
                     
