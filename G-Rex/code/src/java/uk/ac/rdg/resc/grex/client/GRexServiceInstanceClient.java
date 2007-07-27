@@ -376,13 +376,13 @@ public class GRexServiceInstanceClient
         {
             // Will store the files that are currently being downloaded
             List<String> filesBeingDownloaded = new ArrayList<String>();
-            // Method to get the latest information about the service instance
-            // from the server
-            GetMethod getStatus = new GetMethod(url + ".xml");
             try
             {
                 do
                 {
+                    // Method to get the latest information about the service instance
+                    // from the server
+                    GetMethod getStatus = new GetMethod(url + ".xml");
                     instanceState = serviceClient.executeMethod(getStatus,
                         InstanceResponse.class);
                     
