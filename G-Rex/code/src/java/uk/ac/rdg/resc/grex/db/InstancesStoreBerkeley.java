@@ -355,10 +355,4 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
         this.config = config;
     }
     
-    public static void main(String[] args) throws Exception
-    {
-        InstancesStoreBerkeley store = new InstancesStoreBerkeley();
-        store.init();
-    }
-    
 }

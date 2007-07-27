@@ -34,6 +34,8 @@ import java.net.URL;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.params.*;
+import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
@@ -70,6 +72,7 @@ public class GRexServiceClient
     private String protocol = "http";
     private String host;
     private int port;
+    private int maxSimultaneousDownloads = 500;
     
     // Authentication information    
     private String user;
@@ -88,8 +91,30 @@ public class GRexServiceClient
     public GRexServiceClient()
     {
         // Allow many threads to use this connection
-        MultiThreadedHttpConnectionManager connectionManager = 
-            new MultiThreadedHttpConnectionManager();
+        MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
+        
+        // Increase total maximum number of connections and maximum number of
+        // connections per host for HttpClient objects. This is necessary
+        // because the default maximums are 20 and 2 respectively, but
+        // one connection is required for each of the output files
+        //
+        // First create object to store connection manager parameters
+        HttpConnectionManagerParams connectionManagerParams;
+        // Get the current parameters for this connection manager
+        connectionManagerParams = connectionManager.getParams();
+        // Change max total connections parameter in params object
+        connectionManagerParams.setMaxTotalConnections(maxSimultaneousDownloads);
+        //
+        // Now deal with maximum connections per host parameter.
+        // First create a default host configuration object   
+        HostConfiguration hostConfiguration = new HostConfiguration();
+        // Now change max connections per host parameter in params object 
+        connectionManagerParams.setMaxConnectionsPerHost(hostConfiguration, maxSimultaneousDownloads);
+        //
+        // Finally, apply these new parameters to the connection manager object
+        connectionManager.setParams(connectionManagerParams);
+        
+        // Create the HttpClient object for this G-Rex service client
         this.client = new HttpClient(connectionManager);
     }
     
@@ -134,7 +159,7 @@ public class GRexServiceClient
             {
                 throw new MalformedURLException("User info not valid");
             }
-        }
+        }        
     }
     
     /**
@@ -196,10 +221,14 @@ public class GRexServiceClient
         try
         {
             method.setDoAuthentication(true);
+            log.debug("About to call this.client.executeMethod(" + method.toString() + ")");
             int status = this.client.executeMethod(method);
+            log.debug("status = " + status);
             if (status == HttpServletResponse.SC_OK)
             {
+                log.debug("status = HttpServletResponse.SC_OK");
                 // This loads the whole response into memory: OK as will be short
+                log.debug("About to get response as string");
                 String xml = method.getResponseBodyAsString();
                 log.debug("received from server: " + xml);
                 // Parse the XML and return
@@ -320,6 +349,11 @@ public class GRexServiceClient
     public String getServiceName()
     {
         return serviceName;
+    }
+
+    public int getMaxSimultaneousDownloads()
+    {
+        return maxSimultaneousDownloads;
     }
 
     public void setServiceName(String serviceName)

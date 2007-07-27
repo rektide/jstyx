@@ -242,6 +242,7 @@ public class GRexServiceInstanceClient
     {
         // Setup the job by setting the parameters and uploading the input files
         PostMethod setupJob = new PostMethod(this.url + "/setup");
+        log.debug("Got post method for setup = " + setupJob.toString());
         List<Part> parts = new ArrayList<Part>();
         // Add the parameters
         for (String paramName : this.params.keySet())
@@ -255,9 +256,11 @@ public class GRexServiceInstanceClient
             parts.add(new FilePart(pathOnServer, fileToUpload));
         }
         Part[] partsArray = parts.toArray(new Part[0]);
+        log.debug("About to set up job");
         MultipartRequestEntity mre = new MultipartRequestEntity(partsArray,
             setupJob.getParams());
         setupJob.setRequestEntity(mre);
+        log.debug("About to check status");
         this.instanceState = this.serviceClient.executeMethod(setupJob,
             InstanceResponse.class);
         
@@ -270,12 +273,16 @@ public class GRexServiceInstanceClient
         
         // Now start the service instance
         PostMethod startJob = new PostMethod(this.url + "/control");
+        log.debug("Got post method for starting job = " + startJob.toString());
+        log.debug("About to start job");
         startJob.setParameter("operation", "start");
+        log.debug("About to check status");
         this.instanceState = this.serviceClient.executeMethod(startJob,
             InstanceResponse.class);
         
         // Start a regular process of polling the server for status updates
         // and discovering new output files to download
+        log.debug("About to launch status updater");
         this.statusUpdater = new StatusUpdater();
         this.statusUpdater.start();
     }
@@ -301,7 +308,7 @@ public class GRexServiceInstanceClient
                 // ByteArrayPartSource will use the whole provided data buffer
                 byte[] data = new byte[len];
                 System.arraycopy(buf, 0, data, 0, len);
-                // We still use the setup endpoint
+                // We still use the setup.action endpoint
                 PostMethod uploadStdin = new PostMethod(this.url + "/setup");
                 PartSource dataSource = new ByteArrayPartSource(AbstractJobRunner.STDIN, data);
                 Part dataPart = new FilePart(AbstractJobRunner.STDIN, dataSource);
@@ -376,43 +383,67 @@ public class GRexServiceInstanceClient
         {
             // Will store the files that are currently being downloaded
             List<String> filesBeingDownloaded = new ArrayList<String>();
+            int numFilesBeingDownloaded;
+            log.debug("Priority of this thread = " + this.getPriority());
             try
             {
+                // Get maximum number of simultaneous downloads from service
+                // client
+                int maxSimultaneousDownloads = serviceClient.getMaxSimultaneousDownloads();
+                
+                log.debug("About to go into loop checking status every " + updateIntervalMs + " milliseconds");
                 do
                 {
                     // Method to get the latest information about the service instance
                     // from the server
+                    log.debug("About to get service information from server");
                     GetMethod getStatus = new GetMethod(url + ".xml");
+                    log.debug("Checking status...");
                     instanceState = serviceClient.executeMethod(getStatus,
                         InstanceResponse.class);
                     
                     // Look through the list of output files and kick off a thread
                     // to download each new one
                     String baseUrl = instanceState.getOutputFilesBaseUrl();
+                    log.debug("Download status of output files is listed below.");
                     for (OutputFile outFile : instanceState.getOutputFiles())
                     {
+                        log.debug("File " + outFile.getRelativePath() + ": Ready to download = " + outFile.isReadyForDownload());
                         if (outFile.isReadyForDownload() &&
                             !filesBeingDownloaded.contains(outFile.getRelativePath()))
                         {
+                            log.debug("Creating downloader for " + outFile.getRelativePath());
                             filesBeingDownloaded.add(outFile.getRelativePath());
-                            // TODO: get the threads from a limited pool to prevent
-                            // downloading of too many files at once?
                             Thread downloader = new FileDownloader(baseUrl, outFile.getRelativePath());
                             fileDownloadThreads.add(downloader);
                             downloader.start();
                         }
                     }
                     
+                    // Check that the simultaneous download limit has not
+                    // been exceeded
+                    numFilesBeingDownloaded = filesBeingDownloaded.size();
+                    if ( numFilesBeingDownloaded > maxSimultaneousDownloads )
+                        log.warn("Number of files being downloaded exceeds maximum simultaneous download limit of " +
+                                maxSimultaneousDownloads);
+                    
                     if (instanceState.getState().meansFinished())
                     {
                         // TODO: getExitCode() could return null, but this would
                         // be an internal error.  Code defensively for this?
-                        exitCode = instanceState.getExitCode();
+                        if ( instanceState.getExitCode() == null ) {
+                            log.debug("getExitCode() returned null");
+                        }
+                        else exitCode = instanceState.getExitCode();
                     }
                     else
                     {
                         // Wait for the required time before getting the next update
-                        try { Thread.sleep(updateIntervalMs); } catch (InterruptedException ie) {}
+                        try {
+                            log.debug("About to sleep for " + updateIntervalMs + " milliseconds");
+                            Thread.sleep(updateIntervalMs);
+                            log.debug("Woken up after " + updateIntervalMs + " milliseconds");
+                        } catch (InterruptedException ie) {}
                     }
                     
                 } while (!instanceState.getState().meansFinished());
@@ -445,6 +476,7 @@ public class GRexServiceInstanceClient
         {
             String fileUrl = this.baseUrl + this.relativePath;
             log.debug("Downloading from " + fileUrl);
+            log.debug("Priority of this thread = " + this.getPriority());
             InputStream in = null;
             OutputStream out = null;
             GetMethod downloader = new GetMethod(fileUrl);
@@ -466,14 +498,16 @@ public class GRexServiceInstanceClient
                     else
                     {
                         File fout = new File(this.relativePath);
-                        // Make the directory(-ies) to contain the output file
+                        log.debug("About to create directory. baseUrl =" + baseUrl +
+                                ", relativePath =" + relativePath);
                         fout.getCanonicalFile().getParentFile().mkdirs();
                         out = new FileOutputStream(fout);
                     }
                     
                     // Now read the contents of the stream
-                    int len;
-                    byte[] buf = new byte[1024];
+                    int len, bufsize=1024;
+                    byte[] buf = new byte[bufsize];
+                    
                     while ((len = in.read(buf)) >= 0)
                     {
                         out.write(buf, 0, len);
