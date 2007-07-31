@@ -53,6 +53,7 @@ Displays the details of a particular service instance
                 <td><c:if test="${file.readyForDownload}"><a href="${fileUrl}"></c:if>${file.relativePath}<c:if test="${file.readyForDownload}"></a></c:if></td>
                 <td>${file.lengthBytes}</td>
                 <td>${file.lastModified}</td>
+                <td>${file.checkSum}</td>
             </tr>
             </c:forEach>
         </tbody>
