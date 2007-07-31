@@ -29,6 +29,7 @@
 package uk.ac.rdg.resc.grex.server;
 
 import java.io.File;
+import java.util.zip.Checksum;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.db.Job;
 
@@ -51,6 +52,7 @@ public class OutputFile
     private File file; // underlying File
     private Job job;
     private boolean appendOnly;
+    private long checkSum=0; /* This should remain zero until output to the file has finished
     
     /**
      * Creates a new instance of OutputFile
@@ -130,6 +132,19 @@ public class OutputFile
     public File getFile()
     {
         return this.file;
+    }
+    
+    /**
+     * @return the check sum of the file.  This will return zero
+     * if the file is still being written to and (for the time
+     * being) a non zero number if output to the file has finished and
+     * it can be deleted from the server.
+     */
+    public long getCheckSum()
+    {
+        
+        
+        return this.checkSum;
     }
     
 }
