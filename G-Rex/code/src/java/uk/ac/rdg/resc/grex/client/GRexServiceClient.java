@@ -72,7 +72,7 @@ public class GRexServiceClient
     private String protocol = "http";
     private String host;
     private int port;
-    private int maxSimultaneousDownloads = 500;
+    private int maxSimultaneousDownloads = 20;
     
     // Authentication information    
     private String user;
