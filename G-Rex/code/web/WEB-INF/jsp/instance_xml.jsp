@@ -15,7 +15,8 @@
         <list>
             <c:forEach var="file" items="${instance.currentOutputFiles}">
             <outputFile relPath="${file.relativePath}" lengthBytes="${file.lengthBytes}"
-                        lastModified="${file.lastModified}" readyForDownload="${file.readyForDownload}"/>
+                        lastModified="${file.lastModified}" readyForDownload="${file.readyForDownload}"
+                        checkSum="${file.checkSum}"/>
             </c:forEach>
         </list>
     </outputFiles>
