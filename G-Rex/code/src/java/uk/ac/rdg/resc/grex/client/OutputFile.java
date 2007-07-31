@@ -56,6 +56,9 @@ class OutputFile
     @Attribute(name="readyForDownload")
     private boolean readyForDownload;
     
+    @Attribute(name="checkSum")
+    private long checkSum;
+    
     /** Creates a new instance of OutputFile */
     public OutputFile()
     {
@@ -86,6 +89,11 @@ class OutputFile
     public boolean isReadyForDownload()
     {
         return readyForDownload;
+    }
+
+    public long getCheckSum()
+    {
+        return checkSum;
     }
     
 }
