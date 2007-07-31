@@ -294,4 +294,14 @@ public class LocalJobRunner extends AbstractJobRunner
         this.saveInstance();
     }
     
+    /*
+     * A NEMO-specific method that decides whether output to a given file has
+     * stopped.  The output from this method will be available to the G-Rex
+     * client, and will be used to decide whether downloader threads can be
+     * terminated and files deleted from the server.
+     */
+    public boolean outputFinished(String path) {
+        return false;
+    }
+    
 }
