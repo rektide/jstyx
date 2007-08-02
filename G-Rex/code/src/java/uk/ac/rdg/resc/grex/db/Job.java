@@ -34,11 +34,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.config.Output;
 import uk.ac.rdg.resc.grex.server.OutputFile;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * Represents a job that belongs to a service instance, e.g. one element of a parameter
@@ -54,6 +57,8 @@ import uk.ac.rdg.resc.grex.server.OutputFile;
 @Persistent
 public class Job
 {
+    private static final Log log = LogFactory.getLog(Job.class);
+    
     // The id is unique within the GRexServiceInstance
     private int id = -1; // Negative number indicates the Master job
     
@@ -63,6 +68,11 @@ public class Job
     // Directory in which all files relating to this sub-job will be kept
     // Note that the database engine doesn't know how to persist java.io.File
     private String workingDirectory;
+    
+    /* Stores the time at which files are added to the list,
+     soon after being created */
+    private Map<String, Long> creationTimes = new HashMap<String, Long>();
+    //Map<String, Long> creationTimes = Collections.synchronizedMap(new HashMap<String, Long>());
     
     private Integer exitCode = null; // Will be set when the job has finished
     
@@ -164,6 +174,11 @@ public class Job
     public String getWorkingDirectory()
     {
         return workingDirectory;
+    }   
+
+    public Map getCreationTimes()
+    {
+        return this.creationTimes;
     }
     
     /**
@@ -240,7 +255,23 @@ public class Job
             {
                 // Check to see if this file is downloadable
                 OutputFile opFile = this.getOutputFile(relativePath);
-                if (opFile != null) files.add(opFile);
+                if (opFile != null) {
+                    files.add(opFile);
+                    
+                    try {
+                        /* Add creation time of new output file to creationTimes hash table */
+                        if (!this.creationTimes.containsKey(opFile.getFile().getName())) {
+                            log.debug("Adding creation time " + opFile.getFile().lastModified() + " of file " + opFile.getFile().getName() + " to hash table");
+                            Long lastModifiedObject = new Long(opFile.getFile().lastModified());
+                            if(this.creationTimes.put(opFile.getFile().getName(), lastModifiedObject) == null)
+                                log.debug("this.creationTimes.put returned null");
+                        }
+                    }
+                    catch (Exception ex) {
+                        log.error("Error reading from or writing to creation times list. File name is " + opFile.getFile().getName());
+                        log.error("Exception details: " + ex.toString());
+                    }
+                }
             }
         }
     }

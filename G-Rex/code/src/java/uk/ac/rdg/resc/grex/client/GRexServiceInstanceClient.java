@@ -395,9 +395,7 @@ public class GRexServiceInstanceClient
                 {
                     // Method to get the latest information about the service instance
                     // from the server
-                    log.debug("About to get service information from server");
                     GetMethod getStatus = new GetMethod(url + ".xml");
-                    log.debug("Checking status...");
                     instanceState = serviceClient.executeMethod(getStatus,
                         InstanceResponse.class);
                     
@@ -409,23 +407,25 @@ public class GRexServiceInstanceClient
                     long bytesToDownload=0;
                     log.debug("Download status of output files is listed below.");
                     for (OutputFile outFile : instanceState.getOutputFiles())
-                    {
-                        /* Calculate difference between size of file on server
-                         * and size of file at client */
-                        File fout = new File(outFile.getRelativePath());                                              
-                        bytesClient = fout.getCanonicalFile().length();
-                        bytesServer = outFile.getFileLengthBytes();
-                        bytesToDownload=bytesServer-bytesClient;                        
-                        log.debug("File " + outFile.getRelativePath() + ": Size at client = "
-                                + bytesClient + ", size at server = " + bytesServer
-                                + ", bytes to download = " + bytesToDownload);
-                        
+                    {                        
                         if (outFile.isReadyForDownload() &&
-                            !filesBeingDownloaded.contains(outFile.getRelativePath()))
+                            !filesBeingDownloaded.contains(outFile.getRelativePath()) &&
+                            !(filesBeingDownloaded.size() >= maxSimultaneousDownloads))
                         {
                             log.debug("Creating downloader for " + outFile.getRelativePath());
+                            /* Calculate difference between size of file on server
+                            * and size of file at client */
+                            File fout = new File(outFile.getRelativePath());                                              
+                            bytesClient = fout.getCanonicalFile().length();
+                            bytesServer = outFile.getFileLengthBytes();
+                            bytesToDownload=bytesServer-bytesClient;                        
+                            log.debug("File " + outFile.getRelativePath() + ": Size at client = "
+                                + bytesClient + ", size at server = " + bytesServer
+                                + ", bytes to download = " + bytesToDownload);
+                            
                             filesBeingDownloaded.add(outFile.getRelativePath());
-                            Thread downloader = new FileDownloader(baseUrl, outFile.getRelativePath(), bytesToDownload);
+                            //Thread downloader = new FileDownloader(baseUrl, outFile.getRelativePath(), bytesToDownload);
+                            Thread downloader = new FileDownloader(baseUrl, outFile, bytesToDownload);
                             fileDownloadThreads.add(downloader);
                             downloader.start();
                         }
@@ -435,7 +435,7 @@ public class GRexServiceInstanceClient
                     // been exceeded
                     numFilesBeingDownloaded = filesBeingDownloaded.size();
                     if ( numFilesBeingDownloaded > maxSimultaneousDownloads )
-                        log.warn("Number of files being downloaded exceeds maximum simultaneous download limit of " +
+                        log.warn("Number of files available for downloaded exceeds maximum simultaneous download limit of " +
                                 maxSimultaneousDownloads);
                     
                     if (instanceState.getState().meansFinished())
@@ -476,12 +476,14 @@ public class GRexServiceInstanceClient
         private String baseUrl;
         private String relativePath;
         private long bytesToDownload;
+        private OutputFile outFile;
         
-        public FileDownloader(String baseUrl, String relativePath, long bytes)
+        public FileDownloader(String baseUrl, OutputFile outFile, long bytes)
         {
-            super("download-" + relativePath);
+            super("download-" + outFile.getRelativePath());
             this.baseUrl = baseUrl;
-            this.relativePath = relativePath;
+            this.outFile = outFile;
+            this.relativePath = outFile.getRelativePath();
             this.bytesToDownload = bytes; /* Not using this yet */
         }
         
@@ -521,15 +523,22 @@ public class GRexServiceInstanceClient
                     int len, bufsize=1024;
                     byte[] buf = new byte[bufsize];
                     
-                    long bytesRead=0;                  
-                    while ((len = in.read(buf)) >= 0)
+                    boolean downloadComplete = false;
+                    while ((len = in.read(buf)) >= 0 && !downloadComplete)
                     {
-                        bytesRead += len;
                         out.write(buf, 0, len);
                         // Make sure the standard streams are kept up to date
                         if (out == System.out || out == System.err)
                         {
                             out.flush();
+                        }
+                        
+                        /* Check to see if output to the file on the server has
+                         * finished.  This will be indicated by a non zero checksum
+                         * value in the status message */
+                        if (len==0 && this.outFile.getCheckSum() != 0) {
+                            log.debug("Found non zero checksum for file " + this.outFile.getRelativePath());
+                            downloadComplete = true;
                         }
                     }
                     log.debug("Finished downloading from " + fileUrl);

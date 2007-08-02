@@ -30,8 +30,11 @@ package uk.ac.rdg.resc.grex.server;
 
 import java.io.File;
 import java.util.zip.Checksum;
+import java.lang.Number;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.db.Job;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * Java Bean representing an output file that belongs to a service instance and
@@ -52,7 +55,9 @@ public class OutputFile
     private File file; // underlying File
     private Job job;
     private boolean appendOnly;
-    private long checkSum=0; /* This should remain zero until output to the file has finished
+    private long checkSum=0; /* This should remain zero until output to the file has finished */
+
+    private static final Log log = LogFactory.getLog(OutputFile.class);
     
     /**
      * Creates a new instance of OutputFile
@@ -142,9 +147,38 @@ public class OutputFile
      */
     public long getCheckSum()
     {
-        
+        log.debug("Calculating checksum of file " + this.getFile().getName());
+        if (!this.outputFinished()) this.checkSum = 0;
+        else {
+            log.debug("Output to file " + this.getFile().getName() + " has finished. Setting checksum to 1");
+            this.checkSum=1;
+        }     
         
         return this.checkSum;
+    }
+    
+    /*
+     * Decides whether or not output to a file has finished.  This assumes
+     * that output takes place over a short space of time in the form of a
+     * data dump, after which the file is complete.
+     */
+    public boolean outputFinished()
+    {
+        long age=0, maximumWriteTime=300;
+        /* Find out when file was created */
+        Long creationTimeObject = new Long(0);
+        creationTimeObject = (Long)this.job.getCreationTimes().get(this.getFile().getName());
+        long creationTime = creationTimeObject.longValue();
+        if (creationTime == 0) {
+            log.error("File " + this.getFile().getName() + " not in creation times list");
+            throw new RuntimeException("File " + this.getFile().getName() + " not in creation times list");
+        }
+        
+        /* Calculate age of file.  If longer than the maximum possible time
+         * taken to write the output to a file then output must have finished. */
+        age = this.getFile().lastModified() - creationTime;
+        if (age > maximumWriteTime) return true;
+        else return false;
     }
     
 }
