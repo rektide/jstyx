@@ -35,6 +35,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Date;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.config.Parameter;
@@ -57,6 +58,8 @@ public class LocalJobRunner extends AbstractJobRunner
     private static final Log log = LogFactory.getLog(LocalJobRunner.class);
     
     private Process proc; // The Process that we are running in this job
+    private long NewFilesCheckIntervalMs = 2000;
+
  
     /**
      * The task of the start() method is to prepare the job, then kick it off, 
@@ -80,6 +83,10 @@ public class LocalJobRunner extends AbstractJobRunner
             
             // Update the state of the instance
             this.instance.setState(Job.State.RUNNING);
+            
+            // Start thread to find out which output files can be deleted. Set the
+            // checking interval to 2000ms
+            new CheckOutputFiles(2000).start();
             
             // Start a thread that waits for the process to finish and grabs the
             // exit code
@@ -283,6 +290,93 @@ public class LocalJobRunner extends AbstractJobRunner
             }
         }
     }
+    
+    
+    /*
+     Thread that periodically checks the last modified time for output files to
+     find out which can be deleted.  In the future the threshold value of time
+     since last modification will be supplied by the user in the G-Rex config */
+    private class CheckOutputFiles extends Thread {
+        
+        private long checkIntervalMs;       
+        
+        public CheckOutputFiles(long checkIntervalMs)
+        {
+            super("checkOutputFiles-" + instance.getId());
+            this.checkIntervalMs = checkIntervalMs;
+        }
+        public void run()
+        {
+            try {
+                log.debug("Checking last modified time of output files...");
+                do {
+                    // Make sure our view of the instance is up to date
+                    //instance = instancesStore.getServiceInstanceById(instance.getId());
+                
+                    /* Check files belonging to the master job */
+                    checkJob(instance.getMasterJob());
+                
+                    /* Check files belonging to each sub job in the instance */
+                    //for (Job job : instance.getSubJobs()) {
+                    //    checkJob(job);
+                    //}                
+                
+                    // Wait for the required time before checking again
+                    Thread.sleep(checkIntervalMs);
+                } while (!instance.isFinished());
+            }
+            catch (InterruptedException ie) {}
+            catch (Exception ex) {
+                log.error(ex.toString());
+            }
+        }
+        
+        private void checkJob(Job job) {
+            for (OutputFile opFile : job.getCurrentOutputFiles()) {                
+                try {
+                    // Has this file been identified as finished before?
+                    if (!job.getOutputFinished().contains(opFile.getFile().getName())) {                   
+                        /*
+                        Decide whether output to file has finished
+                        */
+                        boolean outputFinished=false;
+                        long maxTime=300000;
+                        long now = new Date().getTime();
+                        long time = now - opFile.getFile().lastModified();            
+                        /* If time since last modified is longer than a certain maximum
+                        then output must have finished.  If so, add file name to list of
+                         finished files in the master job object */
+                        if (time > maxTime && !opFile.getFile().getName().contains("stderr") &&
+                                !opFile.getFile().getName().contains("stdout") &&
+                                !opFile.getFile().getName().contains("ocean.output") &&
+                                !opFile.getFile().getName().contains("OUTPUT")) {
+                            log.debug("Time since last write to " + opFile.getFile().getName() + " is " + time + " milliseconds. Output to file must have finished.");            
+                            log.debug("Adding  " + opFile.getFile().getName() + " to finished files list. ");
+                            instance.getMasterJob().addFinishedFile(opFile.getFile().getName());
+                            log.debug("No. of finished files is now " +  job.getOutputFinished().size());
+                            outputFinished=true;
+                            
+                            /* Update service instance in the database */
+                            instancesStore.updateServiceInstance(instance);
+                        
+                            /* Make sure list of finished files has actually been updated */
+                            if (outputFinished && !instance.getMasterJob().getOutputFinished().contains(opFile.getFile().getName())) {
+                                log.error("Error saving service instance. File " + opFile.getFile().getName() +
+                                    " has finished but is not present in list of finished files in Job object");
+                            }
+                        }
+                                         
+                    }
+                }
+                catch (Exception ex) {
+                    log.error("Error reading from or writing to outputFinished. File name is " + opFile.getFile().getName());
+                    log.error("Exception details: " + ex.toString());
+                }                
+            }
+        }
+        
+    }
+    
     
     public void abort()
     {

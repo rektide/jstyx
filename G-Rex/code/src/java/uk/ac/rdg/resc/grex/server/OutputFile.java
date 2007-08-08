@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.grex.server;
 
 import java.io.File;
 import java.util.zip.Checksum;
+import java.util.Date;
 import java.lang.Number;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.db.Job;
@@ -55,7 +56,7 @@ public class OutputFile
     private File file; // underlying File
     private Job job;
     private boolean appendOnly;
-    private long checkSum=0; /* This should remain zero until output to the file has finished */
+    private static long INITIAL_CHECKSUM=0;
 
     private static final Log log = LogFactory.getLog(OutputFile.class);
     
@@ -104,12 +105,21 @@ public class OutputFile
     }
     
     /**
-     * @return the time at which the file was last modified
+     * @return the time at which the file was last modified,
+     * or the current time if the file is empty. The
+     * current time is returned if the file is empty in order
+     * to distinguish between a newly created file and a
+     * file that has actually been written to. This distinction
+     * is important because the last modified time is used
+     * by the job runner to decide whether output to the 
+     * file has finished.
      * @todo return ISO compatible string, timezone-independent
      */
     public long getLastModified()
     {
-        return this.file.lastModified();
+        long lastModified = new Date().getTime();
+        if (this.getFile().length() > 0) lastModified = this.getFile().lastModified();
+        return lastModified;
     }
     
     /**
@@ -138,47 +148,22 @@ public class OutputFile
     {
         return this.file;
     }
+
+    /**
+     * @return the job to which this file belongs
+     */
+    public Job getJob()
+    {
+        return this.job;
+    }
     
     /**
-     * @return the check sum of the file.  This will return zero
-     * if the file is still being written to and (for the time
-     * being) a non zero number if output to the file has finished and
-     * it can be deleted from the server.
+     * @return the check sum of the file. Not yet implemented.
      */
     public long getCheckSum()
     {
-        log.debug("Calculating checksum of file " + this.getFile().getName());
-        if (!this.outputFinished()) this.checkSum = 0;
-        else {
-            log.debug("Output to file " + this.getFile().getName() + " has finished. Setting checksum to 1");
-            this.checkSum=1;
-        }     
-        
-        return this.checkSum;
-    }
-    
-    /*
-     * Decides whether or not output to a file has finished.  This assumes
-     * that output takes place over a short space of time in the form of a
-     * data dump, after which the file is complete.
-     */
-    public boolean outputFinished()
-    {
-        long age=0, maximumWriteTime=300;
-        /* Find out when file was created */
-        Long creationTimeObject = new Long(0);
-        creationTimeObject = (Long)this.job.getCreationTimes().get(this.getFile().getName());
-        long creationTime = creationTimeObject.longValue();
-        if (creationTime == 0) {
-            log.error("File " + this.getFile().getName() + " not in creation times list");
-            throw new RuntimeException("File " + this.getFile().getName() + " not in creation times list");
-        }
-        
-        /* Calculate age of file.  If longer than the maximum possible time
-         * taken to write the output to a file then output must have finished. */
-        age = this.getFile().lastModified() - creationTime;
-        if (age > maximumWriteTime) return true;
-        else return false;
+        long checkSum=INITIAL_CHECKSUM;
+        return checkSum;
     }
     
 }

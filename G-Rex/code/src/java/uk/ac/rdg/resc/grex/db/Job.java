@@ -69,10 +69,8 @@ public class Job
     // Note that the database engine doesn't know how to persist java.io.File
     private String workingDirectory;
     
-    /* Stores the time at which files are added to the list,
-     soon after being created */
-    private Map<String, Long> creationTimes = new HashMap<String, Long>();
-    //Map<String, Long> creationTimes = Collections.synchronizedMap(new HashMap<String, Long>());
+    /* Stores names of files to which output has finished */
+    private List<String> outputFinished = new ArrayList<String>();
     
     private Integer exitCode = null; // Will be set when the job has finished
     
@@ -176,10 +174,28 @@ public class Job
         return workingDirectory;
     }   
 
-    public Map getCreationTimes()
+    public List<String> getOutputFinished()
     {
-        return this.creationTimes;
+        if (this.isMasterJob())
+            return this.outputFinished;
+        else return null;
     }
+    
+    public void setOutputFinished(List<String> outputFinished)
+    {
+        this.outputFinished = outputFinished;
+    }
+    
+    public boolean addFinishedFile(String fileName)
+    {
+        boolean retval = false;
+        if (this.isMasterJob()) {
+            this.outputFinished.add(fileName);
+            retval=true;
+        }
+        return retval;
+    }
+    
     
     /**
      * @return a java.io.File representation of the working directory of this
@@ -257,20 +273,6 @@ public class Job
                 OutputFile opFile = this.getOutputFile(relativePath);
                 if (opFile != null) {
                     files.add(opFile);
-                    
-                    try {
-                        /* Add creation time of new output file to creationTimes hash table */
-                        if (!this.creationTimes.containsKey(opFile.getFile().getName())) {
-                            log.debug("Adding creation time " + opFile.getFile().lastModified() + " of file " + opFile.getFile().getName() + " to hash table");
-                            Long lastModifiedObject = new Long(opFile.getFile().lastModified());
-                            if(this.creationTimes.put(opFile.getFile().getName(), lastModifiedObject) == null)
-                                log.debug("this.creationTimes.put returned null");
-                        }
-                    }
-                    catch (Exception ex) {
-                        log.error("Error reading from or writing to creation times list. File name is " + opFile.getFile().getName());
-                        log.error("Exception details: " + ex.toString());
-                    }
                 }
             }
         }

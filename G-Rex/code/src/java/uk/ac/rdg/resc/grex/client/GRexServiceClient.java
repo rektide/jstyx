@@ -72,7 +72,7 @@ public class GRexServiceClient
     private String protocol = "http";
     private String host;
     private int port;
-    private int maxSimultaneousDownloads = 20;
+    private int maxSimultaneousDownloads = 10;
     
     // Authentication information    
     private String user;
@@ -221,16 +221,12 @@ public class GRexServiceClient
         try
         {
             method.setDoAuthentication(true);
-            log.debug("About to call this.client.executeMethod(" + method.toString() + ")");
             int status = this.client.executeMethod(method);
-            log.debug("status = " + status);
             if (status == HttpServletResponse.SC_OK)
             {
-                log.debug("status = HttpServletResponse.SC_OK");
                 // This loads the whole response into memory: OK as will be short
-                log.debug("About to get response as string");
                 String xml = method.getResponseBodyAsString();
-                log.debug("received from server: " + xml);
+                //log.debug("received from server: " + xml);
                 // Parse the XML and return
                 try
                 {

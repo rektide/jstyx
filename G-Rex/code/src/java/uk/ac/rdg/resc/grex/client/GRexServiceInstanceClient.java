@@ -375,15 +375,19 @@ public class GRexServiceInstanceClient
      */
     private class StatusUpdater extends Thread
     {
+
+        // Will store the files that are currently being downloaded
+        private List<String> filesBeingDownloaded = new ArrayList<String>();
+
+        // Will store the files that have already been downloaded
+        private List<String> filesAlreadyDownloaded = new ArrayList<String>();
+        
         public StatusUpdater()
         {
             super("status-updater");
         }
         public void run()
         {
-            // Will store the files that are currently being downloaded
-            List<String> filesBeingDownloaded = new ArrayList<String>();
-            int numFilesBeingDownloaded;
             try
             {
                 // Get maximum number of simultaneous downloads from service
@@ -405,11 +409,11 @@ public class GRexServiceInstanceClient
                     long bytesServer=0;
                     long bytesClient=0;
                     long bytesToDownload=0;
-                    log.debug("Download status of output files is listed below.");
                     for (OutputFile outFile : instanceState.getOutputFiles())
                     {                        
                         if (outFile.isReadyForDownload() &&
                             !filesBeingDownloaded.contains(outFile.getRelativePath()) &&
+                            !filesAlreadyDownloaded.contains(outFile.getRelativePath()) &&
                             !(filesBeingDownloaded.size() >= maxSimultaneousDownloads))
                         {
                             log.debug("Creating downloader for " + outFile.getRelativePath());
@@ -424,8 +428,8 @@ public class GRexServiceInstanceClient
                                 + ", bytes to download = " + bytesToDownload);
                             
                             filesBeingDownloaded.add(outFile.getRelativePath());
-                            //Thread downloader = new FileDownloader(baseUrl, outFile.getRelativePath(), bytesToDownload);
-                            Thread downloader = new FileDownloader(baseUrl, outFile, bytesToDownload);
+                            log.debug("Number of files being downloaded is now " + this.filesBeingDownloaded.size());
+                            Thread downloader = new FileDownloader(baseUrl, outFile, bytesToDownload, this);
                             fileDownloadThreads.add(downloader);
                             downloader.start();
                         }
@@ -433,8 +437,7 @@ public class GRexServiceInstanceClient
                     
                     // Check that the simultaneous download limit has not
                     // been exceeded
-                    numFilesBeingDownloaded = filesBeingDownloaded.size();
-                    if ( numFilesBeingDownloaded > maxSimultaneousDownloads )
+                    if ( filesBeingDownloaded.size() > maxSimultaneousDownloads )
                         log.warn("Number of files available for downloaded exceeds maximum simultaneous download limit of " +
                                 maxSimultaneousDownloads);
                     
@@ -451,9 +454,7 @@ public class GRexServiceInstanceClient
                     {
                         // Wait for the required time before getting the next update
                         try {
-                            log.debug("About to sleep for " + updateIntervalMs + " milliseconds");
                             Thread.sleep(updateIntervalMs);
-                            log.debug("Woken up after " + updateIntervalMs + " milliseconds");
                         } catch (InterruptedException ie) {}
                     }
                     
@@ -466,6 +467,40 @@ public class GRexServiceInstanceClient
                 // TODO: what do we do here?
             }
         }
+        
+        /*
+         * Removes a file from the list of files being downloaded. This method is
+         * used by a downloader threads when it has finished downloading
+         * a file.  Returns true if removal was successful.
+         */
+        public boolean removeFileBeingDownloaded(OutputFile outFile) {
+            log.debug("Removing " + outFile.getRelativePath() + " from list of files being downloaded");
+            boolean retval = this.filesBeingDownloaded.remove(outFile.getRelativePath());
+            if (!retval || this.filesBeingDownloaded.contains(outFile.getRelativePath())) {
+                log.error("Error removing " + outFile.getRelativePath() + " from list of files being downloaded");
+                retval = false;
+            }
+            else log.debug("Number of files being downloaded is now " + this.filesBeingDownloaded.size());
+            
+            return retval;
+        }
+        
+        /*
+         * Adds a file to the list of files that have been downloaded. This
+         * method is used by a downloader thread when it has finished
+         * downloading a file.
+         */
+        public boolean addFileAlreadyDownloaded(OutputFile outFile) {
+            log.debug("Adding " + outFile.getRelativePath() + " to list of files already downloaded");
+            boolean retval = this.filesAlreadyDownloaded.add(outFile.getRelativePath());
+            if (!retval || !this.filesAlreadyDownloaded.contains(outFile.getRelativePath())) {
+                log.error("Error adding " + outFile.getRelativePath() + " to list of files already downloaded");
+                retval = false;
+            }
+            else log.debug("Number of files already downloaded is now " + this.filesAlreadyDownloaded.size());
+            
+            return retval;
+        }
     }
     
     /**
@@ -477,21 +512,23 @@ public class GRexServiceInstanceClient
         private String relativePath;
         private long bytesToDownload;
         private OutputFile outFile;
+        private StatusUpdater updater;
         
-        public FileDownloader(String baseUrl, OutputFile outFile, long bytes)
+        public FileDownloader(String baseUrl, OutputFile outFile,
+                long bytes, StatusUpdater updater)
         {
             super("download-" + outFile.getRelativePath());
             this.baseUrl = baseUrl;
             this.outFile = outFile;
             this.relativePath = outFile.getRelativePath();
             this.bytesToDownload = bytes; /* Not using this yet */
+            this.updater = updater;
         }
         
         public void run()
         {
             String fileUrl = this.baseUrl + this.relativePath;
             log.debug("Downloading from " + fileUrl);
-            log.debug("Priority of this thread = " + this.getPriority());
             InputStream in = null;
             OutputStream out = null;
             GetMethod downloader = new GetMethod(fileUrl);
@@ -523,8 +560,7 @@ public class GRexServiceInstanceClient
                     int len, bufsize=1024;
                     byte[] buf = new byte[bufsize];
                     
-                    boolean downloadComplete = false;
-                    while ((len = in.read(buf)) >= 0 && !downloadComplete)
+                    while ((len = in.read(buf)) >= 0)
                     {
                         out.write(buf, 0, len);
                         // Make sure the standard streams are kept up to date
@@ -532,16 +568,19 @@ public class GRexServiceInstanceClient
                         {
                             out.flush();
                         }
-                        
-                        /* Check to see if output to the file on the server has
-                         * finished.  This will be indicated by a non zero checksum
-                         * value in the status message */
-                        if (len==0 && this.outFile.getCheckSum() != 0) {
-                            log.debug("Found non zero checksum for file " + this.outFile.getRelativePath());
-                            downloadComplete = true;
-                        }
                     }
-                    log.debug("Finished downloading from " + fileUrl);
+                    log.debug("Finished downloading from " + fileUrl +
+                            ", checksum at server is " + outFile.getCheckSum());
+                    
+                    /* Remove file from list of files being downloaded */
+                    if(!updater.removeFileBeingDownloaded(outFile)) {
+                        log.error("Error removing " + outFile.getRelativePath() + " from list of files being downloaded");
+                    }
+                    
+                    /* Add file to list of files already downloaded */
+                    if(!updater.addFileAlreadyDownloaded(outFile)) {
+                        log.error("Error adding " + outFile.getRelativePath() + " to list of files already downloaded");
+                    }
                 }
                 else
                 {

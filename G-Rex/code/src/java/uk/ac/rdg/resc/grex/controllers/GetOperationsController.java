@@ -286,25 +286,39 @@ public class GetOperationsController extends AbstractGRexController
             in = new FileInputStream(opFile.getFile());
             out = response.getOutputStream();
             byte[] buf = new byte[1024];
-            int len;
+            int len, maxlen;
             boolean done = false;
-            do // Loop until the instance is finished and the file has been read completely
+            boolean outputFinished = false;
+            do // Loop until the file is finished and the file has been read completely
             {
                 // Make sure our view of the instance is up to date
                 instance = this.instancesStore.getServiceInstanceById(instance.getId());
-                done = instance.isFinished();
-                // Even if the instance has finished we make sure we've read
+                //done = instance.isFinished();
+                
+                // Check list of finished files in master job object
+                outputFinished = instance.getMasterJob().getOutputFinished().contains(opFile.getFile().getName());
+                if (outputFinished ==true)
+                    log.debug("Output to " + opFile.getFile().getName() + " has finished. Reading to end of file...");
+                                
+                done = ( outputFinished || instance.isFinished() );
+                
+                // Even if the file or the instance have finished we make sure we've read
                 // the entire file
                 while ((len = in.read(buf)) >= 0)
                 {
                     out.write(buf, 0, len);
                     out.flush();
                 }
+                
                 // We've now reached EOF, but if the instance is still running,
                 // we'll pause and carry on
                 if (!done)
                 {
                     try { Thread.sleep(2000); } catch (InterruptedException ie) {}
+                }
+                else {
+                    log.debug("Finished reading " + opFile.getFile().getName());
+                    if (!instance.isFinished()) log.debug("Instance " + instance.getId() + " is still running");
                 }
             } while (!done);
         }
