@@ -321,6 +321,11 @@ public class GetOperationsController extends AbstractGRexController
                     if (!instance.isFinished()) log.debug("Instance " + instance.getId() + " is still running");
                 }
             } while (!done);
+            
+            /* Now delete the file.  This should really be initiated by the client */
+            log.debug("Deleting file " + opFile.getFile().getName());
+            if (!opFile.getFile().delete())
+                log.error("Error deleting file " + opFile.getFile().getName());
         }
         catch(FileNotFoundException fnfe)
         {

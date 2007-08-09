@@ -381,6 +381,9 @@ public class GRexServiceInstanceClient
 
         // Will store the files that have already been downloaded
         private List<String> filesAlreadyDownloaded = new ArrayList<String>();
+
+        // Will store the files that failed to download properly
+        private List<String> filesDownloadFailed = new ArrayList<String>();
         
         public StatusUpdater()
         {
@@ -393,6 +396,8 @@ public class GRexServiceInstanceClient
                 // Get maximum number of simultaneous downloads from service
                 // client
                 int maxSimultaneousDownloads = serviceClient.getMaxSimultaneousDownloads();
+                int filesReadyForDownload=0;
+                int filesNotAccountedFor=0;
                 
                 log.debug("About to go into loop checking status every " + updateIntervalMs + " milliseconds");
                 do
@@ -409,12 +414,15 @@ public class GRexServiceInstanceClient
                     long bytesServer=0;
                     long bytesClient=0;
                     long bytesToDownload=0;
+                    
+                    filesReadyForDownload=0;
                     for (OutputFile outFile : instanceState.getOutputFiles())
                     {                        
                         if (outFile.isReadyForDownload() &&
                             !filesBeingDownloaded.contains(outFile.getRelativePath()) &&
                             !filesAlreadyDownloaded.contains(outFile.getRelativePath()) &&
-                            !(filesBeingDownloaded.size() >= maxSimultaneousDownloads))
+                            !filesDownloadFailed.contains(outFile.getRelativePath()) &&
+                            (filesBeingDownloaded.size() < maxSimultaneousDownloads))
                         {
                             log.debug("Creating downloader for " + outFile.getRelativePath());
                             /* Calculate difference between size of file on server
@@ -433,14 +441,12 @@ public class GRexServiceInstanceClient
                             fileDownloadThreads.add(downloader);
                             downloader.start();
                         }
+                        
+                        if (outFile.isReadyForDownload()) filesReadyForDownload++;
                     }
-                    
-                    // Check that the simultaneous download limit has not
-                    // been exceeded
-                    if ( filesBeingDownloaded.size() > maxSimultaneousDownloads )
-                        log.warn("Number of files available for downloaded exceeds maximum simultaneous download limit of " +
-                                maxSimultaneousDownloads);
-                    
+
+                    filesNotAccountedFor = filesReadyForDownload - filesBeingDownloaded.size() - filesDownloadFailed.size();
+
                     if (instanceState.getState().meansFinished())
                     {
                         // TODO: getExitCode() could return null, but this would
@@ -449,16 +455,17 @@ public class GRexServiceInstanceClient
                             log.debug("getExitCode() returned null");
                         }
                         else exitCode = instanceState.getExitCode();
-                    }
-                    else
-                    {
-                        // Wait for the required time before getting the next update
-                        try {
-                            Thread.sleep(updateIntervalMs);
-                        } catch (InterruptedException ie) {}
+                    
+                        /* Do we need to launch any more downloader threads before finishing? */
+                        log.debug("Instance " + instanceState.getId() + " has finished. " + filesNotAccountedFor + " files are not accounted for");
                     }
                     
-                } while (!instanceState.getState().meansFinished());
+                    // Wait for the required time before getting the next update
+                    try {
+                        Thread.sleep(updateIntervalMs);
+                    } catch (InterruptedException ie) {}
+                    
+                } while (!instanceState.getState().meansFinished() || filesNotAccountedFor>0);
             }
             catch(Exception e)
             {
@@ -470,7 +477,7 @@ public class GRexServiceInstanceClient
         
         /*
          * Removes a file from the list of files being downloaded. This method is
-         * used by a downloader threads when it has finished downloading
+         * used by a downloader thread when it has finished downloading
          * a file.  Returns true if removal was successful.
          */
         public boolean removeFileBeingDownloaded(OutputFile outFile) {
