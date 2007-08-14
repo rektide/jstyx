@@ -384,6 +384,9 @@ public class GRexServiceInstanceClient
 
         // Will store the files that failed to download properly
         private List<String> filesDownloadFailed = new ArrayList<String>();
+
+        // Will store the files that failed to delete properly
+        private List<String> filesDeleteFailed = new ArrayList<String>();
         
         public StatusUpdater()
         {
@@ -445,8 +448,6 @@ public class GRexServiceInstanceClient
                         if (outFile.isReadyForDownload()) filesReadyForDownload++;
                     }
 
-                    filesNotAccountedFor = filesReadyForDownload - filesBeingDownloaded.size() - filesDownloadFailed.size();
-
                     if (instanceState.getState().meansFinished())
                     {
                         // TODO: getExitCode() could return null, but this would
@@ -457,6 +458,15 @@ public class GRexServiceInstanceClient
                         else exitCode = instanceState.getExitCode();
                     
                         /* Do we need to launch any more downloader threads before finishing? */
+                        for (OutputFile outFile : instanceState.getOutputFiles())
+                        {                        
+                            if (outFile.isReadyForDownload() && filesAlreadyDownloaded.contains(outFile.getRelativePath())) {
+                                log.debug("Adding " + outFile.getRelativePath() + " to list of files that were downloaded but failed to be deleted");
+                                filesDeleteFailed.add(outFile.getRelativePath());                                
+                            }
+                        }
+
+                        filesNotAccountedFor = filesReadyForDownload - filesBeingDownloaded.size() - filesDownloadFailed.size() - filesDeleteFailed.size();
                         log.debug("Instance " + instanceState.getId() + " has finished. " + filesNotAccountedFor + " files are not accounted for");
                     }
                     
@@ -508,7 +518,8 @@ public class GRexServiceInstanceClient
             
             return retval;
         }
-    }
+
+        }
     
     /**
      * Thread that handles the downloading of an output file from the server.
