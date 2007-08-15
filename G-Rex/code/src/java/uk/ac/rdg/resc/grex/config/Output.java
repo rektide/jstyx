@@ -52,6 +52,16 @@ public class Output
                             // clients to begin downloading this file during execution.
                             // This will default to "true" if the name of this output
                             // is "stdout" or "stderr"
+
+    @Attribute(name="deleteAfter", required=false)
+    private int deleteAfter = -1;   // This parameter stores the length of time in
+                                    // minutes that is used by the server to 
+                                    // determine whether output to the file has
+                                    // finished. When output to a file has finished
+                                    // it can be deleted from the server.
+                                    // A negative value indicates that the file
+                                    // should not be deleted until the end of the job.
+
     
     private String linkedParamName = null; // Set on commit
     
@@ -89,6 +99,11 @@ public class Output
     public boolean isAppendOnly()
     {
         return this.appendOnly;
+    }
+
+    public int deleteAfter()
+    {
+        return this.deleteAfter;
     }
     
     /**

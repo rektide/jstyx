@@ -340,16 +340,15 @@ public class LocalJobRunner extends AbstractJobRunner
                         Decide whether output to file has finished
                         */
                         boolean outputFinished=false;
-                        long maxTime=300000;
+                        long maxTime=opFile.deleteAfter()*60*1000; // Convert time in minutes to milliseconds
                         long now = new Date().getTime();
                         long time = now - opFile.getFile().lastModified();            
                         /* If time since last modified is longer than a certain maximum
                         then output must have finished.  If so, add file name to list of
-                         finished files in the master job object */
-                        if (time > maxTime && !opFile.getFile().getName().contains("stderr") &&
-                                !opFile.getFile().getName().contains("stdout") &&
-                                !opFile.getFile().getName().contains("ocean.output") &&
-                                !opFile.getFile().getName().contains("OUTPUT")) {
+                         finished files in the master job object. A negative value of
+                         maxTime means that the file should not be deleted until the
+                         end of the job. */
+                        if (maxTime >= 0 && time > maxTime) {
                             log.debug("Time since last write to " + opFile.getFile().getName() + " is " + time + " milliseconds. Output to file must have finished.");            
                             log.debug("Adding  " + opFile.getFile().getName() + " to finished files list. ");
                             instance.getMasterJob().addFinishedFile(opFile.getFile().getName());

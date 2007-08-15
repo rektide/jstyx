@@ -309,7 +309,7 @@ public class Job
                 if (!f.isDirectory())
                 {
                     // TODO: watch out for unmodified input files in the working directory
-                    opFile = new OutputFile(relativeFilePath, this, op.isAppendOnly());
+                    opFile = new OutputFile(relativeFilePath, this, op.isAppendOnly(), op.deleteAfter());
                 }
             }
         }

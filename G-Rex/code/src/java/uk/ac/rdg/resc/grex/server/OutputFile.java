@@ -56,6 +56,7 @@ public class OutputFile
     private File file; // underlying File
     private Job job;
     private boolean appendOnly;
+    private int deleteAfter;
     private static long INITIAL_CHECKSUM=0;
 
     private static final Log log = LogFactory.getLog(OutputFile.class);
@@ -67,12 +68,13 @@ public class OutputFile
      * @param appendOnly True if this file represents a file that is only ever
      * appended to during a run
      */
-    public OutputFile(String relativePath, Job job, boolean appendOnly)
+    public OutputFile(String relativePath, Job job, boolean appendOnly, int deleteAfter)
     {
         this.relativePath = relativePath;
         this.file = new File(job.getWorkingDirectoryFile(), relativePath);
         this.job = job;
         this.appendOnly = appendOnly;
+        this.deleteAfter = deleteAfter;
     }
     
     /**
@@ -94,6 +96,15 @@ public class OutputFile
     public boolean isAppendOnly()
     {
         return this.appendOnly;
+    }
+    
+    /**
+     * @return true if the file is known to be "append-only", meaning that it 
+     * can be partially downloaded before the service has completed.
+     */
+    public int deleteAfter()
+    {
+        return this.deleteAfter;
     }
     
     /**
