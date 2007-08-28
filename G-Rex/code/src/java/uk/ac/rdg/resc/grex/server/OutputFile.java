@@ -84,9 +84,7 @@ public class OutputFile
      */
     public boolean isReadyForDownload()
     {
-        return this.appendOnly || this.job.isFinished() ||
-            this.relativePath.equals(AbstractJobRunner.STDOUT) ||
-            this.relativePath.equals(AbstractJobRunner.STDERR);
+        return this.appendOnly || this.job.isFinished();
     }
     
     /**

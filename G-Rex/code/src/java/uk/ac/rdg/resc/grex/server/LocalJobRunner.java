@@ -73,6 +73,10 @@ public class LocalJobRunner extends AbstractJobRunner
         String cmdLine = this.constructCommmandLine();
         log.debug("Command line that will be executed: \"" + cmdLine + "\"");
         
+        // Write job and user details to log file
+        log.info("User " + this.instance.getOwner() + " started instance " + this.instance.getId() +
+                " of service " + this.instance.getServiceName() + ", command = \"" + cmdLine + "\"");
+        
         File wdFile = new File(this.instance.getWorkingDirectory());
         
         try
@@ -282,6 +286,9 @@ public class LocalJobRunner extends AbstractJobRunner
                     instance.setExitCode(exitCode);
                     saveInstance();
                     log.debug("saved instance state");
+                    log.info("Instance " + instance.getId() + " of service " + instance.getServiceName() +
+                            " belonging to User " + instance.getOwner() + " has finished.");
+
                 }
                 catch(InterruptedException ie)
                 {

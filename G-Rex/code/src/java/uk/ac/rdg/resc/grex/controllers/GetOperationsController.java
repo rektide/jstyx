@@ -279,6 +279,7 @@ public class GetOperationsController extends AbstractGRexController
         
         // Now output the file to the client.  This logic works for both
         // "live" streams and static files.
+        log.debug("Started reading from " + opFile.getFile().getName());
         InputStream in = null;
         OutputStream out = null;
         try

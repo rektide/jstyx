@@ -382,11 +382,16 @@ public class GRexServiceInstanceClient
         // Will store the files that have already been downloaded
         private List<String> filesAlreadyDownloaded = new ArrayList<String>();
 
-        // Will store the files that failed to download properly
+        // Will store the files that failed to download properly.  Not populated
+        // at the moment, so list stays empty.
         private List<String> filesDownloadFailed = new ArrayList<String>();
 
         // Will store the files that failed to delete properly
         private List<String> filesDeleteFailed = new ArrayList<String>();
+
+        // Will store the files that are not accounted for when the service
+        // instance has finished
+        private List<String> filesNotAccountedFor = new ArrayList<String>();
         
         public StatusUpdater()
         {
@@ -460,14 +465,25 @@ public class GRexServiceInstanceClient
                         /* Do we need to launch any more downloader threads before finishing? */
                         for (OutputFile outFile : instanceState.getOutputFiles())
                         {                        
+                            /*Find out if any of the available files on the server have already been downloaded */
                             if (outFile.isReadyForDownload() && filesAlreadyDownloaded.contains(outFile.getRelativePath())) {
-                                log.debug("Adding " + outFile.getRelativePath() + " to list of files that were downloaded but failed to be deleted");
+                                log.debug("Adding " + outFile.getRelativePath() +
+                                        " to list of files that were downloaded but failed to be deleted");
                                 filesDeleteFailed.add(outFile.getRelativePath());                                
                             }
                         }
 
-                        filesNotAccountedFor = filesReadyForDownload - filesBeingDownloaded.size() - filesDownloadFailed.size() - filesDeleteFailed.size();
-                        log.debug("Instance " + instanceState.getId() + " has finished. " + filesNotAccountedFor + " files are not accounted for");
+                        /* Files are unaccounted for if they are available for download at the
+                         * end of a run but no attempt to download them had yet been made. This
+                         * situation can arise because there is a limit to the number of
+                         * downloads that can take place simultaneously.  Therefore, if an
+                         * application on the server writes a lot of files and then immediately
+                         * exits, there may be too many to bring back simultaneously, but the instance
+                         * would still have finished. */
+                        filesNotAccountedFor = filesReadyForDownload - filesBeingDownloaded.size() -
+                                filesDownloadFailed.size() - filesDeleteFailed.size();
+                        log.debug("Instance " + instanceState.getId() + " has finished. " + filesNotAccountedFor +
+                                " files are not accounted for");
                     }
                     
                     // Wait for the required time before getting the next update
@@ -475,7 +491,13 @@ public class GRexServiceInstanceClient
                         Thread.sleep(updateIntervalMs);
                     } catch (InterruptedException ie) {}
                     
-                } while (!instanceState.getState().meansFinished() || filesNotAccountedFor>0);
+                /* We must keep going if the instance has not yet finished, if there are still files
+                 * being downloaded or if there are files still unnacounted for.  The status updater
+                 * must not finish while downloader threads are still running because downloader threads
+                 * need to update the lists of files being downloaded and files already downloaded that
+                 * are contained in the status updater object. */
+                } while (!instanceState.getState().meansFinished() || filesBeingDownloaded.size()>0 ||
+                        filesNotAccountedFor>0);
             }
             catch(Exception e)
             {

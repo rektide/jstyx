@@ -55,6 +55,12 @@ public class User implements UserDetails
     @Attribute(name="fullname")
     private String fullname; // Full name of the user: should this be optional?
     
+    @Attribute(name="email")
+    private String email; // Email address of user
+    
+    @Attribute(name="phone")
+    private String phone; // Phone number of user
+    
     @Attribute(name="groups", required=false)  // Comma-separated list of names of groups to which the
     private String groupNamesStr = null; // user belongs.  Checked in GRexConfig.validate()
     

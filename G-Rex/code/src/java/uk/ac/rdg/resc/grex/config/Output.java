@@ -78,7 +78,7 @@ public class Output
     @Commit
     public void commit()
     {
-        if (this.name.equals("stdout") || this.name.equals("stderr"))
+        if (this.name.equals(AbstractJobRunner.STDOUT) || this.name.equals(AbstractJobRunner.STDERR))
         {
             this.appendOnly = true;
         }
