@@ -31,7 +31,7 @@ package uk.ac.rdg.resc.grex.config;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
+import java.util.ArrayList;
 import simple.xml.Attribute;
 import simple.xml.ElementList;
 import simple.xml.Root;
@@ -61,26 +61,19 @@ public class GridServiceConfigForClient
      * The input files and streams that are used by this service
      */
     @ElementList(name="inputs", type=Input.class, required=false)
-    protected Vector<Input> inputs = new Vector<Input>(); 
+    protected ArrayList<Input> inputs = new ArrayList<Input>(); 
     
     /**
      * The files and streams that are output by this service
      */
     @ElementList(name="outputs", type=Output.class, required=false)
-    protected Vector<Output> outputs = new Vector<Output>();
+    protected ArrayList<Output> outputs = new ArrayList<Output>();
     
     /**
      * The command-line parameters that are taken by this service
      */
     @ElementList(name="params", type=Parameter.class, required=false)
-    protected Vector<Parameter> params = new Vector<Parameter>();
-    
-    /**
-     * Creates a new instance of GridServiceConfigForClient
-     */
-    public GridServiceConfigForClient()
-    {
-    }
+    protected ArrayList<Parameter> params = new ArrayList<Parameter>();
     
     @Validate
     public void validate() throws PersistenceException

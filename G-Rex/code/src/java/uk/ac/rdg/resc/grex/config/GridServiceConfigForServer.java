@@ -30,7 +30,7 @@ package uk.ac.rdg.resc.grex.config;
 
 import java.io.File;
 import java.util.List;
-import java.util.Vector;
+import java.util.ArrayList;
 import simple.xml.Attribute;
 import simple.xml.ElementList;
 import simple.xml.Root;
@@ -76,7 +76,7 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
      * service is to be run (e.g. extra properties for a Condor submit file)
      */
     @ElementList(name="options", type=Option.class, required=false)
-    private List<Option> options = new Vector<Option>();
+    private ArrayList<Option> options = new ArrayList<Option>();
     
     // The directory that contains all the working directories of instances
     // of this service.  This is set by GRexConfig.validate()
@@ -113,7 +113,7 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
         if (!this.allowedUsersStr.trim().equals(""))
         {
             // We're restricting access by user name
-            this.allowedUsers = new Vector<String>();
+            this.allowedUsers = new ArrayList<String>();
             for (String allowedUser : this.allowedUsersStr.split(","))
             {
                 this.allowedUsers.add(allowedUser.trim());
@@ -128,7 +128,7 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
                     "and allowed-groups");
             }
             // We're restricting access by group name
-            this.allowedGroups = new Vector<String>();
+            this.allowedGroups = new ArrayList<String>();
             for (String allowedGroup : this.allowedGroupsStr.split(","))
             {
                 this.allowedGroups.add(allowedGroup.trim());

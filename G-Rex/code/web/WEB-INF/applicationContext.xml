@@ -2,10 +2,6 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd">
-           
-    <!-- We need to import the servlet config file because it contains the definition
-         of the grexConfig bean -->
-    <import resource="G-Rex-servlet.xml"/>
     
     <!-- Acegi Security configuration -->
     <bean id="filterChainProxy" class="org.acegisecurity.util.FilterChainProxy">
@@ -33,9 +29,13 @@
         <property name="realmName"><value>G-Rex realm via BASIC authentication</value></property>
     </bean>-->
     
+    <!-- The database of users: this is empty at first but is populated when the
+         configuration object is loaded in G-Rex-servlet.xml -->
+    <bean id="userService" class="uk.ac.rdg.resc.grex.config.UserService"/>
+    
     <!-- HTTP Digest Authentication -->
     <bean id="digestProcessingFilter" class="org.acegisecurity.ui.digestauth.DigestProcessingFilter">
-        <property name="userDetailsService"><ref bean="grexConfig"/></property>
+        <property name="userDetailsService"><ref local="userService"/></property>
         <property name="authenticationEntryPoint"><ref local="digestProcessingFilterEntryPoint"/></property>
         <!-- We don't  eed to use a UserCache -->
     </bean>    
@@ -54,7 +54,7 @@
     </bean>
     <!-- We use the G-Rex config object to provide user details -->
     <bean id="daoAuthenticationProvider" class="org.acegisecurity.providers.dao.DaoAuthenticationProvider">
-        <property name="userDetailsService"><ref bean="grexConfig"/></property>
+        <property name="userDetailsService"><ref local="userService"/></property>
     </bean>
     
     <bean id="exceptionTranslationFilter" class="org.acegisecurity.ui.ExceptionTranslationFilter">

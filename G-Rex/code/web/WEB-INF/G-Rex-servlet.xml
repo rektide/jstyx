@@ -13,7 +13,9 @@
        xsi:schemaLocation='http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd'>
     
     <!-- Defines a configuration object that is used to configure this server.
-         This object is created via GRexConfig.readConfig(), a static factory method -->
+         This object is created via GRexConfig.readConfig(), a static factory method.
+         When this bean has been initialized it will set the user database in
+         UserService. -->
     <bean id="grexConfig" class="uk.ac.rdg.resc.grex.config.GRexConfig"
           factory-method="readConfig">
         <!-- G-Rex will look for the config file in the CLASSPATH unless you

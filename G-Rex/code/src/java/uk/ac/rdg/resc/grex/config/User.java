@@ -28,7 +28,7 @@
 
 package uk.ac.rdg.resc.grex.config;
 
-import java.util.Vector;
+import java.util.ArrayList;
 import org.acegisecurity.userdetails.UserDetails;
 import simple.xml.Attribute;
 import simple.xml.Root;
@@ -72,7 +72,7 @@ public class User implements UserDetails
                                       // removing it from the config file
     
     // The user's groups (i.e. roles) will be set in GRexConfig.validate()
-    private Vector<Group> groups = new Vector<Group>();
+    private ArrayList<Group> groups = new ArrayList<Group>();
     
     private boolean admin = false; // Will be set true if this user is added to the admin group
     

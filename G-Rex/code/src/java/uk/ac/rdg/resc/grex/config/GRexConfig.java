@@ -35,13 +35,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
-import org.acegisecurity.userdetails.UserDetails;
-import org.acegisecurity.userdetails.UserDetailsService;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.dao.DataAccessException;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import simple.xml.Element;
 import simple.xml.ElementList;
 import simple.xml.Root;
@@ -63,8 +61,8 @@ import simple.xml.load.Validate;
  * $Log$
  */
 @Root(name="grex")
-public class GRexConfig implements UserDetailsService
-{
+public class GRexConfig implements ApplicationContextAware
+{    
     private static final Log log = LogFactory.getLog(GRexConfig.class);
     private static final String DEFAULT_HOME_DIRECTORY =
         System.getProperty("user.home") + System.getProperty("file.separator") + ".grex";
@@ -99,19 +97,19 @@ public class GRexConfig implements UserDetailsService
      * The users that can access this G-Rex server
      */
     @ElementList(name="users", type=User.class)
-    private List<User> users = new Vector<User>();
+    private ArrayList<User> users = new ArrayList<User>();
     
     /**
      * The groups (roles) of users that are used to control access
      */
     @ElementList(name="groups", type=Group.class)
-    private List<Group> groups = new Vector<Group>();
+    private ArrayList<Group> groups = new ArrayList<Group>();
     
     /**
      * The services that are exposed by this G-Rex server
      */
     @ElementList(name="gridservices", type=GridServiceConfigForServer.class)
-    private List<GridServiceConfigForServer> gridServices = new Vector<GridServiceConfigForServer>();
+    private ArrayList<GridServiceConfigForServer> gridServices = new ArrayList<GridServiceConfigForServer>();
     
     /**
      * Creates a new instance of GRexConfig by reading the config information
@@ -350,27 +348,6 @@ public class GRexConfig implements UserDetailsService
     }
 
     /**
-     * Retrieves a user's details from his or her username.  Required by
-     * Acegi security.
-     * @throws UsernameNotFoundException if the user does not exist
-     * @throws DataAccessException if there was an error accessing the user
-     * details (will not happen here as the user details are in memory)
-     */
-    public UserDetails loadUserByUsername(String username)
-        throws UsernameNotFoundException, DataAccessException
-    {
-        for (User user : this.users)
-        {
-            if (user.getUsername().equals(username))
-            {
-                return user;
-            }
-        }
-        // If we've got this far we haven't found the user
-        throw new UsernameNotFoundException(username + " not found");
-    }
-
-    /**
      * @return the directory that will contain the database of service instances
      * (the GRexServiceInstancesStore)
      */
@@ -386,5 +363,26 @@ public class GRexConfig implements UserDetailsService
     public File getMasterWorkingDirectory()
     {
         return this.masterWorkingDirectory;
+    }
+
+    /**
+     * Called by the Spring framework after this object has been initialized.
+     * This method sets the list of users in the UserService
+     */
+    public void setApplicationContext(ApplicationContext applicationContext)
+        throws BeansException
+    {
+        // Set the admin password in the Users bean, which we'll need to
+        // get from the app context
+        UserService userService = (UserService)applicationContext.getBean("userService");
+        if (userService == null)
+        {
+            log.error("Could not retrieve UserService object from application context");
+        }
+        else
+        {
+            log.debug("Setting list of users in userService");
+            userService.setUsers(this.users);
+        }
     }
 }
