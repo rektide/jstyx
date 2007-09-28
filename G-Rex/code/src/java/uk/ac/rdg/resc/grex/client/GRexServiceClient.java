@@ -72,7 +72,32 @@ public class GRexServiceClient
     private String protocol = "http";
     private String host;
     private int port;
+    
+    // Maximum number of downloader threads per service instance
     private int maxSimultaneousDownloads = 20;
+    
+    // Maximum number of downloader threads in total. This is used to set
+    // two parameters of the HTTP connection manager object: the maximum number
+    // of connections and the maximum number of connections per host (i.e.
+    // server).  This is set to a number much larger than the maximum number of
+    // simultaneous downloads for each service instance (defined above).  The
+    // aim is to allow more than one service instance to bring back
+    // output at the same time, something that did not seem to work with the
+    // previous version of this file.  However, it does not seem likely that
+    // the properties of the HTTP connection manager for this service client
+    // can have any effect on other service instance clients created by other
+    // instances of GRexRun (from different executions of grexrun.sh).
+    // Nevertheless, making maxTotalSimultaneousDownloads >>
+    // maxSimultaneousDownloads does seem to allow two service instances to bring
+    // back output at the same time (though I'm not sure why).
+    // 
+    // We do need to find
+    // a way to share the available HTTP connections among service
+    // instances.  Ideally we would have a pool of available connections for
+    // all service instances to share.  If this feature were implemented, each service
+    // instance would return a
+    // connection to the pool when it was no longer needed.
+    private int maxTotalSimultaneousDownloads = 200; 
     
     // Authentication information    
     private String user;
@@ -103,13 +128,13 @@ public class GRexServiceClient
         // Get the current parameters for this connection manager
         connectionManagerParams = connectionManager.getParams();
         // Change max total connections parameter in params object
-        connectionManagerParams.setMaxTotalConnections(maxSimultaneousDownloads);
+        connectionManagerParams.setMaxTotalConnections(maxTotalSimultaneousDownloads);
         //
         // Now deal with maximum connections per host parameter.
         // First create a default host configuration object   
         HostConfiguration hostConfiguration = new HostConfiguration();
         // Now change max connections per host parameter in params object 
-        connectionManagerParams.setMaxConnectionsPerHost(hostConfiguration, maxSimultaneousDownloads);
+        connectionManagerParams.setMaxConnectionsPerHost(hostConfiguration, maxTotalSimultaneousDownloads);
         //
         // Finally, apply these new parameters to the connection manager object
         connectionManager.setParams(connectionManagerParams);
