@@ -432,6 +432,11 @@ public class GRexServiceInstanceClient
                     long bytesClient=0;
                     long bytesToDownload=0;
                     
+                    // Determine size of manageable sub-list of output files
+                    //List<OutputFile> outFileList = instanceState.getOutputFiles();
+                    //int subListSize = MAX_FILES_ACCOUNTING;
+                    //if (outFileList.size() < MAX_FILES_ACCOUNTING) subListSize = outFileList.size();
+                    
                     filesReadyForDownload=0;
                     for (OutputFile outFile : instanceState.getOutputFiles())
                     {                        
@@ -532,10 +537,10 @@ public class GRexServiceInstanceClient
                          * downloads that can take place simultaneously. */
                         log.debug("Instance " + instanceState.getId() + " has finished.");
                         if (filesNotAccountedFor.size()>0) {
-                            log.debug("The following " + filesNotAccountedFor.size() + " files are not accounted for:");
-                            for (String relativePath : filesNotAccountedFor) {
-                                log.debug(relativePath);
-                            }
+                            log.debug(filesNotAccountedFor.size() + " files are not accounted for:");
+                            //for (String relativePath : filesNotAccountedFor) {
+                            //    log.debug(relativePath);
+                            //}
                         }
                         else {
                             log.debug("The following " + filesBeingDownloaded.size() + " files are still being downloaded:");

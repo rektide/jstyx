@@ -59,6 +59,7 @@ import uk.ac.rdg.resc.grex.exceptions.GRexException;
  * $Date$
  * $Log$
  */
+
 public class GRexServiceClient
 {
     private static final Log log = LogFactory.getLog(GRexServiceClient.class);
@@ -74,7 +75,7 @@ public class GRexServiceClient
     private int port;
     
     // Maximum number of downloader threads per service instance
-    private int maxSimultaneousDownloads = 20;
+    public static int maxSimultaneousDownloads = 40;
     
     // Maximum number of downloader threads in total. This is used to set
     // two parameters of the HTTP connection manager object: the maximum number
@@ -97,7 +98,7 @@ public class GRexServiceClient
     // all service instances to share.  If this feature were implemented, each service
     // instance would return a
     // connection to the pool when it was no longer needed.
-    private int maxTotalSimultaneousDownloads = 200; 
+    public static int maxTotalSimultaneousDownloads = 180; 
     
     // Authentication information    
     private String user;
