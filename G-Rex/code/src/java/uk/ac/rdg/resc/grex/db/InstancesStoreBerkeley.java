@@ -29,6 +29,9 @@
 package uk.ac.rdg.resc.grex.db;
 
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.DeadlockException;
+import com.sleepycat.je.RunRecoveryException;
+import com.sleepycat.util.ExceptionUnwrapper;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.Transaction;
@@ -64,6 +67,7 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
     
     private static final String FILE_SEPARATOR = System.getProperty("file.separator");
     private static final String STORE_NAME = "instances";
+    private static final int MAX_DEADLOCK_RETRIES = 10;
     
     private GRexConfig config; // We need this to find the home directory of the G-Rex server
     
@@ -216,34 +220,61 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
         throws InstancesStoreException
     {
         Transaction txn = null;
-        try
-        {
-            txn = this.env.beginTransaction(null, null);
-            // Check to see if this instance exists
-            if (!this.instancesById.contains(txn, instance.getId(), null))
+        int retry_count = 0;
+        boolean success = false;
+        while (retry_count < MAX_DEADLOCK_RETRIES && !success) {
+            try
             {
-                throw new DatabaseException("There is no instance with id "
-                    + instance.getId() + " to update");
-            }
-            // The ID will be created automatically from a sequence
-            this.instancesById.put(txn, instance);
-            txn.commit();
-        }
-        catch(DatabaseException dbe)
-        {
-            if (txn != null)
-            {
-                try
+                if (retry_count > 0) {
+                    log.debug("Attempt No. " + (retry_count+1) + " to execute update transaction");
+                }
+                txn = this.env.beginTransaction(null, null);
+                // Check to see if this instance exists
+                if (!this.instancesById.contains(txn, instance.getId(), null))
                 {
+                    throw new DatabaseException("There is no instance with id "
+                        + instance.getId() + " to update");
+                }
+                // The ID will be created automatically from a sequence
+                this.instancesById.put(txn, instance);
+                txn.commit();
+                success = true;
+            }
+            catch(DeadlockException de) {
+                try {
                     txn.abort();
                 }
-                catch(DatabaseException dbe2)
+                catch(DatabaseException dbe)
                 {
-                    throw new InstancesStoreException(dbe2);
+                    log.debug("Error aborting transaction");
+                    throw new InstancesStoreException(dbe);
+                }
+                retry_count++;                
+                if (retry_count >= MAX_DEADLOCK_RETRIES){
+                    log.debug("Exceeded retry limit.  Giving up");
+                    throw new InstancesStoreException(de);
+                }
+                else {
+                    log.debug("Lock request timed out at attempt No.  " + retry_count + ". Trying again...");
                 }
             }
-            log.error("Aborted update of service instance", dbe);
-            throw new InstancesStoreException(dbe);
+            catch(DatabaseException dbe)
+            {
+                if (txn != null)
+                {
+                    try
+                    {
+                        txn.abort();
+                    }
+                    catch(DatabaseException dbe2)
+                    {
+                        log.debug("Error aborting transaction");
+                        throw new InstancesStoreException(dbe2);
+                    }
+                }
+                log.error("Aborted update of service instance due to exception:", dbe);
+                throw new InstancesStoreException(dbe);
+            }
         }
     }
     
@@ -259,14 +290,35 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
     public GRexServiceInstance getServiceInstanceById(int instanceID)
         throws InstancesStoreException
     {
-        try
-        {
-            return this.instancesById.get(instanceID);
+        GRexServiceInstance retval=null;
+        int retry_count = 0;
+        boolean success = false;
+        while (retry_count < MAX_DEADLOCK_RETRIES && !success) {
+            try
+            {
+                if (retry_count > 0) {
+                    log.debug("Attempt No. " + (retry_count+1) + " to execute this.instancesById.get(instanceID)");
+                }
+                retval = this.instancesById.get(instanceID);
+                success = true;
+            }
+            catch(DeadlockException de) {
+                retry_count++;                
+                if (retry_count >= MAX_DEADLOCK_RETRIES){
+                    log.debug("Exceeded retry limit.  Giving up");
+                    throw new InstancesStoreException(de);
+                }
+                else {
+                    log.debug("Lock request timed out at attempt No.  " + retry_count + ". Trying again...");
+                }
+            }
+            catch(DatabaseException dbe)
+            {
+                log.error("Caught exception at retry_count = " + retry_count + ": ", dbe);
+                throw new InstancesStoreException(dbe);
+            }
         }
-        catch(DatabaseException dbe)
-        {
-            throw new InstancesStoreException(dbe);
-        }
+        return retval;
     }
     
     /**
