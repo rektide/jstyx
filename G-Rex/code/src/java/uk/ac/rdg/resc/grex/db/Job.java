@@ -62,6 +62,10 @@ public class Job
     // The id is unique within the GRexServiceInstance
     private int id = -1; // Negative number indicates the Master job
     
+    // Maximum number of files that G-Rex can account for at once. This includes
+    // files that are being downloaded and files that are ready to download.
+    private static final int MAX_FILES = 120;
+    
     // Contains the names and values of all parameters that are set on this sub-job
     private Map<String, String> params = new HashMap<String, String>();
     
@@ -269,10 +273,12 @@ public class Job
             }
             else
             {
-                // Check to see if this file is downloadable
-                OutputFile opFile = this.getOutputFile(relativePath);
-                if (opFile != null) {
-                    files.add(opFile);
+                if (files.size() < MAX_FILES) {
+                    // Check to see if this file is downloadable
+                    OutputFile opFile = this.getOutputFile(relativePath);
+                    if (opFile != null) {
+                        files.add(opFile);
+                    }
                 }
             }
         }
