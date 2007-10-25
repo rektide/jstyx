@@ -30,8 +30,6 @@ package uk.ac.rdg.resc.grex.db;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DeadlockException;
-import com.sleepycat.je.RunRecoveryException;
-import com.sleepycat.util.ExceptionUnwrapper;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.Transaction;
@@ -46,6 +44,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.config.GRexConfig;
+import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.exceptions.InstancesStoreException;
 
 /**
@@ -90,6 +89,7 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
         StoreConfig storeConfig = new StoreConfig();
         storeConfig.setAllowCreate(true);
         storeConfig.setTransactional(true);
+        //envConfig.setLockTimeout(1000000);
         
         // Create the database environment
         File dbPath = this.config.getInstancesStoreDirectory();
@@ -290,7 +290,9 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
     public GRexServiceInstance getServiceInstanceById(int instanceID)
         throws InstancesStoreException
     {
-        GRexServiceInstance retval=null;
+        GRexServiceInstance inst=null;
+        GridServiceConfigForServer gsConfig=null;
+        
         int retry_count = 0;
         boolean success = false;
         while (retry_count < MAX_DEADLOCK_RETRIES && !success) {
@@ -299,7 +301,34 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
                 if (retry_count > 0) {
                     log.debug("Attempt No. " + (retry_count+1) + " to execute this.instancesById.get(instanceID)");
                 }
-                retval = this.instancesById.get(instanceID);
+                inst = this.instancesById.get(instanceID);        
+                if (inst == null)
+                {
+                    log.error("There is no instance of " + gsConfig.getName()
+                        + " with id " + instanceID);
+                }
+                else {
+                    /*
+                     * Set non-persistent properties of the instance.
+                     */
+                    // First set the service configuration.  Note that config should not be
+                    // null because it is supposed to be injected by Spring before this
+                    // object can be used. See this.setGrexConfig
+                    String serviceName = inst.getServiceName();
+                    gsConfig = config.getGridServiceByName(serviceName);
+                    if (gsConfig == null)
+                    {
+                        log.error("There is no service called " + serviceName);
+                    }                                                
+                    inst.setGridServiceConfig(gsConfig);
+                    
+                    // Then set the handle to the instance in the jobs
+                    inst.getMasterJob().setInstance(inst);
+                    for (Job subJob : inst.getSubJobs())
+                    {
+                        subJob.setInstance(inst);
+                    }                
+                }
                 success = true;
             }
             catch(DeadlockException de) {
@@ -318,7 +347,8 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
                 throw new InstancesStoreException(dbe);
             }
         }
-        return retval;
+        
+        return inst;
     }
     
     /**
@@ -334,6 +364,14 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
         throws InstancesStoreException
     {
         GRexServiceInstance instance = this.getServiceInstanceById(instanceID);
+        /*if (instance == null) log.debug("instance is null!!!");
+        log.debug("Setting instance for job " + instance.getMasterJob().getId());
+        instance.getMasterJob().setInstance(instance);
+        for (Job subJob : instance.getSubJobs())
+        {
+            log.debug("Setting instance for job " + instance.getMasterJob().getId());
+            subJob.setInstance(instance);
+        }*/
         if (instance != null && instance.getServiceName().equals(serviceName))
         {
             return instance;

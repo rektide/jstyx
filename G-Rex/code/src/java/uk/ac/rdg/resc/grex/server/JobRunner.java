@@ -32,6 +32,7 @@ import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
+import java.util.SortedSet;
 
 /**
  * Interface describing the methods exposed by all JobRunners (classes that
@@ -45,6 +46,21 @@ import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
  */
 public interface JobRunner
 {
+
+    /*
+     * Methods giving access to the sets of output files
+     */
+    public SortedSet<OutputFile> getOutputFiles();
+    public SortedSet<OutputFile> getOutputFinished();
+
+    /**
+     * Methods for maintaining the set of finished files in the job runner
+     * object
+     */
+    public boolean addFinishedFile(OutputFile opFile);
+    public boolean removeFinishedFile(OutputFile opFile);
+    
+        
     /**
      * Sets the service instance that this JobRunner will execute
      */

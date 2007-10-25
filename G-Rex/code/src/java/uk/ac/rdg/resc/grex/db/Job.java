@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Collections;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
@@ -74,11 +73,16 @@ public class Job
     private String workingDirectory;
     
     /* Stores names of files to which output has finished */
-    private List<String> outputFinished = new ArrayList<String>();
+    //private transient SortedSet<OutputFile> outputFinished = new TreeSet<OutputFile>();
+     
+    /* Stores names of downloadable output files */
+    //private transient SortedSet<OutputFile> outputFiles = new TreeSet<OutputFile>();
     
     private Integer exitCode = null; // Will be set when the job has finished
     
     private transient GRexServiceInstance instance; // The instance to which this job belongs
+
+    //private SortedSet<OutputFile> g;
     
     // WARNING!  The state is stored in the database as an index number, not a string
     // so if you add a new state to the start or middle of this list the indices
@@ -114,6 +118,10 @@ public class Job
     Job(GRexServiceInstance instance)
     {
         this.instance = instance;
+    }
+    
+    public GRexServiceInstance getInstance() {
+        return this.instance;
     }
 
     public int getId()
@@ -177,29 +185,6 @@ public class Job
     {
         return workingDirectory;
     }   
-
-    public List<String> getOutputFinished()
-    {
-        if (this.isMasterJob())
-            return this.outputFinished;
-        else return null;
-    }
-    
-    public void setOutputFinished(List<String> outputFinished)
-    {
-        this.outputFinished = outputFinished;
-    }
-    
-    public boolean addFinishedFile(String fileName)
-    {
-        boolean retval = false;
-        if (this.isMasterJob()) {
-            this.outputFinished.add(fileName);
-            retval=true;
-        }
-        return retval;
-    }
-    
     
     /**
      * @return a java.io.File representation of the working directory of this
@@ -240,12 +225,40 @@ public class Job
      * downloading when the job has finished.  This method is called by the JSPs
      * that provide XML and HTML output to the web.
      * @todo What happens with directories?
+     *
+     * @todo Provide list in increading order of last modified time, so the number
+     * of files the client knows about does not increase too much if files start
+     * to accumulate in the working direcory at the server.  One way to achieve this
+     * is to read from the outputFiles set in the job runner object (currently
+     * not used). The problem with the
+     * current method is that the list of MAX_FILES files will, in general, contain
+     * a mixture of files the client has seen before and files that have just been
+     * created.  This means that as data starts to accumulate on the server the
+     * client has to account for an increasing number of files.
+     *
      */
     public List<OutputFile> getCurrentOutputFiles()
     {
         List<OutputFile> files = new ArrayList<OutputFile>();
-        // Start the recursive process of searching the working directory for
-        // files that match the output patterns as defined in the config file
+        
+        /*
+        // Get first MAX_FILES files in outputFiles set.  This set is sorted in
+        // increasing order of last time modified.
+        log.debug("No. of output files is now " + this.getInstance().getRunner().getOutputFiles().size());
+        for (OutputFile opFile : this.getInstance().getRunner().getOutputFiles()) {
+            if (files.size() < MAX_FILES) {
+                files.add(opFile);
+                log.debug(opFile.getFile().getName() + " was last modified at " +
+                        opFile.getFile().lastModified());
+            }
+            else break;
+        }
+        return files;
+         */
+        
+        /* Call recursive method to traverse directory structure in working
+         * directory
+         */
         this.getCurrentOutputFiles("", files);
         return files;
     }
@@ -257,7 +270,7 @@ public class Job
      * If relativeDirPath is not the empty string, it must end with a forward
      * slash (irrespective of operating system).
      */
-    private void getCurrentOutputFiles(String relativeDirPath, List<OutputFile> files)
+     private void getCurrentOutputFiles(String relativeDirPath, List<OutputFile> files)
     {
         File dir = new File(this.getWorkingDirectoryFile(), relativeDirPath);
         for (String filename : dir.list())
@@ -280,9 +293,12 @@ public class Job
                         files.add(opFile);
                     }
                 }
+                else break;
             }
+            if (files.size() >= MAX_FILES) break;
         }
     }
+    
     
     /**
      * @return an OutputFile corresponding with the given path relative to the 
@@ -300,7 +316,13 @@ public class Job
         // see if we have a match.  Note that if this path matches more than one
         // pattern the later patterns take priority
         OutputFile opFile = null;
-        for (Output op : this.instance.getGridServiceConfig().getOutputs())
+        //log.debug("Checking file " + relativeFilePath + "....");
+        if (instance == null) log.debug("instance is null!!!");
+        GridServiceConfigForServer gsConfig = this.instance.getGridServiceConfig();
+        if (gsConfig == null) log.debug("gsConfig is null!!!");
+        List<Output> outputs = gsConfig.getOutputs();
+        if (outputs == null) log.debug("outputs is null!!!");
+        for (Output op : outputs)
         {
             String pattern = op.getName();
             if (op.getLinkedParameterName() != null)

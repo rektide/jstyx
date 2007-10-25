@@ -36,11 +36,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Date;
+import java.util.SortedSet;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.util.PathMatcher;
+import uk.ac.rdg.resc.grex.config.Output;
 import uk.ac.rdg.resc.grex.config.Parameter;
 import uk.ac.rdg.resc.grex.db.Job;
-import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
 
 /**
  * Runs a job on the G-Rex server itself.
@@ -59,7 +62,6 @@ public class LocalJobRunner extends AbstractJobRunner
     
     private Process proc; // The Process that we are running in this job
     private long NewFilesCheckIntervalMs = 2000;
-
  
     /**
      * The task of the start() method is to prepare the job, then kick it off, 
@@ -87,11 +89,7 @@ public class LocalJobRunner extends AbstractJobRunner
             
             // Update the state of the instance
             this.instance.setState(Job.State.RUNNING);
-            
-            // Start thread to find out which output files can be deleted. Set the
-            // checking interval to 2000ms
-            new CheckOutputFiles(2000).start();
-            
+           
             // Start a thread that waits for the process to finish and grabs the
             // exit code
             new WaitProcess().start();
@@ -112,6 +110,11 @@ public class LocalJobRunner extends AbstractJobRunner
                 new FileOutputStream(stdoutFile), STDOUT).start();
             new RedirectStream(this.proc.getErrorStream(),
                 new FileOutputStream(stderrFile), STDERR).start();
+            
+            // Start thread to find out which output files can be deleted. Set the
+            // checking interval to 2000ms
+            new CheckOutputFiles(2000).start();
+             
         }
         catch(FileNotFoundException fnfe)
         {
@@ -305,8 +308,10 @@ public class LocalJobRunner extends AbstractJobRunner
      since last modification will be supplied by the user in the G-Rex config */
     private class CheckOutputFiles extends Thread {
         
-        private long checkIntervalMs;       
-        
+        private long checkIntervalMs;
+        private int numOutputFiles=0, numOutputFinished=0;
+        private int prevNumOutputFiles=0, prevNumOutputFinished=0;
+            
         public CheckOutputFiles(long checkIntervalMs)
         {
             super("checkOutputFiles-" + instance.getId());
@@ -315,38 +320,92 @@ public class LocalJobRunner extends AbstractJobRunner
         public void run()
         {
             try {
-                log.debug("Checking last modified time of output files...");
+                log.debug("Checking output files...");
                 do {
-                    // Make sure our view of the instance is up to date
-                    //instance = instancesStore.getServiceInstanceById(instance.getId());
-                
-                    /* Check files belonging to the master job */
-                    checkJob(instance.getMasterJob());
-                
-                    /* Check files belonging to each sub job in the instance */
-                    //for (Job job : instance.getSubJobs()) {
-                    //    checkJob(job);
-                    //}                
-                
                     // Wait for the required time before checking again
                     Thread.sleep(checkIntervalMs);
-                } while (!instance.isFinished());
+                    numOutputFiles=0;
+                    
+                    // Make sure our view of the instance is up to date
+                    instance = instancesStore.getServiceInstanceById(instance.getId());
+                    
+                    // First delete all the existing elements in the set of all output
+                    // files and the set of finished files
+                    getOutputFiles().clear();
+                    getOutputFinished().clear();
+                
+                    /* Update sets of output files for all jobs */
+                    updateOutputFiles(instance.getMasterJob());                    
+                    for (Job subJob : instance.getSubJobs()) updateOutputFiles(subJob);
+                                        
+                    // Report numbers if different from last time
+                    if (numOutputFiles!=prevNumOutputFiles)
+                        log.debug("Total No. of downloadable output files is " +  numOutputFiles);
+                    prevNumOutputFiles = numOutputFiles;
+                    //
+                    numOutputFinished = getOutputFinished().size();
+                    if (numOutputFinished!=prevNumOutputFinished)
+                        log.debug("No. of finished files is " +  numOutputFinished);
+                    prevNumOutputFinished = numOutputFinished;
+                                                                            
+                 } while (!instance.isFinished());
             }
             catch (InterruptedException ie) {}
             catch (Exception ex) {
-                log.error(ex.toString());
+                log.error(ex.toString(), ex);
             }
         }
-        
-        private void checkJob(Job job) {
-            for (OutputFile opFile : job.getCurrentOutputFiles()) {                
-                try {
-                    // Has this file been identified as finished before?
-                    if (!job.getOutputFinished().contains(opFile.getFile().getName())) {                   
+              
+       
+        /**
+         * Maintains sets of output files, including the set of all output files
+         * and the set of files that have finished being writted to.
+        */
+        public void updateOutputFiles(Job job)
+        {            
+            
+            // Add output files belonging to this job.  The
+            // addCurrentOutputFiles method recursively descends the directory
+            // structure in the working directory.
+            addCurrentOutputFiles("", getOutputFiles(), job);
+            
+        }
+    
+        /**
+        * Recursive method to get the output files in the the directory whose
+        * path (relative to the instance's working directory) is given by
+        * relativeDirPath.  The results are added to the given List of OutputFiles.
+        * If relativeDirPath is not the empty string, it must end with a forward
+        * slash (irrespective of operating system).
+        */
+        private void addCurrentOutputFiles(String relativeDirPath, SortedSet<OutputFile> files, Job job)
+        {
+            File dir = new File(job.getWorkingDirectoryFile(), relativeDirPath);
+            //log.debug("Working directory of job: " + dir.getPath());
+            for (String filename : dir.list())
+            {
+                //log.debug("Checking file or directory " + filename + "...");
+                String relativePath = relativeDirPath + filename;
+                File f = new File(dir, relativePath);
+                if (f.isDirectory())
+                {
+                    // recursively call this method
+                    // We must always use forward slashes even on Windows for the
+                    // pattern matching in getOutputFile() to work
+                    addCurrentOutputFiles(relativePath + "/", files, job);
+                }
+                else
+                {
+                    // Check to see if this file is downloadable or deleteable
+                    OutputFile opFile = job.getOutputFile(relativePath);
+                    if (opFile != null) {
+                        numOutputFiles++;
+                        //files.add(opFile);
+                        //log.debug("Downloadable file " + opFile.getFile().getName() + 
+                        //        " will be finished " + opFile.deleteAfter() + " mins after last write");
                         /*
                         Decide whether output to file has finished
                         */
-                        boolean outputFinished=false;
                         long maxTime=opFile.deleteAfter()*60*1000; // Convert time in minutes to milliseconds
                         long now = new Date().getTime();
                         long time = now - opFile.getFile().lastModified();            
@@ -356,31 +415,61 @@ public class LocalJobRunner extends AbstractJobRunner
                          maxTime means that the file should not be deleted until the
                          end of the job. */
                         if (maxTime >= 0 && time > maxTime) {
-                            log.debug("Time since last write to " + opFile.getFile().getName() + " is " + time + " milliseconds. Output to file must have finished.");            
-                            log.debug("Adding  " + opFile.getFile().getName() + " to finished files list. ");
-                            instance.getMasterJob().addFinishedFile(opFile.getFile().getName());
-                            log.debug("No. of finished files is now " +  job.getOutputFinished().size());
-                            outputFinished=true;
-                            
-                            /* Update service instance in the database */
-                            instancesStore.updateServiceInstance(instance);
-                        
-                            /* Make sure list of finished files has actually been updated */
-                            if (outputFinished && !instance.getMasterJob().getOutputFinished().contains(opFile.getFile().getName())) {
-                                log.error("Error saving service instance. File " + opFile.getFile().getName() +
-                                    " has finished but is not present in list of finished files in Job object");
-                            }
+                            //log.debug("Time since last write to " + opFile.getFile().getName() +
+                            //        " is " + time + " ms. Maximum is " + maxTime + "ms (" + opFile.deleteAfter() + "min)");
+                            addFinishedFile(opFile);
                         }
-                                         
+                        
                     }
                 }
-                catch (Exception ex) {
-                    log.error("Error reading from or writing to outputFinished. File name is " + opFile.getFile().getName());
-                    log.error("Exception details: " + ex.toString());
-                }                
             }
         }
-        
+
+        /**
+         * NOTE This is a copy of a method in the Job class.  This is a hack to
+         * get things working quickly. To do this properly either move this functionality
+         * here permanently (which is what will happen if the Job object gets its
+         * list of output files from the outputFiles set in the job runner) or
+         * find some way of using the getOutputFile method in the job object.
+         *
+         *
+        * @return an OutputFile corresponding with the given path relative to the 
+        * working directory of this instance, or null if the
+        * service configuration says that the given file cannot be downloaded
+        * through the web interface.  Note that the relativeFilePath must be delimited
+        * by forward slashes ("/") on all platforms for the pattern matching to work.
+        * relativeFilePath must not start with a slash.
+        * Matches according to Ant syntax.
+        * @see org.springframework.util.AntPathMatcher
+        */
+        /*public OutputFile getOutputFile(String relativeFilePath, Job job)
+        {
+            // Look through all the output definitions in the configuration and
+            // see if we have a match.  Note that if this path matches more than one
+            // pattern the later patterns take priority
+            OutputFile opFile = null;
+            //log.debug("Checking file " + relativeFilePath + "....");
+            for (Output op : gsConfig.getOutputs())
+            {
+                String pattern = op.getName();
+                if (op.getLinkedParameterName() != null)
+                {
+                    // The pattern to match comes from the value of this parameter
+                    pattern = job.getParamValue(op.getLinkedParameterName());
+                }
+                PathMatcher pathMatcher = new AntPathMatcher();
+                if (pathMatcher.match(pattern, relativeFilePath))
+                {
+                    File f = new File(job.getWorkingDirectoryFile(), relativeFilePath);
+                    if (!f.isDirectory())
+                    {
+                        // TODO: watch out for unmodified input files in the working directory
+                        opFile = new OutputFile(relativeFilePath, job, op.isAppendOnly(), op.deleteAfter());
+                    }
+                }
+            }
+            return opFile;
+        }*/
     }
     
     

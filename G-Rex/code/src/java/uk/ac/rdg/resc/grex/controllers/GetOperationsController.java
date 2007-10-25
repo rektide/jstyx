@@ -38,16 +38,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.web.servlet.ModelAndView;
-import uk.ac.rdg.resc.grex.config.GRexConfig;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.config.User;
-import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
 import uk.ac.rdg.resc.grex.server.OutputFile;
@@ -289,19 +288,21 @@ public class GetOperationsController extends AbstractGRexController
             byte[] buf = new byte[1024];
             int len, maxlen;
             boolean done = false;
-            boolean outputFinished = false;
+            boolean isOutputFinished = false;
+            boolean reportedError=false;
             do // Loop until the file is finished and the file has been read completely
             {
                 // Make sure our view of the instance is up to date
                 instance = this.instancesStore.getServiceInstanceById(instance.getId());
                 //done = instance.isFinished();
                 
-                // Check list of finished files in master job object
-                outputFinished = instance.getMasterJob().getOutputFinished().contains(opFile.getFile().getName());
-                if (outputFinished ==true)
+                // Check list of finished files
+                SortedSet<OutputFile> outputFinished = this.jobRunnerFactory.getRunnerForInstance(instance).getOutputFinished();
+                isOutputFinished = outputFinished.contains(opFile);                
+                if (isOutputFinished ==true)
                     log.debug("Output to " + opFile.getFile().getName() + " has finished. Reading to end of file...");
                                 
-                done = ( outputFinished || instance.isFinished() );
+                done = ( isOutputFinished || instance.isFinished() );
                 
                 // Even if the file or the instance have finished we make sure we've read
                 // the entire file
@@ -319,12 +320,11 @@ public class GetOperationsController extends AbstractGRexController
                 }
                 else {
                     log.debug("Finished reading " + opFile.getFile().getName());
-                    if (!instance.isFinished()) log.debug("Instance " + instance.getId() + " is still running");
                 }
             } while (!done);
             
             /* Now delete the file.  This should really be initiated by the client */
-            log.debug("Deleting file " + opFile.getFile().getName());
+            //log.debug("Deleting file " + opFile.getFile().getName());
             if (!opFile.getFile().delete())
                 log.error("Error deleting file " + opFile.getFile().getName());
         }

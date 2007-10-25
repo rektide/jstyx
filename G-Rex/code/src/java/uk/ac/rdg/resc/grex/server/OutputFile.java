@@ -50,7 +50,7 @@ import org.apache.commons.logging.LogFactory;
  * $Date$
  * $Log$
  */
-public class OutputFile
+public class OutputFile implements Comparable
 {
     private String relativePath; // Path relative to the working directory of the instance
     private File file; // underlying File
@@ -173,6 +173,36 @@ public class OutputFile
     {
         long checkSum=INITIAL_CHECKSUM;
         return checkSum;
+    }
+    
+    /* These are needed to enable the OutputFile class to implement the
+     * Comparable interface, which is needed to enable sorted sets of OutputFile
+     * objects
+     */
+    public int compareTo(OutputFile outputFile) {
+        return this.getFile().getName().compareTo(outputFile.getFile().getName());
+    }
+    /*
+     * It would be nice to store files in date order to enable the client to be
+     * sent a list of only the oldest files (i.e. longest time since modified).
+     * Unfortunately this allows two or more files to have the same key value,
+     * leading to incorrect identification of finished files
+     */
+    /*
+    public int compareTo(OutputFile outputFile) {
+        int retval=0;
+        if (this.getFile().lastModified() < outputFile.getFile().lastModified()) {
+            retval=-1;
+        }
+        else if (this.getFile().lastModified() > outputFile.getFile().lastModified()) {
+            retval=1;
+        }
+        return retval;
+        //return this.getRelativePath().compareTo(outputFile.getRelativePath());
+    }
+     */
+    public int compareTo(Object o) {
+        return this.compareTo((OutputFile)o);
     }
     
 }

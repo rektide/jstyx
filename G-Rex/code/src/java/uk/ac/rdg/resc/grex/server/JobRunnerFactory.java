@@ -124,7 +124,7 @@ public class JobRunnerFactory
                     + e.getClass());
             }
             // Add the instance object to the JobRunner
-            runner.setServiceInstance(instance);
+            runner.setServiceInstance(instance);            
             // Add the grid service configuration object
             runner.setGridServiceConfig(gs);
             // Add the persistence class so that JobRunners can save changes to state

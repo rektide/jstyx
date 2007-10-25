@@ -43,6 +43,7 @@ import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
 import uk.ac.rdg.resc.grex.config.Output;
 import uk.ac.rdg.resc.grex.config.User;
 import uk.ac.rdg.resc.grex.server.OutputFile;
+import uk.ac.rdg.resc.grex.server.JobRunner;
 
 /**
  * Java Bean that represents the state of a particular service instance.  These

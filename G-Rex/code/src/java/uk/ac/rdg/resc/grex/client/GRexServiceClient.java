@@ -75,7 +75,7 @@ public class GRexServiceClient
     private int port;
     
     // Maximum number of downloader threads per service instance
-    public static int maxSimultaneousDownloads = 40;
+    public static int maxSimultaneousDownloads = 60;
     
     // Maximum number of downloader threads in total. This is used to set
     // two parameters of the HTTP connection manager object: the maximum number

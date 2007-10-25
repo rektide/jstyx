@@ -28,6 +28,9 @@
 
 package uk.ac.rdg.resc.grex.server;
 
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import uk.ac.rdg.resc.grex.config.GridServiceConfigForServer;
@@ -49,7 +52,29 @@ import uk.ac.rdg.resc.grex.exceptions.InstancesStoreException;
 public abstract class AbstractJobRunner implements JobRunner
 {
     private static final Log log = LogFactory.getLog(AbstractJobRunner.class);
+     
+    // Maps SubJob Ids to lists of output files.  Stored in memory and not 
+    // serialized to disk (hence not part of the ServiceInstance or Job objects)
+    //private Map<Integer, SortedSet<OutputFile>> outputFiles;         
+    // Maps SubJob Ids to lists of finished output files.
+    // private Map<Integer, SortedSet<OutputFile>> outputFinished;    
     
+    /**
+     * The set of output files in the working directory.  The sort key is
+     * last modified time, as defined by the compareTo method in the 
+     * OutputFile class.  This set is cleared and re-created at regular intervals
+     * by the CheckOutputFiles thread launched by the job runner.
+     *
+     * Note: This set is not used at the moment.  May not be necessary.
+     */    
+    private SortedSet<OutputFile> outputFiles = new TreeSet<OutputFile>();
+    
+    /* This set contains output files that have finished, i.e. those that the
+     * running program has finshed writing to.  It is maintained by the
+     * CheckOutputFiles thread launched by the job runner.
+     */
+    private SortedSet<OutputFile> outputFinished = new TreeSet<OutputFile>();
+        
     /**
      * The name of the file in the working directory that will represent the
      * standard output stream
@@ -79,10 +104,37 @@ public abstract class AbstractJobRunner implements JobRunner
         this.instance = instance;
     }
 
+    
+    
     public GRexServiceInstance getServiceInstance()
     {
         return this.instance;
     }
+    
+    
+    /*
+     * Methods giving access to the sets of output files
+     */
+    public SortedSet<OutputFile> getOutputFiles()
+    {
+        return outputFiles;
+    }    
+    public SortedSet<OutputFile> getOutputFinished()
+    {
+        return outputFinished;
+    }
+    
+    /**
+     * Methods for maintaining the set of finished files in the job runner
+     * object
+     */
+    public boolean addFinishedFile(OutputFile opFile){
+        return outputFinished.add(opFile);        
+    }
+    public boolean removeFinishedFile(OutputFile opFile) {
+        return outputFiles.add(opFile);        
+    }
+    
 
     public void setGridServiceConfig(GridServiceConfigForServer gsConfig)
     {

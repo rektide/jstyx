@@ -52,7 +52,6 @@ import uk.ac.rdg.resc.grex.exceptions.GRexException;
 import uk.ac.rdg.resc.grex.exceptions.InstanceNotReadyException;
 import uk.ac.rdg.resc.grex.server.AbstractJobRunner;
 import uk.ac.rdg.resc.grex.server.JobRunner;
-import uk.ac.rdg.resc.grex.server.JobRunnerFactory;
 
 /**
  * Controller that handles all the POST operations (i.e. requests for information
@@ -72,10 +71,6 @@ public class PostOperationsController extends AbstractGRexController
      * sub-jobs in a service instance
      */
     private static final String NUMSUBJOBS_PARAMETER_NAME = "numSubJobs";
-    /**
-     * Factory for JobRunner objects
-     */
-    private JobRunnerFactory jobRunnerFactory;
     
     /**
      * Creates a new instance of a particular service
@@ -388,14 +383,5 @@ public class PostOperationsController extends AbstractGRexController
         
         // TODO: do something else if we've come from a web page
         return new ModelAndView("instance_xml", "instance", instance);
-    }
-    
-    /**
-     * This will be called by the Spring framework to inject an object that
-     * can be used to get and create JobRunners
-     */
-    public void setJobRunnerFactory(JobRunnerFactory factory)
-    {
-        this.jobRunnerFactory = factory;
     }
 }

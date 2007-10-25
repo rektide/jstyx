@@ -39,6 +39,7 @@ import uk.ac.rdg.resc.grex.db.GRexServiceInstancesStore;
 import uk.ac.rdg.resc.grex.db.Job;
 import uk.ac.rdg.resc.grex.exceptions.GRexException;
 import uk.ac.rdg.resc.grex.exceptions.InstancesStoreException;
+import uk.ac.rdg.resc.grex.server.JobRunnerFactory;
 
 /**
  * Contains common methods and fields for all controllers in the G-Rex application
@@ -61,6 +62,11 @@ public abstract class AbstractGRexController extends MultiActionController
      * Store of service instances. Injected by Spring.
      */
     protected GRexServiceInstancesStore instancesStore;
+    
+    /**
+     * Factory for JobRunner objects. Injected by Spring.
+     */
+    protected JobRunnerFactory jobRunnerFactory;
     
     /**
      * Finds the configuration information for the service being referred to in
@@ -89,9 +95,14 @@ public abstract class AbstractGRexController extends MultiActionController
     /**
      * Searches the store of service instances for the requested service
      * instance and checks that it belongs to the correct service.  Does not 
-     * check permissions of the instance.  This method also makes sure that all
+     * check permissions of the instance.
+     * 
+     * This method used to also make sure that all
      * the transient (i.e. non-persistent) properties of the instances and sub-jobs
-     * are set correctly.
+     * are set correctly.  Now these properties are set by
+     * this.instancesStore.getServiceInstanceById. The checks on the properties
+     * are still done here though they might not be strictly necessary as there
+     * are also checks performed in this.instancesStore.getServiceInstanceById
      * @throws GRexException if the service instance could not be retrieved
      */
     protected GRexServiceInstance getServiceInstance(String requestURI)
@@ -134,11 +145,11 @@ public abstract class AbstractGRexController extends MultiActionController
             }
             // Make sure the configuration information is set, because this is
             // not stored in the database.
-            instance.setGridServiceConfig(gsConfig);
+            //instance.setGridServiceConfig(gsConfig); //Now done by this.instancesStore.getServiceInstanceById
             
             // We need to set the instance property of the sub-jobs because
             // the database does not remember this.
-            instance.getMasterJob().setInstance(instance);
+            //instance.getMasterJob().setInstance(instance);  //Now done by this.instancesStore.getServiceInstanceById
             // TODO: set this for all sub-jobs too
             
             if (subJobId != null)
@@ -151,7 +162,7 @@ public abstract class AbstractGRexController extends MultiActionController
                         subJobId + " in instance " + instanceId + " of service "
                         + gsConfig.getName());
                 }
-                subJob.setInstance(instance);
+                //subJob.setInstance(instance); //Now done by this.instancesStore.getServiceInstanceById
             }
             
             return instance;
@@ -213,6 +224,15 @@ public abstract class AbstractGRexController extends MultiActionController
     public void setInstancesStore(GRexServiceInstancesStore instancesStore)
     {
         this.instancesStore = instancesStore;
+    }
+    
+    /**
+     * This will be called by the Spring framework to inject an object that
+     * can be used to get and create JobRunners
+     */
+    public void setJobRunnerFactory(JobRunnerFactory factory)
+    {
+        this.jobRunnerFactory = factory;
     }
     
     /**
