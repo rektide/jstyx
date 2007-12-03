@@ -60,8 +60,8 @@ public class LocalJobRunner extends AbstractJobRunner
 {
     private static final Log log = LogFactory.getLog(LocalJobRunner.class);
     
-    private Process proc; // The Process that we are running in this job
-    private long NewFilesCheckIntervalMs = 2000;
+    protected Process proc; // The Process that we are running in this job
+    protected long NewFilesCheckIntervalMs = 2000;
  
     /**
      * The task of the start() method is to prepare the job, then kick it off, 
@@ -139,13 +139,16 @@ public class LocalJobRunner extends AbstractJobRunner
     /**
      * Constructs the full command line that will be executed
      */
-    private String constructCommmandLine()
+    protected String constructCommmandLine()
     {
         StringBuffer cmdLine = new StringBuffer(this.gsConfig.getCommand());
         
         // Look through all the command-line parameters, inserting the values
         for (Parameter param : this.gsConfig.getParams())
         {
+            // Don't add DRM parameters to command line
+            if (param.isDRMparameter()) continue;
+            
             String paramValue = this.instance.getParamValue(param.getName());
             if (paramValue == null)
             {
@@ -208,7 +211,7 @@ public class LocalJobRunner extends AbstractJobRunner
     /**
      * Simple class to read an input stream and write it to an output stream
      */
-    private class RedirectStream extends Thread
+    protected class RedirectStream extends Thread
     {
         private InputStream in;
         private OutputStream out;
@@ -306,7 +309,7 @@ public class LocalJobRunner extends AbstractJobRunner
      Thread that periodically checks the last modified time for output files to
      find out which can be deleted.  In the future the threshold value of time
      since last modification will be supplied by the user in the G-Rex config */
-    private class CheckOutputFiles extends Thread {
+    protected class CheckOutputFiles extends Thread {
         
         private long checkIntervalMs;
         private int numOutputFiles=0, numOutputFinished=0;
@@ -425,51 +428,6 @@ public class LocalJobRunner extends AbstractJobRunner
             }
         }
 
-        /**
-         * NOTE This is a copy of a method in the Job class.  This is a hack to
-         * get things working quickly. To do this properly either move this functionality
-         * here permanently (which is what will happen if the Job object gets its
-         * list of output files from the outputFiles set in the job runner) or
-         * find some way of using the getOutputFile method in the job object.
-         *
-         *
-        * @return an OutputFile corresponding with the given path relative to the 
-        * working directory of this instance, or null if the
-        * service configuration says that the given file cannot be downloaded
-        * through the web interface.  Note that the relativeFilePath must be delimited
-        * by forward slashes ("/") on all platforms for the pattern matching to work.
-        * relativeFilePath must not start with a slash.
-        * Matches according to Ant syntax.
-        * @see org.springframework.util.AntPathMatcher
-        */
-        /*public OutputFile getOutputFile(String relativeFilePath, Job job)
-        {
-            // Look through all the output definitions in the configuration and
-            // see if we have a match.  Note that if this path matches more than one
-            // pattern the later patterns take priority
-            OutputFile opFile = null;
-            //log.debug("Checking file " + relativeFilePath + "....");
-            for (Output op : gsConfig.getOutputs())
-            {
-                String pattern = op.getName();
-                if (op.getLinkedParameterName() != null)
-                {
-                    // The pattern to match comes from the value of this parameter
-                    pattern = job.getParamValue(op.getLinkedParameterName());
-                }
-                PathMatcher pathMatcher = new AntPathMatcher();
-                if (pathMatcher.match(pattern, relativeFilePath))
-                {
-                    File f = new File(job.getWorkingDirectoryFile(), relativeFilePath);
-                    if (!f.isDirectory())
-                    {
-                        // TODO: watch out for unmodified input files in the working directory
-                        opFile = new OutputFile(relativeFilePath, job, op.isAppendOnly(), op.deleteAfter());
-                    }
-                }
-            }
-            return opFile;
-        }*/
     }
     
     

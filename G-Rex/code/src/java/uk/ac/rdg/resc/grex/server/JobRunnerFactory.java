@@ -28,6 +28,7 @@
 
 package uk.ac.rdg.resc.grex.server;
 
+import java.io.File;
 import java.lang.reflect.Constructor;
 import java.util.Hashtable;
 import java.util.Map;
@@ -89,10 +90,11 @@ public class JobRunnerFactory
         JobRunner runner = this.jobRunners.get(instance.getId());
         if (runner == null)
         {
-            log.info("Creating new JobRunner object for instance " + instance.getId());
+            log.info("Creating new JobRunner object for instance number " + instance.getId());
             // Find the definition of the grid service to which this instance
             // belongs.  This should never be null.
             GridServiceConfigForServer gs = this.config.getGridServiceByName(instance.getServiceName());
+                        
             if (gs == null)
             {
                 throw new AssertionError("Internal error: gs is null in getRunnerForInstance()");

@@ -30,6 +30,7 @@ package uk.ac.rdg.resc.grex.config;
 
 import simple.xml.Attribute;
 import simple.xml.Root;
+import simple.xml.load.Commit;
 
 /**
  * An Option for a service.  This is passed to the underlying job manager
@@ -47,6 +48,7 @@ public class Option
     private String key;
     @Attribute(name="value")
     private String value;
+    private String linkedParamName = null;
     
     /** Creates a new instance of Option */
     public Option()
@@ -61,6 +63,31 @@ public class Option
     public String getValue()
     {
         return value;
+    }
+    
+    /**
+     * Called after we have parsed this option.  Checks to see if the name of this output file
+     * links to a parameter
+     */
+    @Commit
+    public void commit()
+    {
+        int i1 = this.value.indexOf("${");
+        int i2 = this.value.indexOf("}");
+        if (i1 >= 0 && i2 >= 0 && i1 < i2)
+        {
+            this.linkedParamName = this.value.substring(i1 + 2, i2);
+        }
+    }
+
+    /**
+     * If the value of this option is given by the value of a parameter,
+     * this method returns the name of that parameter.  Otherwise, this returns
+     * null.
+     */
+    public String getLinkedParameterName()
+    {
+        return this.linkedParamName;
     }
     
 }

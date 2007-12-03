@@ -46,8 +46,10 @@ public class Parameter
 {
     // One of these will be set in GridServiceConfigForClient.validate() if
     // the value of this parameter gives the name of an input or output file
+    // or the value of an option
     private Input linkedInput = null;
     private Output linkedOutput = null;
+    private Option linkedOption = null;
     
     /**
      * The possible types of a Parameter.  Note that we can't simply do
@@ -85,6 +87,10 @@ public class Parameter
     
     @Attribute(name="description", required=false)
     private String description = ""; // Human-readable description for this parameter
+    
+    @Attribute(name="drmParameter", required=false)
+    private boolean drmParameter = false; // True if the parameter is for the DRM instead of the
+                                        // program being run by the DRM
     
     @Attribute(name="required", required=false)
     private boolean required = true; // True if this parameter must be set before a service is run
@@ -145,6 +151,11 @@ public class Parameter
     public String getDescription()
     {
         return description;
+    }
+
+    public boolean isDRMparameter()
+    {
+        return drmParameter;
     }
 
     public boolean isRequired()
@@ -227,6 +238,25 @@ public class Parameter
     void setLinkedInput(Input linkedInput)
     {
         this.linkedInput = linkedInput;
+    }
+
+    /**
+     * @return the Option that is given by the value of this parameter, or null
+     * if this parameter is not linked to an Option.
+     */
+    public Option getLinkedOption()
+    {
+        return linkedOption;
+    }
+
+    /**
+     * Called by GridServiceConfigForClient.validate() to set the Option that is
+     * given by the value of this parameter.  This method should not be called
+     * directly.
+     */
+    void setLinkedOption(Option linkedOption)
+    {
+        this.linkedOption = linkedOption;
     }
 
     /**

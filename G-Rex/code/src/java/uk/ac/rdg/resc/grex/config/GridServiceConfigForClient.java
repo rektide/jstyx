@@ -68,6 +68,11 @@ public class GridServiceConfigForClient
      */
     @ElementList(name="outputs", type=Output.class, required=false)
     protected ArrayList<Output> outputs = new ArrayList<Output>();
+    /**
+     * The options used by this service
+     */
+    @ElementList(name="options", type=Option.class, required=false)
+    protected ArrayList<Option> options = new ArrayList<Option>();
     
     /**
      * The command-line parameters that are taken by this service
@@ -100,7 +105,7 @@ public class GridServiceConfigForClient
                 foundGreedy = true;
             }
         }
-        // Check that input and output files that are linked to parameters
+        // Check that input and output files and options that are linked to parameters
         // are correctly set
         for (Input input : this.inputs)
         {
@@ -131,6 +136,22 @@ public class GridServiceConfigForClient
                 else
                 {
                     p.setLinkedOutput(output);
+                }
+            }
+        }
+        for (Option option : this.options)
+        {
+            if (option.getLinkedParameterName() != null)
+            {
+                Parameter p = paramsMap.get(option.getLinkedParameterName());
+                if (p == null)
+                {
+                    throw new PersistenceException("Unrecognized parameter name %s for output %s",
+                        option.getLinkedParameterName(), option.getValue());
+                }
+                else
+                {
+                    p.setLinkedOption(option);
                 }
             }
         }
