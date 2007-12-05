@@ -72,6 +72,8 @@ public class SGEJobRunner extends LocalJobRunner
     private int exitCode=SGE_SUCCESS; // will be changed to SGE_FAILURE if SGE related error is detected
     private static final String FILE_SEPARATOR = System.getProperty("file.separator");
     private File submitFile;
+    private String qsubCommand="qsub";  // Will be either "qsub" or something like "ssh gorgon qsub"
+    private String qstatCommand="qstat"; // Will be either "qstat" or something like "ssh gorgon qstat"
     
     /** Creates a new instance of SGEJobRunner */
     public SGEJobRunner()
@@ -106,6 +108,12 @@ public class SGEJobRunner extends LocalJobRunner
         
         // Get pointer to G-Rex working directory for this instance
         File wdFile = new File(this.instance.getWorkingDirectory());
+        
+        // Find out if we need to execute SGE commands on a remote submit host
+        if (gsConfig.getRemoteHost()!="localhost") {
+            qsubCommand = gsConfig.getRemoteShell() + " " + gsConfig.getRemoteHost() + " cd " + wdFile.getAbsolutePath() + "; qsub";
+            qstatCommand = gsConfig.getRemoteShell() + " " + gsConfig.getRemoteHost() + " qstat";
+        }
         
         // Create script to be submitted
         try {            
@@ -184,7 +192,7 @@ public class SGEJobRunner extends LocalJobRunner
         /*
          * Submit SGE job
          */    
-        log.debug("Submitting job with command \"qsub " + submitFile.getPath() +"\"...");
+        log.debug("Submitting job with command \"" + qsubCommand + " " + submitFile.getPath() +"\"...");
         
         // Check for errors and find job ID
         String line;
@@ -192,7 +200,7 @@ public class SGEJobRunner extends LocalJobRunner
         BufferedReader buf;
         try {
             // Issue qsub command
-            Process proc = Runtime.getRuntime().exec("qsub " + submitFile.getPath(), null, wdFile);
+            Process proc = Runtime.getRuntime().exec(qsubCommand + " " + submitFile.getPath(), null, wdFile);
             
             // Check for errors in qsub error stream.  A non-empty error stream indicates that
             // an error has occurred.
@@ -321,7 +329,7 @@ public class SGEJobRunner extends LocalJobRunner
                 
                 // Run qstat command
                 try {
-                    proc = Runtime.getRuntime().exec("qstat");
+                    proc = Runtime.getRuntime().exec(qstatCommand);
                         
                     // Check for errors
                     line = null;
@@ -391,7 +399,7 @@ public class SGEJobRunner extends LocalJobRunner
                     } // end of "if (instance.getState().meansFinished()) ..."                    
                     
                     // Run qstat -s z to find out if job has finished
-                    proc = Runtime.getRuntime().exec("qstat -s z");
+                    proc = Runtime.getRuntime().exec(qstatCommand + " -s z");
                         
                     // Check for errors
                     line = null;

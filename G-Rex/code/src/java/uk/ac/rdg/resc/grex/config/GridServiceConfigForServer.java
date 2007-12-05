@@ -59,6 +59,17 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
     @Attribute(name="command")
     private String command; // Command that will be run when this service is executed
     
+    @Attribute(name="remote-host", required=false)
+    private String remoteHost="localhost"; // Remote host name.  This will be used in situations where the
+                                // job manager (such as Condor) is not installed on the same
+                                // machine as the G-Rex server.
+    
+    @Attribute(name="remote-shell", required=false)
+    private String remoteShell="ssh"; // Command to obtain a command shell on the remote host (if remoteHost is not "localhost").
+                                // Job manager commands such as qsub will be executed on the remote host 
+                                // using <remoteShell> <jobManagerCommand>.  For example:
+                                // ssh gorgon qstat
+    
     // Note that we will disallow setting both allowed-users and allowed-groups
     
     @Attribute(name="allowed-users", required=false)
@@ -90,6 +101,16 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
     public String getType()
     {
         return type;
+    }
+
+    public String getRemoteHost()
+    {
+        return remoteHost;
+    }
+
+    public String getRemoteShell()
+    {
+        return remoteShell;
     }
 
     public List<Option> getOptions()
