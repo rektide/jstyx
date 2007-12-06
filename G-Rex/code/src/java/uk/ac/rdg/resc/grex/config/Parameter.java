@@ -73,6 +73,8 @@ public class Parameter
         }
     };
     
+    public static final String UNSPECIFIED = "Unspecified";
+    
     @Attribute(name="name")
     private String name; // A unique name for this parameter
     
@@ -83,7 +85,7 @@ public class Parameter
     private String longFlag = null; // The long command-line flag
     
     @Attribute(name="defaultValue", required=false)
-    private String defaultValue = null; // A default value for this parameter
+    private String defaultValue = this.UNSPECIFIED; // A default value for this parameter
     
     @Attribute(name="description", required=false)
     private String description = ""; // Human-readable description for this parameter

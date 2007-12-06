@@ -146,10 +146,11 @@ public class LocalJobRunner extends AbstractJobRunner
         // Look through all the command-line parameters, inserting the values
         for (Parameter param : this.gsConfig.getParams())
         {
-            // Don't add DRM parameters to command line
-            if (param.isDRMparameter()) continue;
-            
             String paramValue = this.instance.getParamValue(param.getName());
+            
+            // Don't add DRM parameters or unspecified optional parameters to command line
+            if (param.isDRMparameter() || paramValue.contains(Parameter.UNSPECIFIED)) continue;
+            
             if (paramValue == null)
             {
                 if (param.isRequired())

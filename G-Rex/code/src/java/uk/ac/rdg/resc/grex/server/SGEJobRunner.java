@@ -41,6 +41,7 @@ import java.io.PrintStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import uk.ac.rdg.resc.grex.config.Option;
+import uk.ac.rdg.resc.grex.config.Parameter;
 import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.exceptions.InstancesStoreException;
 import uk.ac.rdg.resc.grex.server.LocalJobRunner.CheckOutputFiles;
@@ -141,6 +142,7 @@ public class SGEJobRunner extends LocalJobRunner
                 /*
                  * Add G-Rex user ID to SGE job name
                  */
+
                 // Substitute a space for null values
                 if (option.getKey()==null) key=" ";
                 else key=option.getKey();
@@ -152,6 +154,11 @@ public class SGEJobRunner extends LocalJobRunner
                 if (option.getLinkedParameterName()!=null) {
                     value = this.instance.getMasterJob().getParameters().get(option.getLinkedParameterName());
                 }
+                
+                // Do not include options linked to optional parameters that have
+                // not been specified by user and for which no default value has been
+                // specified on command line
+                if (value.contains(Parameter.UNSPECIFIED)) continue;
                 
                 // Start a new line if the key value begins with #$
                 if (key.contains("#$")) pstream.println();
