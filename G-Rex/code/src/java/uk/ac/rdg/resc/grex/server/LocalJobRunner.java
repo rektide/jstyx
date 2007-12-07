@@ -83,6 +83,13 @@ public class LocalJobRunner extends AbstractJobRunner
         
         try
         {
+            // If command is to be run on a remote machine, add remote shell command to command line
+            if (gsConfig.getRemoteHost()!="localhost") {
+                String tempCommand = gsConfig.getRemoteShell() + " " + gsConfig.getRemoteHost() +
+                        " cd " + wdFile.getAbsolutePath() + "; " + cmdLine;
+                cmdLine = tempCommand;
+            }
+            
             // Start the process running, setting the working directory
             this.proc = Runtime.getRuntime().exec(cmdLine, null, wdFile);
             log.debug("Process started");
