@@ -60,11 +60,15 @@ public class SGEJobRunner extends LocalJobRunner
     private String submitScript;
     private static final String SUBMIT_SCRIPT_NAME = "submit.sh";
     private static final Pattern QSUB_SUCCESS_PATTERN =
-        Pattern.compile("Your job ([0-9]*) [^ \t\n\f\r]* has been submitted.");
+        Pattern.compile("Your job ([0-9]*).*");
     private static final Pattern QSUB_FAILURE_PATTERN_1 =
         Pattern.compile("qsub: Unknown option ");  // Not used at the moment. A non-empty error stream means there is an error.
+    /*private static final Pattern QSTAT_PATTERN =
+        Pattern.compile("[ ]*([0-9]*)[ ]*[^ \t\n\f\r]*[ ]*[^ \t\n\f\r]*[ ]*[^ \t\n\f\r]*[ ]*([^0-9]*).*");*/
     private static final Pattern QSTAT_PATTERN =
         Pattern.compile("[ ]*([0-9]*)[ ]*[^ \t\n\f\r]*[ ]*[^ \t\n\f\r]*[ ]*[^ \t\n\f\r]*[ ]*([^0-9]*).*");
+    private static final Pattern QSTAT_PATTERN2 =
+        Pattern.compile("[ ]*([0-9]*).*");
     // Example below
     //  50280 0.52500 UMABQXL000 cll          qw    11/29/2007 10:21:54                                    4
     private int sgeJobID=0;
@@ -284,7 +288,7 @@ public class SGEJobRunner extends LocalJobRunner
         // Start a thread that waits for the job to finish and monitors status via qstat.
         // Sets instance state and saves instance every time status changes.
         // This thread uses qstatStreamReader threads to check the output of qstat.
-        if (!this.instance.getState().meansFinished()) new MonitorJob(5000).start();
+        if (!this.instance.getState().meansFinished()) new MonitorJob(10000).start();
                     
         // Start thread to find out which output files can be deleted. Set the
         // checking interval to 2000ms
@@ -310,11 +314,14 @@ public class SGEJobRunner extends LocalJobRunner
         }
         public void run()
         {
-            log.debug("Waiting for job to finish");
+            log.debug("Waiting for SGE job to finish");
             String line;
             InputStream is;
             BufferedReader buf;
             Process proc;
+            Integer SGEjobID = new Integer(sgeJobID) ;
+            boolean foundMatch=false;
+            boolean foundJob=false;
             
             while (!instance.getState().meansFinished()) 
             {                
@@ -336,6 +343,7 @@ public class SGEJobRunner extends LocalJobRunner
                 
                 // Run qstat command
                 try {
+                    //log.debug("Running qstat...");
                     proc = Runtime.getRuntime().exec(qstatCommand);
                         
                     // Check for errors
@@ -360,16 +368,17 @@ public class SGEJobRunner extends LocalJobRunner
                         line = null;
                         is=proc.getInputStream();
                         buf = new BufferedReader(new InputStreamReader(is));
+                        foundJob=false;
                         do {
                             line = buf.readLine();
+                            //log.debug("Looking for " + SGEjobID.toString() + " in qstat -s z output: \"" + line + "\"");
                             if (line == null) continue;
                             // Check qstat output
                             Matcher m = QSTAT_PATTERN.matcher(line);
                             if (m.matches()) {
-                                Integer SGEjobID = new Integer(sgeJobID) ;
-                                if (m.group(1).equals(SGEjobID.toString())) {
+                                if (m.group(1).contains(SGEjobID.toString())) {
                                     //log.debug("Status of job number " + sgeJobID + " is " + m.group(2).toString());
-
+                                    foundJob=true;
                                     if (m.group(2).contains("t") || m.group(2).contains("w")) {
                                         if (instance.getState() != Job.State.PENDING) {
                                             log.info("Job number " + sgeJobID + " is waiting to run");
@@ -403,10 +412,35 @@ public class SGEJobRunner extends LocalJobRunner
                             }
                         } while (line != null);
                         buf.close();
+                        
+                        if (!foundJob) {
+                            /* Job is not in the SGE system any more. This is not a very
+                             * robust way to find out if a job has finished, but unfortunately
+                             * we will have to rely on this for the time being.  See comments
+                             * about running "qstat -s z" via ssh below.
+                             */
+                            if (instance.getState() != Job.State.FINISHED) {
+                                log.info("Job number " + sgeJobID + " has finished.");
+                                newState = Job.State.FINISHED;
+                                log.debug("Instance state is now " + newState.name());
+                            }                            
+                        }
                     } // end of "if (instance.getState().meansFinished()) ..."                    
                     
                     // Run qstat -s z to find out if job has finished
-                    proc = Runtime.getRuntime().exec(qstatCommand + " -s z");
+                    /*
+                     * The command "qstat -s z" does not work when executed via ssh for
+                     * some reason.  Checking output of "qstat -s z" is a more robust way to
+                     * find out if a job has finished than looking for the job not being
+                     * listed by qstat.  This is because the output from the "q" commands
+                     * is not always up to date.  That means, for example, that a job could
+                     * be submitted successfully but not show up in the qstat listing for a
+                     * few seconds.
+                     */
+                    /*
+                    log.debug("Running qstat -s z ...");
+                    //proc = Runtime.getRuntime().exec(qstatCommand + " -s z");
+                    log.debug("Exit value from qstat = " + proc.exitValue());
                         
                     // Check for errors
                     line = null;
@@ -428,16 +462,18 @@ public class SGEJobRunner extends LocalJobRunner
                     // Now see if job is listed in qstat -s z output. If it is the job has ended
                     if (!newState.meansFinished()) {
                         line = null;
+                        //log.debug("Looking for " + SGEjobID.toString() + " in qstat -s z output: \"" + line + "\"");
                         is=proc.getInputStream();
                         buf = new BufferedReader(new InputStreamReader(is));
+                        foundMatch=false;
                         do {
                             line = buf.readLine();
                             if (line == null) continue;
                             // Check qstat output
-                            Matcher m = QSTAT_PATTERN.matcher(line);
+                            Matcher m = QSTAT_PATTERN2.matcher(line);
                             if (m.matches()) {
-                                Integer SGEjobID = new Integer(sgeJobID) ;
-                                if (m.group(1).equals(SGEjobID.toString())) {
+                                foundMatch=true;
+                                if (m.group(1).contains(SGEjobID.toString())) {
                                     if (instance.getState() != Job.State.FINISHED) {
                                         log.info("Job number " + sgeJobID + " has finished.");
                                         newState = Job.State.FINISHED;
@@ -446,8 +482,19 @@ public class SGEJobRunner extends LocalJobRunner
                                 }
                             }
                         } while (line != null);
-                        buf.close();                        
+                        buf.close();
+                        if (!foundMatch) {
+                            // This should never happen. There is always something output by
+                            // qstat -s z even if there are no jobs running at all
+                            log.error("Error running qstat -s z. No matches found in output stream");
+                            instance.setState(Job.State.ERROR);
+                            instance.setExitCode(SGE_FAILURE);
+                            saveInstance();
+                            log.debug("Instance state is now " + instance.getState());                        
+                        }
+                        
                     } // end of "if (instance.getState().meansFinished()) ..."
+                     */
                 }
                 catch(IOException ioe)
                 {
