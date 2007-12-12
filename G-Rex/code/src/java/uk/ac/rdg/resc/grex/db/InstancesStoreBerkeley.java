@@ -67,6 +67,7 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
     private static final String FILE_SEPARATOR = System.getProperty("file.separator");
     private static final String STORE_NAME = "instances";
     private static final int MAX_DEADLOCK_RETRIES = 10;
+    private static final String MASTER_WORKING_DIR_NAME = "master";
     
     private GRexConfig config; // We need this to find the home directory of the G-Rex server
     
@@ -144,20 +145,39 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
             GRexServiceInstance prevInst = this.instancesById.put(txn, instance);
             int id = instance.getId();
             // Create the working directory for this instance
-            File instanceWd = new File(parentWorkingDirectory, id + 
-                FILE_SEPARATOR + "master");
-            // If the directory already exists, delete the contents
-            if (instanceWd.exists())
-            {
-                deleteDir(instanceWd);
+            File instanceWd;
+            log.debug("Persistent master working directory directory = " + instance.getPersistentDirName());
+            
+            // Determinte path of working directory for this instance and setup working directory File object
+            if (instance.getPersistentDirName()!="") {
+                instanceWd = new File(instance.getPersistentDirName(), this.MASTER_WORKING_DIR_NAME);
+                log.debug("Persistent directory name = " + instanceWd.getPath());
             }
-            boolean success = instanceWd.mkdirs();
-            if (!success)
-            {
-                throw new DatabaseException("Error creating working directory "
-                    + instanceWd.getPath() + " for instance " + id);
+            else instanceWd = new File(parentWorkingDirectory, id + 
+                FILE_SEPARATOR + this.MASTER_WORKING_DIR_NAME);
+            
+            /*instanceWd = new File(parentWorkingDirectory, id + 
+                FILE_SEPARATOR + this.MASTER_WORKING_DIR_NAME);
+             */
+            
+            if (instanceWd.exists()) {
+                if (instance.getPersistentDirName()=="") {
+                    // If the directory already exists and we are not using a persistent
+                    // working directory, delete the contents
+                    deleteDir(instanceWd);
+                }
+            }
+            else {
+                // Create the working directory
+                boolean success = instanceWd.mkdirs();
+                if (!success)
+                {
+                    throw new DatabaseException("Error creating working directory "
+                        + instanceWd.getPath() + " for instance " + id);
+                }
             }
             instance.setWorkingDirectory(instanceWd.getPath());
+            
             // Update the instance with the new working directory
             this.instancesById.put(txn, instance);
             

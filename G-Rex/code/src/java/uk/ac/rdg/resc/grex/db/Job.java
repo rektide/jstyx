@@ -282,12 +282,14 @@ public class Job
                 // recursively call this method
                 // We must always use forward slashes even on Windows for the
                 // pattern matching in getOutputFile() to work
+                //log.debug("Checking directory " + relativePath + "....");
                 this.getCurrentOutputFiles(relativePath + "/", files);
             }
             else
             {
                 if (files.size() < MAX_FILES) {
                     // Check to see if this file is downloadable
+                    //log.debug("Checking file " + relativePath + "....");
                     OutputFile opFile = this.getOutputFile(relativePath);
                     if (opFile != null) {
                         files.add(opFile);
@@ -317,11 +319,20 @@ public class Job
         // pattern the later patterns take priority
         OutputFile opFile = null;
         //log.debug("Checking file " + relativeFilePath + "....");
-        if (instance == null) log.debug("instance is null!!!");
+        if (instance == null) {
+            log.error("instance is null!!!");
+            return null;
+        }
         GridServiceConfigForServer gsConfig = this.instance.getGridServiceConfig();
-        if (gsConfig == null) log.debug("gsConfig is null!!!");
+        if (gsConfig == null) {
+            log.error("gsConfig is null!!!");
+            return null;
+        }
         List<Output> outputs = gsConfig.getOutputs();
-        if (outputs == null) log.debug("outputs is null!!!");
+        if (outputs == null) {
+            log.error("outputs is null!!!");
+            return null;
+        }
         for (Output op : outputs)
         {
             String pattern = op.getName();

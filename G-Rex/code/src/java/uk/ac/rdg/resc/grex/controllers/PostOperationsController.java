@@ -103,6 +103,7 @@ public class PostOperationsController extends AbstractGRexController
         // Create a new instance of the service
         GRexServiceInstance newInstance = new GRexServiceInstance();
         newInstance.setServiceName(gs.getName());
+        newInstance.setPersistentDirName(gs.getPersistentDirName());
         if (request.getParameter("description") != null)
         {
             newInstance.setDescription(request.getParameter("description"));

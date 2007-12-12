@@ -74,6 +74,8 @@ public class GRexServiceInstance
     // WARNING! If you change the name of this field, you also need to change
     // the constructor for the secondary key in InstancesStoreBerkeley!
     private String serviceName; // Unique ID of the service to which this instance belongs
+
+    private String persistentDirName; // Persistent directory name (optional)
     
     private String description = null; // Free-text description provided by the creator of the instance
     
@@ -133,6 +135,16 @@ public class GRexServiceInstance
     public void setServiceName(String serviceName)
     {
         this.serviceName = serviceName;
+    }
+
+    public String getPersistentDirName()
+    {
+        return persistentDirName;
+    }
+
+    public void setPersistentDirName(String persistentDirName)
+    {
+        this.persistentDirName = persistentDirName;
     }
 
     public String getWorkingDirectory()

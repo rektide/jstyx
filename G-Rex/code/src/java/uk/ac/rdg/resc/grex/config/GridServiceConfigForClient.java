@@ -55,7 +55,7 @@ public class GridServiceConfigForClient
     protected String name; // Unique name for this GridService
     
     @Attribute(name="description", required=false)
-    protected String description = ""; // Human-readable description for this Grid Service
+    protected String description = ""; // Human-readable description for this Grid Service    
     
     /**
      * The input files and streams that are used by this service

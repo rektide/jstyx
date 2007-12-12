@@ -285,9 +285,17 @@ public class GRexConfig implements ApplicationContextAware
             names.add(name);
             
             // Create a working directory for this service
-            File wdForService = new File(this.masterWorkingDirectory, name);
-            mkdir(wdForService);
+            File wdForService;
+            
+            if (gs.getPersistentDirName()=="") {
+                wdForService = new File(this.masterWorkingDirectory, name);
+            }
+            else wdForService = new File(gs.getPersistentDirName());
+            log.debug("Directory for service = " + wdForService.getPath());
+             
+            //wdForService = new File(this.masterWorkingDirectory, name);
             gs.setWorkingDirectory(wdForService);
+            mkdir(wdForService);
         }
         
         // Check that the security settings for GridServices are correctly formed

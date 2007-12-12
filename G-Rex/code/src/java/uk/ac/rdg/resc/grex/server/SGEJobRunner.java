@@ -123,10 +123,9 @@ public class SGEJobRunner extends LocalJobRunner
         // Create script to be submitted
         try {            
             submitFile = new File(wdFile.getPath() + FILE_SEPARATOR + SUBMIT_SCRIPT_NAME);
-            /*FileWriter fstream = new FileWriter(submitFile);
-            BufferedWriter out = new BufferedWriter(fstream);*/
+
             PrintStream pstream = new PrintStream(new FileOutputStream(
-                submitFile, true));
+                submitFile, false));
             
             log.debug("Writing to " + submitFile.getPath());
             pstream.println("#!/bin/bash");

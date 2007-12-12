@@ -70,6 +70,9 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
                                 // using <remoteShell> <jobManagerCommand>.  For example:
                                 // ssh gorgon qstat
     
+    @Attribute(name="persistent-dir", required=false)
+    private String persistentDirName=""; // A persistent working directory to be used instead of the temporary one (if specified in GRexConfig.xml)
+    
     // Note that we will disallow setting both allowed-users and allowed-groups
     
     @Attribute(name="allowed-users", required=false)
@@ -111,6 +114,11 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
     public String getRemoteShell()
     {
         return remoteShell;
+    }
+
+    public String getPersistentDirName()
+    {
+        return persistentDirName;
     }
 
     public List<Option> getOptions()
