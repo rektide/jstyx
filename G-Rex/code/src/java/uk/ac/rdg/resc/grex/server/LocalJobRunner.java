@@ -73,11 +73,7 @@ public class LocalJobRunner extends AbstractJobRunner
         
         // Prepare the command line that will be executed
         String cmdLine = this.constructCommmandLine();
-        log.debug("Command line that will be executed: \"" + cmdLine + "\"");
         
-        // Write job and user details to log file
-        log.info("User " + this.instance.getOwner() + " started instance " + this.instance.getId() +
-                " of service " + this.instance.getServiceName() + ", command = \"" + cmdLine + "\"");
         
         File wdFile = new File(this.instance.getWorkingDirectory());
         
@@ -89,6 +85,11 @@ public class LocalJobRunner extends AbstractJobRunner
                         " cd " + wdFile.getAbsolutePath() + "; " + cmdLine;
                 cmdLine = tempCommand;
             }
+            log.debug("Command line that will be executed: \"" + cmdLine + "\"");
+
+            // Write job and user details to log file
+            log.info("User " + this.instance.getOwner() + " started instance " + this.instance.getId() +
+                " of service " + this.instance.getServiceName() + ", command = \"" + cmdLine + "\"");
             
             // Start the process running, setting the working directory
             this.proc = Runtime.getRuntime().exec(cmdLine, null, wdFile);
