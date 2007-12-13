@@ -320,17 +320,26 @@ public class Job
         OutputFile opFile = null;
         //log.debug("Checking file " + relativeFilePath + "....");
         if (instance == null) {
-            log.error("instance is null!!!");
+            log.debug("instance is null!!!");
             return null;
         }
         GridServiceConfigForServer gsConfig = this.instance.getGridServiceConfig();
         if (gsConfig == null) {
-            log.error("gsConfig is null!!!");
+            log.debug("gsConfig is null!!!");
+            /*log.debug("Waiting 5 seconds to see if this is temporary");
+            Process proc;
+            try {
+                proc = Runtime.getRuntime().wait(5000);
+            }
+            catch (InterruptedException ie) {
+                log.error("wait interrupted." + ie.toString());
+            }
+             */
             return null;
         }
         List<Output> outputs = gsConfig.getOutputs();
         if (outputs == null) {
-            log.error("outputs is null!!!");
+            log.debug("outputs is null!!!");
             return null;
         }
         for (Output op : outputs)
