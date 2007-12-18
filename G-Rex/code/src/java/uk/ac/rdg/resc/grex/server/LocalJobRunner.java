@@ -357,7 +357,7 @@ public class LocalJobRunner extends AbstractJobRunner
                     //
                     numOutputFinished = getOutputFinished().size();
                     if (numOutputFinished!=prevNumOutputFinished)
-                        log.debug("No. of finished files is " +  numOutputFinished);
+                        log.info("No. of finished files is " +  numOutputFinished);
                     prevNumOutputFinished = numOutputFinished;
                                                                             
                  } while (!instance.isFinished());
