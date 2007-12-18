@@ -129,6 +129,7 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
         // Create the new instance, get the id, then create the working
         // directory for the instance in a transaction (so that if one of these
         // operations fails, the whole transaction will be aborted).
+        File instanceWd, oldInstanceWd, oldInstanceWdNewName;
         Transaction txn = null;
         try
         {
@@ -145,7 +146,6 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
             GRexServiceInstance prevInst = this.instancesById.put(txn, instance);
             int id = instance.getId();
             // Create the working directory for this instance
-            File instanceWd;
             log.debug("Persistent master working directory directory = " + instance.getPersistentDirName());
             
             // Determinte path of working directory for this instance and setup working directory File object
@@ -159,24 +159,27 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
             /*instanceWd = new File(parentWorkingDirectory, id + 
                 FILE_SEPARATOR + this.MASTER_WORKING_DIR_NAME);
              */
+
+            /* Set value of working directory name string in the instance */
+            instance.setWorkingDirectory(instanceWd.getPath());
             
+            // If the directory already exists and we are not using a persistent
+            // working directory, rename the directory to be deleted later.
+            oldInstanceWdNewName = new File(instanceWd.getPath() + "-old");
             if (instanceWd.exists()) {
                 if (instance.getPersistentDirName()=="") {
-                    // If the directory already exists and we are not using a persistent
-                    // working directory, delete the contents
-                    deleteDir(instanceWd);
+                    oldInstanceWd = new File(instanceWd.getPath());
+                    oldInstanceWd.renameTo(oldInstanceWdNewName);
                 }
             }
-            else {
-                // Create the working directory
-                boolean success = instanceWd.mkdirs();
-                if (!success)
-                {
-                    throw new DatabaseException("Error creating working directory "
-                        + instanceWd.getPath() + " for instance " + id);
-                }
+            
+            // Create the working directory
+            boolean success = instanceWd.mkdirs();
+            if (!success)
+            {
+                throw new DatabaseException("Error creating working directory "
+                    + instanceWd.getPath() + " for instance " + id);
             }
-            instance.setWorkingDirectory(instanceWd.getPath());
             
             // Update the instance with the new working directory
             this.instancesById.put(txn, instance);
@@ -184,6 +187,12 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
             // If we've got this far the working directory has been created and
             // we can commit the whole transaction
             txn.commit();
+            
+            // Delete the old working directory if one was found
+            if (oldInstanceWdNewName.exists()) {
+                deleteDir(oldInstanceWdNewName);
+            }
+            
             return id;
         }
         catch (DatabaseException dbe)
