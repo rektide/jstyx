@@ -115,4 +115,7 @@ public interface JobRunner
      * Can only be called once the service has finished (or been aborted).
      */
     // TODO
+    
+    /* Decides whether or not output to a file has finished */
+    public boolean isOutputFinished(OutputFile opFile);
 }

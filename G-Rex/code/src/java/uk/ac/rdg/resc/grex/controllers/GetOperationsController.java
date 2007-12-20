@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -296,9 +297,12 @@ public class GetOperationsController extends AbstractGRexController
                 instance = this.instancesStore.getServiceInstanceById(instance.getId());
                 //done = instance.isFinished();
                 
-                // Check list of finished files
-                SortedSet<OutputFile> outputFinished = this.jobRunnerFactory.getRunnerForInstance(instance).getOutputFinished();
-                isOutputFinished = outputFinished.contains(opFile);                
+                /*
+                 * Check list of finished files
+                 */
+                //SortedSet<OutputFile> outputFinished = this.jobRunnerFactory.getRunnerForInstance(instance).getOutputFinished();
+                //isOutputFinished = outputFinished.contains(opFile);
+                isOutputFinished = this.jobRunnerFactory.getRunnerForInstance(instance).isOutputFinished(opFile);
                 if (isOutputFinished ==true)
                     log.debug("Output to " + opFile.getFile().getName() + " has finished. Reading to end of file...");
                                 

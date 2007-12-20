@@ -290,8 +290,8 @@ public class SGEJobRunner extends LocalJobRunner
         if (!this.instance.getState().meansFinished()) new MonitorJob(10000).start();
                     
         // Start thread to find out which output files can be deleted. Set the
-        // checking interval to 2000ms
-        if (!this.instance.getState().meansFinished()) new CheckOutputFiles(2000).start();
+        // checking interval in milliseconds.
+        if (!this.instance.getState().meansFinished()) new CheckOutputFiles(30000).start();
              
     }
 
@@ -321,6 +321,7 @@ public class SGEJobRunner extends LocalJobRunner
             Integer SGEjobID = new Integer(sgeJobID) ;
             boolean foundMatch=false;
             boolean foundJob=false;
+            boolean qstatError=false;
             
             while (!instance.getState().meansFinished()) 
             {                
@@ -347,23 +348,20 @@ public class SGEJobRunner extends LocalJobRunner
                         
                     // Check for errors
                     line = null;
+                    qstatError=false;
                     is=proc.getErrorStream();
                     buf = new BufferedReader(new InputStreamReader(is));
                     do {
                         line = buf.readLine();
                         if (line != null) {
-                            log.error("Error running qtat: " + line);
-                            if (instance.getState() != Job.State.ERROR) {
-                                newState = Job.State.ERROR;
-                                exitCode = SGE_FAILURE;
-                                log.debug("Instance state is now " + newState.name());
-                            }
+                            log.debug("Error running qtat: " + line);
+                            qstatError=true;
                         }
                     } while (line != null);
                     buf.close();
                                 
                     // See if job is listed in qstat output. If it is get the job state
-                    if (!newState.meansFinished()) {
+                    if (!newState.meansFinished() && !qstatError) {
                         line = null;
                         is=proc.getInputStream();
                         buf = new BufferedReader(new InputStreamReader(is));
@@ -412,7 +410,7 @@ public class SGEJobRunner extends LocalJobRunner
                         } while (line != null);
                         buf.close();
                         
-                        if (!foundJob) {
+                        if (!foundJob && !qstatError) {
                             /* Job is not in the SGE system any more. This is not a very
                              * robust way to find out if a job has finished, but unfortunately
                              * we will have to rely on this for the time being.  See comments

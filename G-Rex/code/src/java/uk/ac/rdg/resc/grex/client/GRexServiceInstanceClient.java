@@ -523,9 +523,9 @@ public class GRexServiceInstanceClient
                          * but no attempt to download them had yet been made. This
                          * situation can arise because there is a limit to the number of
                          * downloads that can take place simultaneously. */
-                        log.debug("Instance " + instanceState.getId() + " has finished.");
+                        log.info("Instance " + instanceState.getId() + " has finished.");
                         if (filesNotAccountedFor.size()>0) {
-                            log.debug(filesNotAccountedFor.size() + " files are not accounted for:");
+                            log.info(filesNotAccountedFor.size() + " files are not accounted for:");
                             //for (String relativePath : filesNotAccountedFor) {
                             //    log.debug(relativePath);
                             //}

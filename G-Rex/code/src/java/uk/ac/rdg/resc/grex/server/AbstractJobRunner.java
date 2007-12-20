@@ -72,6 +72,8 @@ public abstract class AbstractJobRunner implements JobRunner
     /* This set contains output files that have finished, i.e. those that the
      * running program has finshed writing to.  It is maintained by the
      * CheckOutputFiles thread launched by the job runner.
+     *
+     * Note: This set is not used at the moment.  May not be necessary.
      */
     private SortedSet<OutputFile> outputFinished = new TreeSet<OutputFile>();
         
@@ -177,5 +179,13 @@ public abstract class AbstractJobRunner implements JobRunner
                 " to store", ise);
         }
     }
+
+    /* Decides whether or not output to a file has finished.
+      The method for doing this depends on the type of job runner,
+     so this version simply returns false. */
+    public boolean isOutputFinished(OutputFile opFile) {
+        return false;
+    }
+    
     
 }

@@ -119,9 +119,9 @@ public class LocalJobRunner extends AbstractJobRunner
             new RedirectStream(this.proc.getErrorStream(),
                 new FileOutputStream(stderrFile), STDERR).start();
             
-            // Start thread to find out which output files can be deleted. Set the
-            // checking interval to 2000ms
-            new CheckOutputFiles(2000).start();
+            // Start thread to find out which output files or downloadable. Set the
+            // checking interval in milliseconds
+            new CheckOutputFiles(30000).start();
              
         }
         catch(FileNotFoundException fnfe)
@@ -316,8 +316,10 @@ public class LocalJobRunner extends AbstractJobRunner
     
     /*
      Thread that periodically checks the last modified time for output files to
-     find out which can be deleted.  In the future the threshold value of time
-     since last modification will be supplied by the user in the G-Rex config */
+     find out which can be deleted. The outputFiles and outputFinished sets are
+     no longer used (see comments regarding updateOutputFiles method) but the
+     CheckOutputFiles thread has been retained because it writes useful job
+     progress information to the server.log file. */
     protected class CheckOutputFiles extends Thread {
         
         private long checkIntervalMs;
@@ -346,21 +348,22 @@ public class LocalJobRunner extends AbstractJobRunner
                     getOutputFiles().clear();
                     getOutputFinished().clear();
                 
-                    /* Update sets of output files for all jobs */
+                    /* Find out how many files are finished and write message to log file
+                     (Used to also update sets of output files for all jobs) */
                     updateOutputFiles(instance.getMasterJob());                    
                     for (Job subJob : instance.getSubJobs()) updateOutputFiles(subJob);
                                         
                     // Report numbers if different from last time
                     if (numOutputFiles!=prevNumOutputFiles)
-                        log.debug("Total No. of downloadable output files is " +  numOutputFiles);
+                        log.info("Total No. of downloadable output files is " +  numOutputFiles);
                     prevNumOutputFiles = numOutputFiles;
                     //
                     numOutputFinished = getOutputFinished().size();
                     if (numOutputFinished!=prevNumOutputFinished)
-                        log.info("No. of finished files is " +  numOutputFinished);
+                        log.debug("No. of finished files is " +  numOutputFinished);
                     prevNumOutputFinished = numOutputFinished;
                                                                             
-                 } while (!instance.isFinished());
+                 } while (numOutputFiles>0);
             }
             catch (InterruptedException ie) {}
             catch (Exception ex) {
@@ -370,8 +373,10 @@ public class LocalJobRunner extends AbstractJobRunner
               
        
         /**
-         * Maintains sets of output files, including the set of all output files
-         * and the set of files that have finished being writted to.
+         * This used to maintain sets of output files, including the set of all output files
+         * and the set of files that have finished being writted to.  These sets
+         * are no longer used but the methods have been retained to provide
+         * useful job progress information in the server.log file.
         */
         public void updateOutputFiles(Job job)
         {            
@@ -429,7 +434,10 @@ public class LocalJobRunner extends AbstractJobRunner
                         if (maxTime >= 0 && time > maxTime) {
                             //log.debug("Time since last write to " + opFile.getFile().getName() +
                             //        " is " + time + " ms. Maximum is " + maxTime + "ms (" + opFile.deleteAfter() + "min)");
-                            addFinishedFile(opFile);
+                            /* The outputFinished set is no longer used.  There is no need for this set
+                             because the threads involved in file downloads from client can decide themselves
+                             whether or not output to the file has finished. */
+                            //addFinishedFile(opFile);
                         }
                         
                     }
@@ -449,5 +457,15 @@ public class LocalJobRunner extends AbstractJobRunner
         this.proc.destroy();
         this.saveInstance();
     }
+
+    /* Decides whether or not output to a file has finished. */
+    public boolean isOutputFinished(OutputFile opFile) {
+        long maxTime=opFile.deleteAfter()*60*1000; // Convert time in minutes to milliseconds
+        long now = new Date().getTime();
+        long time = now - opFile.getFile().lastModified();            
+        if (maxTime >= 0 && time > maxTime)  return true;
+        else return false;
+    }
+    
     
 }
