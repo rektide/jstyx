@@ -65,7 +65,7 @@ public class Job
     // files that are being downloaded and files that are ready to download.
     // This should be a number bigger than GRexServiceInstanceClient.maxSimultaneousDownloads
     // so the client always sees some files that are not already being downloaded
-    private static final int MAX_FILES = 120;
+    private static final int MAX_FILES = 250;
     
     // Contains the names and values of all parameters that are set on this sub-job
     private Map<String, String> params = new HashMap<String, String>();

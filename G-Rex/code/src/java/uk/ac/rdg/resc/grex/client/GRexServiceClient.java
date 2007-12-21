@@ -74,8 +74,20 @@ public class GRexServiceClient
     private String host;
     private int port;
     
-    // Maximum number of downloader threads per service instance
-    public static int maxSimultaneousDownloads = 60;
+    /* Maximum number of downloader threads per service instance.
+     * The value of maxSimultaneousDownloads must always be less than
+     * Job.MAX_FILES, because this is the maximum number of downloadable output files the
+     * server tells the client about.  It is important for the list of files
+     * sent to the client to contain at least some files that are not already
+     * being downloaded.  This ensures that as soon as a slot for a downloader
+     * thread becomes available a new downloader can be allocated to a file
+     * immediately.  The order of the files in the list sent to the client is in
+     * no particular order, so if the size of the list were smaller than the
+     * number of downloaders it would be possible for it to contain only files
+     * already being downloaded.  This could allow downloadable files to
+     * accumulate on the server simply because the server hadn't told the
+     * client about them. */
+    public static int maxSimultaneousDownloads = 120;
     
     // Maximum number of downloader threads in total. This is used to set
     // two parameters of the HTTP connection manager object: the maximum number
@@ -98,7 +110,7 @@ public class GRexServiceClient
     // all service instances to share.  If this feature were implemented, each service
     // instance would return a
     // connection to the pool when it was no longer needed.
-    public static int maxTotalSimultaneousDownloads = 180; 
+    public static int maxTotalSimultaneousDownloads = 360; 
     
     // Authentication information    
     private String user;
