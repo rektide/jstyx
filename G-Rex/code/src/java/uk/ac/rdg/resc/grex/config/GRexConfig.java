@@ -33,6 +33,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.logging.Log;
@@ -40,8 +41,8 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import simple.xml.Element;
 import simple.xml.ElementList;
+import simple.xml.Attribute;
 import simple.xml.Root;
 import simple.xml.load.PersistenceException;
 import simple.xml.load.Persister;
@@ -67,6 +68,8 @@ public class GRexConfig implements ApplicationContextAware
     private static final String DEFAULT_HOME_DIRECTORY =
         System.getProperty("user.home") + System.getProperty("file.separator") + ".grex";
     private static final String DEFAULT_CONFIG_FILENAME = "GRexConfig.xml";
+    private static final String GREX_HOME_VARIABLE = "GREX_HOME";
+    private static final String UNSPECIFIED = "Unspecified";
     
     /**
      * The name of the directory that will contain configuration information
@@ -87,10 +90,25 @@ public class GRexConfig implements ApplicationContextAware
      * database of service instances and all the working directories of 
      * the instances.  Defaults to $HOME/.grex
      */
-    @Element(name="homeDirectory", required=false)
+    @Attribute(name="grex-home", required=false)
     private String homeDirectoryStr = DEFAULT_HOME_DIRECTORY;
     private File homeDirectory; // Home directory will be made into a File in validate()
+    
+    /**
+     *The home directory for the instances store. This will very often be different
+     *to the G-Rex server home because the Berkeley database software does not
+     *work with NFS.  Therefore the db directory has to be on a local partition
+     */
+    @Attribute(name="instances-store-home", required=false)
+    private String instancesStoreHome = UNSPECIFIED;
     private File instancesStoreDirectory;
+        
+    /**
+     *The home directory for the working directories. This may need to be different
+     *to the G-Rex server home in some cases.
+     */
+    @Attribute(name="master-working-home", required=false)
+    private String masterWorkingHome = UNSPECIFIED;
     private File masterWorkingDirectory;
     
     /**
@@ -134,34 +152,40 @@ public class GRexConfig implements ApplicationContextAware
         File confFile = new File(confDir, DEFAULT_CONFIG_FILENAME);
         if (!confFile.exists())
         {
-            // We have to create this file and its parent directories
-            confDir.mkdirs();
-            // Look for the default config file in the classpath
-            InputStream in = Thread.currentThread().getContextClassLoader()
-                .getResourceAsStream(DEFAULT_CONFIG_FILENAME);
-            if (in == null)
-            {
-                throw new FileNotFoundException("Cannot find " + DEFAULT_CONFIG_FILENAME
-                    + " in the CLASSPATH");
-            }
-            OutputStream out = new FileOutputStream(confFile);
-            try
-            {
-                log.debug("Copying config information from classpath to " +
-                    confFile.getPath());
-                int len;
-                byte[] buf = new byte[8192];
-                while ((len = in.read(buf)) >= 0)
+            // Now try path in GREX_HOME environment variable
+            confDir = new File(System.getenv(GREX_HOME_VARIABLE), CONFIG_DIRECTORY_NAME);
+            confFile = new File(confDir, DEFAULT_CONFIG_FILENAME);
+            if (!confFile.exists()) {                        
+                // We have to create this file and its parent directories
+                confDir.mkdirs();
+                // Look for the default config file in the classpath
+                InputStream in = Thread.currentThread().getContextClassLoader()
+                    .getResourceAsStream(DEFAULT_CONFIG_FILENAME);
+                if (in == null)
                 {
-                    out.write(buf, 0, len);
+                    throw new FileNotFoundException("Cannot find " + DEFAULT_CONFIG_FILENAME
+                        + " in the CLASSPATH");
                 }
-            }
-            finally
-            {
-                in.close();
-                out.close();
-            }
+                OutputStream out = new FileOutputStream(confFile);
+                try
+                {
+                    log.debug("Copying config information from classpath to " +
+                        confFile.getPath());
+                    int len;
+                    byte[] buf = new byte[8192];
+                    while ((len = in.read(buf)) >= 0)
+                    {
+                        out.write(buf, 0, len);
+                    }
+                }
+                finally
+                {
+                    in.close();
+                    out.close();
+                }
+            }            
         }
+        
         GRexConfig config = new Persister().read(GRexConfig.class, confFile);
         log.debug("Loaded configuration from " + confFile.getPath());
         return config;
@@ -203,6 +227,30 @@ public class GRexConfig implements ApplicationContextAware
     {
         return this.homeDirectory;
     }
+
+    /**
+     * @return the home directory path string for this G-Rex server.
+     */
+    public String getHomeDirectoryStr()
+    {
+        return this.homeDirectoryStr;
+    }
+
+    /**
+     * @return the home directory path string for the instances store.
+     */
+    public String getInstancesStoreHome()
+    {
+        return this.instancesStoreHome;
+    }
+
+    /**
+     * @return the home directory path string for the working directories.
+     */
+    public String getMasterWorkingHome()
+    {
+        return this.masterWorkingHome;
+    }
     
     /**
      * @return a List of users that have access to the system
@@ -220,15 +268,29 @@ public class GRexConfig implements ApplicationContextAware
     @Validate
     public void validate() throws PersistenceException
     {
-        // Now create the home directory
+        // Now create the home directory if it does not exists
         this.homeDirectory = new File(this.homeDirectoryStr);
-        mkdir(this.homeDirectory);
+        if (!homeDirectory.exists()) {
+            log.debug("Creating " + this.homeDirectoryStr);
+            mkdir(this.homeDirectory);
+        }
+        
+        /* If the instance store directory and working directory home paths have
+         *not been specified in the GRexConfig.xml file set these to the
+         *G-Rex home directory
+         */
+        if (this.instancesStoreHome.equals(UNSPECIFIED)) {
+            this.instancesStoreHome = this.homeDirectoryStr;
+        }
+        if (this.masterWorkingHome.equals(UNSPECIFIED)) {
+            this.masterWorkingHome = this.homeDirectoryStr;
+        }
         
         // Create the directories for the database and the working directories
-        this.instancesStoreDirectory = new File(this.homeDirectory,
+        this.instancesStoreDirectory = new File(this.instancesStoreHome,
             INSTANCES_STORE_DIRECTORY_NAME);
         mkdir(this.instancesStoreDirectory);
-        this.masterWorkingDirectory = new File(this.homeDirectory,
+        this.masterWorkingDirectory = new File(this.masterWorkingHome,
             WORKING_DIRECTORY_NAME);
         mkdir(this.masterWorkingDirectory);
         
