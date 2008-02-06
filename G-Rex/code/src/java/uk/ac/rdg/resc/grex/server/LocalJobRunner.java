@@ -92,44 +92,48 @@ public class LocalJobRunner extends AbstractJobRunner
                 " of service " + this.instance.getServiceName() + ", command = \"" + cmdLine + "\"");
             
             // Start the process running, setting the working directory
-            this.proc = Runtime.getRuntime().exec(cmdLine, null, wdFile);
-            log.debug("Process started");
-            
-            // Update the state of the instance
-            this.instance.setState(Job.State.RUNNING);
+            log.debug("Checking " + wdFile.getPath());
+            if (!wdFile.exists())
+                log.error(wdFile.getPath() + " does not exist!");
+            else {
+                this.proc = Runtime.getRuntime().exec(cmdLine, null, wdFile);
+                log.debug("Process started");
+                        
+                // Update the state of the instance
+                this.instance.setState(Job.State.RUNNING);
            
-            // Start a thread that waits for the process to finish and grabs the
-            // exit code
-            new WaitProcess().start();
+                // Start a thread that waits for the process to finish and grabs the
+                // exit code
+                new WaitProcess().start();
         
-            // Start a thread that redirects the standard input data to the process
-            File stdinFile = new File(wdFile, STDIN);
-            // TODO: should we check at an earlier stage whether this exists?
-            if (stdinFile.exists())
-            {
-                FileInputStream fin = new FileInputStream(stdinFile);
-                new RedirectStream(fin, this.proc.getOutputStream(), STDIN).start();
-            }
+                // Start a thread that redirects the standard input data to the process
+                File stdinFile = new File(wdFile, STDIN);
+                // TODO: should we check at an earlier stage whether this exists?
+                if (stdinFile.exists())
+                {
+                    FileInputStream fin = new FileInputStream(stdinFile);
+                    new RedirectStream(fin, this.proc.getOutputStream(), STDIN).start();
+                }
 
-            // Start threads to consume the output streams
-            File stdoutFile = new File(wdFile, STDOUT);
-            File stderrFile = new File(wdFile, STDERR);
-            new RedirectStream(this.proc.getInputStream(),
-                new FileOutputStream(stdoutFile), STDOUT).start();
-            new RedirectStream(this.proc.getErrorStream(),
-                new FileOutputStream(stderrFile), STDERR).start();
+                // Start threads to consume the output streams
+                File stdoutFile = new File(wdFile, STDOUT);
+                File stderrFile = new File(wdFile, STDERR);
+                new RedirectStream(this.proc.getInputStream(),
+                    new FileOutputStream(stdoutFile), STDOUT).start();
+                new RedirectStream(this.proc.getErrorStream(),
+                    new FileOutputStream(stderrFile), STDERR).start();
             
-            // Start thread to find out which output files or downloadable. Set the
-            // checking interval in milliseconds
-            new CheckOutputFiles(30000).start();
-             
+                // Start thread to find out which output files or downloadable. Set the
+                // checking interval in milliseconds
+                new CheckOutputFiles(30000).start();             
+            }
         }
         catch(FileNotFoundException fnfe)
         {
             // Unlikely to happen
             log.error("Can't create file for output stream", fnfe);
             // TODO: save the error message
-            this.instance.setState(Job.State.ERROR);
+                this.instance.setState(Job.State.ERROR);
         }
         catch(IOException ioe)
         {
