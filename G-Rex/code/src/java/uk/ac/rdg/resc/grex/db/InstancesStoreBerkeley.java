@@ -174,11 +174,13 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
             }
             
             // Create the working directory
-            boolean success = instanceWd.mkdirs();
-            if (!success)
-            {
-                throw new DatabaseException("Error creating working directory "
-                    + instanceWd.getPath() + " for instance " + id);
+            if (!instanceWd.exists()) {
+                boolean success = instanceWd.mkdirs();            
+                if (!success)
+                {
+                    throw new DatabaseException("Error creating working directory "
+                        + instanceWd.getPath() + " for instance " + id);
+                }
             }
             
             // Update the instance with the new working directory
