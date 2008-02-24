@@ -70,8 +70,9 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
                                 // using <remoteShell> <jobManagerCommand>.  For example:
                                 // ssh gorgon qstat
     
-    @Attribute(name="remote-work-path", required=false)
-    private String remoteWorkPath=""; // The path to the working directories on the remote host (if any) 
+    @Attribute(name="service-dir", required=false)
+    private String serviceDirName=""; // The path to the working directories for this service,
+                                       //if different to the default directory which will be created by GRexConfig.validate()
     
     @Attribute(name="persistent-dir", required=false)
     private String persistentDirName=""; // A persistent working directory to be used instead of the temporary one (if specified in GRexConfig.xml)
@@ -122,6 +123,11 @@ public class GridServiceConfigForServer extends GridServiceConfigForClient
     public String getPersistentDirName()
     {
         return persistentDirName;
+    }
+
+    public String getServiceDirName()
+    {
+        return serviceDirName;
     }
 
     public List<Option> getOptions()

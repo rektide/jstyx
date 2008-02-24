@@ -349,11 +349,26 @@ public class GRexConfig implements ApplicationContextAware
             // Create a working directory for this service
             File wdForService;
             
-            if (gs.getPersistentDirName()=="") {
-                wdForService = new File(this.masterWorkingDirectory, name);
+            /* Find out if a persistent working directory has been specified for
+             * instances of this service.  If not create a directory to house
+             * automatically generated directory names numbered according to
+             * service instance ID
+             */
+            if (gs.getPersistentDirName()=="") {                
+                /* No persistent working directory has been specified.
+                 Now Find out whether an alternative working directory for this service
+                *has been specified in GRexConfig.xml.  If not use this.masterWorkingDirectory
+                */
+                if (gs.getServiceDirName()=="") {
+                    wdForService = new File(this.masterWorkingDirectory, name);
+                }
+                else wdForService = new File(gs.getServiceDirName());
+                log.debug("Directory for service = " + wdForService.getPath());
             }
-            else wdForService = new File(gs.getPersistentDirName());
-            log.debug("Directory for service = " + wdForService.getPath());
+            else {
+                wdForService = new File(gs.getPersistentDirName());
+                log.debug("Persistent directory for all instances of this service = " + wdForService.getPath());
+            }
              
             //wdForService = new File(this.masterWorkingDirectory, name);
             gs.setWorkingDirectory(wdForService);
