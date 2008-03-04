@@ -349,8 +349,31 @@ public class Job
             String pattern = op.getName();
             if (op.getLinkedParameterName() != null)
             {
-                // The pattern to match comes from the value of this parameter
-                pattern = this.getParamValue(op.getLinkedParameterName());
+                /*
+                 *The pattern to match comes from the value of this parameter.
+                 *Additional characters may have been specified before and after
+                 *the parameter identifier (i.e. ${<paramName>}) in GRexConfig.xml,
+                 *wildcards for example, e.g. "*${<paramName>}.dat"
+                 */
+                int i1 = op.getName().indexOf("${");
+                int i2 = op.getName().indexOf("}");
+                // First add any characters preceding the parameter identifier.
+                if (i1>0) {
+                    // One or more preceding characters has been specified
+                    pattern = op.getName().substring(0,i1);
+                    pattern = pattern.concat(this.getParamValue(op.getLinkedParameterName()));
+                }
+                else {
+                    // No preceding characters specified
+                    pattern = this.getParamValue(op.getLinkedParameterName());                    
+                }
+                // Now add any characters after the parameter identifier
+                if (i2 < op.getName().length()-1) {
+                    // One or more characters after parameter ID have been specified
+                    pattern = pattern.concat(op.getName().substring(i2+1));
+                }
+                //log.debug("Output " + op.getName() + " is linked to parameter " + op.getLinkedParameterName());
+                //log.debug("Output file pattern derived from linked parameter is " + pattern);
             }
             PathMatcher pathMatcher = new AntPathMatcher();
             if (pathMatcher.match(pattern, relativeFilePath))
