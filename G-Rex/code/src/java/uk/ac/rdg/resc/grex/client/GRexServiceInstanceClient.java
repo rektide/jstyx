@@ -438,14 +438,14 @@ public class GRexServiceInstanceClient
                     {                        
                         if (outFile.isReadyForDownload()) {
                             
-                            // Start download thread for this file if necessary
-                            //if (!filesBeingDownloaded.contains(outFile.getRelativePath()) &&
-                            //!filesAlreadyDownloaded.contains(outFile.getRelativePath())) {
+                            /* Start download thread for this file if necessary
+                             */
+                            File fout = new File(outFile.getRelativePath());                                              
+                            //if (!filesBeingDownloaded.contains(outFile.getRelativePath()) && !fout.exists()) {
                             if (!filesBeingDownloaded.contains(outFile.getRelativePath())) {
                                 if (filesBeingDownloaded.size() < maxSimultaneousDownloads) {
                                     /* Calculate difference between size of file on server
                                     * and size of file at client */
-                                    File fout = new File(outFile.getRelativePath());                                              
                                     bytesClient = fout.getCanonicalFile().length();
                                     bytesServer = outFile.getFileLengthBytes();
                                     bytesToDownload=bytesServer-bytesClient;
