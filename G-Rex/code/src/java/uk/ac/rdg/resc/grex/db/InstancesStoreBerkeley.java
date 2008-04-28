@@ -165,7 +165,11 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
             
             // If the directory already exists and we are not using a persistent
             // working directory, rename the directory to be deleted later.
-            oldInstanceWdNewName = new File(instanceWd.getPath() + "-old");
+            int oldDirs=0;                
+            do {
+                oldInstanceWdNewName = new File(instanceWd.getPath() + "-old" + oldDirs++);
+            }
+            while (oldInstanceWdNewName.exists());
             if (instanceWd.exists()) {
                 if (instance.getPersistentDirName()=="") {
                     oldInstanceWd = new File(instanceWd.getPath());
@@ -191,8 +195,11 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
             txn.commit();
             
             // Delete the old working directory if one was found
+            /* Recursive deletion of directories is dangerous because Java follows symbolic
+             * links and there is no easy way to detect them.
+             */
             if (oldInstanceWdNewName.exists()) {
-                deleteDir(oldInstanceWdNewName);
+                deleteDirNonRecursive(oldInstanceWdNewName);
             }
             
             return id;
@@ -219,6 +226,8 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
      * Recursive method for deleting a directory and its contents.  (The argument
      * can also represent a file)
      * @return true if the deletion was successful, false otherwise
+     * TODO Prevent symbolic links being followed - very dangerous.  Find a way
+     * to delete the link, not the directory the link points to.
      */
     private static boolean deleteDir(File dir)
     {
@@ -236,6 +245,32 @@ public class InstancesStoreBerkeley implements GRexServiceInstancesStore
                 }
             }
         }
+        return dir.delete();
+    }
+    
+    /**
+     * Non-recursive method for deleting a directory and its contents.
+     *As this method is non recursive, non-empty sub-directories will not be
+     *deleted
+     */
+    private static boolean deleteDirNonRecursive(File dir)
+    {
+        log.debug("Deleting contents of " + dir.getPath());
+        if (dir.isDirectory())
+        {
+            /* Delete contents of directory */
+            for (String file : dir.list())
+            {
+                File theFile = new File(dir, file);
+                boolean success = theFile.delete();
+                if (!success)
+                {
+                    log.debug("Error deleting " + theFile.getAbsolutePath());
+                }
+            }
+        }
+        /* Now delete the directory.  Will not work if directory still contains
+         *files or subdirectories */
         return dir.delete();
     }
     
