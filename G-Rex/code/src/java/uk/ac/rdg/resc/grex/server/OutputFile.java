@@ -29,13 +29,11 @@
 package uk.ac.rdg.resc.grex.server;
 
 import java.io.File;
-import java.util.zip.Checksum;
 import java.util.Date;
-import java.lang.Number;
-import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 import uk.ac.rdg.resc.grex.db.Job;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import uk.ac.rdg.resc.grex.db.GRexServiceInstance;
 
 /**
  * Java Bean representing an output file that belongs to a service instance and
@@ -50,7 +48,7 @@ import org.apache.commons.logging.LogFactory;
  * $Date$
  * $Log$
  */
-public class OutputFile implements Comparable
+public class OutputFile
 {
     private String relativePath; // Path relative to the working directory of the instance
     private File file; // underlying File
@@ -58,7 +56,7 @@ public class OutputFile implements Comparable
     private boolean appendOnly;
     private int deleteAfter;
     private static long INITIAL_CHECKSUM=0;
-
+    
     private static final Log log = LogFactory.getLog(OutputFile.class);
     
     /**
@@ -76,15 +74,43 @@ public class OutputFile implements Comparable
         this.appendOnly = appendOnly;
         this.deleteAfter = deleteAfter;
     }
-    
+        
     /**
-     * @return true if the file can be downloaded immediately, which will be the
-     * case if this is an append-only file, if the service instance has finished
-     * or if this is one of the standard streams (stdout or stderr).
+     * @return true if the file can be downloaded immediately (which will be the
+     * case if this is an append-only file or if output to the file has finished),
+     * or if the service instance has finished.
      */
     public boolean isReadyForDownload()
+    {        
+       return this.appendOnly || this.isOutputFinished() || this.job.isFinished() ;
+    }
+        
+    /**
+     * @return true if output to the file has finished.
+     *The method for determining whether or not output to a file has finished
+     *is dependent on what type of service this is.  Currently the method
+     *is only defined for services of type "sge" and "local", which is why the
+     *default value for outputFinished is false.
+     *
+     */
+    public boolean isOutputFinished()
     {
-        return this.appendOnly || this.job.isFinished();
+        boolean outputFinished = false;
+        //log.debug("Checking " + this.getRelativePath() + " to find out if output has finished");
+
+        String serviceType = this.getJob().getInstance().getGridServiceConfig().getType();
+        if (serviceType.equals("sge") || serviceType.equals("local")) {
+            //log.debug("Service type = " + serviceType);
+            long maxTime=this.deleteAfter()*60*1000; // Convert time in minutes to milliseconds
+            long now = new Date().getTime();
+            long time = now - this.getFile().lastModified();            
+            if (maxTime >= 0 && time > maxTime) {
+                outputFinished=true;
+                //log.debug("Time since last write to " + this.getRelativePath() + " = " + time + "ms.  Output to the file has finished");
+            }
+        }
+        
+        return outputFinished;
     }
     
     /**
@@ -97,8 +123,11 @@ public class OutputFile implements Comparable
     }
     
     /**
-     * @return true if the file is known to be "append-only", meaning that it 
-     * can be partially downloaded before the service has completed.
+     * @return the number of minutes since the last modification after which
+     * output to the file is considered to have finished.  This value is defined
+     * in GRexConfig.xml.  Note that this parameter is currently used for
+     * service types "local" and "sge", but other job types (not yet written)
+     * may use a different method for deciding whether or not output to a file has finished.
      */
     public int deleteAfter()
     {

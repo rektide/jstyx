@@ -183,9 +183,9 @@ public abstract class AbstractJobRunner implements JobRunner
     /* Decides whether or not output to a file has finished.
       The method for doing this depends on the type of job runner,
      so this version simply returns false. */
-    public boolean isOutputFinished(OutputFile opFile) {
-        return false;
-    }
+    //public boolean isOutputFinished(OutputFile opFile) {
+    //    return false;
+    //}
     
     
 }

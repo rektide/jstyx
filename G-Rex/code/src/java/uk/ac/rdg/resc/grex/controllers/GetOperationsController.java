@@ -260,7 +260,11 @@ public class GetOperationsController extends AbstractGRexController
         String filePath = this.getFilePath(request.getRequestURI());
         File fileToDownload = new File(instance.getWorkingDirectory(), filePath);
         
-        // Check that this file is ready to be downloaded
+        /* Check that the file exists and can be downloaded.  The client should
+         *not try to download this file unless both are true.
+         The file is ready to be downloaded if it is append-only, if the job
+         * it is associated with has finished or if output to the file has finished.
+         */
         OutputFile opFile = instance.getMasterJob().getOutputFile(filePath);
         if (opFile == null || !opFile.isReadyForDownload())
         {
@@ -268,9 +272,9 @@ public class GetOperationsController extends AbstractGRexController
             return;
         }
         
-        // Set the content-length in the file header if this is not a stream, or
-        // if the instance has finished
-        if (!opFile.isAppendOnly() || instance.isFinished())
+        // Set the content-length in the file header if this is not a stream, 
+        // if the instance has finished or if output to the file has finished
+        if (!opFile.isAppendOnly() || instance.isFinished() || opFile.isOutputFinished())
         {
             // Why won't setContentLength() accept a long integer?
             response.setContentLength((int)opFile.getLengthBytes());
@@ -302,7 +306,8 @@ public class GetOperationsController extends AbstractGRexController
                  */
                 //SortedSet<OutputFile> outputFinished = this.jobRunnerFactory.getRunnerForInstance(instance).getOutputFinished();
                 //isOutputFinished = outputFinished.contains(opFile);
-                isOutputFinished = this.jobRunnerFactory.getRunnerForInstance(instance).isOutputFinished(opFile);
+                //isOutputFinished = this.jobRunnerFactory.getRunnerForInstance(instance).isOutputFinished(opFile);
+                isOutputFinished = opFile.isOutputFinished();
                 if (isOutputFinished ==true)
                     log.debug("Output to " + opFile.getFile().getName() + " has finished. Reading to end of file...");
                                 
@@ -327,10 +332,10 @@ public class GetOperationsController extends AbstractGRexController
                 }
             } while (!done);
             
-            /* Now delete the file.  This should really be initiated by the client */
+            /* Now delete the file.  Deletion should really be initiated by the client */
             //log.debug("Deleting file " + opFile.getFile().getName());
             if (!opFile.getFile().delete())
-                log.error("Error deleting file " + opFile.getFile().getName());
+                    log.error("Error deleting file " + opFile.getFile().getName());
         }
         catch(FileNotFoundException fnfe)
         {

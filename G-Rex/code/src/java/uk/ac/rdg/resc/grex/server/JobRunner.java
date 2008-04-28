@@ -117,5 +117,5 @@ public interface JobRunner
     // TODO
     
     /* Decides whether or not output to a file has finished */
-    public boolean isOutputFinished(OutputFile opFile);
+    //public boolean isOutputFinished(OutputFile opFile);
 }

@@ -319,8 +319,8 @@ public class LocalJobRunner extends AbstractJobRunner
     
     
     /*
-     Thread that periodically checks the last modified time for output files to
-     find out which can be deleted. The outputFiles and outputFinished sets are
+     Thread that periodically counts the number of output files.
+     The outputFiles and outputFinished sets are
      no longer used (see comments regarding updateOutputFiles method) but the
      CheckOutputFiles thread has been retained because it writes useful job
      progress information to the server.log file. */
@@ -346,11 +346,10 @@ public class LocalJobRunner extends AbstractJobRunner
                     
                     // Make sure our view of the instance is up to date
                     instance = instancesStore.getServiceInstanceById(instance.getId());
-                    
-                    // First delete all the existing elements in the set of all output
-                    // files and the set of finished files
-                    getOutputFiles().clear();
-                    getOutputFinished().clear();
+                                        
+                    // These lists are no longer being updated so no need to clear them
+                    //getOutputFiles().clear();
+                    //getOutputFinished().clear();
                 
                     /* Find out how many files are finished and write message to log file
                      (Used to also update sets of output files for all jobs) */
@@ -385,10 +384,10 @@ public class LocalJobRunner extends AbstractJobRunner
         public void updateOutputFiles(Job job)
         {            
             
-            // Add output files belonging to this job.  The
-            // addCurrentOutputFiles method recursively descends the directory
+            // Check output files belonging to this job.  The
+            // checkCurrentOutputFiles method recursively descends the directory
             // structure in the working directory.
-            addCurrentOutputFiles("", getOutputFiles(), job);
+            checkCurrentOutputFiles("", getOutputFiles(), job);
             
         }
     
@@ -399,7 +398,7 @@ public class LocalJobRunner extends AbstractJobRunner
         * If relativeDirPath is not the empty string, it must end with a forward
         * slash (irrespective of operating system).
         */
-        private void addCurrentOutputFiles(String relativeDirPath, SortedSet<OutputFile> files, Job job)
+        private void checkCurrentOutputFiles(String relativeDirPath, SortedSet<OutputFile> files, Job job)
         {
             File dir = new File(job.getWorkingDirectoryFile(), relativeDirPath);
             //log.debug("Working directory of job: " + dir.getPath());
@@ -413,7 +412,7 @@ public class LocalJobRunner extends AbstractJobRunner
                     // recursively call this method
                     // We must always use forward slashes even on Windows for the
                     // pattern matching in getOutputFile() to work
-                    addCurrentOutputFiles(relativePath + "/", files, job);
+                    checkCurrentOutputFiles(relativePath + "/", files, job);
                 }
                 else
                 {
@@ -423,27 +422,7 @@ public class LocalJobRunner extends AbstractJobRunner
                         numOutputFiles++;
                         //files.add(opFile);
                         //log.debug("Downloadable file " + opFile.getFile().getName() + 
-                        //        " will be finished " + opFile.deleteAfter() + " mins after last write");
-                        /*
-                        Decide whether output to file has finished
-                        */
-                        long maxTime=opFile.deleteAfter()*60*1000; // Convert time in minutes to milliseconds
-                        long now = new Date().getTime();
-                        long time = now - opFile.getFile().lastModified();            
-                        /* If time since last modified is longer than a certain maximum
-                        then output must have finished.  If so, add file name to list of
-                         finished files in the master job object. A negative value of
-                         maxTime means that the file should not be deleted until the
-                         end of the job. */
-                        if (maxTime >= 0 && time > maxTime) {
-                            //log.debug("Time since last write to " + opFile.getFile().getName() +
-                            //        " is " + time + " ms. Maximum is " + maxTime + "ms (" + opFile.deleteAfter() + "min)");
-                            /* The outputFinished set is no longer used.  There is no need for this set
-                             because the threads involved in file downloads from client can decide themselves
-                             whether or not output to the file has finished. */
-                            //addFinishedFile(opFile);
-                        }
-                        
+                        //        " will be finished " + opFile.deleteAfter() + " mins after last write");                        
                     }
                 }
             }
@@ -460,15 +439,6 @@ public class LocalJobRunner extends AbstractJobRunner
         this.instance.setState(Job.State.ABORTED);
         this.proc.destroy();
         this.saveInstance();
-    }
-
-    /* Decides whether or not output to a file has finished. */
-    public boolean isOutputFinished(OutputFile opFile) {
-        long maxTime=opFile.deleteAfter()*60*1000; // Convert time in minutes to milliseconds
-        long now = new Date().getTime();
-        long time = now - opFile.getFile().lastModified();            
-        if (maxTime >= 0 && time > maxTime)  return true;
-        else return false;
     }
     
     

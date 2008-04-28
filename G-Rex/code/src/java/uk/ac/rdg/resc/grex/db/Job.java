@@ -83,8 +83,6 @@ public class Job
     private Integer exitCode = null; // Will be set when the job has finished
     
     private transient GRexServiceInstance instance; // The instance to which this job belongs
-
-    //private SortedSet<OutputFile> g;
     
     // WARNING!  The state is stored in the database as an index number, not a string
     // so if you add a new state to the start or middle of this list the indices
